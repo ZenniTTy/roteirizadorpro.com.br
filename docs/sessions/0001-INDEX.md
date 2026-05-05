@@ -24,4 +24,5 @@ Every new session log file follows `0000-template.md` as its skeleton.
 
 ## Sessions
 
+- [2026-05-05-02 — claude-md-rewrite](./2026-05-05-02-claude-md-rewrite.md) — Rewrote CLAUDE.md to comply with Karpathy's four principles and Anthropic's official Claude Code best practices; migrated detail-heavy sections into focused docs.
 - [2026-05-05-01 — bootstrap-claude-md](./2026-05-05-01-bootstrap-claude-md.md) — Initial repo bootstrap: stack validation via Context7, CLAUDE.md authored, sessions and decisions structure created.
