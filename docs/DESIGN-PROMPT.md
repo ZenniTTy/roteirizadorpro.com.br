@@ -202,7 +202,7 @@ Design ALL 12 screens below. Each screen must be a realistic Android mobile fram
 - Handle bar at top
 - Small lock icon in primary-light circle at top center of sheet
 - Heading: "Desbloqueie a navegação" in heading-lg, centered
-- Subtext: "Assine e comece a navegar agora" in text-secondary, centered
+- Subtext: "Pague uma vez, use por 30 dias" in text-secondary, centered
 - Price block (centered, with subtle purple border card):
   - "R$ 25,90" in heading-xl, primary purple
   - "/mês via Pix" in body-sm text-secondary below
@@ -211,6 +211,13 @@ Design ALL 12 screens below. Each screen must be a realistic Android mobile fram
   - ✓ Otimização sentido casa
   - ✓ Suporte prioritário
 - "Pagar com Pix" primary button full width, purple, Pix logo icon left
+- Fine print below button: "Acesso por 30 dias. Não há renovação automática." in body-sm text-secondary
+
+**IMPORTANT — Do NOT include:**
+- No "Cancelar" button
+- No "Gerenciar assinatura" link
+- No trial period text
+- No "cancel anytime" copy
 
 **Second state (after tapping "Pagar com Pix" — show as inset):**
 - QR Code centered (white square with black QR pattern, purple border)
@@ -235,7 +242,10 @@ Design ALL 12 screens below. Each screen must be a realistic Android mobile fram
 **CONTA**
 - "E-mail" row: email address right
 - "Alterar senha" row
-- "Minha assinatura" row: "Ativa até 05/06/2026" in success green right + chevron
+
+**MINHA ASSINATURA**
+- "Status" row: "Ativa até 05/06/2026" in success green (or "Sem assinatura ativa" in text-secondary if inactive)
+- This section is READ-ONLY. No cancel button. No manage button. No chevron.
 
 **SOBRE O APP**
 - "Versão" row: "1.0.0" right
@@ -244,6 +254,12 @@ Design ALL 12 screens below. Each screen must be a realistic Android mobile fram
 
 **Bottom (danger zone):**
 - "Sair da conta" in error red, left-aligned, no chevron
+
+**IMPORTANT — Do NOT include:**
+- No "Cancelar assinatura" row
+- No "Gerenciar assinatura" row
+- No "Renovar" button
+- The subscription section shows only status + expiry date, nothing clickable
 
 ---
 

@@ -252,36 +252,45 @@ App
 
 ### S10 — Subscription / Paywall
 
-**Purpose:** Convert free users without hard blocking core functionality.
+**Purpose:** Convert free users at the exact moment of maximum motivation.
 
-**Spoke model:** Soft paywall — user can try core features, paywall appears when limits are hit (>10 stops) or from menu.
+**Trigger:** User taps "Iniciar Navegação" without an active subscription.
 
-**Roteirizador Pro model:** Different — "Iniciar Navegação" is the gate. User can add stops and optimize freely, but navigation is locked.
+**Roteirizador Pro model:** "Iniciar Navegação" is the gate. User can add stops and optimize freely. Navigation is locked. No cancellation option exists anywhere in the app.
 
 **Elements:**
-- Clear value prop headline: "Entregue mais, termine mais cedo"
+- Clear value prop headline: "Desbloqueie a navegação"
+- Subtext: "Pague uma vez, use por 30 dias"
 - Price: R$ 25,90/mês
 - Payment method: Pix only
 - "Pagar com Pix" primary CTA button
-- After tap: Pix QR Code + copy-paste code + "Já paguei" button
-- Social proof (optional): subscriber count or testimonial
+- After tap: Pix QR Code + copy-paste code + "Já paguei" ghost button
+- Small fine print: "Acesso liberado por 30 dias após o pagamento. Não há renovação automática."
 
-**UX pattern:** The paywall appears exactly when the user wants to navigate — maximum motivation moment.
+**What is NOT shown:**
+- No "cancel" button anywhere
+- No "manage subscription" link
+- No trial offer
+
+**UX pattern:** The paywall appears exactly when the user wants to navigate — maximum motivation moment. Clean and direct.
 
 ---
 
 ### S11 — Settings
 
-**Purpose:** Configure the app to match user preferences.
+**Purpose:** Configure the app. Subscription is read-only here — no management actions.
 
 **Sections:**
-- **Navigation:** Default GPS app (Waze / Google Maps)
-- **Home point:** Save home address (sentido casa feature)
-- **Account:** Email, change password, logout
-- **Subscription:** Status, manage, cancel
-- **About:** Version, privacy policy link, contact/support
+- **NAVEGAÇÃO:** Default GPS app (Waze / Google Maps)
+- **ROTA:** Home point (sentido casa address)
+- **CONTA:** Email, change password, logout
+- **MINHA ASSINATURA:** Status + expiry date, read-only. No cancel button, no manage button. If active: "Ativa até DD/MM/AAAA" in success green. If inactive: "Sem assinatura ativa" in text-secondary.
+- **SOBRE O APP:** Version, privacy policy link, support
 
-**UX pattern:** Standard settings screen. No visual complexity. Grouped sections.
+**Rules:**
+- No "Cancelar assinatura" row anywhere on this screen.
+- No "Gerenciar assinatura" row.
+- Subscription section is purely informational.
 
 ---
 

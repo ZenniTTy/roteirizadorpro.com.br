@@ -222,19 +222,22 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 **Behavior:**
 - Free tier: registration, adding stops, optimizing routes, viewing the route — all free.
 - Paid tier (BRL 25.90/month): unlocks "Iniciar Navegação".
-- When a free user taps "Iniciar Navegação": a modal appears with the subscription offer.
+- When a free user taps "Iniciar Navegação": the paywall modal appears.
 - After payment confirmation via webhook: the button unlocks within seconds via WebSocket push.
+- When the 30-day period expires: "Iniciar Navegação" is automatically locked again. User must pay again to renew.
 
 **Subscription lifecycle:**
 - Activation: backend receives Efi webhook → sets `subscription.status = 'active'`, `expires_at = now + 30 days`.
-- Expiration: a daily cron checks for expired subscriptions and sets `status = 'inactive'`.
-- Re-subscription: user pays again via the same F10 flow.
+- Expiration: daily cron at 03:00 checks for expired subscriptions → sets `status = 'inactive'` automatically.
+- Re-subscription: user taps "Iniciar Navegação" again → paywall modal appears → pays again → same flow.
 
 **Rules:**
 - Subscription state is checked server-side on every "Iniciar Navegação" tap (`GET /subscription/status`).
 - The local cached state (from WebSocket/polling) is for UX only — the server is the authority.
 - No trial period in V1.
-- No cancellation flow in V1 (subscription expires naturally after 30 days).
+- **No cancellation option anywhere in the app.** There is no "cancel subscription" button. The subscription simply expires after 30 days and the user decides whether to renew by paying again. This is a deliberate product decision by the client to prevent chargebacks.
+- **No refund flow.** Efi Bank Pix Split does not support refunds on split cobranças. This must be disclosed in the Terms of Service on the landing page.
+- The Settings screen shows subscription status and expiry date — read only, no action button.
 
 ---
 
