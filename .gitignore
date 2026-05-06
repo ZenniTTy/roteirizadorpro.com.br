@@ -1,0 +1,90 @@
+### Secrets ###
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+certs/
+secrets/
+
+### Node / TypeScript ###
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+.pnpm-store/
+.yarn/
+yarn-error.log
+npm-debug.log*
+pnpm-debug.log*
+.npm/
+
+### Prisma ###
+apps/backend/generated/
+apps/backend/prisma/migrations/dev_*
+
+### Flutter / Dart ###
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.iml
+.idea/
+.flutter-plugins
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/captures/
+android/local.properties
+*.apk
+*.aab
+*.ipa
+*.dSYM.zip
+*.dSYM
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+### Vercel ###
+.vercel/
+
+### Mac ###
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+### Editor ###
+.vscode/
+!.vscode/settings.json.example
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+### Logs ###
+logs/
+*.log
+
+### Coverage / Test ###
+coverage/
+.nyc_output/
+*.lcov
+
+### OS / Misc ###
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+### Claude Code / AI tooling ###
+.claude/
+.cursor/
+.ai-cache/
