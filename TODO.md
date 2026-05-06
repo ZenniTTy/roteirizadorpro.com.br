@@ -20,7 +20,7 @@
 
 ### Blocked on client (must resolve before Sprint 1 starts)
 
-- [ ] **[BLOCKER]** Client confirms DigitalOcean account is created (8GB droplet provisioned, São Paulo region, Ubuntu 24.04). Account is in client's name (server titularity).
+- [ ] **[BLOCKER]** Client provisions DigitalOcean droplet in São Paulo region, Ubuntu 24.04. **Start with $6/month 1GB droplet** (card issue workaround agreed 2026-05-05). Resize to 8GB after M1 escrow release. Account must be in client's name.
 - [ ] **[BLOCKER]** Client adds Eduardo's SSH public key to the droplet (Eduardo provides the key).
 - [ ] **[BLOCKER]** Client confirms DNS provider for `roteirizadorpro.com.br` and grants DNS edit access (or commits to running DNS changes himself in real time).
 - [ ] **[BLOCKER]** Client confirms target GitHub repo for handoff (or accepts current `ZenniTTy/-APP---Entrega-Smart` to transfer at end of M1).
@@ -32,16 +32,17 @@
 - [x] `.gitignore` (Node + Flutter + Mac + IDE + secrets).
 - [x] `.editorconfig`.
 - [x] `README.md` (root).
-- [ ] `SECURITY.md`.
-- [ ] `CODE_OF_CONDUCT.md`.
-- [ ] `.github/pull_request_template.md`.
-- [ ] `docs/01-PROJECT.md`.
-- [ ] `docs/02-ARCHITECTURE.md`.
-- [ ] `docs/04-ROADMAP-M1.md`.
-- [ ] `docs/04-ROADMAP-M2.md`.
-- [ ] `docs/06-DISASTER-RECOVERY.md`.
-- [ ] `docs/decisions/0000-template.md` and ADRs `0001` through `0010`.
-- [ ] Create empty folders for monorepo structure: `apps/backend/`, `apps/landing/`, `infra/`, `scripts/` (use `.gitkeep`).
+- [x] `SECURITY.md`.
+- [x] `CODE_OF_CONDUCT.md`.
+- [x] `.github/pull_request_template.md`.
+- [x] `docs/01-PROJECT.md`.
+- [x] `docs/02-ARCHITECTURE.md`.
+- [x] `docs/04-ROADMAP-M1.md`.
+- [x] `docs/04-ROADMAP-M2.md`.
+- [x] `docs/06-DISASTER-RECOVERY.md`.
+- [x] `docs/decisions/0000-template.md` and ADRs `0001` through `0010`.
+- [x] Create empty folders for monorepo structure: `apps/backend/`, `apps/landing/`, `infra/`, `scripts/` (use `.gitkeep`).
+- [x] `agents.md` and `docs/FEATURES.md`.
 - [ ] Generate Eduardo's project-specific SSH keypair for client to add (or confirm reusing existing key).
 
 ---

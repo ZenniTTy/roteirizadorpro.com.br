@@ -33,12 +33,14 @@ External blockers must be resolved by the client before development starts. Whil
 
 **Client deliverables:**
 
-- DigitalOcean account created, 8GB droplet provisioned in São Paulo region, Ubuntu 24.04.
+- DigitalOcean account active (client already has the account). Droplet provisioned in São Paulo region, Ubuntu 24.04. **See droplet size note below.**
 - Eduardo's SSH public key added to the droplet.
 - DNS access for `roteirizadorpro.com.br` (or a commitment to apply DNS changes in real time).
 - Confirmation of the GitHub repo for handoff.
 - Contact information to display on the landing page (WhatsApp, email, or form preference).
 - Product copy approved (or accepted blind, with Eduardo writing a draft).
+
+> **Droplet size note (updated 2026-05-05):** The client has a temporary card issue and cannot provision the $48/month 8GB droplet this week. Agreed path for M1 homologation: start with a **$6/month 1GB droplet**. GraphHopper is configured with **São Paulo state only** (fits in ~800MB JVM heap). After the client's card is resolved, a DigitalOcean resize to 8GB takes under 2 minutes with zero data loss — then the remaining Sudeste states (RJ, MG, ES) are imported. All four M1 approval criteria are fully demonstrable on the 1GB droplet with SP coverage. The 8GB droplet remains the final production target.
 
 **Eduardo deliverables:**
 
@@ -75,13 +77,14 @@ External blockers must be resolved by the client before development starts. Whil
 
 **Days 4–5 — GraphHopper**
 
-- Download Sudeste PBFs from Geofabrik (SP, RJ, MG, ES).
-- Configure GraphHopper Docker container with motorcycle profile + CH.
-- First-run graph import (30–90 minutes).
+- Download SP PBF only from Geofabrik (`sao-paulo-latest.osm.pbf`) — fits in 1GB droplet heap.
+- Configure GraphHopper Docker container with motorcycle profile + CH. JVM heap: `-Xmx800m`.
+- First-run graph import (15–30 minutes for SP only).
 - Bind GraphHopper to `127.0.0.1:8989`.
-- Author benchmark script: 100 randomized routes, p50/p95/p99.
+- Author benchmark script: 100 randomized SP-area routes, p50/p95/p99.
 - Run benchmark, document in `docs/BENCHMARKS.md`. p95 < 200ms required.
 - Tune if needed (CH config, JVM heap).
+- Note: after resize to 8GB (post-M1), reimport full Sudeste (SP+RJ+MG+ES) via `infra/graphhopper/reimport-sudeste.sh`.
 
 **Days 6–7 — Landing page**
 
@@ -139,7 +142,7 @@ External blockers must be resolved by the client before development starts. Whil
 - [ ] DigitalOcean droplet hardened, accessible by client and Eduardo.
 - [ ] Docker, PostgreSQL, Redis running, locked to localhost.
 - [ ] Nginx reverse proxy with HTTPS for `api.roteirizadorpro.com.br`.
-- [ ] GraphHopper container running, Sudeste graph built, p95 < 200ms confirmed.
+- [ ] GraphHopper container running, SP graph built (1GB droplet), p95 < 200ms confirmed.
 - [ ] Landing page live at `https://roteirizadorpro.com.br` with HTTPS, all required sections.
 - [ ] Backend API deployed: `/auth/*`, `/health/*`, placeholder `/routes/optimize`.
 - [ ] Daily Postgres backup configured and verified.
@@ -155,8 +158,9 @@ External blockers must be resolved by the client before development starts. Whil
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Client delays creating DigitalOcean account | Medium | Sprint 0 explicit blocker; no Sprint 1 work begins until cleared |
-| GraphHopper p95 ≥ 200ms after tuning | Low | Fallback: reduce coverage to SP-only initially, add other states post-launch |
+| Client delays provisioning DigitalOcean droplet | Low | Client already has the DO account. Temporary card issue resolved by starting with $6/month 1GB droplet — client can provision immediately |
+| Client delays resize from 1GB to 8GB after M1 | Medium | M1 escrow is released on 1GB. Resize is a follow-up action before M2 starts; document as explicit pre-condition in M2 Sprint 0 |
+| GraphHopper p95 ≥ 200ms after tuning | Low | M1 runs SP-only on 1GB droplet — this is already the reduced-coverage configuration. If p95 still fails, tune CH settings and JVM heap before escalating |
 | DNS propagation delays | Medium | Use low TTL (300s) during M1; warn client to set DNS early |
 | Vercel free tier limits hit | Very low | Static landing page; well within limits |
 | Let's Encrypt rate-limit during testing | Low | Use `--staging` flag during testing, switch to production once verified |

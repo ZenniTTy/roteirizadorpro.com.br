@@ -6,7 +6,7 @@
 |---|---|
 | Value | BRL 2,000 (Workana escrow) |
 | Duration | 14 days |
-| Start | After M1 escrow released |
+| Start | After M1 escrow released **and** droplet resized to 8GB with full Sudeste (SP+RJ+MG+ES) GraphHopper graph rebuilt |
 | Deliverable | Production-ready APK distributed via `roteirizadorpro.com.br/download`, payment integration with split, partner admin panel, all features from the original brief |
 
 ## Scope (From The Accepted Workana Proposal)
