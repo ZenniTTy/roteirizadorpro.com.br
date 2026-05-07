@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Roteirizador Pro · PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  @page { size: A4 portrait; margin: 1cm; }
+  html, body { margin: 0; padding: 0; font-family: 'Poppins', system-ui, sans-serif; background: #f0eee9; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  * { box-sizing: border-box; }
+  @keyframes rpPulse { 0% { transform: scale(0.8); opacity: 0.7; } 100% { transform: scale(1.4); opacity: 0; } }
+  @keyframes rpPulseDot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.7); } }
+  @keyframes rpDash { to { stroke-dashoffset: -20; } }
+  @keyframes rpFade { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  .page {
+    width: 210mm; min-height: 297mm; padding: 12mm 14mm;
+    background: #f0eee9; display: flex; flex-direction: column;
+    page-break-after: always; break-after: page;
+    box-sizing: border-box;
+  }
+  .page:last-child { page-break-after: auto; break-after: auto; }
+  .page-head { margin-bottom: 8mm; border-bottom: 1px solid #E8E4F0; padding-bottom: 4mm; }
+  .page-eyebrow { font-size: 10pt; font-weight: 600; color: #6C3FC5; letter-spacing: 0.6px; text-transform: uppercase; }
+  .page-title { font-size: 22pt; font-weight: 700; color: #1A1A2E; margin: 2mm 0 1mm; line-height: 1.1; }
+  .page-sub { font-size: 10pt; color: #6B6880; }
+  .stage {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 4mm 0;
+  }
+  .frame {
+    width: 390px; height: 844px; transform: scale(0.78); transform-origin: center;
+    border-radius: 36px; overflow: hidden; background: #fff;
+    box-shadow: 0 20px 60px rgba(108,63,197,0.18), 0 4px 12px rgba(26,26,46,0.08);
+    border: 1px solid #E8E4F0;
+  }
+  .cover { background: linear-gradient(135deg,#6C3FC5 0%, #4E2D91 100%); color: #fff; }
+  .cover .page-eyebrow { color: #C6FF3D; }
+  .cover .page-title { color: #fff; font-size: 36pt; }
+  .cover .page-sub { color: #EDE7F6; font-size: 13pt; }
+  .cover-meta { margin-top: auto; display: flex; gap: 24px; flex-wrap: wrap; font-size: 11pt; color: #EDE7F6; }
+  .cover-meta strong { color: #fff; font-weight: 700; display: block; font-size: 16pt; }
+  .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 8mm; }
+  .toc-item { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px dotted #E8E4F0; font-size: 10pt; }
+  .toc-num { font-weight: 700; color: #6C3FC5; min-width: 22px; }
+  .toc-label { color: #1A1A2E; flex: 1; }
+  .toc-section { grid-column: 1 / -1; font-size: 11pt; font-weight: 700; color: #6C3FC5; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 6mm; padding-bottom: 2mm; border-bottom: 1.5px solid #6C3FC5; }
+  .toc-section:first-child { margin-top: 0; }
+  .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6mm; padding-top: 4mm; border-top: 1px solid #E8E4F0; font-size: 8pt; color: #6B6880; }
+  .footer-brand { color: #6C3FC5; font-weight: 700; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="tokens.js"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="ui.jsx"></script>
+<script type="text/babel" src="screens-a.jsx"></script>
+<script type="text/babel" src="screens-b.jsx"></script>
+<script type="text/babel" src="screens-c.jsx"></script>
+<script type="text/babel" src="screens-d.jsx"></script>
+<script type="text/babel" src="screens-e.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const SCREENS = [
+  { sec: '01 · Autenticação', n: '01', label: 'Login', desc: 'Entrada com e-mail/senha + Google', C: ScreenLogin },
+  { sec: '01 · Autenticação', n: '02', label: 'Criar conta', desc: 'Nome, e-mail, telefone (+55), senha', C: ScreenRegister },
+  { sec: '02 · Rota', n: '03', label: 'Home vazia', desc: 'Estado inicial sem entregas', C: ScreenHomeEmpty },
+  { sec: '02 · Rota', n: '04', label: 'Lista de paradas', desc: 'Cards com sequência, status e drag', C: ScreenHomeList },
+  { sec: '02 · Rota', n: '05', label: 'Mapa da rota', desc: 'Visão geral com pins e CTA navegação', C: ScreenMapStops },
+  { sec: '02 · Rota', n: '06', label: 'Adicionar pelo mapa', desc: 'Picker multi-pin + endereço selecionado', C: ScreenAddStopsMap },
+  { sec: '02 · Rota', n: '07', label: 'Adicionar (busca)', desc: 'Bottom sheet com teclado/voz/câmera', C: ScreenAddStop },
+  { sec: '02 · Rota', n: '08', label: 'Editar parada', desc: 'Cor, código, pacotes, ordem, tipo', C: ScreenEditStop },
+  { sec: '03 · Captura', n: '09', label: 'Voz', desc: 'Ditado de endereço com transcrição ao vivo', C: ScreenVoice },
+  { sec: '03 · Captura', n: '10', label: 'Scanner OCR', desc: 'Leitura de etiqueta pela câmera', C: ScreenOCR },
+  { sec: '03 · Captura', n: '11', label: 'Otimizando rota', desc: 'Loader com etapas e progresso', C: ScreenOptimize },
+  { sec: '03 · Captura', n: '12', label: 'Rota otimizada', desc: 'Loop numerado 1-27 + lista', C: ScreenOptimizeRoute },
+  { sec: '03 · Captura', n: '13', label: 'Reordenar (laço)', desc: 'Seleção em grupo + reotimizar', C: ScreenReorder },
+  { sec: '04 · Entrega', n: '14', label: 'Detalhe da parada', desc: 'Endereço, ações, navegação bloqueada', C: ScreenStopDetail },
+  { sec: '04 · Entrega', n: '15', label: 'Navegação turn-by-turn', desc: 'Instrução, velocímetro, falhou/entregue', C: ScreenNavigate },
+  { sec: '04 · Entrega', n: '16', label: 'Rota concluída', desc: 'Resumo + economia em destaque neon', C: ScreenRouteComplete },
+  { sec: '04 · Entrega', n: '17', label: 'Paywall (Pix)', desc: 'Bottom sheet de assinatura', C: ScreenPaywall },
+  { sec: '05 · Conta', n: '18', label: 'Configurações', desc: 'GPS padrão, casa, conta, sobre', C: ScreenSettings },
+  { sec: '05 · Conta', n: '19', label: 'Indique o app', desc: 'WhatsApp, link, QR Code', C: ScreenShare },
+];
+
+function Cover() {
+  return (
+    <div className="page cover">
+      <div className="page-head" style={{ borderColor: 'rgba(255,255,255,0.2)' }}>
+        <div className="page-eyebrow">Android prototype</div>
+        <div className="page-title">Roteirizador Pro</div>
+        <div className="page-sub">Roteirização para motoboys · 19 telas hi-fi · Poppins, roxo + verde neon</div>
+      </div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 120px)', gridTemplateRows: 'repeat(2, 260px)', gap: 16, transform: 'rotate(-4deg)' }}>
+          {[ScreenLogin, ScreenHomeList, ScreenMapStops, ScreenNavigate, ScreenRouteComplete, ScreenShare].map((C, i) => (
+            <div key={i} style={{ width: 120, height: 260, borderRadius: 18, overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.3)', border: '2px solid rgba(255,255,255,0.4)', background: '#fff' }}>
+              <div style={{ width: 390, height: 844, transform: 'scale(0.308)', transformOrigin: 'top left' }}>
+                <C goto={() => {}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="cover-meta">
+        <div><strong>19</strong>telas</div>
+        <div><strong>5</strong>seções</div>
+        <div><strong>#6C3FC5</strong>roxo · <strong style={{ color: '#C6FF3D' }}>#C6FF3D</strong>neon</div>
+        <div><strong>Poppins</strong>tipografia</div>
+      </div>
+    </div>
+  );
+}
+
+function TOC() {
+  const sections = {};
+  SCREENS.forEach(s => { (sections[s.sec] = sections[s.sec] || []).push(s); });
+  return (
+    <div className="page">
+      <div className="page-head">
+        <div className="page-eyebrow">Sumário</div>
+        <div className="page-title">19 telas</div>
+        <div className="page-sub">Cada tela ocupa uma página · 390×844 dp escaladas para A4</div>
+      </div>
+      <div className="toc">
+        {Object.entries(sections).map(([sec, items]) => (
+          <React.Fragment key={sec}>
+            <div className="toc-section">{sec}</div>
+            {items.map(s => (
+              <div key={s.n} className="toc-item">
+                <span className="toc-num">{s.n}</span>
+                <span className="toc-label">{s.label}<span style={{ color: '#6B6880', marginLeft: 6 }}>· {s.desc}</span></span>
+              </div>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+      <div className="footer">
+        <span>Roteirizador Pro · Protótipo Android</span>
+        <span className="footer-brand">Capa · Sumário · 19 telas</span>
+      </div>
+    </div>
+  );
+}
+
+function ScreenPage({ s, idx }) {
+  const C = s.C;
+  return (
+    <div className="page">
+      <div className="page-head">
+        <div className="page-eyebrow">{s.sec}</div>
+        <div className="page-title">{s.n} · {s.label}</div>
+        <div className="page-sub">{s.desc}</div>
+      </div>
+      <div className="stage">
+        <div className="frame">
+          <C goto={() => {}}/>
+        </div>
+      </div>
+      <div className="footer">
+        <span>Roteirizador Pro · Android · Poppins · 390×844 dp</span>
+        <span className="footer-brand">{idx + 3} / {SCREENS.length + 2}</span>
+      </div>
+    </div>
+  );
+}
+
+function PrintDoc() {
+  return (
+    <React.Fragment>
+      <Cover/>
+      <TOC/>
+      {SCREENS.map((s, i) => <ScreenPage key={s.n} s={s} idx={i}/>)}
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PrintDoc/>);
+
+// Auto-print after fonts + JSX ready
+(async () => {
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch(e) {}
+  await new Promise(r => setTimeout(r, 800));
+  window.print();
+})();
+</script>
+</body>
+</html>
