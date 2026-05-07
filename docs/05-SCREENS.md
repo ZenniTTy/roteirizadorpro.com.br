@@ -1,332 +1,148 @@
-# SCREENS.md — Screen Map (Spoke/Circuit Reference)
-
-Functional reference map of Spoke Route Planner (formerly Circuit) screens. Used as the blueprint for Roteirizador Pro's UX. Sourced from public documentation, App Store/Play Store listings, help center articles, and ScreensDesign analysis.
-
-**Important:** We replicate flows, hierarchy, and UX patterns — NOT icons, colors, typography, or visual assets. See ADR-0010.
-
-**Sources:**
-- https://help.spoke.com (help center)
-- https://spoke.com/route-planner/product-updates
-- https://play.google.com/store/apps/details?id=com.underwood.route_optimiser
-- https://screensdesign.com/showcase/circuit-route-planner
-- https://kardinal.ai/circuit-app-for-route-planning-review-and-alternatives
-
----
-
-## Navigation Structure
-
-```
-App
-├── Onboarding (1 step — minimal, no forced tutorial)
-│   └── Account creation / Login
-│
-├── Home — Route List (main screen)
-│   ├── Empty state (no stops yet)
-│   ├── Stops list (active route)
-│   │   ├── Stop card (address, status, color tag, package count)
-│   │   ├── Drag handle (reorder)
-│   │   ├── Swipe left → Delete
-│   │   └── Swipe right → Mark as Delivered / Failed
-│   ├── Top bar
-│   │   ├── ETA badge (estimated route end time)
-│   │   └── Route name / date
-│   ├── FAB (+) → Add Stop bottom sheet
-│   └── "Optimize" button → triggers optimization
-│
-├── Add Stop (bottom sheet / modal)
-│   ├── Address search field (keyboard input with autocomplete)
-│   ├── Voice input button
-│   ├── Camera / OCR button
-│   ├── Long press on map to add stop
-│   └── Stop detail fields (optional):
-│       ├── Color tag (visual grouping)
-│       ├── Stop type (Delivery / Pickup)
-│       ├── Package count
-│       ├── Package ID
-│       └── Time window (paid feature)
-│
-├── Route Optimization (transitional screen)
-│   ├── Loading steps shown transparently:
-│   │   ├── "Analyzing your stops..."
-│   │   ├── "Accounting for traffic..."
-│   │   └── "Building the best route..."
-│   └── Result → returns to Route List with optimized order
-│
-├── Stop Detail (tap a stop card)
-│   ├── Full address
-│   ├── Package details (count, ID, notes)
-│   ├── Stop type badge (Delivery / Pickup)
-│   ├── Time window (if set)
-│   ├── Status: Pending / Delivered / Failed / Picked up
-│   ├── "Navigate" button → opens external GPS
-│   ├── "Mark as Delivered" button
-│   ├── "Mark as Failed" button (with failure reason options)
-│   └── Move stop options (Make next / Make first / Make last)
-│
-├── Navigation (external GPS)
-│   ├── Opens Waze, Google Maps, Apple Maps, HERE WeGo
-│   └── App stays in background; user returns after each stop
-│
-├── Load Vehicle (pre-route screen — paid)
-│   ├── Maps packages to physical vehicle compartments
-│   └── Helps driver retrieve packages faster at each stop
-│
-├── Settings
-│   ├── Default GPS app (Waze / Google Maps / internal)
-│   ├── Home address (start/end point for routing)
-│   ├── Break scheduling (duration + time window)
-│   ├── Stop duration (default time per stop)
-│   ├── Dark / light mode (auto or manual)
-│   └── Account / subscription
-│
-├── Subscription / Paywall (soft paywall)
-│   ├── Accessible from main menu (not forced at onboarding)
-│   ├── Single monthly plan
-│   ├── 7-day free trial (Spoke's model — we use 0 trial)
-│   ├── Key benefit highlighted: "Optimize up to 500 stops"
-│   └── Social proof: scrolling user testimonials
-│
-└── Share / Transfer Stops
-    ├── QR Code
-    ├── Copy Link
-    └── Share via OS share sheet
-```
-
----
-
-## Screen-by-Screen Detail
-
-### S01 — Onboarding / Login
-
-**Purpose:** Get the user into the app as fast as possible. Minimal friction.
+# 05 — Screens
+
+The screen catalogue for Roteirizador Pro. **The canonical UI source is the approved Claude Design prototype** at `prototipo/`. This document mirrors the prototype's structure for code reference.
 
-**Elements:**
-- App logo + tagline
-- "Sign up with email" field
-- "Continue with Google" button
-- "Already have an account? Log in" link
+> Functional UX patterns are inspired by Spoke/Circuit Route Planner; visual identity is 100% original (see `docs/decisions/0010-clone-positioning.md`).
+
+## Prototype screen map (19 screens)
+
+Listed in the order they appear in `prototipo/Roteirizador Pro.html`. Each entry: section, screen ID, label, milestone scope.
+
+### Section 01 — Authentication
 
-**UX pattern:** 1-step onboarding. No feature tour forced on new users — they discover features by doing. The minimal onboarding is a deliberate Spoke design choice.
+| ID | Label | Milestone |
+|---|---|---|
+| `login` | 01 · Login | **M1** |
+| `register` | 02 · Criar conta | **M1** |
 
-**Roteirizador Pro adaptation:** Same philosophy. Email/password + optional Google sign-in. No tutorial screens.
+### Section 02 — Route
 
----
-
-### S02 — Home / Route List (empty state)
-
-**Purpose:** First screen after login. Guides user to add their first stop.
-
-**Elements:**
-- Top bar: route name or date, ETA badge (greyed out / empty)
-- Large empty state illustration + copy: "Add your first stop to get started"
-- FAB (+) button prominent at bottom right
-- Bottom navigation (if applicable)
-
-**UX pattern:** Empty state is welcoming, not confusing. Single clear CTA.
-
-**Roteirizador Pro adaptation:** Same. Show house/flag icon in top area if home point is set.
-
----
-
-### S03 — Home / Route List (with stops)
-
-**Purpose:** Main working screen. The user spends most time here.
-
-**Elements:**
-- Top bar:
-  - Route end time ETA badge (e.g., `~14:30`) — updates as stops are completed
-  - Route name
-  - Overflow menu (⠇): skip optimization, route settings
-- Stop list (scrollable):
-  - Each stop card shows: sequence number, address (formatted, two lines), status badge, color tag, package count
-  - Drag handle on right for manual reorder
-  - Swipe actions
-- "Optimize route" button (prominent) — bottom of screen or inline with list
-- FAB (+) to add more stops
-
-**UX pattern:** List-centric. Map is secondary (not always visible). Stops are the primary object.
-
-**Roteirizador Pro adaptation:** Add subscriber counter badge next to ETA badge (our addition, not in Spoke).
-
----
-
-### S04 — Add Stop (bottom sheet)
-
-**Purpose:** Fast stop entry. Multiple input methods in one place.
-
-**Elements:**
-- Search field with autocomplete dropdown (max 5 results)
-- Input method toggle row: Keyboard | Voice | Camera
-- Optional fields (expandable): color, stop type, package count, package ID, time window
-- "Add stop" confirm button
-- Map long-press also triggers this sheet with pre-filled coordinates
-
-**UX pattern:** Bottom sheet (not full screen). Dismissible. Stays anchored to bottom while list scrolls.
-
-**Roteirizador Pro adaptation:** Same. Our OCR is triggered from the Camera option. No time windows in V1.
-
----
-
-### S05 — Voice Input (within Add Stop)
-
-**Purpose:** Hands-free address entry.
-
-**Elements:**
-- Animated mic indicator (listening state)
-- Live transcription text appearing as user speaks
-- "Stop listening" button
-- Transcribed result shown for review before geocoding
-- "Try again" option
-
-**UX pattern:** Always shows transcription for review — never silently adds a stop.
-
----
-
-### S06 — OCR / Camera Input (within Add Stop)
-
-**Purpose:** Scan delivery label to extract address.
-
-**Elements:**
-- Camera viewfinder full screen
-- Framing overlay (guide rectangle for label)
-- Capture button
-- Extracted text shown after capture
-- CEP / address field pre-filled for review
-- "Edit" option before confirming
-
-**UX pattern:** Capture → show result → user confirms. Never auto-adds without review.
-
----
-
-### S07 — Route Optimization (loading screen)
-
-**Purpose:** Build trust while algorithm runs. Not just a spinner.
-
-**Elements:**
-- Sequential status messages:
-  1. "Analyzing your stops..."
-  2. "Accounting for traffic..."
-  3. "Building the best route..."
-- Progress indicator (dots or progress bar)
-- Estimated time (usually 2-5 seconds for ≤25 stops)
-
-**UX pattern:** Transparency during wait builds trust. Users see the app is "thinking", not frozen.
-
-**Roteirizador Pro adaptation:** Add step: "Finding the best path home..." (sentido casa feature).
-
----
-
-### S08 — Stop Detail
-
-**Purpose:** See and manage a single stop in detail.
-
-**Elements:**
-- Full address (formatted)
-- Map thumbnail showing stop location
-- Status buttons: "Delivered" / "Failed" / "Picked up"
-- "Navigate" primary CTA button (opens GPS app)
-- Package details: count, ID, notes
-- Stop type badge (Delivery / Pickup)
-- Move options: "Make next" / "Make first" / "Make last"
-- Edit address option
-- Delete stop option
-
-**UX pattern:** Action-forward. Primary action (Navigate) is always the biggest button.
-
----
-
-### S09 — Navigation Handoff
-
-**Purpose:** Seamless transition to external GPS.
-
-**Elements:**
-- If multiple GPS apps installed: bottom sheet "Navigate with..." (Waze / Google Maps)
-- If one GPS app installed: opens directly
-- If none: browser fallback
-
-**UX pattern:** No internal map view in the handoff — user goes to their preferred GPS.
-
-**Roteirizador Pro adaptation:** Same flow. Waze and Google Maps are the two options (no Apple Maps — Android only).
-
----
-
-### S10 — Subscription / Paywall
-
-**Purpose:** Convert free users at the exact moment of maximum motivation.
-
-**Trigger:** User taps "Iniciar Navegação" without an active subscription.
-
-**Roteirizador Pro model:** "Iniciar Navegação" is the gate. User can add stops and optimize freely. Navigation is locked. No cancellation option exists anywhere in the app.
-
-**Elements:**
-- Clear value prop headline: "Desbloqueie a navegação"
-- Subtext: "Pague uma vez, use por 30 dias"
-- Price: R$ 25,90/mês
-- Payment method: Pix only
-- "Pagar com Pix" primary CTA button
-- After tap: Pix QR Code + copy-paste code + "Já paguei" ghost button
-- Small fine print: "Acesso liberado por 30 dias após o pagamento. Não há renovação automática."
-
-**What is NOT shown:**
-- No "cancel" button anywhere
-- No "manage subscription" link
-- No trial offer
-
-**UX pattern:** The paywall appears exactly when the user wants to navigate — maximum motivation moment. Clean and direct.
-
----
-
-### S11 — Settings
-
-**Purpose:** Configure the app. Subscription is read-only here — no management actions.
-
-**Sections:**
-- **NAVEGAÇÃO:** Default GPS app (Waze / Google Maps)
-- **ROTA:** Home point (sentido casa address)
-- **CONTA:** Email, change password, logout
-- **MINHA ASSINATURA:** Status + expiry date, read-only. No cancel button, no manage button. If active: "Ativa até DD/MM/AAAA" in success green. If inactive: "Sem assinatura ativa" in text-secondary.
-- **SOBRE O APP:** Version, privacy policy link, support
-
-**Rules:**
-- No "Cancelar assinatura" row anywhere on this screen.
-- No "Gerenciar assinatura" row.
-- Subscription section is purely informational.
-
----
-
-### S12 — Share / Referral (our addition — not in Spoke)
-
-**Purpose:** Let motoboys pass the app link to each other on the street.
-
-**Elements:**
-- Screen title: "Indique o app"
-- WhatsApp button: opens WhatsApp with pre-filled message
-- Copy link button: copies download URL + "Copiado!" feedback
-- QR Code: `QrImageView` of the download URL — scannable directly
-
-**UX pattern:** Three options at equal weight. No complicated referral flow.
-
----
-
-## Screens Spoke Has That We Deliberately Exclude (V1)
-
-| Spoke Screen | Reason Excluded |
+| ID | Label | Milestone |
+|---|---|---|
+| `home-empty` | 03 · Home vazia | M2 |
+| `home-list` | 04 · Lista de paradas | M2 |
+| `map-stops` | 05 · Mapa da rota | M2 |
+| `add-stops-map` | 06 · Adicionar pelo mapa | M2 |
+| `add-stop` | 07 · Adicionar (busca) | M2 |
+| `edit-stop` | 08 · Editar parada | M2 |
+
+### Section 03 — Address capture
+
+| ID | Label | Milestone |
+|---|---|---|
+| `voice` | 09 · Voz | M2 |
+| `ocr` | 10 · Scanner OCR | M2 |
+| `optimize-loading` | 11 · Otimizando rota | M2 |
+| `optimize` | 12 · Rota otimizada | M2 |
+| `reorder` | 13 · Reordenar (laço) | M2 |
+
+### Section 04 — Delivery + subscription
+
+| ID | Label | Milestone |
+|---|---|---|
+| `stop-detail` | 14 · Detalhe da parada | M2 |
+| `navigate` | 15 · Navegação turn-by-turn | M2 |
+| `route-complete` | 16 · Rota concluída | M2 |
+| `paywall` | 17 · Paywall (Pix) | M2 |
+
+### Section 05 — Account
+
+| ID | Label | Milestone |
+|---|---|---|
+| `settings` | 18 · Configurações | M2 |
+| `share` | 19 · Indique o app | M2 |
+
+## M1 screen detail
+
+Only the two M1 screens are detailed here. M2 screens are documented at "what they are" level above and will be specified per-screen in a future planning cycle when M2 work begins.
+
+### 01 — Login (`login`)
+
+**Purpose:** Get the user into the app with the minimum friction.
+
+**Elements (per prototype):**
+- Logo (purple circular, 72dp).
+- App name "Roteirizador Pro" — Poppins SemiBold 26.
+- Tagline "Entregue mais. Chegue em casa cedo." — text-secondary, 14sp.
+- E-mail input (rounded, surface background).
+- Password input with show/hide toggle (eye icon).
+- "Esqueci minha senha" link (right-aligned, primary purple).
+- Primary button "Entrar" (full width, pill).
+- Divider with "ou" label.
+- Ghost button "Continuar com Google" (with Google color logo SVG).
+- Bottom link "Não tem conta? Cadastre-se" (primary purple).
+
+**Gestures / interactions:**
+- Eye toggle reveals/hides password.
+- Tapping "Cadastre-se" navigates to Register screen.
+- Tapping "Entrar" calls `POST /auth/login`. On success: store tokens, navigate to home (M2 — for M1 the success state is a placeholder navigation, since the home screens are M2 work).
+- "Continuar com Google" is **out of scope for M1** — keeps the visual element but renders a non-functional button (or shows a "coming soon" snackbar).
+
+**Mock vs real (M1):**
+- Real: backend `/auth/login` endpoint working, JWT tokens, secure storage.
+- Stubbed: Google OAuth (button visible, not wired).
+- Stubbed: success destination — navigates to a placeholder route since home is M2.
+
+### 02 — Register (`register`)
+
+**Purpose:** Create a new account in under one minute.
+
+**Elements (per prototype):**
+- Top bar with back arrow + title "Criar conta".
+- Subtitle "Comece a otimizar suas rotas em menos de 1 minuto."
+- Inputs: Nome completo, E-mail, Telefone (`+55` prefix), Senha.
+- Primary button "Criar conta" (full width).
+- Terms acceptance line (Termos / Política de privacidade).
+- Bottom link "Já tem conta? Entrar".
+
+**Gestures / interactions:**
+- Back arrow returns to Login.
+- "Criar conta" calls `POST /auth/register`.
+- Success → navigates to placeholder route (home screens are M2).
+- Email/phone validation client-side.
+
+**Mock vs real (M1):**
+- Real: backend `/auth/register` endpoint working with TypeBox validation.
+- Real: bcrypt cost 12 password hashing on backend.
+- Stubbed: success destination — navigates to a placeholder route.
+
+## Spoke/Circuit feature mapping (reference)
+
+The functional behavior of the app — drag-to-reorder, swipe-to-complete, soft paywall on navigation, list-first UX — is inspired by Spoke/Circuit Route Planner. Visual identity is original. This table documents which Spoke screens we replicate and which we deliberately exclude.
+
+### Replicated (M2 work)
+
+| Spoke screen | Roteirizador Pro screen | Replication scope |
+|---|---|---|
+| Home / Route List | `home-empty`, `home-list`, `map-stops` | Full functional replication, original visuals |
+| Add Stop bottom sheet | `add-stop`, `add-stops-map`, `edit-stop` | Same input methods (keyboard / voice / camera) |
+| Voice Input | `voice` | Same review-before-confirm pattern |
+| OCR / Camera Input | `ocr` | Same capture-review-confirm pattern |
+| Route Optimization (loading) | `optimize-loading` | Same transparency-during-wait pattern, with our extra "sentido casa" step |
+| Optimized Route | `optimize`, `reorder` | Same list view post-optimization |
+| Stop Detail | `stop-detail` | Same action-forward pattern |
+| Navigation handoff | `navigate` | Same external GPS handoff (Waze / Google Maps) |
+| Subscription / Paywall | `paywall` | Same soft-paywall-at-moment-of-value pattern |
+| Settings | `settings` | Same sectioned layout |
+| Share / Referral | `share` | Spoke has share — we add WhatsApp + Copy Link + QR Code |
+
+### Deliberately excluded (V1)
+
+| Spoke screen | Reason |
 |---|---|
-| Load vehicle (package placement map) | Complexity not in client brief |
-| Team dispatch / transfer stops to driver | Solo driver app only |
+| Load vehicle (package placement) | Not in client brief |
+| Team dispatch / transfer stops | Solo driver app only |
 | Package ID management | Not in client brief |
 | Proof of delivery (photos) | Not in client brief |
 | Time windows per stop | Not in client brief |
 | Break scheduling | Not in client brief |
 | Android Auto / CarPlay | Out of scope |
-| Internal navigation (Google Maps in-app) | We use deep link to external app |
+| Internal navigation (in-app maps) | We use deep link to external app |
 | Stop color tagging | Not in client brief |
 
-These can be added post-M2 as premium features if the client wishes.
+These can be added post-M2 if the client wishes.
 
----
-
-## Key UX Principles Observed in Spoke (Carry Into Our App)
+## Key UX principles (carry into our app)
 
 1. **List-first, not map-first.** The stop list is the primary view. The map is secondary.
 2. **Transparency during wait.** Optimization shows progress steps, not a spinner.

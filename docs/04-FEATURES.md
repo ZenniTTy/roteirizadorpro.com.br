@@ -1,26 +1,28 @@
-# FEATURES.md — Product Functionality Reference
+# 04 — Features (Product Functionality Reference)
 
 Complete specification of every feature in Roteirizador Pro. This is the authoritative reference for implementation. Any ambiguity in the brief is resolved here. Changes to this document require a commit with `docs(features): <what changed>`.
 
 ## Feature Map
 
-| ID | Feature | Milestone | Status |
+| ID | Feature | Milestone | M1 status |
 |---|---|---|---|
 | F01 | User registration and login | M1 | Pending |
-| F02 | Manual address entry | M2 | Pending |
-| F03 | Voice address entry | M2 | Pending |
-| F04 | OCR address entry | M2 | Pending |
-| F05 | Stop list management | M2 | Pending |
-| F06 | Home point ("sentido casa") | M2 | Pending |
-| F07 | Route optimization | M2 | Pending |
-| F08 | External navigation (Waze / Google Maps) | M2 | Pending |
-| F09 | Subscription paywall | M2 | Pending |
-| F10 | Pix payment with 50/50 auto-split | M2 | Pending |
-| F11 | Real-time subscriber counter | M2 | Pending |
-| F12 | Referral / share screen | M2 | Pending |
-| F13 | Partner admin panel | M2 | Pending |
 | F14 | Landing page | M1 | Pending |
 | F15 | GraphHopper routing engine | M1 | Pending |
+| F02 | Manual address entry | M2 (post-M1, scope to reconfirm) | — |
+| F03 | Voice address entry | M2 (post-M1) | — |
+| F04 | OCR address entry | M2 (post-M1) | — |
+| F05 | Stop list management | M2 (post-M1) | — |
+| F06 | Home point ("sentido casa") | M2 (post-M1) | — |
+| F07 | Route optimization | M2 (post-M1) | — |
+| F08 | External navigation (Waze / Google Maps) | M2 (post-M1) | — |
+| F09 | Subscription paywall | M2 (post-M1) | — |
+| F10 | Pix payment with 50/50 auto-split | M2 (post-M1) | — |
+| F11 | Real-time subscriber counter | M2 (post-M1) | — |
+| F12 | Referral / share screen | M2 (post-M1) | — |
+| F13 | Partner admin panel | M2 (post-M1) | — |
+
+> M2 features are documented here as the canonical reference for what was contracted. M2 implementation planning happens after M1 acceptance, in a fresh spec/plan cycle.
 
 ---
 

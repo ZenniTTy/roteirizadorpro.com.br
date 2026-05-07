@@ -64,14 +64,14 @@ While the project is in active development (M1, M2), only the latest commit on `
 If a security incident occurs:
 
 1. **Contain.** Take affected services offline if necessary.
-2. **Rotate.** All potentially compromised credentials must be rotated immediately. See `docs/06-DISASTER-RECOVERY.md` Scenario 7.
+2. **Rotate.** All potentially compromised credentials must be rotated immediately. See `docs/09-DISASTER-RECOVERY.md` Scenario 7.
 3. **Investigate.** Determine scope, timeline, affected users.
 4. **Notify.** If user data was accessed, notify ANPD (LGPD authority) and affected users in a reasonable timeframe (LGPD Art. 48).
 5. **Document.** Write a session log with full timeline, root cause, and remediation. File under `docs/sessions/incidents/`.
 
 ## Privacy
 
-For data handling and user rights under LGPD, see `docs/05-LGPD.md`.
+LGPD compliance work is **post-M1** (not contracted in M1 scope). A dedicated `docs/05-LGPD.md` (or equivalent) will be authored when LGPD endpoints are implemented in M2.
 
 ## Bug Bounty
 

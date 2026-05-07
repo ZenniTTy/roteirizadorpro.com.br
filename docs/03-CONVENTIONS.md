@@ -40,11 +40,10 @@ These are the few non-obvious rules. Everything else: trust the linter.
 ├── apps/
 │   ├── mobile/        # Flutter app
 │   ├── backend/       # Fastify API
-│   ├── landing/       # roteirizadorpro.com.br
-│   └── admin/         # Partners' admin panel
-├── packages/          # shared libs, if any (only when needed — YAGNI)
+│   └── landing/       # roteirizadorpro.com.br
 ├── infra/             # docker-compose, server provisioning, GraphHopper
 ├── docs/              # documentation (this folder)
+├── prototipo/         # canonical UI source (Claude Design prototype, client-approved) — referenced, never imported
 └── scripts/           # repo-level utility scripts
 ```
 

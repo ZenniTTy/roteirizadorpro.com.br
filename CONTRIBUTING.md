@@ -88,16 +88,6 @@ Before any commit, run in this order:
 7. `git commit -m "<conventional message>"`.
 8. `git push origin <branch>`.
 
-## Mac Workflow (osascript)
-
-All Git operations on the Mac are executed by AI agents via the `Control your Mac:osascript` tool. Never paste shell commands for the human to run manually.
-
-```applescript
-do shell script "cd '/Users/eduardorodrigues/Downloads/Elo Vision Digital/[EVD] - Meus Projetos/[APP] - Entrega Smart' && git status"
-```
-
-The repo path contains spaces and brackets. Always single-quote the path inside `do shell script`.
-
 ## Push Rules
 
 - ❌ **Never `git push --force` to `develop` or `main`.**

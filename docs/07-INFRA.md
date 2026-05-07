@@ -1,46 +1,22 @@
-# INFRA-ACCESS.md — Infrastructure Access & Setup Guide
+# 07 — Infrastructure
 
-State as of 2026-05-06. Update this file whenever infrastructure changes.
+State as of 2026-05-07. Update this file whenever infrastructure changes.
 
 ---
 
 ## DigitalOcean
 
-**Account status:** Active. Eduardo has owner-level access.
-**Droplet status:** Not yet created. Must be provisioned before Sprint 1 begins.
+**Account status:** Active. **Account is the client's.** Eduardo has admin access (granted via DO Team).
+**Droplet status:** Provisioned. 1GB plan (workaround agreed with client because of his temporary card limitation). Resize to 8GB is post-M1.
+**Droplet IPv4:** `<TO BE FILLED — Eduardo updates here once SSH'd in>`
+**Hostname:** `roteirizador-pro`
+**Region:** São Paulo (preferred) or NYC3 (fallback)
 
 ### Panel access
 
 - URL: https://cloud.digitalocean.com
-- Login: Eduardo's account (owner)
+- Login: Client's account; Eduardo has admin via DO Team
 - Region for all resources: **São Paulo (sfo3 or nyc3 as fallback if SP unavailable)**
-
-### Droplet to provision (Sprint 0 action)
-
-| Field | Value |
-|---|---|
-| Plan | Basic — $6/month (1GB RAM / 1 vCPU / 25GB SSD) for M1 homologation |
-| OS | Ubuntu 24.04 LTS x64 |
-| Region | São Paulo |
-| Authentication | SSH Key only (add Eduardo's public key at creation time) |
-| Hostname | `roteirizador-pro` |
-| Backups | Enable at creation ($1.20/month) |
-
-> **After M1 escrow is released:** resize to $48/month (8GB RAM / 4 vCPU) via Droplet → Resize → no data loss. Takes ~2 minutes. Then reimport full Sudeste PBFs via `infra/graphhopper/reimport-sudeste.sh`.
-
-### How to provision the droplet (step by step)
-
-1. Log in at https://cloud.digitalocean.com.
-2. Click **Create → Droplets**.
-3. Choose region: **São Paulo**.
-4. Choose image: **Ubuntu 24.04 LTS x64**.
-5. Choose plan: **Basic → Regular → $6/month** (1GB/1vCPU/25GB).
-6. Under **Authentication**: select **SSH Key** → add Eduardo's public key (see below).
-7. Set hostname: `roteirizador-pro`.
-8. Enable **Backups** checkbox.
-9. Click **Create Droplet**.
-10. Note the droplet's **IPv4 address** — update this doc and `.env` files.
-11. Test SSH: `ssh roteirizador@<IP>` (after first-login hardening below).
 
 ### Eduardo's SSH public key
 
@@ -52,7 +28,7 @@ ssh-keygen -t ed25519 -C "eduardo@ianelli.tech" -f ~/.ssh/roteirizador_pro
 
 Public key location: `~/.ssh/roteirizador_pro.pub`
 
-Add this key to the DigitalOcean account under **Settings → Security → SSH Keys** before creating the droplet. The key is added automatically to new droplets at creation time.
+Add this key to the DigitalOcean account under **Settings → Security → SSH Keys**. The key is propagated to new droplets at creation time.
 
 ### First login sequence (after droplet is created)
 
@@ -216,15 +192,6 @@ Set in Vercel → Project → Settings → Environment Variables:
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3000` | Development |
 | `NEXT_PUBLIC_APK_URL` | `https://roteirizadorpro.com.br/download` | Production |
 
-### Ownership transfer (end of M1)
-
-At handoff, transfer the Vercel project to the client:
-
-1. Vercel → Project → Settings → Transfer Project.
-2. Enter client's Vercel account email.
-3. Client accepts the transfer invitation.
-4. Eduardo remains as a team member (collaborator) if ongoing support is agreed.
-
 ---
 
 ## Local Development Environment
@@ -288,23 +255,17 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
 - [ ] Install Flutter stable, Node.js 20, Docker Desktop on dev machine.
 - [ ] Start Phase 1: `flutter create apps/mobile/` — see `TODO.md`.
 
-### When client resolves the card issue
+### Post-M1 (after escrow release)
 
-- [ ] Provision $6/month droplet following "How to provision" above.
-- [ ] Note droplet IP — update this doc and DNS.
-- [ ] Run first login sequence above.
-- [ ] Continue with Sprint 1 server tasks in `TODO.md`.
-
-### At M1 handoff
-
-- [ ] Confirm client has DigitalOcean owner access.
-- [ ] Transfer Vercel project to client.
-- [ ] Transfer GitHub repo to client.
-- [ ] Record Loom video covering the four M1 approval criteria.
+- [ ] Resize droplet to 8GB via DigitalOcean panel (~2 minutes, no data loss).
+- [ ] Run `infra/graphhopper/reimport-sudeste.sh` to load Sudeste full graph (SP+RJ+MG+ES). Plan ~30–90 min downtime.
+- [ ] Update GraphHopper `Xmx` to ~4GB after resize.
 
 ---
 
-## Secrets Inventory
+## Secrets Inventory (M1)
+
+> Only M1-relevant secrets are listed. M2 secrets (Efí `.p12`, Efí client secrets, HMAC) come during M2 work.
 
 Secrets that will exist in production. None are committed to Git.
 
@@ -314,9 +275,3 @@ Secrets that will exist in production. None are committed to Git.
 | Redis password | Same | Eduardo |
 | JWT private key (`jwt-private.pem`) | `/opt/roteirizador/certs/` | Eduardo |
 | JWT public key (`jwt-public.pem`) | `/opt/roteirizador/certs/` | Eduardo |
-| Efi Bank `.p12` certificate | `/opt/roteirizador/certs/efi-prod.p12` | Eduardo + client |
-| Efi Client ID | `.env` on server | Eduardo + client |
-| Efi Client Secret | `.env` on server | Eduardo + client |
-| Efi webhook HMAC secret | `.env` on server | Eduardo + client |
-
-At M1 handoff, Eduardo provides the client with all secrets in an encrypted format (1Password shared vault or similar). The client is responsible for backing them up.

@@ -1,5 +1,8 @@
 # 02 — Architecture
 
+> **UI source of truth:** the approved Claude Design prototype at `prototipo/` is canonical for screens, visual identity, gestures, and flows. `docs/05-SCREENS.md` mirrors the prototype's structure; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js`.
+> **Current scope:** M1. Sections describing M2 endpoints, payment flow, and webhooks are **reference-only** for post-M1 work.
+
 ## Overview
 
 ```
@@ -35,7 +38,10 @@
 
 ## Components
 
-### Mobile (Flutter — M2)
+### Mobile (Flutter — M1 partial, M2 full)
+
+**M1 scope:** Login + Register screens (2 of 19). Backed by the M1 backend auth endpoints.
+**M2 scope:** the remaining 17 prototype screens. Reconfirmed with client after M1.
 
 - **Framework:** Flutter stable channel.
 - **State management:** Riverpod 3 with `@riverpod` code generation (`riverpod_generator`).
@@ -272,7 +278,9 @@ POST   /routes/optimize { stops[], home }                   → 200 { ordered_st
                                                               # placeholder in M1, full in M2
 ```
 
-### M2 endpoints (preview)
+### M2 endpoints (post-M1, reference-only)
+
+> Not implemented in M1. Listed here for reference; scope reconfirmed with client after M1 acceptance.
 
 ```
 PATCH  /user/home                  { lat, lng, label }

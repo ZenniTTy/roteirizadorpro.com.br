@@ -36,8 +36,8 @@ Full reasoning in `docs/decisions/0010-clone-positioning.md`.
 
 | Milestone | Scope summary | Value | Duration |
 |---|---|---|---|
-| **M1** | Server (DigitalOcean), GraphHopper, landing page, backend auth API, repo handoff | BRL 2,000 | 14 days |
-| **M2** | Android APK with all features (OCR, voice, "sentido casa" optimization, paywall, Pix Split, partner dashboard, share/QR) | BRL 2,000 | 14 days |
+| **M1** | Server (DigitalOcean 1GB workaround), GraphHopper SP-only, landing page, backend auth API + healthchecks, Login + Register screens in Flutter | BRL 2,000 | 30 days (accepted 2026-04-26, deadline 2026-05-26) |
+| **M2 (post-M1)** | Scope to be reconfirmed with client after M1 acceptance. Original Workana M2: Android APK, OCR, voice, "sentido casa" optimization, paywall, Pix Split via Efí Bank, partner dashboard, share/QR. | BRL 2,000 | TBD |
 
 Detailed M1 plan: `docs/04-ROADMAP-M1.md`.
 Detailed M2 plan: `docs/04-ROADMAP-M2.md`.
@@ -53,16 +53,18 @@ Detailed M2 plan: `docs/04-ROADMAP-M2.md`.
 
 ## Constraints
 
-- **Time:** 14 days per milestone.
-- **Budget:** BRL 4,000 total (paid via Workana escrow, milestone-based).
+- **Time:** 30 days per milestone. M1 deadline: 2026-05-26.
+- **Budget:** BRL 4,000 total (paid via Workana escrow, milestone-based). M1 escrow already deposited.
 - **Operational cost target:** Per-subscription routing cost must be effectively zero (hence GraphHopper self-hosted, not Google Maps API).
 - **Distribution:** APK direct download. Play Store is out of scope.
-- **Geography:** V1 covers Sudeste Brazil (São Paulo, Rio de Janeiro, Minas Gerais, Espírito Santo). Other regions added later by re-importing PBFs.
+- **Geography:** V1 covers Sudeste Brazil. M1 ships with São Paulo state only on a 1GB droplet (workaround agreed with the client because of his temporary card limitation). Resize to 8GB + reimport of full Sudeste (SP+RJ+MG+ES) is post-M1.
+- **Server titularity:** DigitalOcean account is the client's. Eduardo has admin access.
+- **UI source of truth:** the approved prototype at `prototipo/` is canonical for visual identity, screens, gestures, and flows.
 - **Legal:** Must comply with LGPD (Brazilian data protection law). Must not infringe Circuit's IP.
 
-## Out of Scope (V1)
+## Out of Scope
 
-These are explicit non-goals for the BRL 4,000 contract:
+### For the BRL 4,000 contract overall
 
 - iOS app.
 - Play Store publication.
@@ -72,6 +74,14 @@ These are explicit non-goals for the BRL 4,000 contract:
 - Geographic coverage beyond Sudeste.
 - Real-time GPS tracking / dispatch features.
 - Multi-rider team management.
+
+### For M1 specifically (deferred to M2 / post-M1)
+
+- All M2 features (F02–F13 in `docs/04-FEATURES.md`): OCR, voice, route optimization (real algorithm), paywall, Pix Split, real-time subscriber counter, share/QR, admin panel, APK build, sentido casa.
+- 17 of the 19 prototype screens — only Login (01) and Register (02) are in M1.
+- LGPD endpoints (data export, deletion).
+- Privacy policy page on landing.
+- CI/CD pipeline (linter + tests on PR).
 
 ## Success Definition
 

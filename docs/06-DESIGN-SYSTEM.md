@@ -1,9 +1,12 @@
-# DESIGN-SYSTEM.md — Visual Identity
+# 06 — Design System
 
-Design system decisions for Roteirizador Pro. Original identity — does not copy any visual asset from Spoke/Circuit (ADR-0010).
+Design system for Roteirizador Pro. Original identity — does not copy any visual asset from Spoke/Circuit (ADR-0010).
 
 **Decided:** 2026-05-06
 **Decided by:** Eduardo
+**Last sync with prototype:** 2026-05-07
+
+> **Canonical source:** `prototipo/tokens.js` is the source of truth for tokens. This document mirrors that file. If they disagree, `prototipo/tokens.js` wins; update this file.
 
 ---
 
@@ -24,6 +27,10 @@ Design system decisions for Roteirizador Pro. Original identity — does not cop
 | `primary-dark` | `#4E2D91` | Pressed states, dark variant |
 | `primary-light` | `#EDE7F6` | Backgrounds for chips, badges, selected items |
 | `accent` | `#9B6DFF` | Secondary highlights, gradients |
+| `neon` | `#C6FF3D` | "Live" cues, secondary accent (e.g., active subscriber counter pulse) |
+| `neon-dark` | `#9BCC1F` | Pressed state for neon |
+| `neon-light` | `#F1FFCC` | Neon background pads |
+| `neon-ink` | `#3D5400` | Text on neon background |
 | `background` | `#FFFFFF` | Screen background |
 | `surface` | `#F8F7FC` | Cards, bottom sheets, input backgrounds |
 | `border` | `#E8E4F0` | Dividers, input borders |

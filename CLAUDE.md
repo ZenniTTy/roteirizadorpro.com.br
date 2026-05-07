@@ -2,14 +2,20 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-05
+> **Last updated:** 2026-05-07
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## What This Project Is
 
-**Roteirizador Pro** is an Android route-planning app for delivery riders, distributed as APK at `roteirizadorpro.com.br`. It is a **functional fork** of [Circuit Route Planner](https://getcircuit.com): we replicate flows, behaviors, screen structure, and UX patterns — we do **not** replicate icons, colors, typography, illustrations, microcopy, or any other Circuit-specific visual asset. Identity is 100% original.
+**Roteirizador Pro** is an Android route-planning app for delivery riders, distributed as APK at `roteirizadorpro.com.br`. It is a **functional fork** of [Spoke/Circuit Route Planner](https://getcircuit.com): we replicate flows, behaviors, screen structure, and UX patterns — we do **not** replicate icons, colors, typography, illustrations, microcopy, or any other Circuit-specific visual asset. Identity is 100% original.
 
-This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md` once authored.
+This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
+
+## Current Focus: M1
+
+The current milestone is **M1, deadline 2026-05-26**. Do not plan or build M2 work in this cycle. M2 scope will be reconfirmed with the client after M1 acceptance.
+
+M1 plan: `docs/08-ROADMAP.md`.
 
 ## Onboarding Ritual
 
@@ -17,10 +23,15 @@ When you start a session in this repo, read in this order:
 
 1. `README.md` — what the project is.
 2. This file (`CLAUDE.md`) — how to operate.
-3. `TODO.md` — current open tasks.
-4. `docs/sessions/0001-INDEX.md` — last 3 session logs at minimum.
+3. `TODO.md` — current open M1 tasks.
+4. `docs/08-ROADMAP.md` — M1 plan and acceptance criteria.
+5. `docs/sessions/0001-INDEX.md` — last 3 session logs at minimum.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
+
+## UI Source of Truth
+
+The Claude Design prototype at `prototipo/` is the **canonical UI source** — client-approved on 2026-05-07. Visual identity, screens, gestures, and flows must match it 1:1 in implementation. The prototype's `tokens.js` is canonical for design tokens. `docs/05-SCREENS.md` and `docs/06-DESIGN-SYSTEM.md` mirror it; if they disagree with the prototype, the prototype wins.
 
 ## Karpathy's Four Principles (canonical)
 
@@ -62,9 +73,9 @@ These rules can't be inferred from code. They are enforced by you, the agent.
 | Backend | Node.js 20 LTS + Fastify v5 + TypeBox | TypeBox is the type provider |
 | ORM | Prisma 7 + `@prisma/adapter-pg` | Driver adapters mandatory |
 | DB / Cache | PostgreSQL 16 / Redis 7 | |
-| Routing | GraphHopper self-hosted | Sudeste Brasil, motorcycle profile |
-| Payment | Efí Bank API Pix v2 (mTLS) | No official Node SDK — use direct HTTPS |
-| Server | Ubuntu 24.04 on DigitalOcean 8GB | |
+| Routing | GraphHopper self-hosted | SP-only on M1 (1GB droplet); Sudeste post-M1 |
+| Server | Ubuntu 24.04 on DigitalOcean (client's account) | 1GB on M1; resize to 8GB post-M1 escrow |
+| Landing | Next.js 14 + Tailwind on Vercel | |
 
 Any change requires a new ADR.
 
@@ -86,9 +97,8 @@ Read first, edit second. Never edit a file without reading the current version. 
 
 ### Git Protocol (essentials)
 
-- All Git operations on Mac via `osascript` — never paste commands for the human.
 - `git status` before any Git action.
-- Conventional Commits, one logical change per commit.
+- Conventional Commits — one logical change per commit.
 - Never `git push --force` to `develop` or `main`.
 
 Full Git workflow lives in `CONTRIBUTING.md`.
@@ -101,7 +111,7 @@ Full Git workflow lives in `CONTRIBUTING.md`.
 
 At the end of any meaningful session:
 
-1. Update `TODO.md` (mark completed, add discovered tasks).
+1. Update `TODO.md` (mark completed `[x]`, add discovered tasks `[ ]`).
 2. Create `docs/sessions/YYYY-MM-DD-NN-<topic>.md` from the template at `0000-template.md`.
 3. Append the new session to `docs/sessions/0001-INDEX.md`.
 4. Commit all three together with `docs(sessions): <session topic>`.
@@ -123,9 +133,13 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 - Project vision, scope, milestones → `docs/01-PROJECT.md`
 - Architecture, flows, schemas, contracts → `docs/02-ARCHITECTURE.md`
 - Naming, code style, directory layout → `docs/03-CONVENTIONS.md`
-- Roadmap (M1, M2 deliverables) → `docs/04-ROADMAP.md`
-- LGPD compliance map → `docs/05-LGPD.md`
-- Disaster recovery → `docs/06-DISASTER-RECOVERY.md`
+- Features (canonical business rules) → `docs/04-FEATURES.md`
+- Screens (prototype catalogue) → `docs/05-SCREENS.md`
+- Design system → `docs/06-DESIGN-SYSTEM.md`
+- Infrastructure → `docs/07-INFRA.md`
+- M1 roadmap → `docs/08-ROADMAP.md`
+- Disaster recovery → `docs/09-DISASTER-RECOVERY.md`
+- Documentation changelog → `docs/10-CHANGELOG.md`
 - All decisions and their rationale → `docs/decisions/`
 - Git workflow detail → `CONTRIBUTING.md`
 - Security policy → `SECURITY.md`
