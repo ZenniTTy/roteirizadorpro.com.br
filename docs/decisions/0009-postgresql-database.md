@@ -45,11 +45,11 @@ Use **PostgreSQL 16** in a Docker container, accessed via Prisma 7 + `@prisma/ad
 - Container: official `postgres:16-alpine`.
 - Bound to `127.0.0.1:5432` only.
 - Volume: `postgres-data` (persistent Docker volume).
-- Daily `pg_dump` at 03:00 (see `docs/06-DISASTER-RECOVERY.md`).
+- Daily `pg_dump` at 03:00 (see `docs/09-DISASTER-RECOVERY.md`).
 - Strong randomly generated password, stored in server `.env`, never in Git.
 - Migrations via Prisma (`prisma migrate dev` for local, `prisma migrate deploy` for prod).
 
 ## References
 
 - `docs/02-ARCHITECTURE.md` (Database section).
-- `docs/06-DISASTER-RECOVERY.md` (PostgreSQL backup procedure).
+- `docs/09-DISASTER-RECOVERY.md` (PostgreSQL backup procedure).

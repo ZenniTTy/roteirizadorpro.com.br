@@ -39,8 +39,7 @@ Full reasoning in `docs/decisions/0010-clone-positioning.md`.
 | **M1** | Server (DigitalOcean 1GB workaround), GraphHopper SP-only, landing page, backend auth API + healthchecks, Login + Register screens in Flutter | BRL 2,000 | 30 days (accepted 2026-04-26, deadline 2026-05-26) |
 | **M2 (post-M1)** | Scope to be reconfirmed with client after M1 acceptance. Original Workana M2: Android APK, OCR, voice, "sentido casa" optimization, paywall, Pix Split via Efí Bank, partner dashboard, share/QR. | BRL 2,000 | TBD |
 
-Detailed M1 plan: `docs/04-ROADMAP-M1.md`.
-Detailed M2 plan: `docs/04-ROADMAP-M2.md`.
+Detailed M1 plan: `docs/08-ROADMAP.md`. M2 plan: post-M1 (scope to be reconfirmed with client).
 
 ## Stakeholders
 

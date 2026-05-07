@@ -343,4 +343,4 @@ Per IP and per authenticated user:
 - GraphHopper graphs: weekly snapshot (regenerable from PBFs, not critical).
 - DigitalOcean droplet snapshot before any major deploy.
 - Recovery objectives: RTO 4h, RPO 24h.
-- Full procedure in `docs/06-DISASTER-RECOVERY.md`.
+- Full procedure in `docs/09-DISASTER-RECOVERY.md`.
