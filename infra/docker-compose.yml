@@ -1,0 +1,65 @@
+name: roteirizador
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: roteirizador-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: roteirizador
+      POSTGRES_PASSWORD: roteirizador
+      POSTGRES_DB: roteirizador
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roteirizador -d roteirizador"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: roteirizador-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  graphhopper:
+    image: israelhikingmap/graphhopper:latest
+    container_name: roteirizador-graphhopper
+    restart: unless-stopped
+    profiles: [routing]
+    command: >
+      --input /data/pbf/sudeste-latest.osm.pbf
+      --graph-cache /data/graph-cache
+      --config /data/config.yml
+      --port 8989
+      --host 0.0.0.0
+    environment:
+      JAVA_OPTS: "-Xmx800m -Xms400m"
+    ports:
+      - "127.0.0.1:8989:8989"
+    volumes:
+      - ./graphhopper/data:/data
+      - graphhopper-cache:/data/graph-cache
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8989/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+volumes:
+  postgres-data:
+  redis-data:
+  graphhopper-cache:
