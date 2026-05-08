@@ -89,6 +89,10 @@ ehthumbs.db
 Desktop.ini
 
 ### Claude Code / AI tooling ###
-.claude/
+# Per-user overrides and local state stay out of git.
+# Team-shared config lives in .claude/{settings.json,hooks,agents,skills} and IS committed.
+.claude/settings.local.json
+.claude/state/
+.claude/cache/
 .cursor/
 .ai-cache/
