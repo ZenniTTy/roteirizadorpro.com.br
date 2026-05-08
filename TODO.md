@@ -3,7 +3,7 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M1 only. M2 work begins in a fresh planning cycle after M1 acceptance.
 > **M1 deadline:** 2026-05-26.
-> **Last updated:** 2026-05-08 (session 06 — graphhopper sp shipped).
+> **Last updated:** 2026-05-08 (session 07 — phase 3 prep shipped).
 
 ## M1 acceptance criteria (verbatim from Workana)
 
@@ -53,22 +53,31 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ## Phase 3 — M1 deploy
 
-- [ ] **Ship pre-built graph cache to droplet** — rsync `infra/graphhopper/data/graph-cache/` to `/opt/roteirizador/compose/graphhopper/data/graph-cache/` so the 1 GB droplet doesn't have to rebuild (would OOM during CH preparation). See ADR-0008 amendment.
-- [ ] First SSH to DO 1GB droplet — create `roteirizador` non-root user with sudo.
-- [ ] Disable root SSH login + password auth.
-- [ ] `ufw`: allow 22, 80, 443. Enable. Install `fail2ban`.
-- [ ] Install Docker Engine + Compose (official Ubuntu repo).
-- [ ] Set hostname `roteirizador-pro`, timezone `America/Sao_Paulo`, unattended-upgrades.
-- [ ] Create `/opt/roteirizador/{compose,data/postgres,data/redis,data/graphhopper/{pbf,graph-cache},backups,logs,certs}`.
-- [ ] `git clone` repo to `/opt/roteirizador/`. Copy `.env` (chmod 600).
-- [ ] Build and run `docker compose up -d`. All services healthy.
-- [ ] Configure Nginx + Certbot for `api.roteirizadorpro.com.br`. Verify HTTPS.
-- [ ] DNS: `A` record `api.roteirizadorpro.com.br` → droplet IP. TTL 300.
-- [ ] Configure Vercel: connect to repo, root dir `apps/landing`, auto-deploy on `develop`.
-- [ ] DNS: `A` record `@` → Vercel `76.76.21.21`, `CNAME www` → `cname.vercel-dns.com`. Verify HTTPS green.
-- [ ] `scripts/backup-postgres.sh` (pg_dump + 30-day rotation). Cron at 03:00.
-- [ ] Verify backup restore on a throwaway DB.
-- [ ] Take DigitalOcean droplet snapshot (rollback baseline).
+### Phase 3.A — Prep (laptop, no droplet access needed)
+
+- [x] **`scripts/server-bootstrap.sh`** — idempotent one-shot for first SSH (sudo user with provided pubkey, SSH hardening, UFW, fail2ban, hostname/timezone, unattended-upgrades, Docker Engine + Compose, `/opt/roteirizador/` tree).
+- [x] **`scripts/backup-postgres.sh`** — pg_dump (custom format, gzip) + 30-day rotation. Cron sample documented in script header.
+- [x] **`scripts/rsync-graph-cache.sh`** — laptop → droplet wrapper for the prepared `graph-cache/` and source PBF.
+- [x] **`infra/nginx/api.roteirizadorpro.com.br.conf`** — pre-Certbot Nginx site (HTTP-only with proxy_pass to 127.0.0.1:3000; Certbot adds the SSL block in place).
+- [x] **`infra/systemd/roteirizador-backend.service`** — Fastify backend as systemd unit (loads `/opt/roteirizador/compose/.env`, runs `bun run start`, basic process hardening).
+- [x] **`infra/docker-compose.yml`** made env-driven for Postgres credentials (`${POSTGRES_PASSWORD:-roteirizador}` etc.) so the same compose works dev + prod with `.env` overrides.
+- [x] **Production `.env` template + dev/prod diff** documented in [`docs/07-INFRA.md`](docs/07-INFRA.md) §"Production .env template" (couldn't ship `.env.production.example` — `.env*` writes blocked by the project hook).
+- [x] **`docs/INSTALL.md`** — end-to-end reproducible runbook spanning §1 bootstrap → §10 acceptance verification.
+
+### Phase 3.B — Execute (on droplet, needs SSH access)
+
+- [ ] Capture droplet IPv4 → update [`docs/07-INFRA.md`](docs/07-INFRA.md) (currently `<TO BE FILLED>`).
+- [ ] First SSH as root → run `scripts/server-bootstrap.sh "<ssh-pubkey>"` (replaces 6 manual hardening steps).
+- [ ] Re-login as `roteirizador`. Confirm root SSH and password auth disabled.
+- [ ] Clone repo to `/opt/roteirizador/compose/repo/`. Copy `docker-compose.yml` to `/opt/roteirizador/compose/`. Create `.env` (chmod 600) from the template in `docs/07-INFRA.md`.
+- [ ] Run `scripts/rsync-graph-cache.sh roteirizador@<droplet>` from laptop.
+- [ ] `docker compose --profile routing up -d` on the droplet. All four services healthy.
+- [ ] Install Bun + Node 20 (per `docs/INSTALL.md` §5), `bun install --frozen-lockfile`, `bunx prisma migrate deploy`, install systemd unit + start.
+- [ ] DNS: `A api.roteirizadorpro.com.br → <droplet IP>` TTL 300.
+- [ ] Nginx + Certbot per `docs/INSTALL.md` §6.
+- [ ] DNS: `A @ → 76.76.21.21` (Vercel apex) + `CNAME www → cname.vercel-dns.com` + Vercel project root dir `apps/landing`.
+- [ ] Crontab the daily backup (`0 3 * * * scripts/backup-postgres.sh ...`). Verify a manual run + restore drill on a throwaway DB.
+- [ ] DigitalOcean droplet snapshot named `m1-acceptance-baseline-YYYY-MM-DD` (rollback baseline).
 
 ## Phase 4 — M1 acceptance
 
@@ -76,7 +85,7 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [ ] **Criterion 2:** `curl https://api.roteirizadorpro.com.br/health` → 200. Auth round-trip works (register → login → me → refresh).
 - [ ] **Criterion 3:** production benchmark, p95 < 200ms, document in `docs/BENCHMARKS.md`.
 - [ ] **Criterion 4:** client confirms (in writing on Workana) that he has DO panel access and can list running containers.
-- [ ] Author `docs/INSTALL.md` — full reproducible install walkthrough.
+- [x] Author `docs/INSTALL.md` — full reproducible install walkthrough (Phase 3.A — drafted before deploy so we don't author the runbook from memory after the fact). Will receive small additions after the actual deploy if anything diverges.
 - [ ] Record demo video covering all four criteria (Loom).
 - [ ] Tag `git tag -a v1.0-m1`. Push tag.
 - [ ] Notify client in Workana with demo video link + acceptance checklist.
