@@ -3,7 +3,7 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M1 only. M2 work begins in a fresh planning cycle after M1 acceptance.
 > **M1 deadline:** 2026-05-26.
-> **Last updated:** 2026-05-08 (session 04 — backend auth + healthchecks shipped).
+> **Last updated:** 2026-05-08 (session 05 — mobile auth integration shipped).
 
 ## M1 acceptance criteria (verbatim from Workana)
 
@@ -40,9 +40,9 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [x] **Backend logging**: Pino JSON to stdout. Rate limits per endpoint: `/auth/login` 5/15min, `/auth/register` 3/h, `/auth/refresh` 10/min; `/health/*` excluded.
 - [ ] **Flutter Login screen** (Screen 01 from `prototipo/`) — match prototype 1:1.
 - [ ] **Flutter Register screen** (Screen 02 from `prototipo/`) — match prototype 1:1.
-- [ ] **Flutter Dio client** with base URL from env, Bearer interceptor, auto-refresh on 401.
-- [ ] **Flutter token storage** in `flutter_secure_storage`.
-- [ ] **Flutter auth notifier** (Riverpod `AsyncNotifier`).
+- [x] **Flutter Dio client** with base URL from env, Bearer interceptor, auto-refresh on 401 via `QueuedInterceptor` (separate refreshDio to avoid recursion).
+- [x] **Flutter token storage** in `flutter_secure_storage` (`AndroidOptions(encryptedSharedPreferences: true)`).
+- [x] **Flutter auth notifier** (`@riverpod class AuthController extends _$AuthController` — `build` validates persisted tokens via `/me`; `login`/`register`/`signOut`).
 - [ ] **Landing sections**: Hero, product details, how it works, FAQ, contact buttons, footer, APK CTA placeholder.
 - [ ] **Landing visual identity** applied (palette + Poppins, original — not Circuit's).
 - [ ] **GraphHopper SP graph**: download `sao-paulo-latest.osm.pbf` from Geofabrik to `infra/graphhopper/data/`.
@@ -116,4 +116,5 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [x] **2026-05-08** — Implemented Login + Register screens 1:1 with `prototipo/screens-a.jsx` Screen 01 and 02. Replaced placeholder. Added shared widgets (`RpButton`, `RpGhostButton`, `RpInput`, `RpLogo`), full prototipo color palette in `AppColors`, Poppins via `google_fonts`, GoogleSignIn glyph as bundled SVG asset (`flutter_svg`). Verified end-to-end on the Pixel 8 emulator.
 - [x] **2026-05-08** — Adopted Lefthook 2.x + commitlint 20.x + commitizen at the repo root (ADR-0012). Pre-commit runs typecheck/lint/analyze for the changed app in parallel; `commit-msg` validates Conventional Commits; `bun run commit` walks an interactive Commitizen wizard. Added shared VS Code settings (`.vscode/extensions.json`, `.vscode/settings.json.example`) including `dart.flutterHotReloadOnSave: always`. Added GitHub Actions CI (`.github/workflows/ci.yml`) with `backend`, `landing`, `mobile`, `commitlint` jobs.
 - [x] **2026-05-08** — Codified the schema source-of-truth ([ADR-0013](docs/decisions/0013-api-contract-source-of-truth.md)): Prisma owns the DB; TypeBox owns the HTTP API contract; Dart DTOs mirror TypeBox 1:1 with a `// Mirror of:` header. Added the rule to `CLAUDE.md`, `docs/02-ARCHITECTURE.md` ("API Contracts & Type Safety"), `docs/03-CONVENTIONS.md` §8, and the reference template at `apps/mobile/lib/features/auth/data/dto/_template.dart`. Verified clean with `flutter analyze --no-pub`. OpenAPI export + Dart codegen deferred to post-M1.
+- [x] **2026-05-08** — Mobile auth integration shipped end-to-end. `flutter_secure_storage` (with `EncryptedSharedPreferences` + namespaced keys) wraps `access`/`refresh` tokens; `AuthRepository` wraps Dio; `AuthInterceptor extends QueuedInterceptor` adds Bearer on every non-`/auth/*` request and rotates atomically on 401 (separate `refreshDio` to avoid recursion; on refresh failure clears tokens + signals `signOutLocal` via Riverpod ref). `@riverpod AuthController` validates persisted tokens via `/auth/me` on startup and exposes `login`/`register`/`signOut`. GoRouter redirect is reactive to auth state via a `ChangeNotifier` bridge. `lib/features/home/presentation/home_placeholder_page.dart` is the post-login stub (real Screen 03 is M2). Android `network_security_config.xml` permits cleartext only for 10.0.2.2/127.0.0.1/localhost so prod stays HTTPS-only. End-to-end smoke-tested on Pixel_8 emulator: register-via-curl → login on UI → /home renders with `/auth/me` payload → tap Sair → /login. All `flutter analyze` clean post `dart run build_runner build`.
 - [x] **2026-05-08** — Backend auth + healthchecks shipped (Phase 2). `POST /auth/{register,login,refresh}` and `GET /auth/me` with TypeBox schemas as source of truth, JWT RS256 (15min access + 7d opaque refresh, rotation + reuse detection cascading to revoke all of the user's tokens), bcrypt cost 12, per-route rate limits (login 5/15min, register 3/h, refresh 10/min), `GET /health{,/db,/graphhopper}`, and `POST /routes/optimize` placeholder (auth-gated, 501). Mirrored every TypeBox schema into `apps/mobile/lib/features/auth/data/dto/auth_dtos.dart` per ADR-0013, same commit. Smoke-tested all 12 paths (round-trip + reuse cascade + validation 400 + 401/403/409/501) green. Moved Prisma client generator output to `src/generated/client` so TS rootDir resolves; backend runtime standardized on `tsx src/index.ts` (tsx promoted from devDependency to dependency). Added `scripts/generate-jwt-keys.sh` for local key bootstrap.
