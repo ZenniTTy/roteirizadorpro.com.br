@@ -18,23 +18,52 @@ Every service is bound to `127.0.0.1` only. External traffic reaches the API thr
 docker compose -f infra/docker-compose.yml up -d
 ```
 
-Brings up `postgres` and `redis`. GraphHopper is **not** started — it requires a PBF and a config file (Phase 2 work, see [docs/08-ROADMAP.md](../docs/08-ROADMAP.md) Phase 2).
+Brings up `postgres` and `redis`. GraphHopper is **not** started by default — it sits behind the `routing` profile (opt-in) so the daily backend dev loop doesn't pay the JVM startup + graph-load cost.
 
 ## Routing profile (Phase 2)
 
-GraphHopper requires three things in `infra/graphhopper/data/`:
+GraphHopper needs a São Paulo capital PBF and the bundled config.
 
-1. `sao-paulo-latest.osm.pbf` (or `sudeste-latest.osm.pbf` post-M1) downloaded from [Geofabrik](https://download.geofabrik.de/south-america/brazil/sudeste.html).
-2. `config.yml` enabling the motorcycle profile and contraction hierarchies.
-3. The bind path matches the `--input` argument in `docker-compose.yml`.
-
-Once those exist:
+### One-time bootstrap
 
 ```bash
-docker compose -f infra/docker-compose.yml --profile routing up -d
+brew install osmium-tool                 # OSM CLI for the bbox clip
+infra/graphhopper/extract-sp.sh          # downloads sudeste-latest, clips capital SP
 ```
 
-The first start performs the graph build (~30–90 minutes for SP, longer for full Sudeste) — the healthcheck has a 2-minute `start_period` to accommodate that, but expect repeated unhealthy reports until the graph is loaded. Subsequent starts reuse `graphhopper-cache` and come up in seconds.
+`extract-sp.sh` is idempotent:
+- Downloads `sudeste-latest.osm.pbf` (~803 MB) into `infra/graphhopper/data/pbf/` if absent.
+- Extracts the capital bbox `-46.83,-23.78,-46.40,-23.36` → `sao-paulo-capital.osm.pbf` (~115 MB) using `osmium extract --strategy smart`.
+
+PBFs and the graph cache are gitignored (too large to version).
+
+### Bring up GraphHopper
+
+```bash
+docker compose -f infra/docker-compose.yml --profile routing up -d graphhopper
+docker logs -f roteirizador-graphhopper   # watch the build
+```
+
+First start performs the import + Contraction Hierarchies preparation (~3–5 minutes for capital SP on a developer laptop — much shorter than Sudeste-full would be). The healthcheck has `start_period: 180s` to ride this out. Subsequent starts reuse `infra/graphhopper/data/graph-cache/` and come up in seconds.
+
+### Production deploy (Phase 3)
+
+The 1 GB DigitalOcean droplet would OOM during the CH preparation. Build the graph **on the developer laptop**, then rsync the prepared cache to the droplet:
+
+```bash
+rsync -avz --delete \
+  infra/graphhopper/data/graph-cache/ \
+  roteirizador@<droplet>:/opt/roteirizador/compose/graphhopper/data/graph-cache/
+```
+
+The droplet then starts the same `docker compose` with the same image and config — it loads the cache, no rebuild. See ADR-0008 amendment for rationale.
+
+### Smoke check
+
+```bash
+curl http://127.0.0.1:8989/health         # 200 OK once ready
+infra/graphhopper/benchmark.sh            # 100 randomized routes, p50/p95/p99
+```
 
 ## Credentials
 
@@ -46,6 +75,4 @@ Production: replace with strong values via `/opt/roteirizador/compose/.env` (see
 
 - `postgres-data` — Docker named volume.
 - `redis-data` — Docker named volume.
-- `graphhopper-cache` — Docker named volume for the prepared graph (regenerated on PBF refresh).
-
-The host bind `./graphhopper/data` exists so PBFs and `config.yml` can be edited without entering the container.
+- GraphHopper graph + PBF + config live on the host filesystem at `infra/graphhopper/data/` (bind-mounted into the container as `/data`). This is intentional: the prepared `graph-cache/` needs to be rsync-able to the production droplet so the droplet doesn't have to rebuild from PBF (would OOM on 1 GB).

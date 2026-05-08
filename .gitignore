@@ -89,6 +89,10 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+### GraphHopper data (PBF + graph cache too large to commit) ###
+infra/graphhopper/data/pbf/*.osm.pbf
+infra/graphhopper/data/graph-cache/
+
 ### Claude Code / AI tooling ###
 # Per-user overrides and local state stay out of git.
 # Team-shared config lives in .claude/{settings.json,hooks,agents,skills} and IS committed.

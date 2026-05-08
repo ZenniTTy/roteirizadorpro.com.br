@@ -39,27 +39,23 @@ services:
     container_name: roteirizador-graphhopper
     restart: unless-stopped
     profiles: [routing]
-    command: >
-      --input /data/pbf/sudeste-latest.osm.pbf
-      --graph-cache /data/graph-cache
-      --config /data/config.yml
-      --port 8989
-      --host 0.0.0.0
+    # graphhopper.sh always passes -Ddw.graphhopper.graph.location from its -o arg,
+    # overriding whatever the config.yml says — pass -o explicitly so the cache
+    # lands at infra/graphhopper/data/graph-cache/ (rsync'd to droplet in Phase 3).
+    entrypoint: ["./graphhopper.sh", "-c", "/data/config.yml", "-o", "/data/graph-cache"]
     environment:
       JAVA_OPTS: "-Xmx800m -Xms400m"
     ports:
       - "127.0.0.1:8989:8989"
     volumes:
       - ./graphhopper/data:/data
-      - graphhopper-cache:/data/graph-cache
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8989/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s
+      start_period: 180s
 
 volumes:
   postgres-data:
   redis-data:
-  graphhopper-cache:
