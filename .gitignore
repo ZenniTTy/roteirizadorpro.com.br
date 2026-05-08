@@ -22,7 +22,7 @@ pnpm-debug.log*
 .npm/
 
 ### Prisma ###
-apps/backend/generated/
+apps/backend/src/generated/
 apps/backend/prisma/migrations/dev_*
 
 ### Flutter / Dart ###

@@ -4,6 +4,11 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { env } from './config/env.js';
+import prismaPlugin from './plugins/prisma.js';
+import authPlugin from './plugins/auth.js';
+import authRoutes from './auth/routes.js';
+import healthRoutes from './health/routes.js';
+import optimizeRoutes from './routes/routes.js';
 
 export async function createServer() {
   const app = Fastify({
@@ -23,15 +28,23 @@ export async function createServer() {
     credentials: true,
   });
   await app.register(rateLimit, {
+    global: true,
     max: 100,
     timeWindow: '1 minute',
   });
 
-  app.get('/', async () => ({
+  await app.register(prismaPlugin);
+  await app.register(authPlugin);
+
+  app.get('/', { config: { rateLimit: false } }, async () => ({
     name: 'roteirizador-pro-api',
     version: '0.1.0',
     status: 'ok',
   }));
+
+  await app.register(healthRoutes, { prefix: '/health' });
+  await app.register(authRoutes, { prefix: '/auth' });
+  await app.register(optimizeRoutes, { prefix: '/routes' });
 
   return app;
 }
