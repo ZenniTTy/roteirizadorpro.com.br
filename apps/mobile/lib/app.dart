@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/placeholder/presentation/placeholder_page.dart';
+import 'features/auth/presentation/login_page.dart';
+import 'features/auth/presentation/register_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -20,10 +21,15 @@ class RoteirizadorProApp extends ConsumerWidget {
 }
 
 final _router = GoRouter(
+  initialLocation: '/login',
   routes: [
     GoRoute(
-      path: '/',
-      builder: (context, state) => const PlaceholderPage(),
+      path: '/login',
+      builder: (context, state) => const LoginPage(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterPage(),
     ),
   ],
 );
