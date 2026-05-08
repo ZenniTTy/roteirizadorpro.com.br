@@ -5,16 +5,19 @@ services:
     image: postgres:16-alpine
     container_name: roteirizador-postgres
     restart: unless-stopped
+    # Credentials default to the loopback-dev triple. In production, .env
+    # at /opt/roteirizador/compose/.env supplies a strong POSTGRES_PASSWORD
+    # (Compose auto-substitutes from .env in the same directory as this file).
     environment:
-      POSTGRES_USER: roteirizador
-      POSTGRES_PASSWORD: roteirizador
-      POSTGRES_DB: roteirizador
+      POSTGRES_USER: ${POSTGRES_USER:-roteirizador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roteirizador}
+      POSTGRES_DB: ${POSTGRES_DB:-roteirizador}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U roteirizador -d roteirizador"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-roteirizador} -d ${POSTGRES_DB:-roteirizador}"]
       interval: 5s
       timeout: 5s
       retries: 10
