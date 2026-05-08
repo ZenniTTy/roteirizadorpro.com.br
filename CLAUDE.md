@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-07
+> **Last updated:** 2026-05-08
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## What This Project Is
@@ -76,6 +76,7 @@ These rules can't be inferred from code. They are enforced by you, the agent.
 | Routing | GraphHopper self-hosted | SP-only on M1 (1GB droplet); Sudeste post-M1 |
 | Server | Ubuntu 24.04 on DigitalOcean (client's account) | 1GB on M1; resize to 8GB post-M1 escrow |
 | Landing | Next.js 14 + Tailwind on Vercel | |
+| Node package manager | Bun 1.3+ (install only) | Runtime stays Node 20 LTS — see ADR-0011. Use `bun install`, `bun run`, `bunx`. `bun.lock` is the lockfile of record; never commit `package-lock.json`. |
 
 Any change requires a new ADR.
 

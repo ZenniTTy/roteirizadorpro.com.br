@@ -177,7 +177,8 @@ In the client's DNS provider, add:
 - Root directory in Vercel: `apps/landing`
 - Branch: `develop` → auto-deploy on push (staging)
 - Branch: `main` → auto-deploy on push (production)
-- Build command: `npm run build`
+- Install command: `bun install` (Vercel auto-detects `bun.lock` since 2024-09; explicit setting recommended)
+- Build command: `bun run build`
 - Output directory: `.next`
 
 > Configure in Vercel → Project → Settings → Git → Root Directory = `apps/landing`
@@ -206,10 +207,14 @@ flutter channel stable
 flutter upgrade
 flutter --version  # should be 3.x
 
-# Node.js 20 LTS (via nvm)
+# Node.js 20 LTS (via nvm) — runtime
 nvm install 20
 nvm use 20
 node --version  # should be v20.x
+
+# Bun 1.3+ — package manager (per ADR-0011)
+curl -fsSL https://bun.sh/install | bash
+bun --version  # should be 1.3.x
 
 # Docker Desktop for Mac
 # Download from https://www.docker.com/products/docker-desktop
@@ -228,7 +233,7 @@ cd infra
 docker compose up -d postgres redis graphhopper
 # Backend runs natively (not in Docker) during dev for hot-reload
 cd ../apps/backend
-npm run dev
+bun run dev
 ```
 
 ### Flutter device setup
