@@ -1,0 +1,30 @@
+assert_lefthook_installed: true
+min_version: 2.1.0
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: backend-typecheck
+      glob: "apps/backend/**/*.{ts,prisma}"
+      root: "apps/backend/"
+      run: bun run typecheck
+
+    - name: landing-typecheck
+      glob: "apps/landing/**/*.{ts,tsx,mts,cts}"
+      root: "apps/landing/"
+      run: bun run typecheck
+
+    - name: landing-lint
+      glob: "apps/landing/**/*.{ts,tsx,mts,cts}"
+      root: "apps/landing/"
+      run: bun run lint
+
+    - name: mobile-analyze
+      glob: "apps/mobile/**/*.dart"
+      root: "apps/mobile/"
+      run: flutter analyze --no-pub
+
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: bunx --no-install commitlint --edit {1}
