@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -208,6 +209,10 @@ class _GoogleGlyph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Icon(Icons.g_mobiledata, size: 26, color: Color(0xFF4285F4));
+    return SvgPicture.asset(
+      'assets/google-g.svg',
+      width: 18,
+      height: 18,
+    );
   }
 }

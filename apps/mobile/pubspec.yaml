@@ -17,6 +17,7 @@ dependencies:
   flutter_secure_storage: ^9.2.0
   go_router: ^14.6.0
   google_fonts: ^6.2.1
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -31,3 +32,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/google-g.svg
