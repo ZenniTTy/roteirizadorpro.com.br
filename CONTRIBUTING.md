@@ -57,7 +57,11 @@ Conventional Commits format:
 
 ### Scopes
 
-Match the affected area: `mobile`, `backend`, `infra`, `landing`, `admin`, `adr`, `deps`, `claude`, `sessions`, `lgpd`.
+Enforced via `commitlint.config.cjs`. Allowed scopes (commitlint will reject anything else):
+
+`mobile`, `backend`, `landing`, `infra`, `auth`, `routes`, `stops`, `subscriptions`, `payments`, `geocoding`, `graphhopper`, `paywall`, `ocr`, `voice`, `prototipo`, `docs`, `decisions`, `sessions`, `claude`, `deps`, `tooling`, `ci`, `vscode`, `fix`, `chore`.
+
+To add a new scope, edit `commitlint.config.cjs` and document the change in the same commit.
 
 ### Subject rules
 
@@ -75,18 +79,45 @@ fix(mobile): correct OCR regex for CEP extraction
 chore(deps): bump fastify from 5.0.0 to 5.1.0
 ```
 
-## Pre-commit Sequence
+## Commit Workflow
 
-Before any commit, run in this order:
+### One-time setup (after `git clone`)
+
+```bash
+bun install                       # installs the root tooling and registers Lefthook hooks
+```
+
+That alone wires `.git/hooks/{pre-commit,commit-msg}` via Lefthook (the `prepare` script in the root `package.json` runs `lefthook install` for you). Per-app deps still live in `apps/*/`; run `bun install` inside each app you touch.
+
+### Composing a commit (recommended)
+
+```bash
+bun run commit                    # interactive Commitizen wizard — type, scope, subject, body, footer
+```
+
+Commitizen restricts you to the scope-enum above. The resulting message is auto-validated by commitlint at the `commit-msg` hook. If you commit with `git commit -m "..."` directly, the same `commit-msg` hook still validates the message and aborts on violation.
+
+### What runs at commit time (Lefthook pre-commit, parallel)
+
+| Job | Triggers when | Command |
+|---|---|---|
+| `backend-typecheck` | files match `apps/backend/**/*.{ts,prisma}` | `bun run typecheck` (in `apps/backend/`) |
+| `landing-typecheck` | files match `apps/landing/**/*.{ts,tsx,…}` | `bun run typecheck` (in `apps/landing/`) |
+| `landing-lint` | same glob | `bun run lint` |
+| `mobile-analyze` | files match `apps/mobile/**/*.dart` | `flutter analyze --no-pub` |
+
+If a job fails, the commit is aborted. Re-stage the fix and try again. To bypass in a true emergency: `git commit --no-verify` — this is a code smell and should be paired with a follow-up commit that fixes whatever was bypassed.
+
+### Pre-flight (still useful before staging)
 
 1. `git status` — know the actual state.
 2. `git diff --stat` — review what changed at file-level.
-3. `git diff` (selected paths) — read the actual changes.
-4. Run linter and formatter on changed files.
-5. Run relevant tests.
-6. `git add <specific paths>` — never `git add .` blindly.
-7. `git commit -m "<conventional message>"`.
-8. `git push origin <branch>`.
+3. `git diff <paths>` — read the actual changes.
+4. `git add <specific paths>` — never `git add .` blindly (Lefthook still runs, but blanket-staging is its own bug source).
+5. `bun run commit` (or `git commit -m "..."`).
+6. `git push origin <branch>`.
+
+GitHub Actions (`.github/workflows/ci.yml`) re-runs the same checks on PR — local Lefthook is the fast-fail layer, CI is the trust-but-verify layer.
 
 ## Push Rules
 

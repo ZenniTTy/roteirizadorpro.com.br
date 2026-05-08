@@ -77,6 +77,7 @@ These rules can't be inferred from code. They are enforced by you, the agent.
 | Server | Ubuntu 24.04 on DigitalOcean (client's account) | 1GB on M1; resize to 8GB post-M1 escrow |
 | Landing | Next.js 14 + Tailwind on Vercel | |
 | Node package manager | Bun 1.3+ (install only) | Runtime stays Node 20 LTS — see ADR-0011. Use `bun install`, `bun run`, `bunx`. `bun.lock` is the lockfile of record; never commit `package-lock.json`. |
+| Git hooks / commits | Lefthook 2.x + commitlint 20.x + commitizen | Per ADR-0012. `bun install` at the repo root sets `.git/hooks/{pre-commit,commit-msg}` automatically. Use `bun run commit` for an interactive Conventional Commit wizard. Pre-commit runs typecheck/lint/analyze for the changed app only — keep edits scoped. |
 
 Any change requires a new ADR.
 
@@ -91,6 +92,18 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - Provide tests, scripts, or screenshots that let you check yourself.
 - Address root causes, not symptoms.
 - If you can't verify it, don't ship it.
+
+### Flutter Hot-Reload Discipline
+
+Do **not** kill `flutter run` for changes inside `lib/**`. Three levels, cheapest first:
+
+| Level | Trigger | Cost | When |
+|---|---|---|---|
+| Hot reload | `r` in the terminal where `flutter run` is attached, or VS Code save (with `dart.flutterHotReloadOnSave: always`) | sub-second, preserves state | Widget edit, color/copy change, method body edit. |
+| Hot restart | `R` in the same terminal | ~2 s, loses state | New top-level provider, new route, change to `main()`. |
+| Full restart (kill + `flutter run`) | terminate the process | 2–7 min (Gradle, install) | `pubspec.yaml` asset/dep change, native (Kotlin/Swift) code change, AndroidManifest change. |
+
+When `flutter run` is alive in the background, an agent can trigger a hot reload over the Dart VM Service (URL printed at startup). Default behavior: prefer hot reload over restart over full relaunch. Codified in ADR-0012.
 
 ### Filesystem Protocol
 

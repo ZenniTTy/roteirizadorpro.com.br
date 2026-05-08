@@ -8,8 +8,10 @@ Code style, naming, and structural conventions for this repository.
 
 | Element | Convention | Example |
 |---|---|---|
-| Files (general) | kebab-case | `route-optimizer.ts`, `user-profile.dart` |
-| Folders | kebab-case | `src/auth-middleware/`, `lib/screens/route-list/` |
+| TypeScript files (general) | kebab-case | `route-optimizer.ts`, `user-profile.tsx` |
+| Dart files (Effective Dart) | snake_case (`lowercase_with_underscores`) | `register_page.dart`, `app_theme.dart`, `rp_button.dart` |
+| TypeScript folders | kebab-case | `src/auth-middleware/` |
+| Dart folders | snake_case (`lowercase_with_underscores`) | `lib/features/auth/presentation/`, `lib/core/widgets/` |
 | TypeScript variables/functions | camelCase | `optimizeRoute`, `userId` |
 | TypeScript classes/types/interfaces | PascalCase | `RouteOptimizer`, `UserProfile` |
 | TypeScript constants | SCREAMING_SNAKE_CASE | `MAX_STOPS_PER_ROUTE` |
@@ -20,6 +22,7 @@ Code style, naming, and structural conventions for this repository.
 | Database columns | snake_case | `created_at`, `home_address` |
 | Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `EFI_CLIENT_ID` |
 | Git branches | kebab-case | `feat/jwt-auth`, `docs/architecture-update` |
+| Conventional Commit scopes | flat lowercase (enforced) | `feat(mobile):`, `chore(tooling):` — see `commitlint.config.cjs` `scope-enum` |
 
 ## Code Style Baseline
 
