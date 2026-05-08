@@ -3,7 +3,7 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M1 only. M2 work begins in a fresh planning cycle after M1 acceptance.
 > **M1 deadline:** 2026-05-26.
-> **Last updated:** 2026-05-08 (session 05 — mobile auth integration shipped).
+> **Last updated:** 2026-05-08 (session 06 — graphhopper sp shipped).
 
 ## M1 acceptance criteria (verbatim from Workana)
 
@@ -45,14 +45,15 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [x] **Flutter auth notifier** (`@riverpod class AuthController extends _$AuthController` — `build` validates persisted tokens via `/me`; `login`/`register`/`signOut`).
 - [ ] **Landing sections**: Hero, product details, how it works, FAQ, contact buttons, footer, APK CTA placeholder.
 - [ ] **Landing visual identity** applied (palette + Poppins, original — not Circuit's).
-- [ ] **GraphHopper SP graph**: download `sao-paulo-latest.osm.pbf` from Geofabrik to `infra/graphhopper/data/`.
-- [ ] **GraphHopper config**: `infra/graphhopper/config.yml` (motorcycle profile, CH, JVM `-Xmx800m`).
-- [ ] **GraphHopper graph import** locally — verify `curl http://localhost:8989/route?point=...&profile=motorcycle` works.
-- [ ] **Benchmark script** `infra/graphhopper/benchmark.sh` — 100 randomized SP routes, p50/p95/p99.
-- [ ] **Local benchmark run** — record result in `docs/BENCHMARKS.md`.
+- [x] **GraphHopper SP PBF**: no SP-only PBF is published anywhere; `infra/graphhopper/extract-sp.sh` downloads `sudeste-latest.osm.pbf` from Geofabrik and clips capital SP via `osmium-tool` (bbox `-46.83,-23.78,-46.40,-23.36`, ~115 MB output). PBFs gitignored.
+- [x] **GraphHopper config**: `infra/graphhopper/data/config.yml` (motorcycle profile, CH, `-Xmx800m`, `import.osm.ignored_highways` for motor-only, full `graph.encoded_values` list required by `motorcycle.json`).
+- [x] **GraphHopper graph build (local)** — verified `curl http://localhost:8989/route?point=...&profile=motorcycle` works against the capital SP graph.
+- [x] **Benchmark script** `infra/graphhopper/benchmark.sh` — 100 randomized capital-SP routes, sequential, no warmup, p50/p95/p99.
+- [x] **Local benchmark run** — recorded in `docs/BENCHMARKS.md`.
 
 ## Phase 3 — M1 deploy
 
+- [ ] **Ship pre-built graph cache to droplet** — rsync `infra/graphhopper/data/graph-cache/` to `/opt/roteirizador/compose/graphhopper/data/graph-cache/` so the 1 GB droplet doesn't have to rebuild (would OOM during CH preparation). See ADR-0008 amendment.
 - [ ] First SSH to DO 1GB droplet — create `roteirizador` non-root user with sudo.
 - [ ] Disable root SSH login + password auth.
 - [ ] `ufw`: allow 22, 80, 443. Enable. Install `fail2ban`.
