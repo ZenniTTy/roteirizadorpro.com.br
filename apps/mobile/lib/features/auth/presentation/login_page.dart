@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,19 +9,22 @@ import '../../../core/widgets/rp_button.dart';
 import '../../../core/widgets/rp_ghost_button.dart';
 import '../../../core/widgets/rp_input.dart';
 import '../../../core/widgets/rp_logo.dart';
+import '../data/auth_repository.dart';
+import '../state/auth_controller.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _registerTapRecognizer = TapGestureRecognizer();
   bool _showPassword = false;
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -36,16 +40,52 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _showStub(String message) {
+  void _showSnack(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
+  Future<void> _onSubmit() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    if (email.isEmpty || password.isEmpty) {
+      _showSnack('Preencha e-mail e senha.');
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(email: email, password: password);
+      // The router redirect will route to /home automatically.
+    } on AuthApiException catch (e) {
+      _showSnack(_friendlyError(e));
+    } catch (_) {
+      _showSnack('Não foi possível conectar. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _friendlyError(AuthApiException e) {
+    switch (e.error) {
+      case 'invalid_credentials':
+        return 'E-mail ou senha incorretos.';
+      default:
+        return e.message;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final minHeight = mediaQuery.size.height - mediaQuery.padding.vertical - 56;
+    // First-frame guard: MediaQuery.size can be (0, 0) before the layout is
+    // settled; without the clamp, ConstrainedBox throws on a negative minHeight.
+    final minHeight =
+        (mediaQuery.size.height - mediaQuery.padding.vertical - 56)
+            .clamp(0.0, double.infinity);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -119,7 +159,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () => _showStub('Recuperação de senha em breve.'),
+                    onTap: () => _showSnack('Recuperação de senha em breve.'),
                     child: const Align(
                       alignment: Alignment.centerRight,
                       child: Padding(
@@ -137,9 +177,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(height: 24),
                   RpButton(
-                    label: 'Entrar',
-                    onPressed: () =>
-                        _showStub('Login: API ainda não está conectada.'),
+                    label: _submitting ? 'Entrando…' : 'Entrar',
+                    onPressed: _submitting ? null : _onSubmit,
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -168,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
                     label: 'Continuar com Google',
                     icon: const _GoogleGlyph(),
                     onPressed: () =>
-                        _showStub('Login com Google será habilitado em M2.'),
+                        _showSnack('Login com Google será habilitado em M2.'),
                   ),
                   const Spacer(),
                   Padding(

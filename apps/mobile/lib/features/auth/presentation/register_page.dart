@@ -1,19 +1,22 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/rp_button.dart';
 import '../../../core/widgets/rp_input.dart';
+import '../data/auth_repository.dart';
+import '../state/auth_controller.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -23,12 +26,14 @@ class _RegisterPageState extends State<RegisterPage> {
   final _privacyTapRecognizer = TapGestureRecognizer();
   final _loginTapRecognizer = TapGestureRecognizer();
 
+  bool _submitting = false;
+
   @override
   void initState() {
     super.initState();
-    _termsTapRecognizer.onTap = () => _showStub('Termos: tela em breve.');
+    _termsTapRecognizer.onTap = () => _showSnack('Termos: tela em breve.');
     _privacyTapRecognizer.onTap =
-        () => _showStub('Política de privacidade: tela em breve.');
+        () => _showSnack('Política de privacidade: tela em breve.');
     _loginTapRecognizer.onTap = () => context.go('/login');
   }
 
@@ -44,17 +49,60 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _showStub(String message) {
+  void _showSnack(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
+  Future<void> _onSubmit() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final phoneRaw = _phoneController.text.trim();
+    if (name.length < 2 || email.isEmpty || password.length < 8) {
+      _showSnack('Verifique nome, e-mail e senha (mínimo 8 caracteres).');
+      return;
+    }
+    setState(() => _submitting = true);
+    try {
+      await ref.read(authControllerProvider.notifier).register(
+            email: email,
+            password: password,
+            name: name,
+            phone: phoneRaw.isEmpty ? null : '+55$phoneRaw',
+          );
+      // After successful registration, log in immediately so the user lands
+      // on /home without a second screen.
+      await ref
+          .read(authControllerProvider.notifier)
+          .login(email: email, password: password);
+    } on AuthApiException catch (e) {
+      _showSnack(_friendlyError(e));
+    } catch (_) {
+      _showSnack('Não foi possível conectar. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String _friendlyError(AuthApiException e) {
+    switch (e.error) {
+      case 'email_taken':
+        return 'Este e-mail já está cadastrado.';
+      default:
+        return e.message;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
+    // First-frame guard: MediaQuery.size can be (0, 0) before layout is settled.
     final minHeight =
-        mediaQuery.size.height - mediaQuery.padding.vertical - 56 - 56;
+        (mediaQuery.size.height - mediaQuery.padding.vertical - 56 - 56)
+            .clamp(0.0, double.infinity);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -138,9 +186,8 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 24),
                   RpButton(
-                    label: 'Criar conta',
-                    onPressed: () =>
-                        _showStub('Cadastro: API ainda não está conectada.'),
+                    label: _submitting ? 'Criando conta…' : 'Criar conta',
+                    onPressed: _submitting ? null : _onSubmit,
                   ),
                   const SizedBox(height: 16),
                   RichText(
@@ -152,7 +199,9 @@ class _RegisterPageState extends State<RegisterPage> {
                         height: 1.5,
                       ),
                       children: [
-                        const TextSpan(text: 'Ao criar conta você aceita nossos\n'),
+                        const TextSpan(
+                          text: 'Ao criar conta você aceita nossos\n',
+                        ),
                         TextSpan(
                           text: 'Termos',
                           style: const TextStyle(
