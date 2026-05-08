@@ -49,6 +49,10 @@ android/local.properties
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
+### Next.js ###
+.next/
+out/
+
 ### Vercel ###
 .vercel/
 
