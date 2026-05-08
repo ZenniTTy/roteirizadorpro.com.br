@@ -262,6 +262,62 @@ webhook_events (M2)
 └── received_at     timestamptz
 ```
 
+## API Contracts & Type Safety
+
+The stack has three places where data shape is defined: the database (Prisma), the HTTP API (TypeBox), and the mobile client (Dart). To prevent drift and entropy, exactly one of these is canonical for each layer. Codified in **ADR-0013**.
+
+| Layer | Source of truth | Lives at | Consumes |
+|---|---|---|---|
+| Database | Prisma `schema.prisma` | `apps/backend/prisma/schema.prisma` | backend only — never crosses the wire |
+| HTTP API | TypeBox schemas | `apps/backend/src/<feature>/schemas.ts` | backend handlers (via `Static<typeof Schema>`) and Dart DTOs (via mirror) |
+| Mobile | Dart DTOs (manual mirror of TypeBox, M1; codegen post-M1) | `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` | mobile presentation layer |
+
+### Rules
+
+1. **Prisma types stay backend-internal.** A handler that returns `prisma.user.findUnique(...)` directly is a bug — `password_hash`, internal columns, and future migrations must not leak. Always whitelist via a TypeBox response schema.
+2. **TypeBox schemas are the API contract.** Every request body, query string, params, and every response status code is declared with a TypeBox schema. Schemas live in `apps/backend/src/<feature>/schemas.ts`, separate from route handlers, so they can be imported by tests and (post-M1) by an OpenAPI exporter. Handler types come from `Static<typeof Schema>`.
+3. **Mobile DTOs mirror TypeBox 1:1.** Each DTO file carries `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>` as its header. Field names and types match exactly — no renaming. `fromJson` / `toJson` are explicit.
+4. **One PR changes both sides.** A change to a TypeBox schema and the change to its Dart mirror travel in the same commit. Code review enforces this until codegen lands.
+
+### Example
+
+```ts
+// apps/backend/src/auth/schemas.ts
+import { Type, Static } from '@sinclair/typebox'
+
+export const UserSchema = Type.Object({
+  id: Type.String({ format: 'uuid' }),
+  email: Type.String({ format: 'email' }),
+  name: Type.String(),
+  phone: Type.Union([Type.String(), Type.Null()]),
+  createdAt: Type.String({ format: 'date-time' })
+})
+export type User = Static<typeof UserSchema>
+```
+
+```dart
+// apps/mobile/lib/features/auth/data/dto/auth_user_dto.dart
+// Mirror of: apps/backend/src/auth/schemas.ts → UserSchema
+class AuthUserDto {
+  const AuthUserDto({
+    required this.id, required this.email, required this.name,
+    required this.phone, required this.createdAt,
+  });
+  final String id;
+  final String email;
+  final String name;
+  final String? phone;
+  final DateTime createdAt;
+  // fromJson / toJson elided — see _template.dart in the same folder.
+}
+```
+
+A copy-paste reference is at `apps/mobile/lib/features/auth/data/dto/_template.dart`.
+
+### Post-M1
+
+Once M2 endpoints are designed, replace the manual mirror with codegen: `@fastify/swagger` exports OpenAPI from the TypeBox schemas, a Dart OpenAPI generator regenerates DTOs in CI. The `// Mirror of:` comments become docstrings on generated files. See ADR-0013 for the full rationale.
+
 ## API Contracts (initial — full OpenAPI spec lives next to backend code)
 
 ### M1 endpoints

@@ -81,6 +81,24 @@ These rules can't be inferred from code. They are enforced by you, the agent.
 
 Any change requires a new ADR.
 
+### Schema Source of Truth (ADR-0013)
+
+The stack has three places where data shape can be defined; only one is canonical per layer.
+
+| Layer | Source of truth | Lives at |
+|---|---|---|
+| Database | Prisma `schema.prisma` | `apps/backend/prisma/schema.prisma` — backend-internal; never on the wire |
+| HTTP API | TypeBox schemas | `apps/backend/src/<feature>/schemas.ts` (separate file from handlers) |
+| Mobile | Dart DTOs (manual mirror, M1) | `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` |
+
+Rules (full text in `docs/03-CONVENTIONS.md` §8 and `docs/02-ARCHITECTURE.md` "API Contracts & Type Safety"):
+
+1. Never return `@prisma/client` rows from a handler. Always whitelist via a TypeBox response schema.
+2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>` and matches the TypeBox shape 1:1 (no renaming, no field skips).
+3. A change to a TypeBox schema and its Dart mirror travel in the same commit.
+
+Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Post-M1 plan: replace the manual mirror with OpenAPI export (`@fastify/swagger`) + Dart codegen. See ADR-0013.
+
 ### Context7 Mandatory
 
 Before proposing OR installing any external library/framework, query Context7 (`resolve-library-id` then `query-docs`). Training-data knowledge has a cutoff; Context7 has current docs. **No exceptions for libraries within reach of the cutoff date.** Stdlib and well-established APIs (HTTP, SQL) are exempt.
