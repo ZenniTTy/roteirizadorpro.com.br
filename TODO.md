@@ -3,7 +3,7 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M1 only. M2 work begins in a fresh planning cycle after M1 acceptance.
 > **M1 deadline:** 2026-05-26.
-> **Last updated:** 2026-05-08.
+> **Last updated:** 2026-05-08 (session 02 — Claude Code automations).
 
 ## M1 acceptance criteria (verbatim from Workana)
 
@@ -86,6 +86,9 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [ ] Local dev currently runs Node v24 — runtime is locked to Node 20 LTS by ADR-0003. `.nvmrc` declares 20; run `nvm use` (or install nvm) before `bun run dev` / `bun run build` going forward.
 - [ ] Re-evaluate TS 5 → 6 bump after M1 ships (TS 6.0 just released; deferred to avoid new strictness errors during Phase 2).
 - [ ] Re-evaluate Tailwind 3 → 4 and React 18 → 19 after M1 ships (both require new ADRs because they propagate breaking changes).
+- [ ] Disable `stripe` plugin manually in `~/.claude/settings.json` line 17 — set `"stripe@claude-plugins-official": false`. The in-session edit was blocked by Claude Code's self-modification guard.
+- [ ] Reconcile Claude Code hooks (`.claude/hooks/`) with Lefthook pre-commit (ADR-0012 in draft). They cover different scopes (Claude-only vs all contributors) and can coexist — document the boundary in `docs/03-CONVENTIONS.md` or in ADR-0012.
+- [ ] Convention mismatch in `docs/03-CONVENTIONS.md` naming table: it lists Dart files as kebab-case (`user-profile.dart`) but the repo uses snake_case (`register_page.dart`, `app_theme.dart`, `rp_button.dart`). Either fix the doc or rename files.
 
 ---
 
@@ -106,3 +109,4 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [x] **2026-05-08** — Phase 1 Foundations complete: backend (Fastify v5 + TypeBox + Prisma 7), landing (Next.js 14 + Tailwind), mobile (Flutter source skeleton), `infra/docker-compose.yml` with postgres + redis healthy locally and graphhopper opt-in via `routing` profile.
 - [x] **2026-05-08** — Migrated to Bun as package manager (Node 20 LTS stays the runtime). Bumped six compatible major deps in backend (`@fastify/jwt` 10, `@fastify/type-provider-typebox` 6, `bcrypt` 6, `pino` 10, `pino-pretty` 13, `dotenv` 17). See ADR-0011.
 - [x] **2026-05-08** — Installed Flutter SDK 3.41.9 via `brew install --cask flutter`, ran `flutter create --platforms=android --org br.com.roteirizadorpro --project-name roteirizador_pro --no-pub .` in `apps/mobile/`, resolved deps with `flutter pub get`, verified with `flutter analyze` (clean) and `flutter test` (1/1 passing).
+- [x] **2026-05-08** — Wired up Claude Code automations under `.claude/`: PreToolUse hook blocking `.env*` edits (except `.env.example`), PostToolUse hook auto-formatting Dart files inside `apps/mobile/`, two subagents (`prototype-fidelity-checker` for UI vs `prototipo/`, `adr-guardian` for stack-change/ADR enforcement), two skills (`session-end`, `new-flutter-feature` — both user-only), and replaced the blanket `.claude/` rule in `.gitignore` with a granular pattern so team-shared automations are versioned. Disabled `firebase` plugin globally; `stripe` deferred (sandbox blocked self-modification).
