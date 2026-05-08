@@ -1,0 +1,26 @@
+# Generated files (regenerated on each build per ADR-0005).
+**/*.g.dart
+**/*.freezed.dart
+**/*.config.dart
+
+# Generated platform projects from `flutter create` — partially ignored.
+# We track manual config (build.gradle.kts, AndroidManifest entries) but not
+# the auto-generated transient files. Adjust as needed once flutter create
+# is run for the first time.
+android/.gradle/
+android/captures/
+android/local.properties
+android/key.properties
+android/app/release/
+android/app/debug/
+android/app/profile/
+android/app/.cxx/
+android/app/google-services.json
+android/app/upload-keystore.jks
+
+# Flutter / Dart caches (also covered by root .gitignore but kept here
+# explicitly for editor tools that read the closest .gitignore).
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
