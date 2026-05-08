@@ -57,9 +57,9 @@ class PlaceholderPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text(
+                const Text(
                   'API: ${AppEnv.apiBaseUrl}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.black45,
                     fontSize: 12,
                     fontFamily: 'monospace',

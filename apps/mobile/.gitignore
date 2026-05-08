@@ -24,3 +24,10 @@ android/app/upload-keystore.jks
 .flutter-plugins
 .flutter-plugins-dependencies
 build/
+
+# Tool logs
+flutter_*.log
+custom_lint.log
+
+# IDE module files (flutter create produces these alongside .idea/)
+*.iml
