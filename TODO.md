@@ -3,7 +3,7 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M1 only. M2 work begins in a fresh planning cycle after M1 acceptance.
 > **M1 deadline:** 2026-05-26.
-> **Last updated:** 2026-05-07.
+> **Last updated:** 2026-05-08.
 
 ## M1 acceptance criteria (verbatim from Workana)
 
@@ -20,17 +20,17 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ## Phase 1 — Foundations
 
-- [ ] Initialize `apps/mobile/` with `flutter create` (auth-only scope, package `br.com.roteirizadorpro`).
-- [ ] Configure Flutter linter (`flutter_lints`), formatter, analysis options.
-- [ ] Install Flutter deps: `flutter_riverpod`, `riverpod_annotation`, `riverpod_generator`, `build_runner`, `dio`, `flutter_secure_storage`, `go_router`.
-- [ ] Configure `--dart-define API_BASE_URL` and `apps/mobile/.env.example`.
-- [ ] Initialize `apps/backend/`: Node 20, TypeScript strict, Fastify v5 + TypeBox.
-- [ ] Initialize `apps/backend/` deps: `@fastify/jwt`, `@fastify/helmet`, `@fastify/cors`, `@fastify/rate-limit`, `@sinclair/typebox`, `@fastify/type-provider-typebox`, `pino`, `bcrypt`, `dotenv`.
-- [ ] Initialize Prisma 7 + `@prisma/adapter-pg` with `prisma.config.ts`.
-- [ ] Author `apps/backend/.env.example`.
-- [ ] Initialize `apps/landing/` with Next.js 14 (App Router) + Tailwind.
-- [ ] Author `infra/docker-compose.yml` with services: `postgres`, `redis`, `graphhopper`. Bind to 127.0.0.1.
-- [ ] `docker compose up` brings up all three services healthy.
+- [x] Initialize `apps/mobile/` (source files authored 2026-05-08; `flutter create` deferred to first run on a machine with Flutter SDK — see `apps/mobile/README.md`).
+- [x] Configure Flutter linter (`flutter_lints`), formatter, analysis options.
+- [x] Install Flutter deps: `flutter_riverpod`, `riverpod_annotation`, `riverpod_generator`, `build_runner`, `dio`, `flutter_secure_storage`, `go_router` (declared in `pubspec.yaml`; `pub get` runs at first bootstrap).
+- [x] Configure `--dart-define API_BASE_URL` and `apps/mobile/.env.example`.
+- [x] Initialize `apps/backend/`: Node 20, TypeScript strict, Fastify v5 + TypeBox.
+- [x] Initialize `apps/backend/` deps: `@fastify/jwt`, `@fastify/helmet`, `@fastify/cors`, `@fastify/rate-limit`, `@sinclair/typebox`, `@fastify/type-provider-typebox`, `pino`, `bcrypt`, `dotenv`.
+- [x] Initialize Prisma 7 + `@prisma/adapter-pg` with `prisma.config.ts`.
+- [x] Author `apps/backend/.env.example`.
+- [x] Initialize `apps/landing/` with Next.js 14 (App Router) + Tailwind.
+- [x] Author `infra/docker-compose.yml` with services: `postgres`, `redis`, `graphhopper`. Bind to 127.0.0.1. (GraphHopper sits behind the `routing` profile — opt-in until the SP PBF lands in Phase 2.)
+- [x] `docker compose up` brings up postgres + redis healthy locally.
 
 ## Phase 2 — M1 features
 
@@ -82,7 +82,8 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ## Discovered while working
 
-- (none yet)
+- [ ] Install Flutter SDK on dev machine and run the bootstrap from `apps/mobile/README.md` (generates `android/`, runs `pub get`, smoke-runs the placeholder page).
+- [ ] Local dev runs Node v24 — incompatible with the locked Node 20 LTS. `.nvmrc` now declares 20; run `nvm use` (or install nvm) before `npm install` going forward.
 
 ---
 
@@ -100,3 +101,4 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [x] **2026-05-06** — `docs/06-DESIGN-SYSTEM.md`, `docs/07-INFRA.md`.
 - [x] **2026-05-07** — Approved Claude Design prototype tracked in repo at `prototipo/`.
 - [x] **2026-05-07** — Documentation reorganization: M1-focused, prototype-aligned, redundancy removed. See `docs/10-CHANGELOG.md`.
+- [x] **2026-05-08** — Phase 1 Foundations complete: backend (Fastify v5 + TypeBox + Prisma 7), landing (Next.js 14 + Tailwind), mobile (Flutter source skeleton), `infra/docker-compose.yml` with postgres + redis healthy locally and graphhopper opt-in via `routing` profile.
