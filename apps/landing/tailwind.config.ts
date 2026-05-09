@@ -17,9 +17,19 @@ const config: Config = {
           light: '#F1FFCC',
           ink: '#3D5400',
         },
+        ink: '#1A1A2E',
+        muted: '#6B6880',
+        surface: {
+          DEFAULT: '#F8F7FC',
+          alt: '#F2EFFA',
+        },
+        outline: '#E8E4F0',
       },
       fontFamily: {
         sans: ['var(--font-poppins)', 'system-ui', 'sans-serif'],
+      },
+      maxWidth: {
+        wrap: '1200px',
       },
     },
   },
