@@ -1,0 +1,72 @@
+{
+  "// instructions": "Copy to .vscode/settings.json (gitignored). Tweak per developer.",
+
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.rulers": [100],
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  "[dart]": {
+    "editor.defaultFormatter": "Dart-Code.dart-code",
+    "editor.tabSize": 2,
+    "editor.rulers": [100]
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+
+  "dart.lineLength": 100,
+  "dart.previewFlutterUiGuides": true,
+  "dart.flutterHotReloadOnSave": "always",
+  "dart.flutterHotRestartOnSave": "manual",
+  "dart.runPubGetOnPubspecChanges": "always",
+  "dart.openDevTools": "flutter",
+
+  "files.exclude": {
+    "**/.dart_tool": true,
+    "**/.flutter-plugins": true,
+    "**/.flutter-plugins-dependencies": true,
+    "**/build": true,
+    "**/generated/client": true,
+    "**/.next": true,
+    "**/node_modules": true
+  },
+  "files.watcherExclude": {
+    "**/.dart_tool/**": true,
+    "**/build/**": true,
+    "**/generated/**": true,
+    "**/.next/**": true,
+    "**/node_modules/**": true
+  },
+
+  "search.exclude": {
+    "**/.dart_tool": true,
+    "**/build": true,
+    "**/generated": true,
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/bun.lock": true,
+    "**/pubspec.lock": true
+  },
+
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+  ],
+
+  "typescript.tsdk": "apps/landing/node_modules/typescript/lib"
+}

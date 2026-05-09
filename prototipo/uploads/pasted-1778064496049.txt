@@ -1,0 +1,2 @@
+Fetch this design file, read its readme, and implement the relevant aspects of the design. https://api.anthropic.com/v1/design/h/isnRN7OBBLRJ3-b1WD2uww?open_file=Landing+Page.html
+Implement: Landing Page.html

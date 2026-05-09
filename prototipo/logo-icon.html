@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Entrega Smart · Logo Icon</title>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; min-height: 100vh; }
+  body {
+    display: flex; align-items: center; justify-content: center; gap: 64px;
+    flex-wrap: wrap; padding: 64px;
+    font-family: system-ui, sans-serif;
+  }
+  .card {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    background: transparent;
+  }
+  .card.checker {
+    background-image:
+      linear-gradient(45deg, #e5e5e5 25%, transparent 25%),
+      linear-gradient(-45deg, #e5e5e5 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #e5e5e5 75%),
+      linear-gradient(-45deg, transparent 75%, #e5e5e5 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, 8px 0;
+    padding: 32px; border-radius: 12px;
+  }
+  .label { font-size: 12px; color: #666; letter-spacing: 0.5px; text-transform: uppercase; }
+  .s-512 svg { width: 512px; height: 512px; }
+  .s-256 svg { width: 256px; height: 256px; }
+  .s-128 svg { width: 128px; height: 128px; }
+  .s-64  svg { width: 64px;  height: 64px;  }
+</style>
+</head>
+<body>
+
+<div class="card s-512 checker">
+  <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="lg-purple" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6C3FC5"/>
+        <stop offset="100%" stop-color="#9B6DFF"/>
+      </linearGradient>
+    </defs>
+    <rect x="32" y="32" width="448" height="448" rx="148" ry="148" fill="url(#lg-purple)"/>
+    <g stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M 152 372 Q 138 252 244 252 Q 350 252 350 138"/>
+    </g>
+    <circle cx="152" cy="372" r="40" fill="#FFFFFF"/>
+    <circle cx="350" cy="138" r="40" fill="#C6FF3D"/>
+  </svg>
+  <span class="label">512 × 512 · PNG transparente</span>
+</div>
+
+<div class="card s-256 checker">
+  <svg width="256" height="256" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="lg-purple-2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6C3FC5"/>
+        <stop offset="100%" stop-color="#9B6DFF"/>
+      </linearGradient>
+    </defs>
+    <rect x="32" y="32" width="448" height="448" rx="148" ry="148" fill="url(#lg-purple-2)"/>
+    <g stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M 152 372 Q 138 252 244 252 Q 350 252 350 138"/>
+    </g>
+    <circle cx="152" cy="372" r="40" fill="#FFFFFF"/>
+    <circle cx="350" cy="138" r="40" fill="#C6FF3D"/>
+  </svg>
+  <span class="label">256 × 256</span>
+</div>
+
+<div class="card s-128 checker">
+  <svg width="128" height="128" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="lg-purple-3" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6C3FC5"/>
+        <stop offset="100%" stop-color="#9B6DFF"/>
+      </linearGradient>
+    </defs>
+    <rect x="32" y="32" width="448" height="448" rx="148" ry="148" fill="url(#lg-purple-3)"/>
+    <g stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M 152 372 Q 138 252 244 252 Q 350 252 350 138"/>
+    </g>
+    <circle cx="152" cy="372" r="40" fill="#FFFFFF"/>
+    <circle cx="350" cy="138" r="40" fill="#C6FF3D"/>
+  </svg>
+  <span class="label">128 × 128</span>
+</div>
+
+<div class="card s-64 checker">
+  <svg width="64" height="64" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="lg-purple-4" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#6C3FC5"/>
+        <stop offset="100%" stop-color="#9B6DFF"/>
+      </linearGradient>
+    </defs>
+    <rect x="32" y="32" width="448" height="448" rx="148" ry="148" fill="url(#lg-purple-4)"/>
+    <g stroke="#FFFFFF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <path d="M 152 372 Q 138 252 244 252 Q 350 252 350 138"/>
+    </g>
+    <circle cx="152" cy="372" r="40" fill="#FFFFFF"/>
+    <circle cx="350" cy="138" r="40" fill="#C6FF3D"/>
+  </svg>
+  <span class="label">64 × 64</span>
+</div>
+
+<div style="width: 100%; text-align: center; font-family: system-ui; color: #666; font-size: 13px; margin-top: 32px;">
+  PNGs transparentes já gerados nos arquivos logo-icon-{64,128,256,512,1024}.png
+</div>
+
+</body>
+</html>

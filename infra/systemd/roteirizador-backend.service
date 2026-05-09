@@ -1,0 +1,49 @@
+# Roteirizador Pro — backend systemd unit (Fastify v5 via tsx).
+#
+# Install:
+#   sudo cp infra/systemd/roteirizador-backend.service \
+#     /etc/systemd/system/roteirizador-backend.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now roteirizador-backend
+#
+# Logs:
+#   sudo journalctl -u roteirizador-backend -f
+#
+# Dependencies on the droplet (per ADR-0011 — Bun install, Node runtime):
+#   - Bun ≥ 1.3 at /usr/local/bin/bun (symlink ~/.bun/bin/bun system-wide
+#     after `curl -fsSL https://bun.sh/install | bash`).
+#   - Node 20 LTS (tsx spawns it).
+#   - bun install --frozen-lockfile already run inside the backend dir
+#     so node_modules/.bin/tsx exists.
+#   - .env at /opt/roteirizador/compose/.env, chmod 600, owned by roteirizador.
+
+[Unit]
+Description=Roteirizador Pro API (Fastify v5)
+Documentation=https://github.com/ZenniTTy/-APP---Entrega-Smart
+After=docker.service network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=roteirizador
+Group=roteirizador
+WorkingDirectory=/opt/roteirizador/compose/repo/apps/backend
+EnvironmentFile=/opt/roteirizador/compose/.env
+ExecStart=/usr/local/bin/bun run start
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=roteirizador-backend
+
+# Modest hardening — the unit doesn't need root capability surface.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/opt/roteirizador/logs
+
+[Install]
+WantedBy=multi-user.target

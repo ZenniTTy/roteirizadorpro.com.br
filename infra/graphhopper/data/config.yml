@@ -1,0 +1,41 @@
+# GraphHopper config — Roteirizador Pro M1.
+#
+# Scope: capital São Paulo only, motorcycle profile, Contraction Hierarchies
+# enabled (target: p95 < 200ms — M1 acceptance criterion #3).
+# Heap is sized for the 1 GB DigitalOcean droplet (overridden via JAVA_OPTS in
+# docker-compose.yml). Post-M1 droplet resize → re-import Sudeste full and
+# revisit profile cardinality. See ADR-0008.
+#
+# Paths are container-local: docker-compose mounts ./graphhopper/data into /data.
+
+graphhopper:
+  datareader.file: /data/pbf/sao-paulo-capital.osm.pbf
+  graph.location: /data/graph-cache
+
+  profiles:
+    - name: motorcycle
+      custom_model_files: [motorcycle.json]
+
+  profiles_ch:
+    - profile: motorcycle
+
+  # Encoded values consumed by motorcycle.json (see core/src/main/resources/com/graphhopper/custom_models/motorcycle.json).
+  graph.encoded_values: car_access, track_type, road_class, road_environment, curvature, car_average_speed, surface, max_speed, ferry_speed
+  graph.urban_density.threads: 4
+
+  # Skip non-motorized ways during OSM import (motorcycle is a motor profile).
+  # Required since GraphHopper 8.x — omitting throws IllegalArgumentException at startup.
+  import.osm.ignored_highways: footway, cycleway, path, pedestrian, steps, bridleway
+
+  prepare.min_network_size: 200
+  routing.max_visited_nodes: 1000000
+
+server:
+  application_connectors:
+    - type: http
+      port: 8989
+      bind_host: 0.0.0.0
+  admin_connectors:
+    - type: http
+      port: 8990
+      bind_host: 0.0.0.0

@@ -1,0 +1,64 @@
+name: roteirizador
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: roteirizador-postgres
+    restart: unless-stopped
+    # Credentials default to the loopback-dev triple. In production, .env
+    # at /opt/roteirizador/compose/.env supplies a strong POSTGRES_PASSWORD
+    # (Compose auto-substitutes from .env in the same directory as this file).
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-roteirizador}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-roteirizador}
+      POSTGRES_DB: ${POSTGRES_DB:-roteirizador}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-roteirizador} -d ${POSTGRES_DB:-roteirizador}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: roteirizador-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  graphhopper:
+    image: israelhikingmap/graphhopper:latest
+    container_name: roteirizador-graphhopper
+    restart: unless-stopped
+    profiles: [routing]
+    # graphhopper.sh always passes -Ddw.graphhopper.graph.location from its -o arg,
+    # overriding whatever the config.yml says — pass -o explicitly so the cache
+    # lands at infra/graphhopper/data/graph-cache/ (rsync'd to droplet in Phase 3).
+    entrypoint: ["./graphhopper.sh", "-c", "/data/config.yml", "-o", "/data/graph-cache"]
+    environment:
+      JAVA_OPTS: "-Xmx800m -Xms400m"
+    ports:
+      - "127.0.0.1:8989:8989"
+    volumes:
+      - ./graphhopper/data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+volumes:
+  postgres-data:
+  redis-data:
