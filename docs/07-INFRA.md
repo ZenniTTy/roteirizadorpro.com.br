@@ -6,11 +6,18 @@ State as of 2026-05-07. Update this file whenever infrastructure changes.
 
 ## DigitalOcean
 
-**Account status:** Active. **Account is the client's.** Eduardo has admin access (granted via DO Team).
-**Droplet status:** Provisioned. 1GB plan (workaround agreed with client because of his temporary card limitation). Resize to 8GB is post-M1.
-**Droplet IPv4:** `<TO BE FILLED — Eduardo updates here once SSH'd in>`
+**Account status:** Active. Team `roteirizadorpro` (uuid `34eaabde-0f22-462c-86e8-7facaad4a7c4`). Email `zennitty@proton.me`.
+**Droplet status:** Provisioned 2026-05-08 via DO API session 07. ID `569830613`. 1GB plan; resize to 4-8GB post-M1.
+**Droplet IPv4:** `138.197.38.243` (NYC3).
 **Hostname:** `roteirizador-pro`
-**Region:** São Paulo (preferred) or NYC3 (fallback)
+**Region:** `nyc3` (DigitalOcean does not have a São Paulo datacenter — confirmed via `/v2/regions`. Available regions for `s-1vcpu-1gb`: nyc1/2/3, sfo2/3, ams3, fra1, lon1, sgp1, syd1, blr1, tor1. NYC3 picked for proximity to BR users (~100-150ms RTT).)
+**Tags:** `roteirizador-pro`, `m1`, `production`.
+**Image:** `ubuntu-24-04-x64`.
+**Cloud-init bootstrap:** ran on first boot — see `/tmp/roteirizador-cloud-init.yml` (the user_data) and the equivalent `scripts/server-bootstrap.sh` for what was applied.
+**M1 acceptance baseline snapshot:** `m1-acceptance-baseline-20260509` (action id `3177273363`, taken 2026-05-09 04:21Z).
+**Swap:** 2 GB swap file at `/swapfile` (added during deploy because GraphHopper graph build approached 800 MB heap on a 1 GB host).
+**TLS cert:** Let's Encrypt for `api.roteirizadorpro.com.br`, expires 2026-08-07. Auto-renew via `certbot.timer` systemd unit.
+**Postgres backups:** daily 03:00 (cron) → `/opt/roteirizador/backups/`, 30-day rotation. Restore drill verified 2026-05-09.
 
 ### Panel access
 
@@ -20,15 +27,14 @@ State as of 2026-05-07. Update this file whenever infrastructure changes.
 
 ### Eduardo's SSH public key
 
-Generate if not yet done:
+Generated 2026-05-08 with `ssh-keygen -t ed25519 -C "eduardo@ianelli.tech" -f ~/.ssh/roteirizador_pro -N ""`.
 
-```bash
-ssh-keygen -t ed25519 -C "eduardo@ianelli.tech" -f ~/.ssh/roteirizador_pro
-```
+- **Path on laptop:** `~/.ssh/roteirizador_pro` (private), `~/.ssh/roteirizador_pro.pub` (public)
+- **Fingerprint:** `SHA256:9FLpFCVU9rZX8TUpP/axoPYrSYYu0yIqxU3VJmHuWvg`
+- **Comment:** `eduardo@ianelli.tech`
+- **Passphrase:** none (the dedicated key is for unattended deploy automation; the laptop's encrypted home is the security boundary)
 
-Public key location: `~/.ssh/roteirizador_pro.pub`
-
-Add this key to the DigitalOcean account under **Settings → Security → SSH Keys**. The key is propagated to new droplets at creation time.
+The key is uploaded to the DigitalOcean account once (via API in session 07 / 08) and then attached at droplet-creation time so cloud-init can drop it into `/root/.ssh/authorized_keys` on first boot.
 
 ### First login sequence (after droplet is created)
 
@@ -87,7 +93,7 @@ These records go in the DNS provider for `roteirizadorpro.com.br` (client's regi
 
 ### Droplet IPv4
 
-`<TO BE FILLED after provisioning>`
+`138.197.38.243` — captured from droplet creation response, session 07.
 
 ### Docker installation (Sprint 1 — Day 2)
 
