@@ -99,5 +99,6 @@ infra/graphhopper/data/graph-cache/
 .claude/settings.local.json
 .claude/state/
 .claude/cache/
+.claude/scheduled_tasks.lock
 .cursor/
 .ai-cache/
