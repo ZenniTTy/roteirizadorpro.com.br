@@ -67,7 +67,7 @@ export default function HomePage() {
             </p>
             <div className="ctas">
               <a className="btn-primary" href="#cta">
-                Baixar grátis
+                Baixar app
                 <span className="neon-dot"></span>
               </a>
             </div>
@@ -75,7 +75,7 @@ export default function HomePage() {
               <span className="stars">★★★★★</span>
               <strong>4,9+</strong>
               <span className="sep"></span>
-              <span>Pix · sem fidelidade</span>
+              <span>Pix · pague só quando rodar</span>
             </div>
           </div>
 
@@ -915,18 +915,18 @@ export default function HomePage() {
           <div className="final-cta">
             <span className="pill neon" style={{ marginBottom: 18 }}>
               <span className="dot"></span>
-              Promoção · 7 dias grátis
+              Pague só pela rota
             </span>
             <h2>
               Sua próxima entrega pode ser{' '}
               <span style={{ color: 'var(--neon)' }}>37% mais rápida</span>.
             </h2>
             <p>
-              Baixe agora e teste 7 dias do plano Pro sem pagar nada. Sem
-              cartão, sem fidelidade.
+              Otimize sua rota e veja o ganho antes de pagar. Pix na hora
+              de iniciar, só pelo que rodar. Sem mensalidade.
             </p>
             <a className="btn-primary" href="#">
-              Baixar grátis
+              Baixar app
               <span className="neon-dot"></span>
             </a>
             <div className="meta"></div>
