@@ -2,6 +2,9 @@ import Image from 'next/image';
 
 import { LiveCounter } from '@/components/landing/LiveCounter';
 
+const APK_URL = '/roteirizador-pro-v1.0.0.apk';
+const APK_FILENAME = 'roteirizador-pro-v1.0.0.apk';
+
 export default function HomePage() {
   return (
     <>
@@ -23,13 +26,15 @@ export default function HomePage() {
           <div className="links">
             <a href="#features">Recursos</a>
             <a href="#how">Como funciona</a>
-            <a href="#cta">Baixar app</a>
+            <a href={APK_URL} download={APK_FILENAME}>
+              Baixar app
+            </a>
           </div>
           <div className="cta">
             <a className="login" href="#">
               Entrar
             </a>
-            <a className="download" href="#cta">
+            <a className="download" href={APK_URL} download={APK_FILENAME}>
               <svg
                 width="14"
                 height="14"
@@ -66,7 +71,11 @@ export default function HomePage() {
               rota em segundos. Sem mensalidade fixa.
             </p>
             <div className="ctas">
-              <a className="btn-primary" href="#cta">
+              <a
+                className="btn-primary"
+                href={APK_URL}
+                download={APK_FILENAME}
+              >
                 Baixar app
                 <span className="neon-dot"></span>
               </a>
@@ -925,7 +934,11 @@ export default function HomePage() {
               Otimize sua rota e veja o ganho antes de pagar. Pix na hora
               de iniciar, só pelo que rodar. Sem mensalidade.
             </p>
-            <a className="btn-primary" href="#">
+            <a
+              className="btn-primary"
+              href={APK_URL}
+              download={APK_FILENAME}
+            >
               Baixar app
               <span className="neon-dot"></span>
             </a>
