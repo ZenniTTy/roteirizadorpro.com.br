@@ -3,7 +3,7 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M2 — slice-by-slice execution. M1 was delivered 2026-05-09.
 > **M2 contract:** BRL 2,000. Sequence locked 2026-05-13: APK → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
-> **Last updated:** 2026-05-13 (session 09 — slice 1 APK signing + landing distribution in progress).
+> **Last updated:** 2026-05-13 (session 10 — slice 1 device validation + INTERNET fix + PR #3 opened).
 
 ## M2 — Slices
 
@@ -20,7 +20,9 @@ Slice 1 — Android APK distribuível (in progress, session 09)
 - [x] Author ADR-0014 (Android Release Signing and APK Distribution).
 - [x] Validate the published APK on a real Android device (Samsung Galaxy A06, USB + adb install + register/login round-trip against production — green after the INTERNET-permission fix below).
 - [x] **Fix: declare `android.permission.INTERNET` in `src/main/AndroidManifest.xml`.** The first install surfaced "Failed host lookup: api.roteirizadorpro.com.br" on every request. Root cause: Flutter ships the INTERNET grant via `src/{debug,profile}/AndroidManifest.xml` overlays only, which are NOT merged into release builds — DNS resolved fine from the device shell, but the app process had no INTERNET grant. Rebuilt and re-validated; the network failures disappeared.
-- [ ] Open PR `feat/m2-slice-1-apk` → `develop`, validate Vercel preview deploy serves the APK with the right Content-Type.
+- [x] Open PR `feat/m2-slice-1-apk` → `develop` (PR #3 — https://github.com/ZenniTTy/roteirizadorpro.com.br/pull/3). Vercel preview check is `SUCCESS`; the preview URL returns 401 because the project has Deployment Protection / SSO enabled (expected — not a regression). Production apex returns 404 for the APK path pre-merge (expected).
+- [ ] **Pre-merge: 1Password backup of the keystore** (`~/.android-keystores/roteirizador-pro.jks` + the `ANDROID_KEYSTORE_*` block from `.env.deploy`). Mandatory before merging PR #3.
+- [ ] Merge PR #3 and validate the APK serves at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` with HTTP 200 and `Content-Type: application/vnd.android.package-archive`.
 - [ ] Tag `v1.0.0` (matching `pubspec.yaml` version) after PR merge.
 
 Slice 2 — Telas Core (Home, AddStop, Voice, OCR, Optimize, StopDetail, MapStops, Settings) — pending.
