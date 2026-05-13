@@ -16,9 +16,12 @@ Independent Brazilian delivery riders need a fast, reliable route planner that r
 
 ## Business Model
 
-- Single subscription tier: **BRL 25.90 per month per user**.
+- **Pay-per-route** model (revised by the client on 2026-05-10; the original brief assumed a monthly subscription).
+  - Adding stops, optimizing the route, and viewing the optimized result are **free**.
+  - The paywall fires on "Iniciar navegação": one Pix charge of **BRL 25.90** unlocks turn-by-turn for that one route.
+  - No subscriptions, no trials, no recurring billing.
 - Payment exclusively via Pix (no credit card support in V1).
-- Effective gateway fee: 1.19% + BRL 0.31 per transaction (Efí Bank pricing).
+- Effective gateway fee: 1.19% + BRL 0.31 per transaction (Efí Bank pricing). Net per charge ≈ BRL 25.28; partner share ≈ BRL 12.64 each. Full unit economics in `docs/M2-COST-MODEL.md`.
 - Revenue is automatically split 50/50 between the two partners at the moment of payment, using Efí Bank's native Pix Split feature.
 - Distribution: APK direct download from the project's domain. **No Google Play Store** in V1 (the client explicitly chose to bypass Play Store bureaucracy and distribute the APK directly).
 
@@ -36,10 +39,10 @@ Full reasoning in `docs/decisions/0010-clone-positioning.md`.
 
 | Milestone | Scope summary | Value | Duration |
 |---|---|---|---|
-| **M1** | Server (DigitalOcean 1GB workaround), GraphHopper SP-only, landing page, backend auth API + healthchecks, Login + Register screens in Flutter | BRL 2,000 | 30 days (accepted 2026-04-26, deadline 2026-05-26) |
-| **M2 (post-M1)** | Scope to be reconfirmed with client after M1 acceptance. Original Workana M2: Android APK, OCR, voice, "sentido casa" optimization, paywall, Pix Split via Efí Bank, partner dashboard, share/QR. | BRL 2,000 | TBD |
+| **M1** | Server (DigitalOcean 1GB workaround), GraphHopper SP-only, landing page, backend auth API + healthchecks, Login + Register screens in Flutter | BRL 2,000 | ✅ delivered 2026-05-09 (deadline was 2026-05-26) |
+| **M2** | Distributable APK + 15 remaining Flutter screens + real route optimization + Pix Split paywall (pay-per-route, BRL 25.90) + sentido casa + LGPD + admin panel | BRL 2,000 | 🟡 in progress. Slice 1 (APK) shipped 2026-05-13 as `v1.0.0`. Six slices remaining. |
 
-Detailed M1 plan: `docs/08-ROADMAP.md`. M2 plan: post-M1 (scope to be reconfirmed with client).
+Detailed plan: `docs/08-ROADMAP.md` is the **single source of truth for M2**: slice order, scope per slice, library choices, acceptance criteria, cost ceiling. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost target in `docs/M2-COST-MODEL.md`.
 
 ## Stakeholders
 

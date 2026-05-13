@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-08
+> **Last updated:** 2026-05-13 (session 11 — M2 roadmap made canonical)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## What This Project Is
@@ -11,11 +11,19 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M1
+## Current Focus: M2 (slice 2 — Telas Core is next)
 
-The current milestone is **M1, deadline 2026-05-26**. Do not plan or build M2 work in this cycle. M2 scope will be reconfirmed with the client after M1 acceptance.
+M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress; six slices remain.** The locked order is:
 
-M1 plan: `docs/08-ROADMAP.md`.
+1. ✅ APK distribuível (`v1.0.0`).
+2. ⏳ Telas Core — 15 prototype screens + map (`flutter_map` + OSM) + voice/OCR shells.
+3. ⏳ VRP real (in-process Node TS solver + GraphHopper matrix).
+4. ⏳ Pix Split paywall (Efí Bank, pay-per-route BRL 25.90).
+5. ⏳ Sentido casa.
+6. ⏳ LGPD.
+7. ⏳ Painel admin.
+
+**The single source of truth for M2 is `docs/08-ROADMAP.md`.** When any other doc contradicts it, the roadmap wins and you fix the contradiction in the same PR. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta).
 
 ## Onboarding Ritual
 
@@ -23,9 +31,13 @@ When you start a session in this repo, read in this order:
 
 1. `README.md` — what the project is.
 2. This file (`CLAUDE.md`) — how to operate.
-3. `TODO.md` — current open M1 tasks.
-4. `docs/08-ROADMAP.md` — M1 plan and acceptance criteria.
-5. `docs/sessions/0001-INDEX.md` — last 3 session logs at minimum.
+3. `docs/08-ROADMAP.md` — **the canonical M2 plan; this is the file you act from**.
+4. `docs/M2-SLICE-CHECKLIST.md` — the per-slice execution checklist (verification steps, post-merge ritual).
+5. `docs/M2-COST-MODEL.md` — the cost ceiling every architectural choice must respect.
+6. `TODO.md` — current slice-by-slice state.
+7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
+8. The slice's section in `docs/08-ROADMAP.md` (e.g. "Slice 2 — Telas Core") and the `prototipo/screens-*.jsx` files matching it.
+9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
