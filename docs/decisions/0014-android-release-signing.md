@@ -240,6 +240,20 @@ is stable when the publisher republishes the same semver with a higher build cod
   from a single upload, eliminating the universal-vs-split tradeoff entirely.
   Not relevant for direct-download distribution.
 
+### Sharp edges learned during slice 1
+
+- **`android.permission.INTERNET` MUST be declared in
+  `src/main/AndroidManifest.xml`.** `flutter create` scaffolds this permission
+  only into the `src/debug/` and `src/profile/` manifest overlays, since those
+  are the only modes that need the hot-reload wire. **Release builds do not
+  merge those overlays.** Symptom of forgetting: every outbound socket fails
+  with `Failed host lookup`, which is easy to misread as DNS. Diagnose with
+  `aapt2 dump permissions <apk>` — if the only `uses-permission` is the
+  `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` boilerplate, the INTERNET grant
+  is missing. Recorded as a sanity-check step in `apps/mobile/scripts/build-release-apk.sh`
+  follow-up: a future enhancement to the script can grep the merged manifest
+  after build and abort if `INTERNET` is not present.
+
 ## References
 
 - Flutter — *Build and release an Android app* — `https://docs.flutter.dev/deployment/android`.

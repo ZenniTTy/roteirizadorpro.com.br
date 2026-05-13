@@ -18,7 +18,8 @@ Slice 1 — Android APK distribuível (in progress, session 09)
 - [x] Publish APK at `apps/landing/public/roteirizador-pro-v1.0.0.apk` (with scoped `!apps/landing/public/*.apk` exception in root `.gitignore`).
 - [x] Wire 4 landing CTAs (nav + header + hero + final) to `download={APK_FILENAME}` instead of the previous `href="#"`/`href="#cta"` placeholders.
 - [x] Author ADR-0014 (Android Release Signing and APK Distribution).
-- [ ] Validate the published APK on a real Android device (USB + adb install + register/login round-trip against production).
+- [x] Validate the published APK on a real Android device (Samsung Galaxy A06, USB + adb install + register/login round-trip against production — green after the INTERNET-permission fix below).
+- [x] **Fix: declare `android.permission.INTERNET` in `src/main/AndroidManifest.xml`.** The first install surfaced "Failed host lookup: api.roteirizadorpro.com.br" on every request. Root cause: Flutter ships the INTERNET grant via `src/{debug,profile}/AndroidManifest.xml` overlays only, which are NOT merged into release builds — DNS resolved fine from the device shell, but the app process had no INTERNET grant. Rebuilt and re-validated; the network failures disappeared.
 - [ ] Open PR `feat/m2-slice-1-apk` → `develop`, validate Vercel preview deploy serves the APK with the right Content-Type.
 - [ ] Tag `v1.0.0` (matching `pubspec.yaml` version) after PR merge.
 
