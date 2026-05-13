@@ -44,6 +44,9 @@ android/local.properties
 *.apk
 *.aab
 *.ipa
+# Re-include APKs that are hand-published to the landing page for distribution.
+# See ADR-0014.
+!apps/landing/public/*.apk
 *.dSYM.zip
 *.dSYM
 android/app/google-services.json
