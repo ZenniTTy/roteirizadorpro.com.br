@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for the app to reach api.roteirizadorpro.com.br. Debug and
+         profile builds inherit this from src/{debug,profile}/AndroidManifest.xml
+         (which Flutter declares to support hot reload over the wire), but
+         release builds do NOT merge those overlays, so the main manifest must
+         declare it explicitly. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="Roteirizador Pro"
         android:name="${applicationName}"
