@@ -6,55 +6,57 @@ The screen catalogue for Roteirizador Pro. **The canonical UI source is the appr
 
 ## Prototype screen map (19 screens)
 
-Listed in the order they appear in `prototipo/Roteirizador Pro.html`. Each entry: section, screen ID, label, milestone scope.
+Listed in the order they appear in `prototipo/Roteirizador Pro.html`. Each entry: section, screen ID, label, milestone scope, **M2 slice that ships it**, and prototype source file (`prototipo/screens-{a,b,d,e}.jsx`).
+
+> Slice mapping is the single source of truth for "when does this screen ship?". Order of work lives in `docs/08-ROADMAP.md`.
 
 ### Section 01 — Authentication
 
-| ID | Label | Milestone |
-|---|---|---|
-| `login` | 01 · Login | **M1** |
-| `register` | 02 · Criar conta | **M1** |
+| ID | Label | Milestone | Slice | Prototype source | Status |
+|---|---|---|---|---|---|
+| `login` | 01 · Login | M1 | — | `screens-a.jsx → ScreenLogin` | ✅ shipped |
+| `register` | 02 · Criar conta | M1 | — | `screens-a.jsx → ScreenRegister` | ✅ shipped |
 
 ### Section 02 — Route
 
-| ID | Label | Milestone |
-|---|---|---|
-| `home-empty` | 03 · Home vazia | M2 |
-| `home-list` | 04 · Lista de paradas | M2 |
-| `map-stops` | 05 · Mapa da rota | M2 |
-| `add-stops-map` | 06 · Adicionar pelo mapa | M2 |
-| `add-stop` | 07 · Adicionar (busca) | M2 |
-| `edit-stop` | 08 · Editar parada | M2 |
+| ID | Label | Milestone | Slice | Prototype source | Status |
+|---|---|---|---|---|---|
+| `home-empty` | 03 · Home vazia | M2 | slice 2 / sub 2a | `screens-a.jsx → ScreenHomeEmpty` | ⏳ |
+| `home-list` | 04 · Lista de paradas | M2 | slice 2 / sub 2a | `screens-a.jsx → ScreenHomeList` | ⏳ |
+| `map-stops` | 05 · Mapa da rota | M2 | slice 2 / sub 2c | `screens-d.jsx → ScreenMapStops` | ⏳ |
+| `add-stops-map` | 06 · Adicionar pelo mapa | M2 | slice 2 / sub 2b | `screens-e.jsx → ScreenAddStopsMap` | ⏳ |
+| `add-stop` | 07 · Adicionar (busca) | M2 | slice 2 / sub 2b | `screens-a.jsx → ScreenAddStop` | ⏳ |
+| `edit-stop` | 08 · Editar parada | M2 | slice 2 / sub 2c | `screens-e.jsx → ScreenEditStop` | ⏳ |
 
 ### Section 03 — Address capture
 
-| ID | Label | Milestone |
-|---|---|---|
-| `voice` | 09 · Voz | M2 |
-| `ocr` | 10 · Scanner OCR | M2 |
-| `optimize-loading` | 11 · Otimizando rota | M2 |
-| `optimize` | 12 · Rota otimizada | M2 |
-| `reorder` | 13 · Reordenar (laço) | M2 |
+| ID | Label | Milestone | Slice | Prototype source | Status |
+|---|---|---|---|---|---|
+| `voice` | 09 · Voz | M2 | slice 2 / sub 2b | `screens-a.jsx → ScreenVoice` | ⏳ |
+| `ocr` | 10 · Scanner OCR | M2 | slice 2 / sub 2b | `screens-b.jsx → ScreenOCR` | ⏳ |
+| `optimize-loading` | 11 · Otimizando rota | M2 | slice 2 / sub 2d (shell) → slice 3 (real solver) | `screens-b.jsx → ScreenOptimize` | ⏳ |
+| `optimize` | 12 · Rota otimizada | M2 | slice 2 / sub 2d | `screens-e.jsx → ScreenOptimizeRoute` | ⏳ |
+| `reorder` | 13 · Reordenar (laço) | M2 | slice 2 / sub 2c | `screens-e.jsx → ScreenReorder` | ⏳ |
 
 ### Section 04 — Delivery + subscription
 
-| ID | Label | Milestone |
-|---|---|---|
-| `stop-detail` | 14 · Detalhe da parada | M2 |
-| `navigate` | 15 · Navegação turn-by-turn | M2 |
-| `route-complete` | 16 · Rota concluída | M2 |
-| `paywall` | 17 · Paywall (Pix) | M2 |
+| ID | Label | Milestone | Slice | Prototype source | Status |
+|---|---|---|---|---|---|
+| `stop-detail` | 14 · Detalhe da parada | M2 | slice 2 / sub 2c | `screens-b.jsx → ScreenStopDetail` | ⏳ |
+| `navigate` | 15 · Navegação turn-by-turn | M2 | slice 2 / sub 2d (shell) → slice 4 (paywall gate) | `screens-e.jsx → ScreenNavigate` | ⏳ |
+| `route-complete` | 16 · Rota concluída | M2 | slice 2 / sub 2d | `screens-e.jsx → ScreenRouteComplete` | ⏳ |
+| `paywall` | 17 · Paywall (Pix) | M2 | slice 4 | `screens-b.jsx → ScreenPaywall` | ⏳ |
 
 ### Section 05 — Account
 
-| ID | Label | Milestone |
-|---|---|---|
-| `settings` | 18 · Configurações | M2 |
-| `share` | 19 · Indique o app | M2 |
+| ID | Label | Milestone | Slice | Prototype source | Status |
+|---|---|---|---|---|---|
+| `settings` | 18 · Configurações | M2 | slice 2 / sub 2e (structure) → slice 4 (paywall block) → slice 5 (home address) | `screens-b.jsx → ScreenSettings` | ⏳ |
+| `share` | 19 · Indique o app | M2 | slice 2 / sub 2e | `screens-b.jsx → ScreenShare` | ⏳ |
 
 ## M1 screen detail
 
-Only the two M1 screens are detailed here. M2 screens are documented at "what they are" level above and will be specified per-screen in a future planning cycle when M2 work begins.
+The two M1 screens are detailed here. M2 screens are documented at "what they are" level above; each slice's PR carries the precise interaction spec for the screens it ships, cross-referenced back to this catalogue.
 
 ### 01 — Login (`login`)
 

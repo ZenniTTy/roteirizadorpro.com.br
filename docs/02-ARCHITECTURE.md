@@ -160,35 +160,97 @@
 6. App displays route + estimated end time at top
 ```
 
-### Flow 3 — Pix Split subscription (M2)
+### Flow 3 — Pay-per-route paywall via Pix Split (M2 / slice 4)
+
+> **Important — pricing model change.** The original M2 brief assumed a monthly BRL 25.90 subscription. The client revised the model during M2 scoping on 2026-05-10 to **pay-per-route**: optimization is free, viewing the optimized route is free, the paywall fires on "Iniciar navegação," a single Pix charge unlocks turn-by-turn for *that one route*. No subscriptions, no trials. The Pix amount per charge is `BRL 25.90` (subject to revision before slice 4 ships). The 50/50 split per ADR-0007 is unchanged.
 
 ```
-1. User without active subscription taps "Iniciar Navegação"
-   ↓
-2. App calls GET /subscription/status → returns "inactive"
-   ↓
-3. Modal: "Subscribe for BRL 25.90/month"
-   ↓
-4. User confirms → app calls POST /subscription/checkout
-   ↓
-5. Backend creates Pix cobrança via Efí (PUT /v2/cob/:txid for BRL 25.90)
-   ↓
-6. Backend attaches Split (PUT /v2/gn/split/cob/:txid/vinculo/:splitConfigId)
-   ↓
-7. Efí returns QR Code + copy-paste code
-   ↓
-8. App displays QR + "Copy code" button
-   ↓
-9. User pays in their bank app
-   ↓
-10. Efí webhooks POST /webhooks/efi/pix
+ 1. User finishes adding stops and taps "Otimizar rota"
     ↓
-11. Backend validates HMAC signature, marks subscription active for 30 days
+ 2. App POSTs /routes/optimize (slice 3 — see Flow 2). Free.
     ↓
-12. Backend broadcasts "subscription_active" via WebSocket to user's device
+ 3. App renders ScreenOptimizeRoute. User reviews the result. Free.
     ↓
-13. App unlocks "Iniciar Navegação"
+ 4. User taps "Iniciar navegação"
+    ↓
+ 5. App calls POST /payments/route-charge { route_id }
+    ↓
+ 6. Backend creates a Pix cobrança via Efí (PUT /v2/cob/:txid for BRL 25.90)
+    + attaches Split (PUT /v2/gn/split/cob/:txid/vinculo/:splitConfigId)
+    + returns the BR Code (text) + the QR image data URI + the txid.
+    ↓
+ 7. App renders ScreenPaywall: QR + "Copiar código Pix" button + status poll.
+    ↓
+ 8. User pays in their bank app.
+    ↓
+ 9. Efí webhooks POST /webhooks/efi/pix.
+    ↓
+10. Backend validates HMAC, deduplicates by e2e_id, marks route_payment.status = 'CONFIRMED'.
+    ↓
+11. App's status poll picks up CONFIRMED on next tick (default 2 s).
+    ↓
+12. App navigates to ScreenNavigate. Turn-by-turn unlocked for this route.
 ```
+
+Polling instead of WebSocket: the Efí webhook lands within 1-3 s of payment in practice; a 2 s client poll keeps the slice 4 implementation simpler and the mobile network footprint smaller. Move to SSE if user friction becomes visible.
+
+### Flow 4 — Map screens, tile fetching, and OSM compliance (M2 / slice 2)
+
+```
+1. App opens a screen with a map (AddStopsMap, MapStops, OptimizeRoute, Navigate)
+   ↓
+2. flutter_map renders a TileLayer with urlTemplate
+   = https://tile.openstreetmap.org/{z}/{x}/{y}.png and userAgentPackageName
+   = 'br.com.roteirizadorpro.roteirizador_pro' (mandatory; see ADR-0016).
+   ↓
+3. Each visible tile (n ≈ 6-30 depending on screen size and zoom) is GET'd from
+   the OSM tile server. Cached by the OS HTTP cache and re-used for subsequent
+   visits within the TTL.
+   ↓
+4. Attribution widget shows "OpenStreetMap contributors" at all times.
+   ↓
+5. The slice 7 admin metrics page rolls up daily tile-request count from app
+   analytics so we know in time if we approach the OSMF acceptable-use limit
+   (see ADR-0016 for the migration trigger to self-hosted tiles).
+```
+
+### Flow 5 — Geocoding (M2 / slice 3)
+
+```
+1. User types an address in ScreenAddStop or transcribes one via ScreenVoice
+   ↓
+2. App POSTs /geocode { query: "<text>" } to the backend
+   ↓
+3. Backend (rate-limited to 1 req/s/user) calls Nominatim:
+   GET https://nominatim.openstreetmap.org/search?q=<query>&format=json&limit=5
+   with User-Agent: 'roteirizadorpro/1.0 contact: eduardo@ianelli.tech'
+   ↓
+4. Backend caches the top result in Redis with a 24-hour TTL keyed by the
+   normalized query string. Returns { lat, lng, display_name, confidence }.
+   ↓
+5. App lets the user accept or pick from alternatives.
+```
+
+> If Nominatim usage starts hitting the OSMF rate threshold the migration is the same as for tiles: self-host Nominatim on the droplet (heavier: ~30 GB disk for SP), or move to LocationIQ. Captured in ADR-0018 (filed when slice 3 starts).
+
+### Flow 6 — External navigation hand-off (M2 / slice 2)
+
+```
+1. From ScreenOptimizeRoute, user taps "Abrir no Google Maps" or "Abrir no Waze"
+   ↓
+2. App builds a deep link with the optimized route as waypoints:
+   - Google Maps: https://www.google.com/maps/dir/?api=1
+                 &origin=<lat,lng>
+                 &waypoints=<lat,lng>|<lat,lng>|...
+                 &destination=<lat,lng>
+                 &travelmode=driving
+   - Waze: waze://?ll=<lat,lng>&navigate=yes (single destination only; for
+     multi-stop the app loops, opening Waze for the next stop on each "Cheguei").
+   ↓
+3. url_launcher dispatches to the OS, the rider's preferred nav app opens.
+```
+
+In-app turn-by-turn (Mapbox Navigation SDK or equivalent) is **post-M2** — too expensive both in licensing and in mobile-team effort relative to the value (~95 % of motoboys already have Google Maps or Waze installed). Captured in ADR-0017 (filed when slice 2 starts the navigation shell).
 
 ## Data Model (initial — evolves with implementation)
 

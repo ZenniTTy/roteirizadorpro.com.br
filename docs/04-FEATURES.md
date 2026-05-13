@@ -4,25 +4,32 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 
 ## Feature Map
 
-| ID | Feature | Milestone | M1 status |
-|---|---|---|---|
-| F01 | User registration and login | M1 | Pending |
-| F14 | Landing page | M1 | Pending |
-| F15 | GraphHopper routing engine | M1 | Pending |
-| F02 | Manual address entry | M2 (post-M1, scope to reconfirm) | — |
-| F03 | Voice address entry | M2 (post-M1) | — |
-| F04 | OCR address entry | M2 (post-M1) | — |
-| F05 | Stop list management | M2 (post-M1) | — |
-| F06 | Home point ("sentido casa") | M2 (post-M1) | — |
-| F07 | Route optimization | M2 (post-M1) | — |
-| F08 | External navigation (Waze / Google Maps) | M2 (post-M1) | — |
-| F09 | Subscription paywall | M2 (post-M1) | — |
-| F10 | Pix payment with 50/50 auto-split | M2 (post-M1) | — |
-| F11 | Real-time subscriber counter | M2 (post-M1) | — |
-| F12 | Referral / share screen | M2 (post-M1) | — |
-| F13 | Partner admin panel | M2 (post-M1) | — |
+> **Status legend.** ✅ shipped to production. 🟡 in flight (current slice). ⏳ planned for an upcoming slice. ⛔ explicitly out of scope for M2.
+>
+> **M2 slice mapping** ties each feature to the slice that owns it. See `docs/08-ROADMAP.md` for the slice order, dependencies, and acceptance criteria.
 
-> M2 features are documented here as the canonical reference for what was contracted. M2 implementation planning happens after M1 acceptance, in a fresh spec/plan cycle.
+| ID | Feature | Milestone | Status | Slice |
+|---|---|---|---|---|
+| F01 | User registration and login | M1 | ✅ | M1 / Phase 2 |
+| F14 | Landing page | M1 | ✅ | M1 / Phase 2 |
+| F15 | GraphHopper routing engine (SP capital) | M1 | ✅ | M1 / Phase 3 |
+| F16 | Distributable Android APK | M2 | ✅ shipped 2026-05-13 as `v1.0.0` | **slice 1** |
+| F05 | Stop list management | M2 | ⏳ | slice 2 |
+| F02 | Manual address entry | M2 | ⏳ | slice 2 |
+| F03 | Voice address entry (on-device, pt-BR) | M2 | ⏳ | slice 2 (UI shell) |
+| F04 | OCR address entry (on-device ML Kit) | M2 | ⏳ | slice 2 (UI shell) |
+| F12 | Referral / share screen | M2 | ⏳ | slice 2 (native share) |
+| F08 | External navigation hand-off (Google Maps / Waze deep link) | M2 | ⏳ | slice 2 |
+| F07 | Route optimization (real solver) | M2 | ⏳ | slice 3 |
+| F17 | Geocoding (Nominatim, on-domain rate-limited) | M2 | ⏳ | slice 3 |
+| F09 | Pay-per-route paywall on "Iniciar navegação" | M2 | ⏳ | slice 4 |
+| F10 | Pix payment with 50/50 auto-split (Efí Bank) | M2 | ⏳ | slice 4 |
+| F06 | Home point ("sentido casa") | M2 | ⏳ | slice 5 |
+| F18 | LGPD export / delete endpoints + ToS + privacy pages | M2 | ⏳ | slice 6 |
+| F13 | Partner admin panel | M2 | ⏳ | slice 7 |
+| F11 | Real-time subscriber counter | M2 | ⛔ removed | the contracted "subscriber counter" assumed a monthly subscription. The model changed to pay-per-route during M2 scoping; the counter no longer maps to anything meaningful. The admin panel (F13) surfaces DAU/MRR/paradas-dia instead. |
+
+> The single source of truth for **execution order, deadlines, and slice-level acceptance** is `docs/08-ROADMAP.md`. This document is the source of truth for **what each feature is supposed to do.** Changes to a feature's intent edit this file; changes to the order of work edit the roadmap.
 
 ---
 

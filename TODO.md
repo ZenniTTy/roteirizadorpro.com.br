@@ -3,34 +3,78 @@
 > **Owner:** Claude Code (read at session start, update at session end).
 > **Scope:** M2 — slice-by-slice execution. M1 was delivered 2026-05-09.
 > **M2 contract:** BRL 2,000. Sequence locked 2026-05-13: APK → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
-> **Last updated:** 2026-05-13 (session 10 — slice 1 device validation + INTERNET fix + PR #3 opened).
+> **Source of truth:** `docs/08-ROADMAP.md`. This file tracks day-to-day progress; the roadmap defines scope.
+> **Last updated:** 2026-05-13 (session 11 — roadmap canonical; slice 1 closed in production as `v1.0.0`).
 
 ## M2 — Slices
 
-Slice 1 — Android APK distribuível (in progress, session 09)
+### ✅ Slice 1 — Android APK distribuível (shipped 2026-05-13 as `v1.0.0`)
 
-- [x] Generate release keystore (`~/.android-keystores/roteirizador-pro.jks`, PKCS12, RSA-4096, 30-year validity).
-- [x] Persist keystore credentials in `.env.deploy` (gitignored). 1Password backup pending (Eduardo, manual).
-- [x] Wire `apps/mobile/android/app/build.gradle.kts` to load `key.properties` and sign release builds.
-- [x] Add `apps/mobile/scripts/build-release-apk.sh` (universal APK; `--dart-define=API_BASE_URL=https://api.roteirizadorpro.com.br`, `APP_ENV=production`).
-- [x] Bump `pubspec.yaml` to `1.0.0+1` and the manifest label to `Roteirizador Pro`.
-- [x] Build verified: 34.3 MB universal APK, v2 signature scheme, cert fingerprint matches keystore.
-- [x] Publish APK at `apps/landing/public/roteirizador-pro-v1.0.0.apk` (with scoped `!apps/landing/public/*.apk` exception in root `.gitignore`).
-- [x] Wire 4 landing CTAs (nav + header + hero + final) to `download={APK_FILENAME}` instead of the previous `href="#"`/`href="#cta"` placeholders.
-- [x] Author ADR-0014 (Android Release Signing and APK Distribution).
-- [x] Validate the published APK on a real Android device (Samsung Galaxy A06, USB + adb install + register/login round-trip against production — green after the INTERNET-permission fix below).
-- [x] **Fix: declare `android.permission.INTERNET` in `src/main/AndroidManifest.xml`.** The first install surfaced "Failed host lookup: api.roteirizadorpro.com.br" on every request. Root cause: Flutter ships the INTERNET grant via `src/{debug,profile}/AndroidManifest.xml` overlays only, which are NOT merged into release builds — DNS resolved fine from the device shell, but the app process had no INTERNET grant. Rebuilt and re-validated; the network failures disappeared.
-- [x] Open PR `feat/m2-slice-1-apk` → `develop` (PR #3 — https://github.com/ZenniTTy/roteirizadorpro.com.br/pull/3). Vercel preview check is `SUCCESS`; the preview URL returns 401 because the project has Deployment Protection / SSO enabled (expected — not a regression). Production apex returns 404 for the APK path pre-merge (expected).
-- [ ] **Pre-merge: 1Password backup of the keystore** (`~/.android-keystores/roteirizador-pro.jks` + the `ANDROID_KEYSTORE_*` block from `.env.deploy`). Mandatory before merging PR #3.
-- [ ] Merge PR #3 and validate the APK serves at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` with HTTP 200 and `Content-Type: application/vnd.android.package-archive`.
-- [ ] Tag `v1.0.0` (matching `pubspec.yaml` version) after PR merge.
+Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 34.3 MB, `Content-Type: application/vnd.android.package-archive`, signed v2 + cert SHA-256 `D9:C9:61:D6:…:14:31`). Validated end-to-end on a Samsung Galaxy A06 against production API. ADR-0014 + session logs 09/10 + memory entry `flutter-android-release-internet-permission.md` capture the design, the diagnosis ladder, and the INTERNET-permission gotcha.
 
-Slice 2 — Telas Core (Home, AddStop, Voice, OCR, Optimize, StopDetail, MapStops, Settings) — pending.
-Slice 3 — VRP real (replace `POST /routes/optimize` 501 placeholder with a real optimizer) — pending.
-Slice 4 — Pix Split via Efí Bank (paywall on "Iniciar navegação") — pending. Credenciais sandbox/produção já em `.env.deploy`; falta `.p12` mTLS + webhook HMAC secret.
-Slice 5 — Sentido casa — pending.
-Slice 6 — LGPD (export/delete + ToS/Privacidade) — pending.
-Slice 7 — Painel admin — pending.
+### 🟡 Slice 2 — Telas Core (NEXT — start with `superpowers:brainstorming`)
+
+**Read first:** `docs/08-ROADMAP.md` "Slice 2 — Telas Core" section, then `docs/M2-SLICE-CHECKLIST.md`, then `prototipo/screens-{a,b,d,e}.jsx`. The ROADMAP is the source of truth — this list is the operational tracker.
+
+Pre-flight:
+
+- [ ] Brainstorm with Eduardo using `superpowers:brainstorming` skill before opening any code file.
+- [ ] Confirm `git status` clean on `develop` and aligned with `origin/develop`.
+- [ ] Branch: `feat/m2-slice-2-telas-core`.
+
+Implementation (in sub-slice order):
+
+- [ ] **Sub 2a — Foundation.** `lib/features/stops/` skeleton + `StopsController` Riverpod state + `Stop` Dart model + `StopDto` mirroring a new `apps/backend/src/routes/schemas.ts` `StopSchema`. Screens: `ScreenHomeEmpty`, `ScreenHomeList`. New deps: none.
+- [ ] **Sub 2b — Captura.** Screens `ScreenAddStop`, `ScreenVoice` (using `speech_to_text` 7.x), `ScreenOCR` (using `google_mlkit_text_recognition` 0.x), `ScreenAddStopsMap` (using `flutter_map` 8.x + public OSM tiles per ADR-0016 + `geolocator` 14.x + `latlong2`). **`AndroidManifest.xml` adds `ACCESS_FINE_LOCATION`, `RECORD_AUDIO`, `CAMERA` to `src/main/` (not just debug/profile overlays — slice 1 lesson).**
+- [ ] **Sub 2c — Manipulação.** Screens `ScreenStopDetail`, `ScreenEditStop`, `ScreenReorder` (`ReorderableListView`), `ScreenMapStops`.
+- [ ] **Sub 2d — Otimização (mock) e navegação.** Screens `ScreenOptimize` (calls a backend mock that returns input order), `ScreenOptimizeRoute`, `ScreenNavigate` (deep-links to Google Maps / Waze per ADR-0017), `ScreenRouteComplete`. Backend: `apps/backend/src/routes/{schemas,handlers,routes}.ts` with TypeBox + `POST /routes/optimize` returning input order; real solver lands in slice 3.
+- [ ] **Sub 2e — Periféricos.** `ScreenSettings` (structure only — paywall section stubbed for slice 4; home address section stubbed for slice 5). `ScreenShare` (`share_plus` 11.x).
+
+ADRs to file during this slice:
+
+- [ ] **ADR-0017** — external navigation hand-off (Google Maps / Waze deep-link strategy, in-app turn-by-turn deferred to post-M2).
+
+Verification (per `docs/M2-SLICE-CHECKLIST.md`):
+
+- [ ] `flutter analyze` + `flutter test` clean.
+- [ ] `bun run typecheck` clean in `apps/backend/`.
+- [ ] **`aapt2 dump permissions <new APK>`** lists `INTERNET`, `ACCESS_FINE_LOCATION`, `RECORD_AUDIO`, `CAMERA` (slice 1 lesson — always check this BEFORE installing on a device).
+- [ ] `apksigner verify` confirms cert SHA-256 matches keystore.
+- [ ] Real-device E2E on Galaxy A06: build a 5-stop route via mixed entry methods, reorder, see the map render, optimize, hit Iniciar navegação (no paywall yet — slice 4).
+- [ ] Run `prototype-fidelity-checker` subagent against every shipped screen vs `prototipo/`.
+
+Post-merge:
+
+- [ ] `pubspec.yaml` → `1.1.0+2` (minor bump: new screens + new caps). Rebuild and publish to `apps/landing/public/roteirizador-pro-v1.1.0.apk`.
+- [ ] Update the 4 CTAs in `apps/landing/src/app/page.tsx` (or extract `APK_LATEST_VERSION` constant).
+- [ ] PR `feat/m2-slice-2-telas-core` → `develop` with the test plan checklist.
+- [ ] Promotion PR `develop` → `main`. Tag `v1.1.0` after merge.
+- [ ] `curl -sI https://roteirizadorpro.com.br/roteirizador-pro-v1.1.0.apk` returns 200.
+- [ ] Session log `docs/sessions/<date>-N-m2-slice-2-telas-core.md` + index update + `TODO.md` update — single commit via the `/session-end` skill.
+
+### ⏳ Slice 3 — VRP real (after slice 2)
+
+Replaces the `POST /routes/optimize` mock with a real solver. Approach in `docs/08-ROADMAP.md` slice 3 section: distance matrix from individual GraphHopper route calls (n² parallel) + nearest-neighbor + 2-opt in Node TS. New endpoint `POST /geocode` backed by Nominatim with the OSMF policy in mind. ADRs to file: ADR-0018 (geocoding policy + migration trigger), ADR-0019 (solver design). Estimated 3-5 days.
+
+### ⏳ Slice 4 — Pix Split paywall via Efí Bank (after slice 3)
+
+Pay-per-route flow per `02-ARCHITECTURE.md` Flow 3. **Prereqs from Eduardo before this slice starts:** `.p12` mTLS certificate (sandbox + prod) downloaded from the Efí dashboard, HMAC webhook secret configured. `client_id`/`client_secret` already in `.env.deploy` (both sandbox and prod). ADR-0007 already covers the architecture decision; this slice files no new ADR unless we deviate. Estimated 4-6 days.
+
+### ⏳ Slice 5 — Sentido casa (after slice 4)
+
+One toggle in Settings + a column on `users` + a branch in the slice 3 solver. Estimated 1 day.
+
+### ⏳ Slice 6 — LGPD (after slice 5)
+
+`GET /me/export`, `DELETE /me`, plus `/termos` and `/privacidade` static pages on the landing. ADR-0020 captures the export format and delete semantics. Estimated 2-3 days.
+
+### ⏳ Slice 7 — Painel admin (after slice 6)
+
+`apps/landing/src/app/(admin)/` with three pages (Users, Payments, Metrics) + admin role + protected backend endpoints. ADR-0021 captures the authorization model. Estimated 3-5 days.
+
+### Total remaining
+
+Approximately 17-25 working days of focused work — about 4-5 weeks of calendar time on a typical solo-dev schedule. Tracked slice-by-slice; don't compress.
 
 ---
 
