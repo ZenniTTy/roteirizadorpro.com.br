@@ -1,9 +1,42 @@
 # TODO
 
 > **Owner:** Claude Code (read at session start, update at session end).
-> **Scope:** M1 only. M2 work begins in a fresh planning cycle after M1 acceptance.
-> **M1 deadline:** 2026-05-26.
-> **Last updated:** 2026-05-09 (session 08 — production deploy live; 2 of 4 acceptance criteria green).
+> **Scope:** M2 — slice-by-slice execution. M1 was delivered 2026-05-09.
+> **M2 contract:** BRL 2,000. Sequence locked 2026-05-13: APK → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
+> **Last updated:** 2026-05-13 (session 10 — slice 1 device validation + INTERNET fix + PR #3 opened).
+
+## M2 — Slices
+
+Slice 1 — Android APK distribuível (in progress, session 09)
+
+- [x] Generate release keystore (`~/.android-keystores/roteirizador-pro.jks`, PKCS12, RSA-4096, 30-year validity).
+- [x] Persist keystore credentials in `.env.deploy` (gitignored). 1Password backup pending (Eduardo, manual).
+- [x] Wire `apps/mobile/android/app/build.gradle.kts` to load `key.properties` and sign release builds.
+- [x] Add `apps/mobile/scripts/build-release-apk.sh` (universal APK; `--dart-define=API_BASE_URL=https://api.roteirizadorpro.com.br`, `APP_ENV=production`).
+- [x] Bump `pubspec.yaml` to `1.0.0+1` and the manifest label to `Roteirizador Pro`.
+- [x] Build verified: 34.3 MB universal APK, v2 signature scheme, cert fingerprint matches keystore.
+- [x] Publish APK at `apps/landing/public/roteirizador-pro-v1.0.0.apk` (with scoped `!apps/landing/public/*.apk` exception in root `.gitignore`).
+- [x] Wire 4 landing CTAs (nav + header + hero + final) to `download={APK_FILENAME}` instead of the previous `href="#"`/`href="#cta"` placeholders.
+- [x] Author ADR-0014 (Android Release Signing and APK Distribution).
+- [x] Validate the published APK on a real Android device (Samsung Galaxy A06, USB + adb install + register/login round-trip against production — green after the INTERNET-permission fix below).
+- [x] **Fix: declare `android.permission.INTERNET` in `src/main/AndroidManifest.xml`.** The first install surfaced "Failed host lookup: api.roteirizadorpro.com.br" on every request. Root cause: Flutter ships the INTERNET grant via `src/{debug,profile}/AndroidManifest.xml` overlays only, which are NOT merged into release builds — DNS resolved fine from the device shell, but the app process had no INTERNET grant. Rebuilt and re-validated; the network failures disappeared.
+- [x] Open PR `feat/m2-slice-1-apk` → `develop` (PR #3 — https://github.com/ZenniTTy/roteirizadorpro.com.br/pull/3). Vercel preview check is `SUCCESS`; the preview URL returns 401 because the project has Deployment Protection / SSO enabled (expected — not a regression). Production apex returns 404 for the APK path pre-merge (expected).
+- [ ] **Pre-merge: 1Password backup of the keystore** (`~/.android-keystores/roteirizador-pro.jks` + the `ANDROID_KEYSTORE_*` block from `.env.deploy`). Mandatory before merging PR #3.
+- [ ] Merge PR #3 and validate the APK serves at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` with HTTP 200 and `Content-Type: application/vnd.android.package-archive`.
+- [ ] Tag `v1.0.0` (matching `pubspec.yaml` version) after PR merge.
+
+Slice 2 — Telas Core (Home, AddStop, Voice, OCR, Optimize, StopDetail, MapStops, Settings) — pending.
+Slice 3 — VRP real (replace `POST /routes/optimize` 501 placeholder with a real optimizer) — pending.
+Slice 4 — Pix Split via Efí Bank (paywall on "Iniciar navegação") — pending. Credenciais sandbox/produção já em `.env.deploy`; falta `.p12` mTLS + webhook HMAC secret.
+Slice 5 — Sentido casa — pending.
+Slice 6 — LGPD (export/delete + ToS/Privacidade) — pending.
+Slice 7 — Painel admin — pending.
+
+---
+
+## M1 — Closed 2026-05-09
+
+> All four contracted criteria reached, escrow release in progress with the client.
 
 ## M1 acceptance criteria (verbatim from Workana)
 
@@ -94,7 +127,7 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ## Discovered while working
 
-- [ ] Install Android Studio + Android SDK to enable `flutter run` on emulator and `flutter build apk` for distribution. `flutter doctor` currently flags this as the only blocker for full-stack mobile development; analyze + test work without it.
+- [x] **2026-05-13 (between M1 and M2 slice 1)** — Android SDK installed; `flutter doctor` is green for Android tooling (SDK 36.1.0). The only remaining `flutter doctor` flag is CocoaPods (iOS), irrelevant to this Android-only project.
 - [ ] Local dev currently runs Node v24 — runtime is locked to Node 20 LTS by ADR-0003. `.nvmrc` declares 20; run `nvm use` (or install nvm) before `bun run dev` / `bun run build` going forward.
 - [ ] Re-evaluate TS 5 → 6 bump after M1 ships (TS 6.0 just released; deferred to avoid new strictness errors during Phase 2).
 - [ ] Re-evaluate Tailwind 3 → 4 and React 18 → 19 after M1 ships (both require new ADRs because they propagate breaking changes).
