@@ -110,12 +110,19 @@ Build all six slices on parallel feature branches, merge in one PR.
 
    | Purpose | Package | Version target | Cost | Context7 ID |
    |---|---|---|---|---|
-   | Map widget | `flutter_map` | 8.x | 0 | `/fleaflet/flutter_map` |
-   | Map coords | `latlong2` | latest | 0 | transitively required by `flutter_map` |
-   | User location | `geolocator` | 14.x | 0 | latest 2025 |
-   | Speech-to-text | `speech_to_text` | 7.x | 0 (on-device) | `/csdcorp/speech_to_text` |
-   | OCR | `google_mlkit_text_recognition` | 0.x | 0 (on-device) | `/websites/pub_dev_google_mlkit_text_recognition` |
-   | Native share sheet | `share_plus` | 11.x | 0 | well-established |
+   | Map widget | `flutter_map` | ^8.3.0 | 0 | `/fleaflet/flutter_map` |
+   | Map coords | `latlong2` | ^0.9.1 | 0 | transitively required by `flutter_map` |
+   | User location | `geolocator` | ^14.0.2 | 0 | latest 2025 |
+   | Speech-to-text | `speech_to_text` | ^7.3.0 | 0 (on-device) | `/csdcorp/speech_to_text` |
+   | OCR | `google_mlkit_text_recognition` | ^0.15.1 | 0 (on-device) | `/websites/pub_dev_google_mlkit_text_recognition` |
+   | Native share sheet | `share_plus` | ^12.0.2 | 0 | well-established |
+   | Stable IDs | `uuid` | ^4.5.3 | 0 | well-established |
+   | Local persistence | `shared_preferences` | ^2.5.5 | 0 | well-established |
+   | External app hand-off | `url_launcher` | ^6.3.2 | 0 | well-established |
+   | Runtime permissions | `permission_handler` | ^12.0.1 | 0 | well-established |
+   | Photo capture / gallery | `image_picker` | ^1.2.2 | 0 | well-established |
+
+   **Update 2026-05-18 (slice 2 sub-2a):** versions resolved by `flutter pub add` and recorded in `apps/mobile/pubspec.lock`. Five new libs (`uuid`, `shared_preferences`, `url_launcher`, `permission_handler`, `image_picker`) joined the original six listed above; the full list is reflected in the table.
 
 4. **OSM tile policy** must be honored:
 
