@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../data/dto/stop_dto.dart';
+
 enum StopSource { manual, voice, ocr, mapTap }
 
 @immutable
@@ -57,6 +59,24 @@ class Stop {
       label: json['label'] as String?,
       source: StopSource.values.byName(json['source'] as String),
       createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+
+  StopDto toDto() => StopDto(lat: lat, lng: lng, label: label);
+
+  static Stop fromDto(
+    StopDto dto, {
+    required String id,
+    StopSource source = StopSource.manual,
+    DateTime? now,
+  }) {
+    return Stop(
+      id: id,
+      lat: dto.lat,
+      lng: dto.lng,
+      label: dto.label,
+      source: source,
+      createdAt: now ?? DateTime.now(),
     );
   }
 
