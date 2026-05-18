@@ -10,8 +10,9 @@ const routesRoutes: FastifyPluginAsyncTypebox = async (app) => {
     },
   }, async (_request, reply) =>
     reply.code(501).send({
-      status: 'not_implemented' as const,
-      message: 'route optimization placeholder — full implementation lands in M2',
+      optimizedOrder: [],
+      totalDistanceM: 0,
+      totalDurationS: 0,
     }));
 };
 
