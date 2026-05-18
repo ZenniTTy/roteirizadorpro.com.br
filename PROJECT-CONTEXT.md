@@ -3,8 +3,32 @@
 > Paste this file at the start of any new AI session (Claude web, Claude Code, Cursor) to give the agent full project context instantly.
 >
 > **Repo path (Mac):** `/Users/eduardorodrigues/Downloads/Elo Vision Digital/[EVD] - Meus Projetos/[APP] - Entrega Smart`
-> **GitHub:** `https://github.com/ZenniTTy/-APP---Entrega-Smart`
-> **Last updated:** 2026-05-16
+> **GitHub:** `https://github.com/ZenniTTy/roteirizadorpro.com.br`
+> **Last updated:** 2026-05-18 (session 12 — M2 slice 2 sub-2a, 10/42 plan tasks shipped)
+
+## CURRENT STATE (where the next session resumes)
+
+**Active branch:** `feat/m2-slice-2-telas-core` at `c6d11f9`, 12 commits ahead of `origin/develop`.
+
+**M1 ✅ delivered 2026-05-09.** **M2 slice 1 ✅ shipped 2026-05-13 as `v1.0.0`** (APK live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk`). **M2 slice 2 🟡 in progress** — sub-2a Foundation (plan tasks 1-16) is 10/16 complete.
+
+**Resume reading order (do this first in the next session):**
+
+1. `CLAUDE.md` — operating manual
+2. `docs/08-ROADMAP.md` — canonical M2 plan (7 slices, locked order)
+3. `docs/sessions/2026-05-18-12-m2-slice-2-tasks-1-10.md` — what shipped in the last session
+4. `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` — slice 2 design (Q1/Q2/Q3 decisions, architecture, accessibility baseline, test strategy)
+5. `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` — 42-task plan with full TDD code; **resume at Task 11** (`StopsController`)
+6. `docs/M2-SLICE-CHECKLIST.md` — per-slice verification gates
+7. `docs/M2-COST-MODEL.md` — cost ceiling (BRL 200/month infra in beta)
+8. `TODO.md` — operational tracker (this file mirrors plan tasks 1-16)
+
+**Deferred before opening the slice 2 PR:**
+
+- Curl smoke for `POST /routes/optimize` (200/401/400) — needs Node 20 (`.nvmrc=20`, currently on Node 24) + `docker compose up postgres` + auth token. Plan Task 6 Step 6.4.
+- Real-device E2E (14-step golden path) on Galaxy A06 over `adb`. Plan Tasks 36-37.
+
+**Execution mode:** `superpowers:subagent-driven-development` — implementer + spec reviewer + code-quality reviewer per task. For trivial tasks (≤ ~30 LOC) combine spec + quality into a single reviewer subagent to save tokens.
 
 ---
 

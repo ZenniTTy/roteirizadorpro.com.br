@@ -4,7 +4,7 @@
 > **Scope:** M2 — slice-by-slice execution. M1 was delivered 2026-05-09.
 > **M2 contract:** BRL 2,000. Sequence locked 2026-05-13: APK → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
 > **Source of truth:** `docs/08-ROADMAP.md`. This file tracks day-to-day progress; the roadmap defines scope.
-> **Last updated:** 2026-05-13 (session 11 — roadmap canonical; slice 1 closed in production as `v1.0.0`).
+> **Last updated:** 2026-05-18 (session 12 — slice 2 sub-2a in progress; 10 of 42 plan tasks shipped on `feat/m2-slice-2-telas-core`).
 
 ## M2 — Slices
 
@@ -12,45 +12,71 @@
 
 Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 34.3 MB, `Content-Type: application/vnd.android.package-archive`, signed v2 + cert SHA-256 `D9:C9:61:D6:…:14:31`). Validated end-to-end on a Samsung Galaxy A06 against production API. ADR-0014 + session logs 09/10 + memory entry `flutter-android-release-internet-permission.md` capture the design, the diagnosis ladder, and the INTERNET-permission gotcha.
 
-### 🟡 Slice 2 — Telas Core (NEXT — start with `superpowers:brainstorming`)
+### 🟡 Slice 2 — Telas Core (IN PROGRESS — sub 2a Foundation 10/16 tasks done)
 
-**Read first:** `docs/08-ROADMAP.md` "Slice 2 — Telas Core" section, then `docs/M2-SLICE-CHECKLIST.md`, then `prototipo/screens-{a,b,d,e}.jsx`. The ROADMAP is the source of truth — this list is the operational tracker.
+**Read first (resume order):** `docs/sessions/2026-05-18-12-m2-slice-2-tasks-1-10.md` → `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` → `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` (start at Task 11) → `docs/M2-SLICE-CHECKLIST.md` → `prototipo/screens-{a,b,d,e}.jsx`. The plan is the per-task source of truth from here on; the ROADMAP is still canonical for slice ordering and acceptance.
 
-Pre-flight:
+**Branch:** `feat/m2-slice-2-telas-core` — at `c6d11f9`, 12 commits ahead of `origin/develop`. 19/19 flutter tests passing, `flutter analyze` clean, `bun run typecheck` clean.
 
-- [ ] Brainstorm with Eduardo using `superpowers:brainstorming` skill before opening any code file.
-- [ ] Confirm `git status` clean on `develop` and aligned with `origin/develop`.
-- [ ] Branch: `feat/m2-slice-2-telas-core`.
+Pre-flight: ✅ done (session 12).
 
-Implementation (in sub-slice order):
+Brainstormed decisions (locked):
+- ✅ Q1 Persistence: in-memory Riverpod + `SharedPreferencesAsync` for session restore (no backend routes table in slice 2).
+- ✅ Q2 Default external nav: Google Maps default + toggle in Settings to Waze. ADR-0017 to file in sub 2d.
+- ✅ Q3 Price: BRL 25.90/route locked through M2; revisit only via data-driven ADR after slice 7 surfaces 50-paying-user metrics.
 
-- [ ] **Sub 2a — Foundation.** `lib/features/stops/` skeleton + `StopsController` Riverpod state + `Stop` Dart model + `StopDto` mirroring a new `apps/backend/src/routes/schemas.ts` `StopSchema`. Screens: `ScreenHomeEmpty`, `ScreenHomeList`. New deps: none.
-- [ ] **Sub 2b — Captura.** Screens `ScreenAddStop`, `ScreenVoice` (using `speech_to_text` 7.x), `ScreenOCR` (using `google_mlkit_text_recognition` 0.x), `ScreenAddStopsMap` (using `flutter_map` 8.x + public OSM tiles per ADR-0016 + `geolocator` 14.x + `latlong2`). **`AndroidManifest.xml` adds `ACCESS_FINE_LOCATION`, `RECORD_AUDIO`, `CAMERA` to `src/main/` (not just debug/profile overlays — slice 1 lesson).**
-- [ ] **Sub 2c — Manipulação.** Screens `ScreenStopDetail`, `ScreenEditStop`, `ScreenReorder` (`ReorderableListView`), `ScreenMapStops`.
-- [ ] **Sub 2d — Otimização (mock) e navegação.** Screens `ScreenOptimize` (calls a backend mock that returns input order), `ScreenOptimizeRoute`, `ScreenNavigate` (deep-links to Google Maps / Waze per ADR-0017), `ScreenRouteComplete`. Backend: `apps/backend/src/routes/{schemas,handlers,routes}.ts` with TypeBox + `POST /routes/optimize` returning input order; real solver lands in slice 3.
-- [ ] **Sub 2e — Periféricos.** `ScreenSettings` (structure only — paywall section stubbed for slice 4; home address section stubbed for slice 5). `ScreenShare` (`share_plus` 11.x).
+Implementation tracker (sub-slice 2a, plan tasks 1-16):
+
+- [x] **Task 1** — Add 11 pubspec deps (uuid, shared_preferences, url_launcher, permission_handler, geolocator, image_picker, speech_to_text, google_mlkit_text_recognition, flutter_map, latlong2, share_plus) + bump version to `1.1.0+2`. Commit `7181fb5`.
+- [x] **Task 2** — Amend ADR-0015 table with resolved caret-semver pins. Commit `8074aef`.
+- [x] **Task 3** — Enable `SystemUiMode.edgeToEdge` in `main.dart` (Android 15 opt-in). Commit `cf63313`.
+- [x] **Task 4** — Add `android:enableOnBackInvokedCallback="true"` to `<application>` (Android 14 predictive back). Commit `9c3a025`.
+- [x] **Task 5** — Evolve `OptimizeResponseSchema` to wire-final shape (`optimizedOrder, totalDistanceM, totalDurationS`); export `StopSchema` + `Stop` type; transient stub kept routes.ts typecheck green. Commit `c45f742`.
+- [x] **Task 6** — Replace 501 placeholder with 200 mock returning input order via `stops.map((_, i) => i)`. Commit `7437c1a`. **Curl smoke (Step 6.4) DEFERRED** — needs Node 20 + Postgres up; captured before PR open (Task 39).
+- [x] **Task 7** — `Stop` domain model with `@immutable`, copyWith, toJson/fromJson, value-equality. 5 TDD tests. Commit `1c3dfea`.
+- [x] **Task 8** — `StopDto` mirror per ADR-0013 (`// Mirror of: apps/backend/src/routes/schemas.ts -> StopSchema`) + `Stop.toDto()` / `Stop.fromDto(...)` extension methods. 6 TDD tests. Commit `e9207db`.
+- [x] **Task 9** — `StopsRepository` interface + `SharedPrefsStopsRepository` impl using `SharedPreferencesAsync` (NOT `getInstance()`), `_v: 1` envelope, corrupt-payload-returns-empty. Adds `shared_preferences_platform_interface: ^2.4.2` as dev-dep for `InMemorySharedPreferencesAsync` test substrate. 5 TDD tests. Commit `4889902`.
+- [x] **Task 10** — `core/services/id.dart` uuid v4 wrapper. 2 TDD tests. Commit `c6d11f9`.
+- [ ] **Task 11** — `StopsController` (`@riverpod class StopsController extends _$StopsController`, codegen) with build/add/remove/update/reorder/applyOptimizedOrder/clear methods. 7 TDD tests. Plan section starts at line ≈ 1460.
+- [ ] **Task 12** — Reusable `StopListItem` widget (shared by HomeList, Reorder, StopDetail).
+- [ ] **Task 13** — `ScreenHomeEmpty` (matching `prototipo/screens-a.jsx → ScreenHomeEmpty`).
+- [ ] **Task 14** — `ScreenHomeList` + GoRouter wiring (`/home`, `/stops/add`, `/stops/:id`).
+- [ ] **Task 15** — `ScreenAddStop` (manual entry) + shared `StopForm` widget.
+- [ ] **Task 16** — Sub 2a final verification + push.
+
+Sub 2b-2e (plan tasks 17-34): pending; details verbatim in the plan.
 
 ADRs to file during this slice:
 
-- [ ] **ADR-0017** — external navigation hand-off (Google Maps / Waze deep-link strategy, in-app turn-by-turn deferred to post-M2).
+- [ ] **ADR-0017** — external navigation hand-off (Google Maps default + Waze toggle, multi-stop semantics, fallback browser, `<queries>` rationale). Files in sub 2d Task 26.
 
 Verification (per `docs/M2-SLICE-CHECKLIST.md`):
 
-- [ ] `flutter analyze` + `flutter test` clean.
-- [ ] `bun run typecheck` clean in `apps/backend/`.
-- [ ] **`aapt2 dump permissions <new APK>`** lists `INTERNET`, `ACCESS_FINE_LOCATION`, `RECORD_AUDIO`, `CAMERA` (slice 1 lesson — always check this BEFORE installing on a device).
+- [x] `flutter analyze` clean (continuous through tasks 1-10).
+- [x] `flutter test` passes (19/19 as of Task 10).
+- [x] `bun run typecheck` clean in `apps/backend/`.
+- [ ] **Curl smoke** for `POST /routes/optimize` — three captures (200 / 401 / 400) before opening the slice-2 PR.
+- [ ] `aapt2 dump permissions <new APK>` lists `INTERNET`, `ACCESS_FINE_LOCATION`, `RECORD_AUDIO`, `CAMERA` (release task 36).
 - [ ] `apksigner verify` confirms cert SHA-256 matches keystore.
-- [ ] Real-device E2E on Galaxy A06: build a 5-stop route via mixed entry methods, reorder, see the map render, optimize, hit Iniciar navegação (no paywall yet — slice 4).
+- [ ] Real-device E2E on Galaxy A06 (release task 37): 14-step golden path with screenshots per screen.
 - [ ] Run `prototype-fidelity-checker` subagent against every shipped screen vs `prototipo/`.
+- [ ] Run `adr-guardian` subagent against the slice 2 diff (ADR-0017 present, ADR-0015 amended).
 
 Post-merge:
 
-- [ ] `pubspec.yaml` → `1.1.0+2` (minor bump: new screens + new caps). Rebuild and publish to `apps/landing/public/roteirizador-pro-v1.1.0.apk`.
-- [ ] Update the 4 CTAs in `apps/landing/src/app/page.tsx` (or extract `APK_LATEST_VERSION` constant).
-- [ ] PR `feat/m2-slice-2-telas-core` → `develop` with the test plan checklist.
-- [ ] Promotion PR `develop` → `main`. Tag `v1.1.0` after merge.
-- [ ] `curl -sI https://roteirizadorpro.com.br/roteirizador-pro-v1.1.0.apk` returns 200.
-- [ ] Session log `docs/sessions/<date>-N-m2-slice-2-telas-core.md` + index update + `TODO.md` update — single commit via the `/session-end` skill.
+- [x] `pubspec.yaml` already at `1.1.0+2`. Rebuild + publish APK at `apps/landing/public/roteirizador-pro-v1.1.0.apk` (release task 38).
+- [ ] Refactor four CTAs in `apps/landing/src/app/page.tsx` to read from a single `APK_LATEST_VERSION` constant in `apps/landing/src/lib/apk-version.ts` (release task 38).
+- [ ] PR `feat/m2-slice-2-telas-core` → `develop` with full test plan + smoke captures + screenshots (release task 39).
+- [ ] Promotion PR `develop` → `main`. Tag `v1.1.0` after merge (release task 40).
+- [ ] `curl -sI https://roteirizadorpro.com.br/roteirizador-pro-v1.1.0.apk` returns 200 (release task 40).
+- [ ] Session log + index update + TODO + CHANGELOG + ROADMAP slice-2 ✅ flip — single commit via `/session-end` (release task 41).
+
+**Tech debt captured this slice (resurfaces in later slices, NOT in slice 2 scope):**
+
+- `Stop.copyWith` cannot set `label` to null (current `??` semantics treat null as "use current"). Decide between sentinel pattern, `clearLabel()` method, or empty-string-as-null at controller layer when Task 22 (ScreenEditStop) lands.
+- `SharedPrefsStopsRepository.load()` silently swallows corrupt-payload exceptions. Instrument with a non-fatal breadcrumb once Sentry/Crashlytics is approved post-M2 (per `M2-COST-MODEL.md` rejecting paid observability for M2 beta).
+- Backend has no test framework today (`apps/backend/package.json` has only `tsx`/`typescript`/`prisma`). Slice 2 uses curl smoke in the PR body; revisit installing `bun test` (zero-install) or `vitest` post-slice-3 when the real solver makes formal tests high-leverage.
+- Commitlint subject-case rule rejects camelCase identifiers (e.g. `StopDto`, `OptimizeResponseSchema`, `SharedPreferencesAsync`). Pattern: lowercase those tokens in the subject line; body keeps canonical case. Captured as a feedback memory entry.
 
 ### ⏳ Slice 3 — VRP real (after slice 2)
 
