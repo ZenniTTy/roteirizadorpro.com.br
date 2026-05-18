@@ -2,8 +2,22 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-13 (session 11 — M2 roadmap made canonical)
+> **Last updated:** 2026-05-18 (harness upgrade — allowed-tools, SessionStart hook, executable commands)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
+
+## Executable Commands (the ones you actually run)
+
+| Command | When |
+|---|---|
+| `bun install` | First clone and after any `package.json` change. Wires lefthook hooks automatically. |
+| `bun run commit` | Interactive Conventional Commit wizard. Use `/commit` skill from Claude Code for non-interactive flow. |
+| `cd apps/mobile && flutter analyze` | Before every mobile commit. Lefthook also runs this on `*.dart` changes. |
+| `cd apps/mobile && flutter test` | Before merging any mobile slice. |
+| `cd apps/mobile && dart run build_runner build --delete-conflicting-outputs` | After editing any `@riverpod`-annotated file. |
+| `cd apps/backend && bun run typecheck` | Before every backend commit. Lefthook enforces. |
+| `cd apps/landing && bun run lint` | Before every landing commit. Lefthook enforces. |
+| `bash apps/mobile/scripts/build-release-apk.sh` | Cuts a signed release APK. ADR-0014. |
+| `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
 
 ## What This Project Is
 
@@ -193,7 +207,7 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 The four principles section above is drawn from:
 
 - Andrej Karpathy — public observations on LLM coding behavior (March 2025 thread).
-- Forrest Chang's `forrestchang/andrej-karpathy-skills` repository, which codified them as a CLAUDE.md.
-- Anthropic's official "Best practices for Claude Code" — https://code.claude.com/docs/en/best-practices.
+- Forrest Chang's [`forrestchang/andrej-karpathy-skills`](https://github.com/forrestchang/andrej-karpathy-skills) repository, which codified them as a CLAUDE.md.
+- Anthropic's official [Best practices for Claude Code](https://code.claude.com/docs/en/best-practices), [Subagents](https://code.claude.com/docs/en/sub-agents), [Skills](https://code.claude.com/docs/en/skills), and [Hooks](https://code.claude.com/docs/en/hooks-guide) docs.
 
 When in doubt, the source documents win over our interpretation.

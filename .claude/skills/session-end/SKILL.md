@@ -2,6 +2,7 @@
 name: session-end
 description: Run the Session End Protocol from CLAUDE.md — update TODO.md, create docs/sessions/YYYY-MM-DD-NN-<topic>.md from the template, append the session to docs/sessions/0001-INDEX.md, and commit all three together with "docs(sessions): <topic>". Use at the end of any meaningful session (after merging work, finishing a feature, closing a discussion). Argument: a 2–4 word topic in kebab-case (e.g. "hooks-and-skills-setup"). Without an argument, infer the topic from conversation and confirm before proceeding.
 disable-model-invocation: true
+allowed-tools: Bash(git add:*), Bash(git commit:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(cp:*), Bash(ls:*), Bash(date:*)
 ---
 
 # Session End Protocol
