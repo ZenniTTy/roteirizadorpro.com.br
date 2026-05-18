@@ -6,14 +6,19 @@ const routesRoutes: FastifyPluginAsyncTypebox = async (app) => {
     onRequest: [app.authenticate],
     schema: {
       body: OptimizeRequestSchema,
-      response: { 501: OptimizeResponseSchema },
+      response: { 200: OptimizeResponseSchema },
     },
-  }, async (_request, reply) =>
-    reply.code(501).send({
-      optimizedOrder: [],
+  }, async (request) => {
+    const { stops } = request.body;
+    // Slice 2 mock: input order, zeroed metrics.
+    // Slice 3 will replace the body of this handler with the real solver
+    // (GraphHopper distance matrix → nearest-neighbor + 2-opt).
+    return {
+      optimizedOrder: stops.map((_, i) => i),
       totalDistanceM: 0,
       totalDurationS: 0,
-    }));
+    };
+  });
 };
 
 export default routesRoutes;
