@@ -41,16 +41,25 @@ Implementation tracker (sub-slice 2a, plan tasks 1-16):
 - [x] **Task 12** — Reusable `StopListItem` widget (shared by HomeList, Reorder, StopDetail). Commit `be88b30`. Dart 3 switch expression for `_sourceBadge`.
 - [x] **Task 13** — `ScreenHomeEmpty` matching `prototipo/screens-a.jsx → ScreenHomeEmpty`. Commits `0b810b2` + refactor `46ac764` (`ConsumerWidget` → `StatelessWidget` since `ref` was never read). Used prototype strings `'Rota de hoje'` / `'Nenhuma entrega ainda'` over the plan's draft copy. `onAddPressed` callback injection for test friendliness.
 - [x] **Task 14** — `ScreenHomeList` + GoRouter wiring (`/home`, `/stops/add`, `/stops/:id`). Commits `1ec55df` + a11y fix `bcd3728`. Dispatcher `HomeListPageOrEmpty` in own `home_page.dart`. Round FAB matching design-system spec (not the plan's `.extended`). Count chip with pluralized Semantics label. Placeholder `add_stop_page.dart` + `stop_detail_page.dart` to unblock GoRouter imports; replaced by Tasks 15 + 19.
-- [x] **Task 15** — `ScreenAddStop` + shared `StopForm` widget. Commit `e08a84a`. **Address-only field** per prototype (no lat/lng inputs — Nominatim arrives in slice 3); stops minted with sentinel `lat: 0, lng: 0`. `onSaved` callback injection. `AutovalidateMode.onUserInteraction`.
-- [ ] **Task 16** — Sub 2a final verification + push.
+- [x] **Task 15** — `ScreenAddStop` + shared `StopForm` widget. Commit `e08a84a` + a11y cleanup `b03a484`. **Address-only field** per prototype (no lat/lng inputs — Nominatim arrives in slice 3); stops minted with sentinel `lat: 0, lng: 0`. `onSaved` callback injection. `AutovalidateMode.onUserInteraction`.
+- [x] **Task 16** — Sub 2a final verification + push. Suite green at 34/34 after sub 2a wrap.
 
-**Important downstream contract (must address before Tasks 22 + 28 ship):**
-- Manual stops created via `ScreenAddStop` carry sentinel `lat=0, lng=0` until slice 3 Nominatim geocodes them. Tasks **22** (`ScreenMapStops`) and **28** (`core/services/external_nav.dart`) MUST either: (a) filter stops with `lat == 0 && lng == 0` (treating as "not geocoded yet"), OR (b) add `Stop.isGeocoded` helper + guard in both consumers. Without one of these, the map will pin Null Island and Google Maps deep-links will route the rider to the Atlantic. The cleanest path is (b) — flag in the Task 22 implementer brief.
+Sub 2b (Captura) — plan tasks 17-25:
+
+- [x] **Task 17** — `AndroidManifest.xml` adds `ACCESS_FINE_LOCATION` / `RECORD_AUDIO` / `CAMERA` to `src/main/` per the slice-1 lesson; extends `<queries>` with `com.google.android.apps.maps`, `com.waze`, and the https VIEW intent for url_launcher's installed-app detection on Android 11+. Commit `bd10c9a`.
+- [x] **Task 18** — `core/services/permissions.dart` adds `AppPermissions` abstract + `_RealAppPermissions` impl + `@riverpod appPermissions(Ref)` provider; `PermissionOutcome.{granted,denied,permanentlyDenied}` hides `permission_handler` details from callers. 3 TDD tests (granted defaults, simulated permanent deny, per-permission call counts). Commit `cf266ae`.
+- [x] **Task 19** — `ScreenStopDetail` replaces the Task-14 placeholder; renders label + (lat/lng or "Aguardando geocodificação" hint) + Excluir/Editar CTAs. Adds `Stop.isGeocoded` getter to close the Null Island contract — also unblocks Tasks 22 + 28. `onDeleted` / `onEditPressed` callback injections (Task-13/15 pattern). 4 widget tests. Commit `373814a`. Suite 41/41.
+- [ ] **Task 20** — `ScreenEditStop` reuses `StopForm` pre-populated.
+- [ ] **Task 21** — `ScreenReorder` (`ReorderableListView`).
+- [ ] **Task 22** — `ScreenMapStops` — uses `Stop.isGeocoded` to filter Null-Island stops (contract from Task 19).
+- [ ] **Task 23** — `ScreenVoice` (`speech_to_text` + `AppPermissions.requestMicrophone()`).
+- [ ] **Task 24** — `ScreenOCR` (`image_picker` + `google_mlkit_text_recognition` + `AppPermissions.requestCamera()`).
+- [ ] **Task 25** — `ScreenAddStopsMap` (tap-to-add via `flutter_map`).
 
 **Pre-slice cleanups:**
 - `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` is dead code since Task 14 rebound `/home`. Delete in a follow-up `chore` commit before slice-2 PR opens.
 
-Sub 2b-2e (plan tasks 17-34): pending; details verbatim in the plan.
+Sub 2c-2e (plan tasks 26-34): pending; details verbatim in the plan.
 
 ADRs to file during this slice:
 
