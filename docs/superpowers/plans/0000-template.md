@@ -41,7 +41,7 @@ The path contains spaces and brackets — always quote it when needed in shell. 
 4. **Riverpod codegen.** Every controller is `@riverpod class X extends _$X { ... }`. After editing controllers, run `dart run build_runner build --delete-conflicting-outputs` and **commit the generated `.g.dart` files in the same commit** as the source.
 5. **Hot reload over hot restart over full restart.** When `flutter run` is alive, prefer `r` for code changes inside `lib/**`. Full restart only for pubspec/native changes.
 6. **Surgical edits only.** Don't refactor unrelated code. Match existing style in prior-slice files.
-7. **Schema source-of-truth (ADR-0013).** TypeBox in `apps/backend/src/<feature>/schemas.ts` evolves first; Dart DTO mirror at `apps/mobile/lib/features/<feature>/data/dto/*.dart` ships in the same commit. The `check-dto-mirror.sh` hook (ADR-0018) warns when you forget.
+7. **Schema source-of-truth (ADR-0013 + ADR-0020).** TypeBox in `apps/backend/src/<feature>/schemas.ts` evolves first; Dart DTO mirror at `apps/mobile/lib/features/<feature>/data/dto/*.dart` ships in the same commit. The L1 header is exactly `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO), ASCII `->` only, no backticks. The `check-dto-mirror.sh` hook (ADR-0018) warns when you forget.
 8. **Push after each completed sub-slice** (`git push` to keep origin current). Open the slice PR only after the release tasks at the end of this plan complete.
 
 ## File structure created/modified by this plan

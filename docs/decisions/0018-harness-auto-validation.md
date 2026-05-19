@@ -81,7 +81,7 @@ Scope discipline:
 
 - The `Stop` hook reads the JSON transcript Anthropic passes on stdin. We extract edited file paths from the `transcript_path` file by parsing the events (`Edit`, `Write`, `MultiEdit` tool calls since the last `Stop` event). When transcript parsing is unavailable (older harness), we fall back to `git diff --name-only HEAD` which captures the working-tree state — slightly broader but never wrong.
 - `analyze-changed-dart.sh` invokes `flutter analyze --no-pub <files>` from `apps/mobile/`. The `--no-pub` flag skips dependency resolution, keeping the run fast (typically 3–6 s for a small file set).
-- `check-dto-mirror.sh` uses the convention codified in ADR-0013: every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>`. The grep is exact-substring against the edited schema file path; no regex inference.
+- `check-dto-mirror.sh` uses the convention codified in ADR-0013 and normalized by ADR-0020: every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO), ASCII `->` only. The grep matches both forms via the shared `-> ` prefix; ADR-0020 tightens the hook to an anchored regex.
 - `warn-adr-drift.sh` runs `git status --porcelain docs/decisions/` to detect new/modified ADRs in the working tree. If none, it emits the warning naming the stack-affecting file that triggered it.
 - `/verify-slice` is `disable-model-invocation: true` (human-triggered only) and has an `allowed-tools:` allowlist matching the read-only commands it runs.
 - The three hooks register under `Stop` in `.claude/settings.json` with `timeout: 30` (analyze is the long pole; 30 s is generous and we observed 3–8 s in practice).

@@ -1,9 +1,11 @@
 # ADR-0013: TypeBox as the API Contract Source of Truth (with Manual Dart Mirror for M1)
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-05-19 by ADR-0020 for header grammar)
 - **Date:** 2026-05-08
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0004 (Prisma 7), ADR-0006 (TypeBox), ADR-0002 (Flutter)
+- **Related ADRs:** ADR-0004 (Prisma 7), ADR-0006 (TypeBox), ADR-0002 (Flutter), ADR-0020 (canonical `// Mirror of:` header format)
+
+> **Note (2026-05-19):** The `// Mirror of:` header form is normalized by [ADR-0020](./0020-mirror-header-canonical-format.md) — ASCII `->`, two productions (single-DTO and multi-DTO), no backticks. The inline examples in this ADR predate that normalization and have been updated in place to the ASCII form; the architectural decision (TypeBox as canonical, manual Dart mirror for M1, codegen post-M1) is unchanged.
 
 ## Context
 
@@ -68,7 +70,7 @@ For M1:
 
 2. **TypeBox is the source of truth for HTTP API contracts.** Every endpoint declares its request body, query, params, and every response status code with a TypeBox schema. Schemas live in `apps/backend/src/<feature>/schemas.ts` (separate file from the route handler) so they are importable by tests and, post-M1, by an OpenAPI exporter. The handler imports `Static<typeof Schema>` for its TypeScript types.
 
-3. **Mobile Dart DTOs mirror TypeBox schemas manually.** Each DTO file at `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` carries a header comment of the form `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>`. Fields and field types match 1:1; no renaming. `fromJson` / `toJson` are explicit until codegen lands.
+3. **Mobile Dart DTOs mirror TypeBox schemas manually.** Each DTO file at `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` carries a header comment of the form `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO). Fields and field types match 1:1; no renaming. `fromJson` / `toJson` are explicit until codegen lands. See ADR-0020 for the normative grammar.
 
 4. **One PR changes both sides.** A change to a TypeBox schema and the change to its Dart mirror travel in the same commit. Lefthook does not yet enforce this, but commit hygiene + code review must.
 
@@ -114,7 +116,7 @@ apps/mobile/lib/features/auth/
         └── <feature>_dto.dart    # written when the matching backend schema lands
 ```
 
-Each DTO file follows the template: header comment with `Mirror of: <backend path> → <SchemaName>`, immutable fields (`final`), `fromJson` / `toJson` explicit.
+Each DTO file follows the template: header comment with `Mirror of: <backend path> -> <SchemaName>` (or brace-list form for multi-DTO files per ADR-0020), immutable fields (`final`), `fromJson` / `toJson` explicit.
 
 ### What the rule rejects
 
@@ -154,7 +156,7 @@ export type LoginResponse = Static<typeof LoginResponseSchema>
 
 ```dart
 // apps/mobile/lib/features/auth/data/dto/auth_user_dto.dart
-// Mirror of: apps/backend/src/auth/schemas.ts → UserSchema
+// Mirror of: apps/backend/src/auth/schemas.ts -> UserSchema
 class AuthUserDto {
   const AuthUserDto({
     required this.id,
