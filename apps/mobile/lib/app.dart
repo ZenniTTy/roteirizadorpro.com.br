@@ -12,6 +12,7 @@ import 'features/stops/presentation/home_page.dart';
 import 'features/stops/presentation/map_stops_page.dart';
 import 'features/stops/presentation/reorder_page.dart';
 import 'features/stops/presentation/stop_detail_page.dart';
+import 'features/stops/presentation/voice_capture_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -49,6 +50,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
       GoRoute(path: '/home', builder: (_, __) => const HomeListPageOrEmpty()),
       GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
+      GoRoute(
+        path: '/stops/voice',
+        builder: (_, __) => const VoiceCapturePage(),
+      ),
       GoRoute(path: '/stops/map', builder: (_, __) => const MapStopsPage()),
       GoRoute(path: '/stops/reorder', builder: (_, __) => const ReorderPage()),
       GoRoute(
