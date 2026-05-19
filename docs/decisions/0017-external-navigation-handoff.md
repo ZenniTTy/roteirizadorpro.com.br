@@ -11,7 +11,7 @@ Slice 2's `ScreenNavigate` step needs to take an optimized route and start turn-
 
 The two realistic Brazilian options are Google Maps and Waze. Their deep-link contracts have very different shapes and limits — both confirmed against the official 2026 documentation:
 
-- **Google Maps**: `https://www.google.com/maps/dir/?api=1` supports `origin`, `destination`, `waypoints` (pipe-separated), and `travelmode`. **Hard cap: 9 waypoints maximum (so 11 stops total: 1 origin + 9 waypoints + 1 destination); 2,048 character URL limit.** Per Google for Developers, mobile *browsers* cap waypoints at 3, but the Google Maps Android app consumes the URL with the 9-waypoint cap.
+- **Google Maps**: `https://www.google.com/maps/dir/?api=1` supports `origin` (optional — when omitted, the Google Maps app uses the device's current location), `destination`, `waypoints` (pipe-separated), and `travelmode`. **Hard cap: 9 waypoints maximum; 2,048 character URL limit.** Per Google for Developers, mobile *browsers* cap waypoints at 3, but the Google Maps Android app consumes the URL with the 9-waypoint cap. The implementation omits `origin` so the rider can fire "Iniciar navegação" from anywhere (depot, mid-route, parking) — that gives a per-URI cap of **10 stops** (9 waypoints + 1 destination, origin = current location). Setting `origin` explicitly would push the cap to 11 but force the rider to physically be at the first stop, which contradicts the real flow.
   Source: <https://developers.google.com/maps/documentation/urls/get-started>
 - **Waze**: `waze://?ll=<lat>,<lng>&navigate=yes` takes a single destination per intent. There is no published multi-stop variant.
   Source: <https://developers.google.com/waze/deeplinks>
@@ -22,15 +22,15 @@ The prototype at `prototipo/screens-b.jsx:361` (client-approved 2026-05-07, ADR-
 
 ### A — Waze default, Google Maps toggle (this ADR)
 
-Default to Waze because (1) the client-approved prototype shows it, (2) Brazilian delivery riders skew toward Waze for traffic awareness, and (3) the Google Maps URL cap of 11 stops would force a fallback flow anyway for the upper end of the spec's "up to 20 stops" target — Waze (parada-por-parada) is the only provider that handles arbitrary stop counts cleanly.
+Default to Waze because (1) the client-approved prototype shows it, (2) Brazilian delivery riders skew toward Waze for traffic awareness, and (3) the Google Maps URL cap of 10 stops per URI would force a fallback flow anyway for the upper end of the spec's "up to 20 stops" target — Waze (parada-por-parada) is the only provider that handles arbitrary stop counts cleanly.
 
 - **Pros:** matches the canonical prototype (ADR-0010); matches rider preference; handles 1–20 stops with one consistent mental model (one stop, then the next); the Google Maps cap stops mattering at the slice 3 spec ceiling.
-- **Cons:** users with very small routes (≤11 stops) miss out on Google Maps' single-URL multi-stop UX unless they flip the toggle.
+- **Cons:** users with very small routes (≤10 stops) miss out on Google Maps' single-URL multi-stop UX unless they flip the toggle.
 
 ### B — Google Maps default, Waze toggle (rejected; was the original draft)
 
-- **Pros:** single tap launches the whole route in one URL (when ≤11 stops).
-- **Cons:** **contradicts the client-approved prototype** (per ADR-0010, prototype wins); also forces a fallback path for any route >11 stops which is exactly the upper end of the spec. **Rejected.**
+- **Pros:** single tap launches the whole route in one URL (when ≤10 stops).
+- **Cons:** **contradicts the client-approved prototype** (per ADR-0010, prototype wins); also forces a fallback path for any route >10 stops which is exactly the upper end of the spec. **Rejected.**
 
 ### C — Ask every time
 
@@ -45,7 +45,7 @@ Bottom sheet "Abrir em: [Google Maps] [Waze]" on every Iniciar navegação tap.
 
 2. **Settings exposes a `Aplicativo de navegação` toggle.** Two options: Waze (default) and Google Maps. The choice is persisted in `SharedPreferencesAsync` under the key `settings.nav_provider`. Default is `NavProvider.waze` when the key is absent.
 
-3. **Google Maps path uses chunked multi-stop URIs.** When the user picks Google Maps and the route has more than 11 stops, the app sends the first 11 (origin + 9 waypoints + destination) and offers a SnackBar+CTA "Próxima parte da rota" that fires another Google Maps URI with the next batch. The chunk size and the 11-stop cap come straight from the Google Maps Maps-URLs documentation cited above. Sub-11-stop routes use a single URI.
+3. **Google Maps path uses chunked multi-stop URIs.** When the user picks Google Maps and the route has more than 10 stops, the app sends the first 10 (9 waypoints + 1 destination, origin = device current location) and offers a SnackBar+CTA "Próxima parte da rota" that fires another Google Maps URI with the next batch. The chunk size of 10 comes from omitting the `origin` parameter (see Context above); the rationale is rider-flow flexibility, not Google Maps' raw API limit. Sub-10-stop routes use a single URI.
 
 4. **Fallback when neither app is installed.** The Google Maps URI is a real `https://` URL, so the browser is the natural fallback (Android resolves the intent to a browser if no native handler is registered). Confirmed by the `<queries>` block from Task 17 (commit `bd10c9a`), which includes a generic `https` VIEW intent. The Waze URI uses the `waze://` scheme which has no browser fallback; if Waze is not installed and the user picked Waze, the app shows a SnackBar with a Play Store deep-link to Waze rather than failing silently.
 
@@ -66,11 +66,13 @@ Bottom sheet "Abrir em: [Google Maps] [Waze]" on every Iniciar navegação tap.
 ```dart
 enum NavProvider { waze, googleMaps }
 
-/// Google Maps Maps-URLs caps waypoints at 9 (so 11 stops total) per
+/// Google Maps Maps-URLs caps waypoints at 9 per
 /// https://developers.google.com/maps/documentation/urls/get-started.
-/// Routes longer than this are chunked into multiple Google Maps URIs;
-/// the caller is responsible for advancing to the next chunk.
-const int kGoogleMapsMaxStopsPerUri = 11;
+/// With `origin` omitted (device current location), that allows 10 stops
+/// per URI (9 waypoints + 1 destination). Routes longer than 10 are
+/// chunked into multiple Google Maps URIs; the caller advances to the
+/// next chunk when the rider taps "Próxima parte da rota".
+const int kGoogleMapsMaxStopsPerUri = 10;
 
 abstract class ExternalNav {
   /// Pure URI builders — no platform side effects, easy to unit-test.
@@ -90,7 +92,8 @@ The provider preference is read from `SharedPreferencesAsync` (`settings.nav_pro
 ## Amendment History
 
 - **2026-05-19 (initial draft, superseded same day):** proposed Google Maps as the default. Rationale was "preserves the multi-stop promise out of the box."
-- **2026-05-19 (this version):** corrected to Waze default after validation pass discovered that (a) the prototype at `prototipo/screens-b.jsx:361` shows Waze as default, which is canonical per ADR-0010, and (b) the Google Maps URL has a hard 11-stop cap that the original ADR did not mention, which contradicts the spec's 20-stop ceiling. The Decision section above is the version that ships.
+- **2026-05-19 (intermediate, superseded same day):** corrected to Waze default after validation pass discovered the prototype/ADR drift and the Google Maps URL cap. Cap was recorded as 11 stops (1 origin + 9 waypoints + 1 destination) on the assumption that the rider was always physically at the first stop.
+- **2026-05-19 (this version):** during Task 28 implementation, the cap was re-derived from the actual rider flow ("Iniciar navegação" fires from depot or anywhere mid-route, not always at the first stop). The implementation omits `origin` so the Google Maps app uses the device's current location; that drops the per-URI cap from 11 to 10 (9 waypoints + 1 destination). Decision §3 now reflects 10 instead of 11. The Decision section above is the version that ships.
 
 ## References
 
