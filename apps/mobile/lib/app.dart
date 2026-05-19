@@ -9,6 +9,7 @@ import 'features/auth/state/auth_controller.dart';
 import 'features/stops/presentation/add_stop_page.dart';
 import 'features/stops/presentation/edit_stop_page.dart';
 import 'features/stops/presentation/home_page.dart';
+import 'features/stops/presentation/reorder_page.dart';
 import 'features/stops/presentation/stop_detail_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
@@ -47,6 +48,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
       GoRoute(path: '/home', builder: (_, __) => const HomeListPageOrEmpty()),
       GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
+      GoRoute(path: '/stops/reorder', builder: (_, __) => const ReorderPage()),
       GoRoute(
         path: '/stops/:id/edit',
         builder: (_, state) => EditStopPage(id: state.pathParameters['id']!),
