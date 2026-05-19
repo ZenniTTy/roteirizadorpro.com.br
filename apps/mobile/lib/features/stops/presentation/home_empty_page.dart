@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeEmptyPage extends ConsumerWidget {
+class HomeEmptyPage extends StatelessWidget {
   const HomeEmptyPage({super.key, this.onAddPressed});
 
-  /// Optional override for the primary CTA's navigation. When null, the
-  /// button navigates to `/stops/add` via go_router. Injected primarily so
-  /// widget tests can assert taps without standing up a router.
+  /// Nullable so widget tests can assert taps without standing up a GoRouter;
+  /// production falls through to `context.go('/stops/add')`.
   final void Function(BuildContext context)? onAddPressed;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Rota de hoje')),

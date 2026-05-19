@@ -1,27 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
-import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/presentation/home_empty_page.dart';
-import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
-
-class _EmptyRepo implements StopsRepository {
-  @override
-  Future<List<Stop>> load() async => const [];
-
-  @override
-  Future<void> save(List<Stop> stops) async {}
-}
 
 void main() {
   Widget harness({void Function(BuildContext)? onAddPressed}) {
-    return ProviderScope(
-      overrides: [stopsRepositoryProvider.overrideWithValue(_EmptyRepo())],
-      child: MaterialApp(
-        home: HomeEmptyPage(onAddPressed: onAddPressed),
-      ),
+    return MaterialApp(
+      home: HomeEmptyPage(onAddPressed: onAddPressed),
     );
   }
 
