@@ -66,7 +66,28 @@ Refactors (cross-cutting DRY wins from the slice):
 - [x] **`FakeAppPermissions`** — pre-emptively extracted to `test/core/_helpers/` before Tasks 24 + 25 added 3rd / 4th copies. Migrated `permissions_test.dart` to use it. Shipped as part of commit `dce83a2`.
 
 **Pre-slice cleanups:**
-- `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` is dead code since Task 14 rebound `/home`. Delete in a follow-up `chore` commit before slice-2 PR opens.
+- [x] `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` deleted (was unreachable since Task 14). Empty parent dirs `features/home/presentation/` and `features/home/` also removed.
+
+**Prototype fidelity findings (`prototype-fidelity-checker` subagent run 2026-05-19) — address before slice-2 PR opens (Task 39):**
+
+Critical:
+- [ ] `HomeEmptyPage` — add the FAB + secondary `'Como funciona?'` pill from `prototipo/screens-a.jsx:143–154`. Either rework body CTA to be the tertiary pill, OR file an ADR documenting the inversion. Affects `home_empty_page.dart`.
+- [ ] BottomNav bar absent from `HomeEmptyPage` + `HomeListPage`. Prototype (`prototipo/ui.jsx:186–211`) has a 2-tab nav bar (`Route` / `Configurações`) on every home screen. Two paths: ship as stub now (the `Configurações` tab routes to `/settings` which Task 33 will fill), or formally defer to Task 33 in the slice plan + commit body. Affects `home_empty_page.dart`, `home_list_page.dart`, possibly `home_page.dart` dispatcher.
+- [ ] `StopListItem` subtitle semantics wrong — shows capture-source (`'Manual' / 'Voz' / 'OCR' / 'Mapa'`) where prototype shows address complement + delivery-status `Badge` (`prototipo/screens-a.jsx:238–249`). Data-model gap (`Stop` lacks `complement`, `status`). Decision: (a) remove the secondary line entirely until `Stop` carries complement + status, OR (b) keep source-label as a slice-2 dev affordance with explicit deferral note. Affects `shared/stop_list_item.dart`.
+
+Important:
+- [ ] `AddStopPage` full-page vs bottom-sheet presentation + 3 method-selector tabs (Keyboard / Voice / Camera) missing. Prototype: `prototipo/screens-a.jsx:279–364`. Either restructure to `showModalBottomSheet` or document as slice-3 deferral.
+- [ ] `VoiceCapturePage` mic-button visual — prototype shows 100×100 gradient circle + 3 pulse rings (`prototipo/screens-a.jsx:373–386`); implementation uses `IconButton.filled`. Document in commit body or polish in a follow-up.
+- [ ] `OcrCapturePage` — prototype is a full-screen dark camera viewfinder (`prototipo/screens-b.jsx:7–99`); implementation routes to OS camera via `image_picker`. To match would require swapping to `camera` package — scope decision.
+- [ ] `StopDetailPage` title — `'Detalhe da parada'` vs prototype `'Parada N de M'`. N/M not available until Task 27 ships `OptimizeController`. Defer wiring until then.
+
+Minor (post-merge polish):
+- [ ] `stop_form.dart` input border radius — use `AppRadii.input` (12) instead of M3 default.
+- [ ] `HomeEmptyPage` — replace `Icons.local_shipping_outlined` with the custom `EmptyIllustration` SVG (`prototipo/screens-a.jsx:112–130`).
+- [ ] `HomeListPage` count chip — match the prototype's ghost-pill spec (`surface` + `border`, not M3 `Chip` defaults).
+- [ ] `MapStopsPage` polish — floating header card, AO VIVO pill, teardrop markers (documented deferral in commit `3d8e08d`; slot here for tracking).
+- [ ] `AddStopsMapPage` bottom-sheet address picker (deferred to slice 3 / Nominatim, commit `5c02ffb`).
+- [ ] `StopListItem` address complement subtitle (data-model gap; introduce `Stop.complement` when prototype card semantics are fully restored).
 
 Sub 2d (Optimization + Nav, plan tasks 26-32) and Sub 2e (Periféricos, plan tasks 33-34): pending; details verbatim in the plan. Release tasks 35-41 follow.
 

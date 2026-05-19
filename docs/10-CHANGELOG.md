@@ -2,6 +2,18 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-05-19 — slice 2 sub-2a remainder + sub-2b + sub-2c (session 13)
+
+- **Sub 2a (Foundation) closed**: `StopsController` Riverpod 3 codegen with the 7 mutations the slice consumes (`add`, `remove`, `updateStop`, `reorder`, `applyOptimizedOrder`, `clear`, `build`-hydrate). `StopListItem` shared widget, `ScreenHomeEmpty`, `ScreenHomeList` with `HomeListPageOrEmpty` dispatcher + GoRouter wiring, `ScreenAddStop` with shared `StopForm` (address-only per prototype; Nominatim arrives in slice 3).
+- **Sub 2b (Captura) closed**: `AndroidManifest.xml` declares `ACCESS_FINE_LOCATION` + `RECORD_AUDIO` + `CAMERA` in `src/main/` + `<queries>` block for Android 11+ package visibility (`com.google.android.apps.maps`, `com.waze`, https VIEW). `core/services/permissions.dart` `AppPermissions` wrapper with `@riverpod` codegen provider. `ScreenVoice` (`speech_to_text` pt-BR), `ScreenOCR` (`image_picker` → `google_mlkit_text_recognition`), `ScreenAddStopsMap` (`flutter_map` tap-to-add with real lat/lng).
+- **Sub 2c (Manipulação) closed**: `ScreenStopDetail` (introduced `Stop.isGeocoded` getter), `ScreenEditStop` (reuses `StopForm`; reconciled the Riverpod 3 `update→updateStop` drift), `ScreenReorder` (`ReorderableListView.builder` + `ReorderableDragStartListener` + `StopListItem` reuse), `ScreenMapStops` (`flutter_map` + OSM tiles per ADR-0016, `Stop.isGeocoded` filter consumes the Null Island contract).
+- **Cross-cutting DRY refactors**: shared `FakeStopsRepository` (eliminates 6-copy fake proliferation, net −106 LOC), shared `stopsAsyncView` for loading + error boilerplate across 5 screens (net −21 LOC + standardized error copy), pre-emptive `FakeAppPermissions` extraction before sub-2b screens spawned the 3rd / 4th copies.
+- **Dead code purge**: removed M1's `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` (unreachable since Task 14 rebound `/home` to `HomeListPageOrEmpty`).
+- **`Stop` domain extension**: added `bool get isGeocoded => lat != 0 || lng != 0;` to close the Null Island contract between `ScreenAddStop` / `ScreenVoice` / `ScreenOCR` (which mint stops with `lat=0, lng=0` until slice 3 geocodes) and `ScreenMapStops` / `external_nav` (must filter ungeocoded stops to avoid pinning markers / routing the rider to the Atlantic).
+- **ADR-0015 amended** in session 12 to record the resolved pubspec.yaml caret-semver pins; `adr-guardian` confirmed no stack drift in the slice diff.
+- **Prototype fidelity audit landed** (`prototype-fidelity-checker` subagent): 3 Critical + 4 Important divergences cataloged in `TODO.md` as slice-2-PR blockers (HomeEmpty FAB + "Como funciona?" pill, BottomNav across home family, StopListItem subtitle semantics, AddStop bottom-sheet presentation, Voice mic button visual, OCR dark viewfinder, StopDetail "Parada N de M" title).
+- **Test suite grew from 26 to 53 tests**, full `flutter analyze` 0 issues, `bun run typecheck` clean. 22 commits on `feat/m2-slice-2-telas-core` pushed to origin between `e18f257` and the session-end audit-closure pack.
+
 ## 2026-05-13 — M2 roadmap made canonical (session 11)
 
 - **`docs/08-ROADMAP.md` rewritten** as the single source of truth for M2: 7 locked slices (APK ✅, Telas Core, VRP, Pix, sentido casa, LGPD, admin), per-slice scope and acceptance criteria, library choices validated via Context7, read-first map for future agents.
