@@ -1,11 +1,137 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
-class StopDetailPage extends StatelessWidget {
-  const StopDetailPage({super.key, required this.id});
+import '../domain/stop.dart';
+import '../state/stops_controller.dart';
+
+class StopDetailPage extends ConsumerWidget {
+  const StopDetailPage({
+    super.key,
+    required this.id,
+    this.onDeleted,
+    this.onEditPressed,
+  });
 
   final String id;
 
+  /// Nullable so widget tests can assert taps without standing up a GoRouter;
+  /// production falls through to `context.go('/home')`.
+  final void Function(BuildContext context)? onDeleted;
+
+  /// Same callback-injection pattern for Editar; route lands in Task 20.
+  final void Function(BuildContext context)? onEditPressed;
+
   @override
-  Widget build(BuildContext context) =>
-      Scaffold(body: Center(child: Text('Detail $id — Task 19')));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncStops = ref.watch(stopsControllerProvider);
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Detalhe da parada')),
+      body: SafeArea(
+        child: asyncStops.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) {
+            debugPrint('StopDetailPage stops error: $e');
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Não conseguimos carregar a parada. Tente reabrir o app.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ),
+            );
+          },
+          data: (stops) {
+            final stop = stops.where((s) => s.id == id).firstOrNull;
+            if (stop == null) {
+              return const Center(child: Text('Parada não encontrada.'));
+            }
+            return _StopDetailBody(
+              stop: stop,
+              onDelete: () async {
+                await ref
+                    .read(stopsControllerProvider.notifier)
+                    .remove(stop.id);
+                if (!context.mounted) return;
+                (onDeleted ?? (ctx) => ctx.go('/home'))(context);
+              },
+              onEdit: () {
+                (onEditPressed ??
+                    (ctx) => ctx.go('/stops/${stop.id}/edit'))(context);
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _StopDetailBody extends StatelessWidget {
+  const _StopDetailBody({
+    required this.stop,
+    required this.onDelete,
+    required this.onEdit,
+  });
+
+  final Stop stop;
+  final Future<void> Function() onDelete;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            stop.label ?? 'Sem endereço',
+            style: theme.textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 16),
+          if (stop.isGeocoded) ...[
+            Text('Latitude: ${stop.lat}', style: theme.textTheme.bodyMedium),
+            const SizedBox(height: 4),
+            Text('Longitude: ${stop.lng}', style: theme.textTheme.bodyMedium),
+          ] else
+            Text(
+              'Aguardando geocodificação',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          const Spacer(),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Excluir'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Editar'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

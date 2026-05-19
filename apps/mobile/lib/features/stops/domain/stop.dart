@@ -22,6 +22,8 @@ class Stop {
   final StopSource source;
   final DateTime createdAt;
 
+  bool get isGeocoded => lat != 0 || lng != 0;
+
   Stop copyWith({
     String? id,
     double? lat,
