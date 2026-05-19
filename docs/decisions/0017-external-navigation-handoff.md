@@ -1,34 +1,36 @@
 # ADR-0017: External Navigation Hand-off
 
 - **Status:** Accepted
-- **Date:** 2026-05-19
+- **Date:** 2026-05-19 (amended same day — see "Amendment History" below)
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0015 (M2 plan + library choices), ADR-0016 (map and tile policy), ADR-0014 (Android release signing).
+- **Related ADRs:** ADR-0010 (clone positioning + prototype as canonical UI source), ADR-0015 (M2 plan + library choices), ADR-0016 (map and tile policy), ADR-0014 (Android release signing).
 
 ## Context
 
 Slice 2's `ScreenNavigate` step needs to take an optimized route and start turn-by-turn navigation. In-app turn-by-turn would require Mapbox Navigation SDK or similar — paid, vendor-locked, and outside the M2 cost ceiling. The pragmatic path is **deep-link hand-off** to whichever external navigation app the user prefers.
 
-The two realistic Brazilian options are Google Maps and Waze. They have very different deep-link contracts:
+The two realistic Brazilian options are Google Maps and Waze. Their deep-link contracts have very different shapes and limits — both confirmed against the official 2026 documentation:
 
-- **Google Maps**: `https://www.google.com/maps/dir/?api=1` supports `origin`, `destination`, and `waypoints` (pipe-separated). One URL opens the entire multi-stop route.
+- **Google Maps**: `https://www.google.com/maps/dir/?api=1` supports `origin`, `destination`, `waypoints` (pipe-separated), and `travelmode`. **Hard cap: 9 waypoints maximum (so 11 stops total: 1 origin + 9 waypoints + 1 destination); 2,048 character URL limit.** Per Google for Developers, mobile *browsers* cap waypoints at 3, but the Google Maps Android app consumes the URL with the 9-waypoint cap.
+  Source: <https://developers.google.com/maps/documentation/urls/get-started>
 - **Waze**: `waze://?ll=<lat>,<lng>&navigate=yes` takes a single destination per intent. There is no published multi-stop variant.
+  Source: <https://developers.google.com/waze/deeplinks>
 
-This ADR captures the decision and the consequences for the slice 2 UX.
+The prototype at `prototipo/screens-b.jsx:361` (client-approved 2026-05-07, ADR-0010 makes the prototype canonical) shows Waze as the default GPS provider in Settings. The original draft of this ADR proposed Google Maps as the default for "multi-stop promise"; that drift from the prototype was caught during validation and corrected — see Amendment History.
 
 ## Options Considered
 
-### A — Google Maps default, Waze toggle (this ADR)
+### A — Waze default, Google Maps toggle (this ADR)
 
-Default the user to Google Maps because it preserves the product promise ("nós otimizamos sua rota inteira"). A toggle in Settings switches to Waze, but a one-time warning explains that Waze is opened one stop at a time.
+Default to Waze because (1) the client-approved prototype shows it, (2) Brazilian delivery riders skew toward Waze for traffic awareness, and (3) the Google Maps URL cap of 11 stops would force a fallback flow anyway for the upper end of the spec's "up to 20 stops" target — Waze (parada-por-parada) is the only provider that handles arbitrary stop counts cleanly.
 
-- **Pros:** preserves the multi-stop promise out of the box; respects user choice in Settings; falls back to a browser if neither app is installed (`https://www.google.com/maps/dir/...` opens any browser).
-- **Cons:** Brazilian delivery riders skew toward Waze for traffic awareness; this design forces a Settings change to use it.
+- **Pros:** matches the canonical prototype (ADR-0010); matches rider preference; handles 1–20 stops with one consistent mental model (one stop, then the next); the Google Maps cap stops mattering at the slice 3 spec ceiling.
+- **Cons:** users with very small routes (≤11 stops) miss out on Google Maps' single-URL multi-stop UX unless they flip the toggle.
 
-### B — Waze default, Google Maps toggle
+### B — Google Maps default, Waze toggle (rejected; was the original draft)
 
-- **Pros:** matches the prevailing rider preference in Brazil.
-- **Cons:** breaks the multi-stop promise on first use. Users who picked the product *because* of route optimization see a single-stop hand-off and feel cheated. **Rejected.**
+- **Pros:** single tap launches the whole route in one URL (when ≤11 stops).
+- **Cons:** **contradicts the client-approved prototype** (per ADR-0010, prototype wins); also forces a fallback path for any route >11 stops which is exactly the upper end of the spec. **Rejected.**
 
 ### C — Ask every time
 
@@ -39,13 +41,13 @@ Bottom sheet "Abrir em: [Google Maps] [Waze]" on every Iniciar navegação tap.
 
 ## Decision
 
-1. **Default external navigation provider is Google Maps.** Multi-stop hand-off via the `dir/?api=1` URL with `origin`, `destination`, and `waypoints`.
+1. **Default external navigation provider is Waze.** One-stop-at-a-time via the `waze://?ll=…&navigate=yes` deep link, advanced via a "Próxima parada" CTA on `ScreenNavigate`.
 
-2. **Settings exposes a `Aplicativo de navegação` toggle.** Two options: Google Maps (default) and Waze. The choice is persisted in `SharedPreferencesAsync` under the key `settings.nav_provider`.
+2. **Settings exposes a `Aplicativo de navegação` toggle.** Two options: Waze (default) and Google Maps. The choice is persisted in `SharedPreferencesAsync` under the key `settings.nav_provider`. Default is `NavProvider.waze` when the key is absent.
 
-3. **Waze is opened one stop at a time.** When the user selects Waze in Settings and the route has > 1 stop, `ScreenOptimizeRoute` shows a one-time toast: *"Waze não suporta múltiplas paradas; vamos abrir uma de cada vez."* `ScreenNavigate` then exposes a "Próxima parada" CTA that fires Waze for the next index.
+3. **Google Maps path uses chunked multi-stop URIs.** When the user picks Google Maps and the route has more than 11 stops, the app sends the first 11 (origin + 9 waypoints + destination) and offers a SnackBar+CTA "Próxima parte da rota" that fires another Google Maps URI with the next batch. The chunk size and the 11-stop cap come straight from the Google Maps Maps-URLs documentation cited above. Sub-11-stop routes use a single URI.
 
-4. **Fallback when neither app is installed.** The Google Maps URI is a real `https://` URL, so the browser is the natural fallback (Android resolves the intent to a browser if no native handler is registered). Confirmed by the `<queries>` block from Task 17 (commit `bd10c9a`), which includes a generic `https` VIEW intent.
+4. **Fallback when neither app is installed.** The Google Maps URI is a real `https://` URL, so the browser is the natural fallback (Android resolves the intent to a browser if no native handler is registered). Confirmed by the `<queries>` block from Task 17 (commit `bd10c9a`), which includes a generic `https` VIEW intent. The Waze URI uses the `waze://` scheme which has no browser fallback; if Waze is not installed and the user picked Waze, the app shows a SnackBar with a Play Store deep-link to Waze rather than failing silently.
 
 5. **Android 11+ visibility.** The `<queries>` block in `apps/mobile/android/app/src/main/AndroidManifest.xml` lists `com.google.android.apps.maps`, `com.waze`, and the generic `https` VIEW intent so `canLaunchUrl()` returns true when the app is installed. Android 11 (API 30) introduced package-visibility restrictions: without the `<queries>` declaration, `canLaunchUrl()` returns `false` even when the target app is installed, because the calling app simply cannot see it. This block is the canonical fix per the Android docs.
 
@@ -53,8 +55,8 @@ Bottom sheet "Abrir em: [Google Maps] [Waze]" on every Iniciar navegação tap.
 
 ## Consequences
 
-- **Positive:** zero per-request cost; respects user preference; preserves the multi-stop promise by default; the migration to in-app turn-by-turn (if ever) is a clean replacement of `ExternalNav.openInGoogleMaps`.
-- **Negative:** Waze users see a slightly worse UX than Google Maps users; mitigated by the explicit one-time message.
+- **Positive:** zero per-request cost; matches the canonical prototype; matches the dominant Brazilian rider preference; handles the full 1–20 stop range with one mental model; the migration to in-app turn-by-turn (if ever) is a clean replacement of `ExternalNav.openInWaze` / `ExternalNav.openInGoogleMaps`.
+- **Negative:** users with small routes who would benefit from Google Maps' single-URI flow must flip the Settings toggle once.
 - **Neutral:** if a third provider ever becomes the default in Brazil (e.g. an OpenStreetMap-based navigator gains traction), this ADR is the single place that changes.
 
 ## Implementation notes
@@ -62,23 +64,42 @@ Bottom sheet "Abrir em: [Google Maps] [Waze]" on every Iniciar navegação tap.
 `apps/mobile/lib/core/services/external_nav.dart` ships in Task 28 with:
 
 ```dart
-enum NavProvider { googleMaps, waze }
+enum NavProvider { waze, googleMaps }
 
-class ExternalNav {
+/// Google Maps Maps-URLs caps waypoints at 9 (so 11 stops total) per
+/// https://developers.google.com/maps/documentation/urls/get-started.
+/// Routes longer than this are chunked into multiple Google Maps URIs;
+/// the caller is responsible for advancing to the next chunk.
+const int kGoogleMapsMaxStopsPerUri = 11;
+
+abstract class ExternalNav {
+  /// Pure URI builders — no platform side effects, easy to unit-test.
   static Uri googleMapsUri(List<Stop> stops);
   static Uri wazeUri(Stop stop);
 
+  /// Launchers (platform side effects). Implementations live behind a Riverpod
+  /// provider so tests can substitute a Fake via override (same pattern as
+  /// `permissions.dart` and `FakeAppPermissions`).
   Future<bool> openInGoogleMaps(List<Stop> stops);
   Future<bool> openInWaze(Stop stop);
 }
 ```
 
-The provider preference is read from `SharedPreferencesAsync` (`settings.nav_provider`); `ScreenSettings` writes it via a SegmentedButton in Task 33.
+The provider preference is read from `SharedPreferencesAsync` (`settings.nav_provider`); `ScreenSettings` writes it via a SegmentedButton in Task 33. The provider is exposed via a `@riverpod` codegen provider over a `_RealExternalNav` implementation, matching the architectural pattern established by `core/services/permissions.dart`.
+
+## Amendment History
+
+- **2026-05-19 (initial draft, superseded same day):** proposed Google Maps as the default. Rationale was "preserves the multi-stop promise out of the box."
+- **2026-05-19 (this version):** corrected to Waze default after validation pass discovered that (a) the prototype at `prototipo/screens-b.jsx:361` shows Waze as default, which is canonical per ADR-0010, and (b) the Google Maps URL has a hard 11-stop cap that the original ADR did not mention, which contradicts the spec's 20-stop ceiling. The Decision section above is the version that ships.
 
 ## References
 
+- ADR-0010 — Clone positioning + prototype as canonical UI source.
 - ADR-0015 — M2 plan and library choices.
 - ADR-0016 — Map and tile policy.
 - Spec: `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` §External navigation.
 - AndroidManifest `<queries>` block introduced in slice 2 sub 2b Task 17 (commit `bd10c9a`).
+- Google for Developers — Maps URLs: <https://developers.google.com/maps/documentation/urls/get-started>.
+- Google for Developers — Waze Deep Links: <https://developers.google.com/waze/deeplinks>.
 - Android 11 package-visibility docs: <https://developer.android.com/training/package-visibility>.
+- Prototype: `prototipo/screens-b.jsx:361` (default GPS provider in Settings).
