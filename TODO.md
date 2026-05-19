@@ -71,15 +71,23 @@ Refactors (cross-cutting DRY wins from the slice):
 **Prototype fidelity findings (`prototype-fidelity-checker` subagent run 2026-05-19) — address before slice-2 PR opens (Task 39):**
 
 Critical:
-- [ ] `HomeEmptyPage` — add the FAB + secondary `'Como funciona?'` pill from `prototipo/screens-a.jsx:143–154`. Either rework body CTA to be the tertiary pill, OR file an ADR documenting the inversion. Affects `home_empty_page.dart`.
-- [ ] BottomNav bar absent from `HomeEmptyPage` + `HomeListPage`. Prototype (`prototipo/ui.jsx:186–211`) has a 2-tab nav bar (`Route` / `Configurações`) on every home screen. Two paths: ship as stub now (the `Configurações` tab routes to `/settings` which Task 33 will fill), or formally defer to Task 33 in the slice plan + commit body. Affects `home_empty_page.dart`, `home_list_page.dart`, possibly `home_page.dart` dispatcher.
-- [ ] `StopListItem` subtitle semantics wrong — shows capture-source (`'Manual' / 'Voz' / 'OCR' / 'Mapa'`) where prototype shows address complement + delivery-status `Badge` (`prototipo/screens-a.jsx:238–249`). Data-model gap (`Stop` lacks `complement`, `status`). Decision: (a) remove the secondary line entirely until `Stop` carries complement + status, OR (b) keep source-label as a slice-2 dev affordance with explicit deferral note. Affects `shared/stop_list_item.dart`.
+- [x] `HomeEmptyPage` — FAB + secondary `'Como funciona?'` pill added per `prototipo/screens-a.jsx:143–154`. Closed by `50ae78b`.
+- [x] BottomNav bar — `HomeBottomNav` shared widget shipped, wired into `HomeEmptyPage` + `HomeListPage` per `prototipo/ui.jsx:186–211`. Settings placeholder route added so the `Configurações` tab has a target until Task 33. Closed by `bb71d16`.
+- [x] `StopListItem` subtitle source-label removed per re-audit decision; complement + status badge data-model gap deferred to slice 3 with Nominatim. Closed by `9b81fc9`.
 
 Important:
 - [ ] `AddStopPage` full-page vs bottom-sheet presentation + 3 method-selector tabs (Keyboard / Voice / Camera) missing. Prototype: `prototipo/screens-a.jsx:279–364`. Either restructure to `showModalBottomSheet` or document as slice-3 deferral.
 - [ ] `VoiceCapturePage` mic-button visual — prototype shows 100×100 gradient circle + 3 pulse rings (`prototipo/screens-a.jsx:373–386`); implementation uses `IconButton.filled`. Document in commit body or polish in a follow-up.
 - [ ] `OcrCapturePage` — prototype is a full-screen dark camera viewfinder (`prototipo/screens-b.jsx:7–99`); implementation routes to OS camera via `image_picker`. To match would require swapping to `camera` package — scope decision.
-- [ ] `StopDetailPage` title — `'Detalhe da parada'` vs prototype `'Parada N de M'`. N/M not available until Task 27 ships `OptimizeController`. Defer wiring until then.
+- [x] `StopDetailPage` title — `'Parada N de M'` now computed via `asyncStops.maybeWhen` against `stopsControllerProvider`. Closed by `8a08386`.
+- [ ] `OptimizeRoutePage` — neon `ROTA OTIMIZADA` badge from `prototipo/screens-e.jsx:221–231` (`RP.neon #C6FF3D` pill + pulsing dot overlaid on the map) absent. Implementation has a subtle metrics row under AppBar instead. Restore in slice 3 when route geometry is real.
+- [ ] `OptimizeRoutePage` map pin shape — prototype `prototipo/screens-e.jsx:202–212` uses rounded-rect pin (`borderRadius: 5`, white fill, `RP.primary` border, `fontWeight: 700`); implementation uses `CircleAvatar` solid fill. Shape + typography divergent.
+- [ ] `OptimizeRoutePage` start/end markers — prototype lines 186–199 show distinct origin dot + flag-icon end pin; implementation renders identical circle avatars for all stops including the first.
+- [ ] `OptimizeRoutePage` stop list row — prototype lines 277–291 has two lines (label + subtitle address) + right-aligned ETA time string; implementation is single-line `ListTile.title`. Scaffold the ETA column when slice 3 brings GraphHopper leg durations.
+- [ ] `OptimizeRoutePage` bottom sheet chrome — prototype line 241 has 40×4 drag-handle pill at top of sheet; implementation has a plain `Column` (no sheet). Address when re-skinning to `DraggableScrollableSheet`.
+- [ ] `HomeEmptyPage` `BottomNav` indicator pill geometry — Material 3 `NavigationBar` renders an oval-fit-to-icon indicator; prototype `prototipo/ui.jsx:193–196` specifies an explicit `64×32 borderRadius:16` pill. Re-audit Section C finding.
+- [ ] `HomeBottomNav` border-top color — prototype `prototipo/ui.jsx:204` sets `borderTop: 1px solid RP.border` (`#E8E4F0`); Material 3 default may resolve differently. Re-audit Section C finding.
+- [ ] `StopDetailPage` body fullness — prototype `prototipo/screens-b.jsx:162–210` has map placeholder + address card with DISTÂNCIA/TEMPO/CONTATO rows + Entregue/Falhou/Próxima action triplet + locked nav button + move-options list; implementation has only Excluir/Editar buttons. Pre-existing gap (not introduced by `8a08386`); restore in slice 3 polish pass.
 
 Minor (post-merge polish):
 - [ ] `stop_form.dart` input border radius — use `AppRadii.input` (12) instead of M3 default.
@@ -88,6 +96,8 @@ Minor (post-merge polish):
 - [ ] `MapStopsPage` polish — floating header card, AO VIVO pill, teardrop markers (documented deferral in commit `3d8e08d`; slot here for tracking).
 - [ ] `AddStopsMapPage` bottom-sheet address picker (deferred to slice 3 / Nominatim, commit `5c02ffb`).
 - [ ] `StopListItem` address complement subtitle (data-model gap; introduce `Stop.complement` when prototype card semantics are fully restored).
+- [ ] `OptimizeRoutePage` title — prototype `prototipo/screens-e.jsx:254` reads `"São Paulo · 27 paradas"` (city name prefix); implementation metrics row has no city label. Track for slice 3 when reverse geocode lands.
+- [ ] `OptimizeRoutePage` sheet shadow — `prototipo/tokens.js:27` declares `sheetShadow: '0 -8px 32px rgba(108,63,197,0.16)'`; absent in current implementation (no sheet container). Restore alongside drag-handle when the sheet lands.
 
 Sub 2d (Optimization + Nav, plan tasks 26-32) and Sub 2e (Periféricos, plan tasks 33-34): pending; details verbatim in the plan. Release tasks 35-41 follow.
 

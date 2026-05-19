@@ -15,6 +15,12 @@ const int kGoogleMapsMaxStopsPerUri = 10;
 
 enum NavProvider { waze, googleMaps }
 
+/// Single source of truth for the SharedPreferencesAsync key used by
+/// ScreenSettings (writer, Task 33) and ScreenOptimizeRoute (reader,
+/// Task 30). Kept next to `NavProvider` so the contract lives in one
+/// place; ADR-0017 makes Waze the default when the key is absent.
+const String kNavProviderPrefKey = 'settings.nav_provider';
+
 abstract class ExternalNav {
   /// Builds a single Google Maps Directions URI from up to
   /// [kGoogleMapsMaxStopsPerUri] stops. Throws [ArgumentError] if [stops]
