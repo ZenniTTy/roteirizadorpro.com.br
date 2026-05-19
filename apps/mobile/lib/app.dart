@@ -7,6 +7,7 @@ import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/stops/presentation/add_stop_page.dart';
+import 'features/stops/presentation/edit_stop_page.dart';
 import 'features/stops/presentation/home_page.dart';
 import 'features/stops/presentation/stop_detail_page.dart';
 
@@ -46,6 +47,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
       GoRoute(path: '/home', builder: (_, __) => const HomeListPageOrEmpty()),
       GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
+      GoRoute(
+        path: '/stops/:id/edit',
+        builder: (_, state) => EditStopPage(id: state.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/stops/:id',
         builder: (_, state) => StopDetailPage(id: state.pathParameters['id']!),
