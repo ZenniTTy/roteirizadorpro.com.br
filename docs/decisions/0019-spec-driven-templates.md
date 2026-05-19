@@ -9,7 +9,7 @@
 
 Slice 2 produced two artifacts that, in hindsight, set the bar for how this project does spec-driven work:
 
-- `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` (479 lines, 17 H2 sections) — context, locked decisions in a Q-table, a numbered 14-step golden path as acceptance, an architecture section deep enough to design controllers from, an explicit non-goals list, a libraries table with Context7 IDs, a risks/mitigations table, an accessibility floor, a test strategy, and verification gates that map to `M2-SLICE-CHECKLIST.md`.
+- `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` (479 lines, 13 H2 sections) — context, locked decisions in a Q-table, a numbered 14-step golden path as acceptance (with non-goals nested under §Goals), an architecture section deep enough to design controllers from, a libraries table with Context7 IDs, a risks/mitigations table, an accessibility floor, a test strategy, and verification gates that map to `M2-SLICE-CHECKLIST.md`.
 - `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` (6,127 lines, 42 atomic tasks across 6 phases) — every task has a "Files" header, numbered Steps with bash blocks, explicit TDD pattern where logic warrants it, a self-review section that maps spec sections to tasks, and an execution hand-off offering subagent-driven or inline modes.
 
 The first slice that needs a fresh spec/plan (slice 3, VRP real) is two slices away. By then this session's authors will be gone and the operating discipline that produced these artifacts will live only in the artifacts themselves. If the next session starts by opening an empty file and improvising, the form regresses. If it starts by copying a previous spec and pruning, the form drifts (irrelevant slice-2 sections get carried forward; slice-3-specific concerns get force-fit). Both are real risks the M2-SLICE-CHECKLIST already documents as "skipping the ritual is not an option."
@@ -36,7 +36,7 @@ This ADR settles both gaps in one move so they ship together with shared rationa
 
 Two new template files under `docs/superpowers/`:
 
-- `specs/0000-template.md` — captures the 17-section structure that worked: Context, Decisions Locked, Goals (acceptance), Non-Goals, Architecture, Data Flow, Sub-slice Plan (optional for non-slice features), Libraries (with Context7 IDs), ADRs Filed, Risks and Mitigations, Accessibility, Test Strategy, Verification Gates, References.
+- `specs/0000-template.md` — captures the 13 H2 sections that worked: Context, Decisions Locked, Goals (acceptance — Non-Goals nests as H3 under Goals), Architecture, Data Flow, Sub-slice Plan (optional for non-slice features), Libraries (with Context7 IDs), ADRs Filed, Risks and Mitigations, Accessibility, Test Strategy, Verification Gates, References.
 - `plans/0000-template.md` — captures the 42-task pattern: Goal, Architecture, Tech Stack, Spec back-reference, Branch, Plan Execution Rules (1–8), File Structure Created/Modified, Phase headers, Task template with Files header + numbered Steps + explicit TDD pattern + Commit block, Self-Review checklist, Execution Hand-off offering subagent-driven vs inline.
 
 Two new local skills:
@@ -62,7 +62,7 @@ Concrete deliverables:
 
 | Artifact | Path | Source of structure |
 |---|---|---|
-| Spec template | `docs/superpowers/specs/0000-template.md` | Distilled from slice-2 spec — preserves the 17-section structure, including the M2-SLICE-CHECKLIST verification-gate cross-reference and the ADR-0013 mirror-contract reminder under Architecture. |
+| Spec template | `docs/superpowers/specs/0000-template.md` | Distilled from slice-2 spec — preserves the 13 H2 sections, including the M2-SLICE-CHECKLIST verification-gate cross-reference and the ADR-0013 mirror-contract reminder under Architecture. |
 | Plan template | `docs/superpowers/plans/0000-template.md` | Distilled from slice-2 plan — preserves the Phase / Task / Step hierarchy, the TDD pattern, the Self-Review checklist, and the Execution Hand-off offering. |
 | `/new-spec` skill | `.claude/skills/new-spec/SKILL.md` | Frontmatter `disable-model-invocation: true`, `allowed-tools` allowlist for `cp`, `ls`, `date`, `git rev-parse`. Workflow: validate slug → copy template → fill header → instruct human to invoke `superpowers:brainstorming` before authoring spec body. |
 | `/new-plan` skill | `.claude/skills/new-plan/SKILL.md` | Same frontmatter pattern. Workflow: validate that `docs/superpowers/specs/<slug>.md` exists → copy plan template → fill back-reference + branch + spec path → instruct human to invoke `superpowers:writing-plans` for task decomposition. |
