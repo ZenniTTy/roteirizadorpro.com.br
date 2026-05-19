@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../state/stops_controller.dart';
 import 'shared/map_attribution.dart';
+import 'shared/stops_async_view.dart';
 
 class MapStopsPage extends ConsumerWidget {
   const MapStopsPage({super.key});
@@ -16,27 +17,15 @@ class MapStopsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(stopsControllerProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mapa das paradas')),
       body: SafeArea(
-        child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) {
-            debugPrint('MapStopsPage stops error: $e');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Não conseguimos carregar suas paradas. Tente reabrir o app.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            );
-          },
-          data: (stops) {
+        child: stopsAsyncView(
+          async,
+          screenTag: 'MapStopsPage',
+          data: (context, stops) {
+            final theme = Theme.of(context);
             final geocoded =
                 stops.where((s) => s.isGeocoded).toList(growable: false);
             if (geocoded.isEmpty) {

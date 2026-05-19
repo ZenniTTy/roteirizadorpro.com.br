@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/stops_controller.dart';
 import 'shared/stop_list_item.dart';
+import 'shared/stops_async_view.dart';
 
 class HomeListPage extends ConsumerWidget {
   const HomeListPage({super.key});
@@ -47,22 +48,10 @@ class HomeListPage extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: asyncStops.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) {
-            debugPrint('HomeListPage stops error: $e');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Não conseguimos carregar suas paradas. Tente reabrir o app.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            );
-          },
-          data: (stops) {
+        child: stopsAsyncView(
+          asyncStops,
+          screenTag: 'HomeListPage',
+          data: (context, stops) {
             if (stops.isEmpty) {
               return const Center(
                 child: Text('Nenhuma parada ainda. Toque em Adicionar.'),

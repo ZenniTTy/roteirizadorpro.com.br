@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/stops_controller.dart';
 import 'shared/stop_list_item.dart';
+import 'shared/stops_async_view.dart';
 
 class ReorderPage extends ConsumerWidget {
   const ReorderPage({super.key});
@@ -11,7 +12,6 @@ class ReorderPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncStops = ref.watch(stopsControllerProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -25,22 +25,10 @@ class ReorderPage extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: asyncStops.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) {
-            debugPrint('ReorderPage stops error: $e');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Não conseguimos carregar suas paradas. Tente reabrir o app.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            );
-          },
-          data: (stops) {
+        child: stopsAsyncView(
+          asyncStops,
+          screenTag: 'ReorderPage',
+          data: (context, stops) {
             if (stops.isEmpty) {
               return const Center(
                 child: Text('Nenhuma parada para reordenar.'),

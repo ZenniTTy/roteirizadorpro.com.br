@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/stops_controller.dart';
 import 'shared/stop_form.dart';
+import 'shared/stops_async_view.dart';
 
 class EditStopPage extends ConsumerWidget {
   const EditStopPage({super.key, required this.id, this.onSaved});
@@ -21,22 +22,10 @@ class EditStopPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Editar parada')),
       body: SafeArea(
-        child: async.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) {
-            debugPrint('EditStopPage stops error: $e');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Não conseguimos carregar suas paradas. Tente reabrir o app.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-              ),
-            );
-          },
-          data: (stops) {
+        child: stopsAsyncView(
+          async,
+          screenTag: 'EditStopPage',
+          data: (context, stops) {
             final stop = stops.where((s) => s.id == id).firstOrNull;
             if (stop == null) {
               return const Center(child: Text('Parada não encontrada.'));

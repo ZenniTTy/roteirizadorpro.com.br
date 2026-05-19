@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../domain/stop.dart';
 import '../state/stops_controller.dart';
+import 'shared/stops_async_view.dart';
 
 class StopDetailPage extends ConsumerWidget {
   const StopDetailPage({
@@ -25,27 +26,14 @@ class StopDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncStops = ref.watch(stopsControllerProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalhe da parada')),
       body: SafeArea(
-        child: asyncStops.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) {
-            debugPrint('StopDetailPage stops error: $e');
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  'Não conseguimos carregar a parada. Tente reabrir o app.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-            );
-          },
-          data: (stops) {
+        child: stopsAsyncView(
+          asyncStops,
+          screenTag: 'StopDetailPage',
+          data: (context, stops) {
             final stop = stops.where((s) => s.id == id).firstOrNull;
             if (stop == null) {
               return const Center(child: Text('Parada não encontrada.'));
