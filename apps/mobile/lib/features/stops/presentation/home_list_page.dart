@@ -49,6 +49,19 @@ class HomeListPage extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: const HomeBottomNav(),
+      persistentFooterButtons: [
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: asyncStops.maybeWhen(
+              data: (s) => s.length < 2 ? null : () => context.go('/optimize'),
+              orElse: () => null,
+            ),
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('Otimizar rota'),
+          ),
+        ),
+      ],
       body: SafeArea(
         child: stopsAsyncView(
           asyncStops,
