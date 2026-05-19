@@ -4,7 +4,7 @@
 > **Scope:** M2 — slice-by-slice execution. M1 was delivered 2026-05-09.
 > **M2 contract:** BRL 2,000. Sequence locked 2026-05-13: APK → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
 > **Source of truth:** `docs/08-ROADMAP.md`. This file tracks day-to-day progress; the roadmap defines scope.
-> **Last updated:** 2026-05-18 (session 12 — slice 2 sub-2a in progress; 10 of 42 plan tasks shipped on `feat/m2-slice-2-telas-core`).
+> **Last updated:** 2026-05-19 (session 14 — harness Wave A landed on `feat/m2-slice-2-telas-core`; ADR-0018 filed; 3 new Stop-hooks + `/verify-slice` skill live).
 
 ## M2 — Slices
 
@@ -16,7 +16,7 @@ Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 
 
 **Read first (resume order):** `docs/sessions/2026-05-18-12-m2-slice-2-tasks-1-10.md` → `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` → `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` (start at Task 11) → `docs/M2-SLICE-CHECKLIST.md` → `prototipo/screens-{a,b,d,e}.jsx`. The plan is the per-task source of truth from here on; the ROADMAP is still canonical for slice ordering and acceptance.
 
-**Branch:** `feat/m2-slice-2-telas-core` — at `c6d11f9`, 12 commits ahead of `origin/develop`. 19/19 flutter tests passing, `flutter analyze` clean, `bun run typecheck` clean.
+**Branch:** `feat/m2-slice-2-telas-core` — at `f0bb080` (post-session-14 will advance by one more session-end commit), 16+ commits ahead of `origin/develop`. 19/19 flutter tests passing, `flutter analyze` clean, `bun run typecheck` clean. Three of those commits are orthogonal harness work (Wave A); the slice-2 product surface is unchanged from session 13's tip `7437917`.
 
 Pre-flight: ✅ done (session 12).
 
@@ -242,6 +242,7 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ## Discovered while working
 
+- [x] **2026-05-19 (session 14) — Harness Wave A landed.** ADR-0018 filed; three Stop-matcher hooks (`analyze-changed-dart.sh`, `check-dto-mirror.sh`, `warn-adr-drift.sh`) wired in `.claude/settings.json`; `/verify-slice` skill created. All non-blocking (exit 0/1 only — only `block-env.sh` keeps the exit-2 blocking contract). Smoke-tested in six real scenarios before commit. Wave B (extract `docs/superpowers/specs/0000-template.md` + `plans/0000-template.md` from the exemplary slice-2 artifacts and add `/new-spec` + `/new-plan` skills) is paused awaiting Eduardo's greenlight.
 - [x] **2026-05-13 (between M1 and M2 slice 1)** — Android SDK installed; `flutter doctor` is green for Android tooling (SDK 36.1.0). The only remaining `flutter doctor` flag is CocoaPods (iOS), irrelevant to this Android-only project.
 - [ ] Local dev currently runs Node v24 — runtime is locked to Node 20 LTS by ADR-0003. `.nvmrc` declares 20; run `nvm use` (or install nvm) before `bun run dev` / `bun run build` going forward.
 - [ ] Re-evaluate TS 5 → 6 bump after M1 ships (TS 6.0 just released; deferred to avoid new strictness errors during Phase 2).
