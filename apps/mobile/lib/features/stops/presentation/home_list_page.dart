@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/stops_controller.dart';
+import 'shared/home_bottom_nav.dart';
 import 'shared/stop_list_item.dart';
 import 'shared/stops_async_view.dart';
 
@@ -47,6 +48,7 @@ class HomeListPage extends ConsumerWidget {
           child: const Icon(Icons.add),
         ),
       ),
+      bottomNavigationBar: const HomeBottomNav(),
       body: SafeArea(
         child: stopsAsyncView(
           asyncStops,

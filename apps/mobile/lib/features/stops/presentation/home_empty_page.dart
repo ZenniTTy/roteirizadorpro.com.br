@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import 'shared/home_bottom_nav.dart';
 
 class HomeEmptyPage extends StatelessWidget {
   const HomeEmptyPage({super.key, this.onAddPressed});
@@ -23,6 +24,7 @@ class HomeEmptyPage extends StatelessWidget {
         tooltip: 'Adicionar parada',
         child: const Icon(Icons.add),
       ),
+      bottomNavigationBar: const HomeBottomNav(),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
