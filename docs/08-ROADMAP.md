@@ -87,7 +87,7 @@ No further work on this slice.
 apps/mobile/lib/features/stops/
 ├── data/
 │   ├── dto/
-│   │   └── stop_dto.dart                        # Mirror of: apps/backend/src/routes/schemas.ts → StopSchema
+│   │   └── stop_dto.dart                        # Mirror of: apps/backend/src/routes/schemas.ts -> StopSchema
 │   └── repositories/
 │       └── stops_repository.dart                # In-memory list backed by Riverpod state for slice 2
 ├── domain/

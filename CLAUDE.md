@@ -120,7 +120,7 @@ The stack has three places where data shape can be defined; only one is canonica
 Rules (full text in `docs/03-CONVENTIONS.md` §8 and `docs/02-ARCHITECTURE.md` "API Contracts & Type Safety"):
 
 1. Never return `@prisma/client` rows from a handler. Always whitelist via a TypeBox response schema.
-2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>` and matches the TypeBox shape 1:1 (no renaming, no field skips).
+2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) and matches the TypeBox shape 1:1 (no renaming, no field skips). ASCII `->` only, no backticks. See ADR-0020 for the normative grammar.
 3. A change to a TypeBox schema and its Dart mirror travel in the same commit.
 
 Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Post-M1 plan: replace the manual mirror with OpenAPI export (`@fastify/swagger`) + Dart codegen. See ADR-0013.

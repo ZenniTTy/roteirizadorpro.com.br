@@ -22,7 +22,7 @@
 ## Scope and contracts (schema source-of-truth, ADR-0013)
 
 - [ ] **TypeBox schema first.** Every new HTTP endpoint declares its request/response in `apps/backend/src/<feature>/schemas.ts`. Even if the slice is mobile-only, define the schema for the endpoints you'll consume from the mobile.
-- [ ] **Dart DTO mirror.** Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>`. Fields and types match 1:1; no renames.
+- [ ] **Dart DTO mirror.** Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO), ASCII `->` only, no backticks (ADR-0020). Fields and types match 1:1; no renames.
 - [ ] **Prisma migration only when the slice changes persistent storage.** Never expose `@prisma/client` rows from a handler — always whitelist via a TypeBox response schema.
 - [ ] **ADR for any new library, new external service, or non-trivial new pattern.** Format follows `docs/decisions/0000-template.md`. The adr-guardian agent should report `clear to commit` on the slice's diff.
 
