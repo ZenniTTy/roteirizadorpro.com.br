@@ -7,6 +7,7 @@ import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/stops/presentation/add_stop_page.dart';
+import 'features/stops/presentation/add_stops_map_page.dart';
 import 'features/stops/presentation/edit_stop_page.dart';
 import 'features/stops/presentation/home_page.dart';
 import 'features/stops/presentation/map_stops_page.dart';
@@ -60,6 +61,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const OcrCapturePage(),
       ),
       GoRoute(path: '/stops/map', builder: (_, __) => const MapStopsPage()),
+      GoRoute(
+        path: '/stops/add-map',
+        builder: (_, __) => const AddStopsMapPage(),
+      ),
       GoRoute(path: '/stops/reorder', builder: (_, __) => const ReorderPage()),
       GoRoute(
         path: '/stops/:id/edit',
