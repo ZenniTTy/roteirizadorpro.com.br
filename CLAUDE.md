@@ -148,6 +148,20 @@ Three `Stop`-hooks run automatically at the end of every agent turn — non-bloc
 
 These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; layered boundary in ADR-0012.
 
+### Spec-Driven Workflow (ADR-0019)
+
+Every new slice or large feature starts from the canonical templates extracted from the slice-2 artifacts:
+
+- `docs/superpowers/specs/0000-template.md` — the 13 H2 sections (Context, Decisions Locked, Goals, Architecture, Data flow, Sub-slice plan, Libraries, ADRs filed, Risks, Accessibility, Test strategy, Verification gates, References).
+- `docs/superpowers/plans/0000-template.md` — the Phase / Task / Step hierarchy with TDD pattern, Self-Review checklist, and Execution Handoff.
+
+Two skills enforce the brainstorming-first discipline:
+
+- `/new-spec <slug>` — scaffolds the spec header and stops; the human invokes `superpowers:brainstorming` to lock the Q1/Q2/Q3-style decisions before authoring §Context onward.
+- `/new-plan <slug>` — scaffolds the plan header + back-reference to the matching spec and stops; the human invokes `superpowers:writing-plans` to decompose tasks.
+
+Skipping these and copying a previous spec/plan invariably introduces drift. Use the skills.
+
 ### Flutter Hot-Reload Discipline
 
 Do **not** kill `flutter run` for changes inside `lib/**`. Three levels, cheapest first:
