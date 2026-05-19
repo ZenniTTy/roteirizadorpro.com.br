@@ -136,6 +136,17 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - Provide tests, scripts, or screenshots that let you check yourself.
 - Address root causes, not symptoms.
 - If you can't verify it, don't ship it.
+- Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
+
+### In-Loop Auto-Validation (ADR-0018)
+
+Three `Stop`-hooks run automatically at the end of every agent turn — non-blocking, signal-only:
+
+- `analyze-changed-dart.sh` — `flutter analyze --no-pub` over `.dart` files edited in `apps/mobile/lib/` this turn.
+- `check-dto-mirror.sh` — warns when an `apps/backend/src/<feature>/schemas.ts` edit lacks its paired Dart DTO update (ADR-0013 contract).
+- `warn-adr-drift.sh` — warns when `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` was edited this turn but no ADR was added/modified.
+
+These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; layered boundary in ADR-0012.
 
 ### Flutter Hot-Reload Discipline
 
