@@ -21,10 +21,16 @@ class HomeListPage extends ConsumerWidget {
             data: (stops) => Padding(
               padding: const EdgeInsets.only(right: 12),
               child: Center(
-                child: Chip(
-                  avatar: const Icon(Icons.place_outlined, size: 16),
-                  label: Text('${stops.length}'),
-                  visualDensity: VisualDensity.compact,
+                child: Semantics(
+                  label:
+                      '${stops.length} ${stops.length == 1 ? 'parada' : 'paradas'}',
+                  child: ExcludeSemantics(
+                    child: Chip(
+                      avatar: const Icon(Icons.place_outlined, size: 16),
+                      label: Text('${stops.length}'),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
                 ),
               ),
             ),
