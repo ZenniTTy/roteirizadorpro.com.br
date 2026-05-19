@@ -6,7 +6,9 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
-import 'features/home/presentation/home_placeholder_page.dart';
+import 'features/stops/presentation/add_stop_page.dart';
+import 'features/stops/presentation/home_page.dart';
+import 'features/stops/presentation/stop_detail_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -42,7 +44,12 @@ final _routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
-      GoRoute(path: '/home', builder: (_, __) => const HomePlaceholderPage()),
+      GoRoute(path: '/home', builder: (_, __) => const HomeListPageOrEmpty()),
+      GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
+      GoRoute(
+        path: '/stops/:id',
+        builder: (_, state) => StopDetailPage(id: state.pathParameters['id']!),
+      ),
     ],
   );
 });
