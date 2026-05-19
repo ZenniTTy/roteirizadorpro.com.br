@@ -10,24 +10,37 @@ void main() {
     );
   }
 
-  testWidgets('HomeEmptyPage shows the empty-state CTA', (tester) async {
+  testWidgets('HomeEmptyPage shows the empty-state copy and pill',
+      (tester) async {
     await tester.pumpWidget(harness());
     await tester.pumpAndSettle();
 
     expect(find.text('Rota de hoje'), findsOneWidget);
     expect(find.text('Nenhuma entrega ainda'), findsOneWidget);
-    expect(find.text('Adicionar parada'), findsOneWidget);
+    expect(find.text('Como funciona?'), findsOneWidget);
   });
 
-  testWidgets('HomeEmptyPage CTA is a tappable button', (tester) async {
+  testWidgets('FAB tap fires onAddPressed', (tester) async {
     var taps = 0;
     await tester.pumpWidget(harness(onAddPressed: (_) => taps++));
     await tester.pumpAndSettle();
 
-    final ctaFinder = find.widgetWithText(FilledButton, 'Adicionar parada');
-    expect(ctaFinder, findsOneWidget);
+    final fab = find.byType(FloatingActionButton);
+    expect(fab, findsOneWidget);
 
-    await tester.tap(ctaFinder);
+    await tester.tap(fab);
+    await tester.pumpAndSettle();
+
+    expect(taps, 1);
+  });
+
+  testWidgets('"Como funciona?" pill tap also fires onAddPressed',
+      (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(harness(onAddPressed: (_) => taps++));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Como funciona?'));
     await tester.pumpAndSettle();
 
     expect(taps, 1);
