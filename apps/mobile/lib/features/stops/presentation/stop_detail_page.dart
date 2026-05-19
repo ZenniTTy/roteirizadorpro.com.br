@@ -27,8 +27,17 @@ class StopDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncStops = ref.watch(stopsControllerProvider);
 
+    final title = asyncStops.maybeWhen(
+      data: (stops) {
+        final index = stops.indexWhere((s) => s.id == id);
+        if (index < 0) return 'Parada';
+        return 'Parada ${index + 1} de ${stops.length}';
+      },
+      orElse: () => 'Parada',
+    );
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalhe da parada')),
+      appBar: AppBar(title: Text(title)),
       body: SafeArea(
         child: stopsAsyncView(
           asyncStops,

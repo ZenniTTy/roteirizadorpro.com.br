@@ -43,6 +43,8 @@ void main() {
       expect(find.textContaining('-46.63'), findsOneWidget);
       expect(find.text('Excluir'), findsOneWidget);
       expect(find.text('Editar'), findsOneWidget);
+      // Prototype: prototipo/screens-b.jsx:161 → "Parada N de M".
+      expect(find.text('Parada 1 de 1'), findsOneWidget);
     },
   );
 
