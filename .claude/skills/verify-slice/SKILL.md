@@ -2,7 +2,7 @@
 name: verify-slice
 description: Run the M2-SLICE-CHECKLIST §Verification gate as one orchestrated command — flutter analyze, flutter test, bun typecheck across the modified apps, plus prototype-fidelity-checker and adr-guardian dispatched as parallel subagents. Produces a single consolidated Markdown report. Use before opening any M2 slice PR (per CLAUDE.md "Current Focus") or when the user says "verify slice", "verifica slice", "ready to PR", "ready to merge". Does not commit, push, or edit code. Pure read-only orchestration.
 disable-model-invocation: true
-allowed-tools: Bash(flutter analyze:*), Bash(flutter test:*), Bash(bun run:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(cd:*)
+allowed-tools: Bash(flutter analyze:*), Bash(flutter test:*), Bash(bun run:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(cd:*), Agent
 ---
 
 ## /verify-slice — pre-PR slice gate

@@ -46,7 +46,7 @@ fi
 
 cd apps/mobile || exit 0
 
-output="$(printf '%s\n' "$dart_targets" | xargs flutter analyze --no-pub 2>&1 || true)"
+output="$(printf '%s\n' "$dart_targets" | tr '\n' '\0' | xargs -0 flutter analyze --no-pub 2>&1 || true)"
 
 if printf '%s\n' "$output" | grep -qE '^\s*(error|warning|info)\s'; then
   echo "analyze-changed-dart: flutter analyze surfaced issues in turn-edited Dart files." >&2

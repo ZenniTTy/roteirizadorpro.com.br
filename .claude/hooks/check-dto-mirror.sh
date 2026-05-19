@@ -36,7 +36,7 @@ while IFS= read -r schema; do
   rel_schema="${schema#*apps/backend/}"
   rel_schema="apps/backend/${rel_schema}"
 
-  mirrors="$(grep -rl "Mirror of: ${rel_schema}" apps/mobile/lib/features 2>/dev/null || true)"
+  mirrors="$(grep -rlE "^// Mirror of: ${rel_schema} -> " apps/mobile/lib/features 2>/dev/null || true)"
   [[ -z "$mirrors" ]] && continue
 
   while IFS= read -r mirror; do
