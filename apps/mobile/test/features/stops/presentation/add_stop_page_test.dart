@@ -2,29 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/presentation/add_stop_page.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
-class _Repo implements StopsRepository {
-  final List<Stop> saved = [];
-
-  @override
-  Future<List<Stop>> load() async => const [];
-
-  @override
-  Future<void> save(List<Stop> stops) async {
-    saved
-      ..clear()
-      ..addAll(stops);
-  }
-}
+import '../_helpers/fake_stops_repository.dart';
 
 void main() {
   testWidgets('AddStopPage submits a valid stop into the controller',
       (tester) async {
-    final repo = _Repo();
+    final repo = FakeStopsRepository();
     var navigatedHome = 0;
 
     await tester.pumpWidget(
@@ -53,7 +40,7 @@ void main() {
   });
 
   testWidgets('AddStopPage rejects an empty address', (tester) async {
-    final repo = _Repo();
+    final repo = FakeStopsRepository();
     var navigatedHome = 0;
 
     await tester.pumpWidget(

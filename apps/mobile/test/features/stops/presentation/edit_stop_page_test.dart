@@ -2,24 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/presentation/edit_stop_page.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
-class _Repo implements StopsRepository {
-  _Repo(this.initial);
-  final List<Stop> initial;
-  final List<Stop> saved = [];
-  @override
-  Future<List<Stop>> load() async => List.unmodifiable(initial);
-  @override
-  Future<void> save(List<Stop> stops) async {
-    saved
-      ..clear()
-      ..addAll(stops);
-  }
-}
+import '../_helpers/fake_stops_repository.dart';
 
 void main() {
   testWidgets('EditStopPage pre-populates and updates via controller',
@@ -32,7 +19,7 @@ void main() {
       source: StopSource.manual,
       createdAt: DateTime.utc(2026, 5, 13),
     );
-    final repo = _Repo([stop]);
+    final repo = FakeStopsRepository([stop]);
     var savedFired = 0;
     await tester.pumpWidget(
       ProviderScope(
@@ -63,7 +50,9 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [stopsRepositoryProvider.overrideWithValue(_Repo([]))],
+        overrides: [
+          stopsRepositoryProvider.overrideWithValue(FakeStopsRepository([])),
+        ],
         child: const MaterialApp(home: EditStopPage(id: 'missing')),
       ),
     );

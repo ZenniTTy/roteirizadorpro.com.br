@@ -1,21 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
-class _FakeRepo implements StopsRepository {
-  List<Stop> _stored = [];
-
-  @override
-  Future<List<Stop>> load() async => List.unmodifiable(_stored);
-
-  @override
-  Future<void> save(List<Stop> stops) async {
-    _stored = List.of(stops);
-  }
-}
+import '../_helpers/fake_stops_repository.dart';
 
 Stop _stop(String id, {double lat = 0, double lng = 0}) => Stop(
       id: id,
@@ -27,11 +16,11 @@ Stop _stop(String id, {double lat = 0, double lng = 0}) => Stop(
     );
 
 void main() {
-  late _FakeRepo repo;
+  late FakeStopsRepository repo;
   late ProviderContainer container;
 
   setUp(() {
-    repo = _FakeRepo();
+    repo = FakeStopsRepository();
     container = ProviderContainer(
       overrides: [stopsRepositoryProvider.overrideWithValue(repo)],
     );
@@ -39,7 +28,7 @@ void main() {
   });
 
   test('build hydrates from repository', () async {
-    repo._stored = [_stop('a'), _stop('b')];
+    repo.seed([_stop('a'), _stop('b')]);
     final initial = await container.read(stopsControllerProvider.future);
     expect(initial.map((s) => s.id), ['a', 'b']);
   });
@@ -53,11 +42,11 @@ void main() {
 
     final state = await container.read(stopsControllerProvider.future);
     expect(state.map((s) => s.id), ['a', 'b']);
-    expect(repo._stored.map((s) => s.id), ['a', 'b']);
+    expect(repo.saved.map((s) => s.id), ['a', 'b']);
   });
 
   test('remove drops the matching id', () async {
-    repo._stored = [_stop('a'), _stop('b'), _stop('c')];
+    repo.seed([_stop('a'), _stop('b'), _stop('c')]);
     await container.read(stopsControllerProvider.future);
     final controller = container.read(stopsControllerProvider.notifier);
 
@@ -68,7 +57,7 @@ void main() {
   });
 
   test('update replaces by id preserving order', () async {
-    repo._stored = [_stop('a'), _stop('b', lat: 1)];
+    repo.seed([_stop('a'), _stop('b', lat: 1)]);
     await container.read(stopsControllerProvider.future);
     final controller = container.read(stopsControllerProvider.notifier);
 
@@ -80,7 +69,7 @@ void main() {
   });
 
   test('reorder moves by index', () async {
-    repo._stored = [_stop('a'), _stop('b'), _stop('c')];
+    repo.seed([_stop('a'), _stop('b'), _stop('c')]);
     await container.read(stopsControllerProvider.future);
     final controller = container.read(stopsControllerProvider.notifier);
 
@@ -91,7 +80,7 @@ void main() {
   });
 
   test('applyOptimizedOrder permutes by index list', () async {
-    repo._stored = [_stop('a'), _stop('b'), _stop('c')];
+    repo.seed([_stop('a'), _stop('b'), _stop('c')]);
     await container.read(stopsControllerProvider.future);
     final controller = container.read(stopsControllerProvider.notifier);
 
@@ -102,7 +91,7 @@ void main() {
   });
 
   test('clear empties the list and persists', () async {
-    repo._stored = [_stop('a')];
+    repo.seed([_stop('a')]);
     await container.read(stopsControllerProvider.future);
     final controller = container.read(stopsControllerProvider.notifier);
 
@@ -110,6 +99,6 @@ void main() {
 
     final state = await container.read(stopsControllerProvider.future);
     expect(state, isEmpty);
-    expect(repo._stored, isEmpty);
+    expect(repo.saved, isEmpty);
   });
 }

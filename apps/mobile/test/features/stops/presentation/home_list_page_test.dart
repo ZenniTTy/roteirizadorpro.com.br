@@ -2,26 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/presentation/home_list_page.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
-class _Repo implements StopsRepository {
-  _Repo(this._initial);
-  final List<Stop> _initial;
-  final List<Stop> saved = [];
-
-  @override
-  Future<List<Stop>> load() async => List.unmodifiable(_initial);
-
-  @override
-  Future<void> save(List<Stop> stops) async {
-    saved
-      ..clear()
-      ..addAll(stops);
-  }
-}
+import '../_helpers/fake_stops_repository.dart';
 
 Stop _s(String id) => Stop(
       id: id,
@@ -34,7 +19,7 @@ Stop _s(String id) => Stop(
 
 void main() {
   testWidgets('HomeListPage renders one tile per stop', (tester) async {
-    final repo = _Repo([_s('a'), _s('b'), _s('c')]);
+    final repo = FakeStopsRepository([_s('a'), _s('b'), _s('c')]);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -50,7 +35,7 @@ void main() {
   });
 
   testWidgets('Swipe-to-delete removes a stop and calls save', (tester) async {
-    final repo = _Repo([_s('a'), _s('b')]);
+    final repo = FakeStopsRepository([_s('a'), _s('b')]);
 
     await tester.pumpWidget(
       ProviderScope(

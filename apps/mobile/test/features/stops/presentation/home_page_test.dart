@@ -2,21 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/presentation/home_page.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
-class _Repo implements StopsRepository {
-  _Repo(this._initial);
-  final List<Stop> _initial;
-
-  @override
-  Future<List<Stop>> load() async => List.unmodifiable(_initial);
-
-  @override
-  Future<void> save(List<Stop> stops) async {}
-}
+import '../_helpers/fake_stops_repository.dart';
 
 Stop _s(String id) => Stop(
       id: id,
@@ -32,7 +22,10 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [stopsRepositoryProvider.overrideWithValue(_Repo(const []))],
+        overrides: [
+          stopsRepositoryProvider
+              .overrideWithValue(FakeStopsRepository(const [])),
+        ],
         child: const MaterialApp(home: HomeListPageOrEmpty()),
       ),
     );
@@ -50,7 +43,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          stopsRepositoryProvider.overrideWithValue(_Repo([_s('a')])),
+          stopsRepositoryProvider
+              .overrideWithValue(FakeStopsRepository([_s('a')])),
         ],
         child: const MaterialApp(home: HomeListPageOrEmpty()),
       ),
