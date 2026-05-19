@@ -44,22 +44,31 @@ Implementation tracker (sub-slice 2a, plan tasks 1-16):
 - [x] **Task 15** — `ScreenAddStop` + shared `StopForm` widget. Commit `e08a84a` + a11y cleanup `b03a484`. **Address-only field** per prototype (no lat/lng inputs — Nominatim arrives in slice 3); stops minted with sentinel `lat: 0, lng: 0`. `onSaved` callback injection. `AutovalidateMode.onUserInteraction`.
 - [x] **Task 16** — Sub 2a final verification + push. Suite green at 34/34 after sub 2a wrap.
 
-Sub 2b (Captura) — plan tasks 17-25:
+Sub 2b foundation + Captura (plan tasks 17-18, 23-25):
 
-- [x] **Task 17** — `AndroidManifest.xml` adds `ACCESS_FINE_LOCATION` / `RECORD_AUDIO` / `CAMERA` to `src/main/` per the slice-1 lesson; extends `<queries>` with `com.google.android.apps.maps`, `com.waze`, and the https VIEW intent for url_launcher's installed-app detection on Android 11+. Commit `bd10c9a`.
-- [x] **Task 18** — `core/services/permissions.dart` adds `AppPermissions` abstract + `_RealAppPermissions` impl + `@riverpod appPermissions(Ref)` provider; `PermissionOutcome.{granted,denied,permanentlyDenied}` hides `permission_handler` details from callers. 3 TDD tests (granted defaults, simulated permanent deny, per-permission call counts). Commit `cf266ae`.
-- [x] **Task 19** — `ScreenStopDetail` replaces the Task-14 placeholder; renders label + (lat/lng or "Aguardando geocodificação" hint) + Excluir/Editar CTAs. Adds `Stop.isGeocoded` getter to close the Null Island contract — also unblocks Tasks 22 + 28. `onDeleted` / `onEditPressed` callback injections (Task-13/15 pattern). 4 widget tests. Commit `373814a`. Suite 41/41.
-- [ ] **Task 20** — `ScreenEditStop` reuses `StopForm` pre-populated.
-- [ ] **Task 21** — `ScreenReorder` (`ReorderableListView`).
-- [ ] **Task 22** — `ScreenMapStops` — uses `Stop.isGeocoded` to filter Null-Island stops (contract from Task 19).
-- [ ] **Task 23** — `ScreenVoice` (`speech_to_text` + `AppPermissions.requestMicrophone()`).
-- [ ] **Task 24** — `ScreenOCR` (`image_picker` + `google_mlkit_text_recognition` + `AppPermissions.requestCamera()`).
-- [ ] **Task 25** — `ScreenAddStopsMap` (tap-to-add via `flutter_map`).
+- [x] **Task 17** — `AndroidManifest.xml` adds `ACCESS_FINE_LOCATION` / `RECORD_AUDIO` / `CAMERA` to `src/main/`; extends `<queries>` with `com.google.android.apps.maps`, `com.waze`, https VIEW intent. Commit `bd10c9a`.
+- [x] **Task 18** — `core/services/permissions.dart` adds `AppPermissions` abstract + `@riverpod appPermissions(Ref)` codegen provider; `PermissionOutcome.{granted,denied,permanentlyDenied}`. 3 TDD tests. Commit `cf266ae`.
+- [x] **Task 23** — `ScreenVoice` (`speech_to_text`) using `appPermissionsProvider.requestMicrophone()`. Transcript → Stop with `source: voice` + Null Island sentinel. **Extracted shared `FakeAppPermissions`** at `test/core/_helpers/`; migrated `permissions_test.dart` to use it. `onConfirmed` callback injection. Commit `dce83a2`.
+- [x] **Task 24** — `ScreenOCR` (`image_picker` → `google_mlkit_text_recognition`) using `requestCamera()`. Extracted text → Stop with `source: ocr` + Null Island sentinel. `TextRecognizer.close()` in dispose. Commit `2221098`.
+- [x] **Task 25** — `ScreenAddStopsMap` (`flutter_map` tap-to-add) — each tap mints a Stop with **real** lat/lng (natively geocoded, no sentinel). Undo + extended FAB confirm. `osmAttribution()` reuse. Commit `5c02ffb`. **Sub 2b complete.**
+
+Sub 2c Manipulação (plan tasks 19-22):
+
+- [x] **Task 19** — `ScreenStopDetail` replaces Task-14 placeholder. Adds `Stop.isGeocoded` getter closing the Null Island contract for Tasks 22 + 28. `onDeleted` / `onEditPressed` callback injections. 4 widget tests. Commit `373814a`.
+- [x] **Task 20** — `ScreenEditStop` reuses `StopForm` pre-populated. Reconciled plan drift: `controller.update(stop)` → `.updateStop(stop)` (Riverpod 3 reserved); `StopFormData(lat,lng,label)` → `StopFormValue(label)` (address-only). `onSaved` callback. Commit `31eac55`.
+- [x] **Task 21** — `ScreenReorder` (`ReorderableListView.builder`) reusing `StopListItem` in trailing-slot drag-handle pattern (no parallel `ListTile`). `buildDefaultDragHandles: false`. Commit `9e1253e`.
+- [x] **Task 22** — `ScreenMapStops` with `flutter_map` + OSM tiles per ADR-0016. Applies `Stop.isGeocoded` filter (Null Island contract honored). Extracted `osmAttribution()` helper for tile-policy compliance. Commit `3d8e08d`. **Sub 2c complete.**
+
+Refactors (cross-cutting DRY wins from the slice):
+
+- [x] **`FakeStopsRepository`** — consolidated six private `_Repo` / `_FakeRepo` / `_EmptyRepo` fakes into one shared helper at `test/features/stops/_helpers/`. Net −106 LOC across 6 test files. Commit `2d628d9`.
+- [x] **`stopsAsyncView`** — extracted the duplicated `async.when(loading, error, data)` boilerplate (100% identical across 5 screens) into a single shared helper at `presentation/shared/stops_async_view.dart`. Net −21 LOC; standardized error copy across all five. Commit `b691c90`.
+- [x] **`FakeAppPermissions`** — pre-emptively extracted to `test/core/_helpers/` before Tasks 24 + 25 added 3rd / 4th copies. Migrated `permissions_test.dart` to use it. Shipped as part of commit `dce83a2`.
 
 **Pre-slice cleanups:**
 - `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` is dead code since Task 14 rebound `/home`. Delete in a follow-up `chore` commit before slice-2 PR opens.
 
-Sub 2c-2e (plan tasks 26-34): pending; details verbatim in the plan.
+Sub 2d (Optimization + Nav, plan tasks 26-32) and Sub 2e (Periféricos, plan tasks 33-34): pending; details verbatim in the plan. Release tasks 35-41 follow.
 
 ADRs to file during this slice:
 
