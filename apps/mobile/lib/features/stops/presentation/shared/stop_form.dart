@@ -74,13 +74,9 @@ class _StopFormState extends State<StopForm> {
             },
           ),
           const SizedBox(height: 24),
-          Semantics(
-            button: true,
-            label: widget.submitLabel,
-            child: FilledButton(
-              onPressed: _submit,
-              child: Text(widget.submitLabel),
-            ),
+          FilledButton(
+            onPressed: _submit,
+            child: Text(widget.submitLabel),
           ),
         ],
       ),

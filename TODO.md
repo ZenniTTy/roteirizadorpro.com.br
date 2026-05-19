@@ -37,12 +37,18 @@ Implementation tracker (sub-slice 2a, plan tasks 1-16):
 - [x] **Task 8** — `StopDto` mirror per ADR-0013 (`// Mirror of: apps/backend/src/routes/schemas.ts -> StopSchema`) + `Stop.toDto()` / `Stop.fromDto(...)` extension methods. 6 TDD tests. Commit `e9207db`.
 - [x] **Task 9** — `StopsRepository` interface + `SharedPrefsStopsRepository` impl using `SharedPreferencesAsync` (NOT `getInstance()`), `_v: 1` envelope, corrupt-payload-returns-empty. Adds `shared_preferences_platform_interface: ^2.4.2` as dev-dep for `InMemorySharedPreferencesAsync` test substrate. 5 TDD tests. Commit `4889902`.
 - [x] **Task 10** — `core/services/id.dart` uuid v4 wrapper. 2 TDD tests. Commit `c6d11f9`.
-- [ ] **Task 11** — `StopsController` (`@riverpod class StopsController extends _$StopsController`, codegen) with build/add/remove/update/reorder/applyOptimizedOrder/clear methods. 7 TDD tests. Plan section starts at line ≈ 1460.
-- [ ] **Task 12** — Reusable `StopListItem` widget (shared by HomeList, Reorder, StopDetail).
-- [ ] **Task 13** — `ScreenHomeEmpty` (matching `prototipo/screens-a.jsx → ScreenHomeEmpty`).
-- [ ] **Task 14** — `ScreenHomeList` + GoRouter wiring (`/home`, `/stops/add`, `/stops/:id`).
-- [ ] **Task 15** — `ScreenAddStop` (manual entry) + shared `StopForm` widget.
+- [x] **Task 11** — `StopsController` (`@riverpod class StopsController extends _$StopsController`, codegen) with build/add/remove/updateStop/reorder/applyOptimizedOrder/clear methods. 7 TDD tests. Commits `826def0`. (Riverpod 3 reserves `update()` for atomic callback transitions; our mutation method renamed to `updateStop` to avoid the override clash — captured as memory `riverpod-3-asyncnotifier-update-reserved.md`.)
+- [x] **Task 12** — Reusable `StopListItem` widget (shared by HomeList, Reorder, StopDetail). Commit `be88b30`. Dart 3 switch expression for `_sourceBadge`.
+- [x] **Task 13** — `ScreenHomeEmpty` matching `prototipo/screens-a.jsx → ScreenHomeEmpty`. Commits `0b810b2` + refactor `46ac764` (`ConsumerWidget` → `StatelessWidget` since `ref` was never read). Used prototype strings `'Rota de hoje'` / `'Nenhuma entrega ainda'` over the plan's draft copy. `onAddPressed` callback injection for test friendliness.
+- [x] **Task 14** — `ScreenHomeList` + GoRouter wiring (`/home`, `/stops/add`, `/stops/:id`). Commits `1ec55df` + a11y fix `bcd3728`. Dispatcher `HomeListPageOrEmpty` in own `home_page.dart`. Round FAB matching design-system spec (not the plan's `.extended`). Count chip with pluralized Semantics label. Placeholder `add_stop_page.dart` + `stop_detail_page.dart` to unblock GoRouter imports; replaced by Tasks 15 + 19.
+- [x] **Task 15** — `ScreenAddStop` + shared `StopForm` widget. Commit `e08a84a`. **Address-only field** per prototype (no lat/lng inputs — Nominatim arrives in slice 3); stops minted with sentinel `lat: 0, lng: 0`. `onSaved` callback injection. `AutovalidateMode.onUserInteraction`.
 - [ ] **Task 16** — Sub 2a final verification + push.
+
+**Important downstream contract (must address before Tasks 22 + 28 ship):**
+- Manual stops created via `ScreenAddStop` carry sentinel `lat=0, lng=0` until slice 3 Nominatim geocodes them. Tasks **22** (`ScreenMapStops`) and **28** (`core/services/external_nav.dart`) MUST either: (a) filter stops with `lat == 0 && lng == 0` (treating as "not geocoded yet"), OR (b) add `Stop.isGeocoded` helper + guard in both consumers. Without one of these, the map will pin Null Island and Google Maps deep-links will route the rider to the Atlantic. The cleanest path is (b) — flag in the Task 22 implementer brief.
+
+**Pre-slice cleanups:**
+- `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` is dead code since Task 14 rebound `/home`. Delete in a follow-up `chore` commit before slice-2 PR opens.
 
 Sub 2b-2e (plan tasks 17-34): pending; details verbatim in the plan.
 
