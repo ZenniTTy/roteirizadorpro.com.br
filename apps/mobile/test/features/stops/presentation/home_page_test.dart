@@ -32,10 +32,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Nenhuma entrega ainda'), findsOneWidget);
-    expect(
-      find.widgetWithText(FilledButton, 'Adicionar parada'),
-      findsOneWidget,
-    );
+    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.text('Como funciona?'), findsOneWidget);
   });
 
   testWidgets('HomeListPageOrEmpty shows list page when stops exist',
