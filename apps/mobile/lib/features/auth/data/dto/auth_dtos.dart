@@ -1,8 +1,12 @@
-// Mirror of: `apps/backend/src/auth/schemas.ts` (per ADR-0013)
-// Field names and types must match the TypeBox shape 1:1. Update both sides
-// in the same commit when the contract changes.
+// Mirror of: apps/backend/src/auth/schemas.ts -> {UserSchema, RegisterRequestSchema, RegisterResponseSchema, LoginRequestSchema, LoginResponseSchema, RefreshRequestSchema, RefreshResponseSchema, MeResponseSchema, ErrorResponseSchema}
+//
+// Per ADR-0013 + ADR-0020: this file is the canonical multi-DTO mirror of
+// the auth feature's TypeBox schemas. Field names and types match each
+// TypeBox shape 1:1. Update both sides in the same commit when the
+// contract changes. Per-class /// Mirror of: <SchemaName> markers below
+// identify the source schema for each DTO.
 
-/// Mirror of: `UserSchema`
+/// Mirror of: UserSchema
 class AuthUserDto {
   const AuthUserDto({
     required this.id,
@@ -37,7 +41,7 @@ class AuthUserDto {
       };
 }
 
-/// Mirror of: `RegisterRequestSchema`
+/// Mirror of: RegisterRequestSchema
 class RegisterRequestDto {
   const RegisterRequestDto({
     required this.email,
@@ -59,7 +63,7 @@ class RegisterRequestDto {
       };
 }
 
-/// Mirror of: `RegisterResponseSchema`
+/// Mirror of: RegisterResponseSchema
 class RegisterResponseDto {
   const RegisterResponseDto({required this.user});
 
@@ -72,7 +76,7 @@ class RegisterResponseDto {
   }
 }
 
-/// Mirror of: `LoginRequestSchema`
+/// Mirror of: LoginRequestSchema
 class LoginRequestDto {
   const LoginRequestDto({required this.email, required this.password});
 
@@ -82,7 +86,7 @@ class LoginRequestDto {
   Map<String, dynamic> toJson() => {'email': email, 'password': password};
 }
 
-/// Mirror of: `LoginResponseSchema` (TokensSchema + { user })
+/// Mirror of: LoginResponseSchema (intersection of TokensSchema + { user })
 class LoginResponseDto {
   const LoginResponseDto({
     required this.access,
@@ -103,7 +107,7 @@ class LoginResponseDto {
   }
 }
 
-/// Mirror of: `RefreshRequestSchema`
+/// Mirror of: RefreshRequestSchema
 class RefreshRequestDto {
   const RefreshRequestDto({required this.refresh});
 
@@ -112,7 +116,7 @@ class RefreshRequestDto {
   Map<String, dynamic> toJson() => {'refresh': refresh};
 }
 
-/// Mirror of: `RefreshResponseSchema` (= TokensSchema)
+/// Mirror of: RefreshResponseSchema (alias of TokensSchema)
 class RefreshResponseDto {
   const RefreshResponseDto({required this.access, required this.refresh});
 
@@ -127,7 +131,7 @@ class RefreshResponseDto {
   }
 }
 
-/// Mirror of: `MeResponseSchema`
+/// Mirror of: MeResponseSchema
 class MeResponseDto {
   const MeResponseDto({required this.user});
 
@@ -140,7 +144,7 @@ class MeResponseDto {
   }
 }
 
-/// Mirror of: `ErrorResponseSchema`
+/// Mirror of: ErrorResponseSchema
 class AuthErrorDto {
   const AuthErrorDto({required this.error, required this.message});
 
