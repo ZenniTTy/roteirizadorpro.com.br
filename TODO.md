@@ -4,7 +4,7 @@
 > **Scope:** M2 — slice-by-slice execution. M1 was delivered 2026-05-09.
 > **M2 contract:** BRL 2,000. Sequence locked 2026-05-13: APK → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
 > **Source of truth:** `docs/08-ROADMAP.md`. This file tracks day-to-day progress; the roadmap defines scope.
-> **Last updated:** 2026-05-19 (session 16 — harness Wave C landed; ADR-0020 amends ADR-0013 normalizing the `// Mirror of:` header grammar to ASCII `->` with single-DTO and multi-DTO productions; hook hardened to anchored regex; `/verify-slice` allowlist fixed. Harness modernization arc Waves A+B+C now complete).
+> **Last updated:** 2026-05-20 (session 18 — MS-01b closed slice-2 audit row A-1 by restructuring router to `StatefulShellRoute.indexedStack` + hierarchical sub-routes per ADR-0022; `integration_test/back_navigation_test.dart` now gates navigation changes on real device; three failed PopScope iterations + memory rewrite teach us branch-root back exit is platform UX, not a bug; 2/16 slice-2-fidelity microsprints done — MS-02 widget-home-top-bar next).
 
 ## M2 — Slices
 
