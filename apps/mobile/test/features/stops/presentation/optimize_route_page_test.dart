@@ -11,6 +11,7 @@ import 'package:roteirizador_pro/features/stops/presentation/optimize_route_page
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
 import '../_helpers/fake_stops_repository.dart';
+import '../../../_support/phone_surface.dart';
 import '../../../core/_helpers/fake_external_nav.dart';
 
 Stop _s(String id, {double lat = -23.55, double lng = -46.63, String? label}) =>
@@ -32,16 +33,6 @@ Stop _ungeocoded(String id) => Stop(
       createdAt: DateTime.utc(2026, 5, 19),
     );
 
-// Phone-shaped surface so the MS-10 split layout (map height 460 + bottom
-// sheet anchored at top:420) gets the vertical room a real device offers;
-// the default 800x600 test surface leaves only 180px for the sheet and
-// overflows the column. 400x900 is the smallest common Android logical
-// size in our target range.
-Future<void> _phoneSurface(WidgetTester tester) async {
-  await tester.binding.setSurfaceSize(const Size(400, 900));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-}
-
 void main() {
   setUp(() {
     SharedPreferencesAsyncPlatform.instance =
@@ -51,7 +42,7 @@ void main() {
   testWidgets(
     'OptimizeRoutePage renders stops list, sheet title and Iniciar CTA',
     (tester) async {
-      await _phoneSurface(tester);
+      await phoneSurface(tester);
       final stops = [
         _s('a', lat: -23.55, lng: -46.63),
         _s('b', lat: -23.56, lng: -46.64),
@@ -88,7 +79,7 @@ void main() {
   testWidgets(
     'Ungeocoded stops are flagged in the list and shown in the banner',
     (tester) async {
-      await _phoneSurface(tester);
+      await phoneSurface(tester);
       final stops = [
         _s('geo', lat: -23.55, lng: -46.63),
         _ungeocoded('nogeo'),
@@ -116,7 +107,7 @@ void main() {
   testWidgets(
     'Iniciar navegação default (Waze) opens first stop and fires callback',
     (tester) async {
-      await _phoneSurface(tester);
+      await phoneSurface(tester);
       final fakeNav = FakeExternalNav();
       final stops = [
         _s('a', lat: -23.55, lng: -46.63),
@@ -161,7 +152,7 @@ void main() {
   testWidgets(
     'Iniciar disabled when zero geocoded stops',
     (tester) async {
-      await _phoneSurface(tester);
+      await phoneSurface(tester);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
