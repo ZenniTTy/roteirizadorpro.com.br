@@ -107,6 +107,10 @@ Minor (post-merge polish):
 - [ ] `OptimizeRoutePage` sheet shadow — `prototipo/tokens.js:27` declares `sheetShadow: '0 -8px 32px rgba(108,63,197,0.16)'`; absent in current implementation (no sheet container). Restore alongside drag-handle when the sheet lands.
 - [ ] `RouteCompletePage` confetti accents — prototype `prototipo/screens-e.jsx:749-763` shows 6 colored 8×14 rotated rectangles at fixed percentage positions (neon, primary, warning, success, accent, neonDark). Decorative only.
 - [ ] `RouteCompletePage` neon ring around check circle — prototype lines 784-787, `2px solid neon` outset at `inset: -6 borderRadius: 42 opacity: 0.6`. Decorative.
+- [ ] `SettingsPage` — wire "Indicar para um amigo" row that opens ScreenShare per `prototipo/screens-b.jsx:374`. Currently no entry point to /share exists from Settings. Address in Task 34 (ScreenShare) or as a follow-up commit.
+- [ ] `SettingsPage` — "Conta" section currently shows only "Sair da conta"; prototype `prototipo/screens-b.jsx:367-370` has E-mail (display), Alterar senha, Minha assinatura. Add as disabled stubs once the post-M2 account flow lands.
+- [ ] `SettingsPage` — section card visual: prototype `prototipo/screens-b.jsx:351` wraps each section in a white container with `border: 1px solid border` + `borderRadius: rCard (16)`. Implementation uses bare `ListTile` rows with `Divider` separators. Restore the card chrome.
+- [ ] `SettingsPage` — row label drift: prototype `prototipo/screens-b.jsx:361` uses "App de GPS padrão" as the row label; implementation uses only the section header "Aplicativo de navegação" with no row label inside. Client sign-off on the copy choice.
 
 Sub 2d (Optimization + Nav, plan tasks 26-32) and Sub 2e (Periféricos, plan tasks 33-34): pending; details verbatim in the plan. Release tasks 35-41 follow.
 
