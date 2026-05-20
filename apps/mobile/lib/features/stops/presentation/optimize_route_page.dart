@@ -39,7 +39,7 @@ class _OptimizeRoutePageState extends ConsumerState<OptimizeRoutePage> {
   }
 
   void _onNavigateStarted(BuildContext context) =>
-      (widget.onNavigateStarted ?? (ctx) => ctx.go('/navigate'))(context);
+      (widget.onNavigateStarted ?? (ctx) => ctx.go('/home/navigate'))(context);
 
   Future<void> _start(List<Stop> geocoded) async {
     if (geocoded.isEmpty) return;

@@ -37,6 +37,13 @@ class RoteirizadorProApp extends ConsumerWidget {
   }
 }
 
+// Branch navigator keys keep each tab's stack isolated so the system back
+// gesture pops within the active branch instead of falling through to the
+// Activity (the MS-01 regression that ADR-0022 closes).
+final _routeBranchKey = GlobalKey<NavigatorState>(debugLabel: 'routeBranch');
+final _settingsBranchKey =
+    GlobalKey<NavigatorState>(debugLabel: 'settingsBranch');
+
 final _routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
@@ -56,41 +63,97 @@ final _routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
-      GoRoute(path: '/home', builder: (_, __) => const HomeListPageOrEmpty()),
-      GoRoute(path: '/settings', builder: (_, __) => const SettingsPage()),
-      GoRoute(path: '/optimize', builder: (_, __) => const OptimizePage()),
-      GoRoute(
-        path: '/optimize/route',
-        builder: (_, __) => const OptimizeRoutePage(),
-      ),
-      GoRoute(path: '/navigate', builder: (_, __) => const NavigatePage()),
-      GoRoute(
-        path: '/route-complete',
-        builder: (_, __) => const RouteCompletePage(),
-      ),
-      GoRoute(path: '/share', builder: (_, __) => const ShareSheet()),
-      GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
-      GoRoute(
-        path: '/stops/voice',
-        builder: (_, __) => const VoiceCapturePage(),
-      ),
-      GoRoute(
-        path: '/stops/ocr',
-        builder: (_, __) => const OcrCapturePage(),
-      ),
-      GoRoute(path: '/stops/map', builder: (_, __) => const MapStopsPage()),
-      GoRoute(
-        path: '/stops/add-map',
-        builder: (_, __) => const AddStopsMapPage(),
-      ),
-      GoRoute(path: '/stops/reorder', builder: (_, __) => const ReorderPage()),
-      GoRoute(
-        path: '/stops/:id/edit',
-        builder: (_, state) => EditStopPage(id: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/stops/:id',
-        builder: (_, state) => StopDetailPage(id: state.pathParameters['id']!),
+      StatefulShellRoute.indexedStack(
+        // Plain pass-through builder. Each branch's Scaffold (HomeListPage,
+        // SettingsPage, etc.) renders its own AppBar + HomeBottomNav, so the
+        // shell adds nothing beyond the IndexedStack itself. Back-nav inside
+        // a branch is handled by the per-branch Navigator (push/pop inside
+        // `/home/stops/<id>`, etc.). Back from a non-default branch root
+        // intentionally exits the app per Android UX convention — see
+        // ADR-0022 §"Out of scope: branch-root back behavior".
+        builder: (context, state, navigationShell) => navigationShell,
+        branches: [
+          StatefulShellBranch(
+            navigatorKey: _routeBranchKey,
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (_, __) => const HomeListPageOrEmpty(),
+                routes: [
+                  GoRoute(
+                    path: 'stops/add',
+                    builder: (_, __) => const AddStopPage(),
+                  ),
+                  GoRoute(
+                    path: 'stops/voice',
+                    builder: (_, __) => const VoiceCapturePage(),
+                  ),
+                  GoRoute(
+                    path: 'stops/ocr',
+                    builder: (_, __) => const OcrCapturePage(),
+                  ),
+                  GoRoute(
+                    path: 'stops/map',
+                    builder: (_, __) => const MapStopsPage(),
+                  ),
+                  GoRoute(
+                    path: 'stops/add-map',
+                    builder: (_, __) => const AddStopsMapPage(),
+                  ),
+                  GoRoute(
+                    path: 'stops/reorder',
+                    builder: (_, __) => const ReorderPage(),
+                  ),
+                  GoRoute(
+                    path: 'stops/:id',
+                    builder: (_, state) =>
+                        StopDetailPage(id: state.pathParameters['id']!),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (_, state) =>
+                            EditStopPage(id: state.pathParameters['id']!),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'optimize',
+                    builder: (_, __) => const OptimizePage(),
+                    routes: [
+                      GoRoute(
+                        path: 'route',
+                        builder: (_, __) => const OptimizeRoutePage(),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'navigate',
+                    builder: (_, __) => const NavigatePage(),
+                  ),
+                  GoRoute(
+                    path: 'route-complete',
+                    builder: (_, __) => const RouteCompletePage(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: _settingsBranchKey,
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (_, __) => const SettingsPage(),
+                routes: [
+                  GoRoute(
+                    path: 'share',
+                    builder: (_, __) => const ShareSheet(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

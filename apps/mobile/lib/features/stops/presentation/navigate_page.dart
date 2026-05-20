@@ -29,8 +29,8 @@ class NavigatePage extends ConsumerStatefulWidget {
 class _NavigatePageState extends ConsumerState<NavigatePage> {
   final Set<String> _done = {};
 
-  void _complete(BuildContext context) =>
-      (widget.onRouteCompleted ?? (ctx) => ctx.go('/route-complete'))(context);
+  void _complete(BuildContext context) => (widget.onRouteCompleted ??
+      (ctx) => ctx.go('/home/route-complete'))(context);
 
   Future<void> _openNext(Stop nextStop) async {
     final nav = ref.read(externalNavProvider);

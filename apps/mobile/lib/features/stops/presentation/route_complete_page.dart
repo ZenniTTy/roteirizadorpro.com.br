@@ -42,7 +42,8 @@ class RouteCompletePage extends ConsumerWidget {
                   if (!context.mounted) return;
                   (onNewRoute ?? (ctx) => ctx.go('/home'))(context);
                 },
-                onShare: () => (onShare ?? (ctx) => ctx.go('/share'))(context),
+                onShare: () =>
+                    (onShare ?? (ctx) => ctx.go('/settings/share'))(context),
               ),
             ),
           ),

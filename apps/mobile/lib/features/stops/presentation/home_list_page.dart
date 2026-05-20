@@ -46,11 +46,13 @@ class HomeListPage extends ConsumerWidget {
         button: true,
         label: 'Adicionar parada',
         child: FloatingActionButton(
-          onPressed: () => context.push('/stops/add'),
+          onPressed: () => context.push('/home/stops/add'),
           child: const Icon(Icons.add),
         ),
       ),
-      bottomNavigationBar: const HomeBottomNav(),
+      bottomNavigationBar: HomeBottomNav(
+        navigationShell: StatefulNavigationShell.maybeOf(context)?.widget,
+      ),
       body: SafeArea(
         child: stopsAsyncView(
           asyncStops,
@@ -77,7 +79,8 @@ class HomeListPage extends ConsumerWidget {
                       onRemove: () => ref
                           .read(stopsControllerProvider.notifier)
                           .remove(stops[index].id),
-                      onTap: () => rowContext.push('/stops/${stops[index].id}'),
+                      onTap: () =>
+                          rowContext.push('/home/stops/${stops[index].id}'),
                     ),
                   ),
                 ),
@@ -90,7 +93,7 @@ class HomeListPage extends ConsumerWidget {
                     neon: true,
                     onPressed: stops.length < 2
                         ? null
-                        : () => context.push('/optimize'),
+                        : () => context.push('/home/optimize'),
                   ),
                 ),
               ],

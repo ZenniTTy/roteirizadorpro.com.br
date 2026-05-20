@@ -28,7 +28,7 @@ class _OptimizePageState extends ConsumerState<OptimizePage> {
   bool _kicked = false;
 
   void _success(BuildContext context) =>
-      (widget.onSuccess ?? (ctx) => ctx.go('/optimize/route'))(context);
+      (widget.onSuccess ?? (ctx) => ctx.go('/home/optimize/route'))(context);
 
   void _skip(BuildContext context) =>
       (widget.onSkip ?? (ctx) => ctx.go('/home'))(context);

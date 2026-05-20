@@ -12,7 +12,7 @@ class EditStopPage extends ConsumerWidget {
   final String id;
 
   /// Nullable so widget tests can assert taps without standing up a GoRouter;
-  /// production falls through to `context.pop()` (or `/stops/$id` if the page was deep-linked).
+  /// production falls through to `context.pop()` (or `/home/stops/$id` if the page was deep-linked).
   final void Function(BuildContext context)? onSaved;
 
   @override
@@ -44,7 +44,7 @@ class EditStopPage extends ConsumerWidget {
                   (onSaved ??
                       (ctx) => ctx.canPop()
                           ? ctx.pop()
-                          : ctx.go('/stops/${stop.id}'))(context);
+                          : ctx.go('/home/stops/${stop.id}'))(context);
                 },
               ),
             );

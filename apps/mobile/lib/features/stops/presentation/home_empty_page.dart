@@ -8,11 +8,11 @@ class HomeEmptyPage extends StatelessWidget {
   const HomeEmptyPage({super.key, this.onAddPressed});
 
   /// Nullable so widget tests can assert taps without standing up a GoRouter;
-  /// production falls through to `context.push('/stops/add')`.
+  /// production falls through to `context.push('/home/stops/add')`.
   final void Function(BuildContext context)? onAddPressed;
 
   void _addStop(BuildContext context) =>
-      (onAddPressed ?? (ctx) => ctx.push('/stops/add'))(context);
+      (onAddPressed ?? (ctx) => ctx.push('/home/stops/add'))(context);
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +24,9 @@ class HomeEmptyPage extends StatelessWidget {
         tooltip: 'Adicionar parada',
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: const HomeBottomNav(),
+      bottomNavigationBar: HomeBottomNav(
+        navigationShell: StatefulNavigationShell.maybeOf(context)?.widget,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

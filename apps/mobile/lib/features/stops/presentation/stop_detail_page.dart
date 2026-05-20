@@ -60,7 +60,7 @@ class StopDetailPage extends ConsumerWidget {
               },
               onEdit: () {
                 (onEditPressed ??
-                    (ctx) => ctx.push('/stops/${stop.id}/edit'))(context);
+                    (ctx) => ctx.push('/home/stops/${stop.id}/edit'))(context);
               },
             );
           },

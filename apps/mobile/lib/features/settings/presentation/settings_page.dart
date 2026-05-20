@@ -62,10 +62,23 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         title: const Text('Configurações'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/home'),
+          // ADR-0022: switch to the route branch instead of `context.go`,
+          // preserving each branch's stack and routing the system back gesture
+          // through the shell.
+          onPressed: () {
+            final shell = StatefulNavigationShell.maybeOf(context);
+            if (shell != null) {
+              shell.goBranch(0);
+            } else {
+              context.go('/home');
+            }
+          },
         ),
       ),
-      bottomNavigationBar: const HomeBottomNav(active: HomeNavTab.settings),
+      bottomNavigationBar: HomeBottomNav(
+        active: HomeNavTab.settings,
+        navigationShell: StatefulNavigationShell.maybeOf(context)?.widget,
+      ),
       body: SafeArea(
         child: ListView(
           children: [
@@ -104,7 +117,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: const Text('Indicar para um amigo'),
               subtitle: const Text('Compartilhe sua rota com outros motoboys'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/share'),
+              onTap: () => context.push('/settings/share'),
             ),
             const Divider(height: 32),
             const _SectionHeader('Pagamentos'),

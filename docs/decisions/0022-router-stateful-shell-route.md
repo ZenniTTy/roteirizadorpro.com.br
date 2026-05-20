@@ -106,8 +106,10 @@ Each detail/sheet screen is a **sub-route of its parent branch**. `push` within 
 A new gate is mandated by this ADR: **`integration_test` for back-navigation flows.** The `integration_test` package (Flutter team's official end-to-end testing surface) runs against the real `MaterialApp.router` instance on a connected Android device or emulator. One test file at `apps/mobile/integration_test/back_navigation_test.dart` will assert:
 
 1. From `/home`, tapping a stop, then firing system back, returns to `/home` (current route equals `/home`, app not minimized).
-2. From `/home`, switching to Configurações tab, then firing system back, returns to `/home` (or stays in app — either is acceptable; what matters is no minimize).
-3. From `/home`, FAB push to `/home/stops/add`, then system back, returns to `/home`.
+2. From `/home`, FAB push to `/home/stops/add`, then system back, returns to `/home`.
+3. From `/home/stops/<id>`, push to `/home/stops/<id>/edit`, then system back, returns to detail.
+
+(System back from `/settings` root is intentionally **not** asserted — that path exits the app per Android UX convention; see §"Out of scope: branch-root back behavior" below.)
 
 The test runs in Phase 3 of ADR-0021 and is added to `M2-SLICE-CHECKLIST.md` §Verification as a hard gate for every slice that touches routing or navigation.
 
@@ -117,6 +119,12 @@ The test runs in Phase 3 of ADR-0021 and is added to `M2-SLICE-CHECKLIST.md` §V
 - **Negative:** `app.dart` grows from 111 lines to ~180 lines (the shell + nested route declarations); the route paths visible to URL/deep-link logic remain the same (`/stops/<id>`, `/settings/share`, etc. — the URL surface is preserved even though internal hierarchy nests).
 - **Process change (mandatory):** `M2-SLICE-CHECKLIST.md` §Verification adds **`flutter test integration_test/` (or equivalent `flutter drive`) must pass before tag** for any slice that touches `apps/mobile/lib/app.dart` or any caller's navigation expression. This is a hard gate, equal in force to the existing `flutter analyze` gate.
 - **Memory:** a memory entry (`go_router-flat-routes-back-button.md`) under `~/.claude/projects/.../memory/` captures the anti-pattern so future sessions don't re-introduce flat sibling routes for detail/sheet flows.
+
+### Out of scope: branch-root back behavior
+
+System back from a **non-default branch root** (e.g. `/settings` with no sub-routes pushed inside it) closes the app activity rather than switching to branch 0. **This is documented expected behavior** per [codewithandrea — Flutter Bottom Navigation Bar with Stateful Nested Routes](https://codewithandrea.com/articles/flutter-bottom-navigation-bar-nested-routes-gorouter/): _"If there's only one route in the selected branch (and the selected branch itself is a top-level route), then the app will exit and go to the background (works as expected)."_ It matches the Android UX of Gmail, Drive, Photos, and other Google Workspace apps where pressing back from a bottom-nav root takes you out of the app.
+
+MS-01b iterated three different PopScope-based interceptions (v1 push semantics, v2 canPop-via-NavigatorState, v3 always-intercept + GoRouter.canPop). All three either failed on device or contradicted Android UX convention. The final answer is **do nothing** for this case — let the standard Android behavior apply. If a future slice needs different UX (e.g. a custom modal that should not exit the app on back), that slice files its own ADR with the specific PopScope pattern scoped to its page.
 
 ## Implementation notes
 
