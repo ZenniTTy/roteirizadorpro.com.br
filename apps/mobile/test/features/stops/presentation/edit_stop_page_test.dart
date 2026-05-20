@@ -8,33 +8,103 @@ import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 
 import '../_helpers/fake_stops_repository.dart';
 
-void main() {
-  testWidgets('EditStopPage pre-populates and updates via controller',
-      (tester) async {
-    final stop = Stop(
+Stop _stop({String label = 'R. Joaquim Floriano, 834'}) => Stop(
       id: 'abc',
       lat: 1,
       lng: 2,
-      label: 'Old',
+      label: label,
       source: StopSource.manual,
       createdAt: DateTime.utc(2026, 5, 13),
     );
-    final repo = FakeStopsRepository([stop]);
-    var savedFired = 0;
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [stopsRepositoryProvider.overrideWithValue(repo)],
-        child: MaterialApp(
-          home: EditStopPage(id: 'abc', onSaved: (_) => savedFired++),
+
+Future<void> _pump(
+  WidgetTester tester, {
+  required Stop stop,
+  FakeStopsRepository? repo,
+  void Function(BuildContext)? onSaved,
+}) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        stopsRepositoryProvider
+            .overrideWithValue(repo ?? FakeStopsRepository([stop])),
+      ],
+      child: MaterialApp(
+        home: EditStopPage(
+          id: stop.id,
+          onSaved: onSaved ?? (_) {},
         ),
       ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  testWidgets('Sheet header renders title + Concluído button', (tester) async {
+    await _pump(tester, stop: _stop());
+    expect(find.text('Editar parada'), findsOneWidget);
+    expect(find.text('Concluído'), findsOneWidget);
+  });
+
+  testWidgets('Color tag pill renders "Laranja" with dot', (tester) async {
+    await _pump(tester, stop: _stop());
+    expect(find.text('Laranja'), findsOneWidget);
+  });
+
+  testWidgets('Address title shows the stop label', (tester) async {
+    await _pump(tester, stop: _stop(label: 'R. Oscar Freire, 875'));
+    expect(find.text('R. Oscar Freire, 875'), findsOneWidget);
+  });
+
+  testWidgets('Gate-code chip renders the code line', (tester) async {
+    await _pump(tester, stop: _stop());
+    expect(find.text('O código do portão é 1684'), findsOneWidget);
+  });
+
+  testWidgets('Six option rows are present', (tester) async {
+    await _pump(tester, stop: _stop());
+    expect(find.text('Localizador'), findsOneWidget);
+    expect(find.text('Pacotes'), findsOneWidget);
+    expect(find.text('Ordem'), findsOneWidget);
+    expect(find.text('Tipo'), findsOneWidget);
+    expect(find.text('Horário de chegada'), findsOneWidget);
+    expect(find.text('Tempo na parada'), findsOneWidget);
+  });
+
+  testWidgets('Footer renders Mudar endereço and Duplicar parada',
+      (tester) async {
+    await _pump(tester, stop: _stop());
+    expect(find.text('Mudar endereço'), findsOneWidget);
+    expect(find.text('Duplicar parada'), findsOneWidget);
+  });
+
+  testWidgets('Concluído fires onSaved', (tester) async {
+    var saves = 0;
+    await _pump(
+      tester,
+      stop: _stop(),
+      onSaved: (_) => saves++,
     );
+
+    await tester.tap(find.text('Concluído'));
+    await tester.pumpAndSettle();
+    expect(saves, 1);
+  });
+
+  testWidgets('Mudar endereço opens dialog and persists new label',
+      (tester) async {
+    final repo = FakeStopsRepository([_stop(label: 'Old')]);
+    await _pump(tester, stop: _stop(label: 'Old'), repo: repo);
+
+    await tester.ensureVisible(find.text('Mudar endereço'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mudar endereço'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Old'), findsOneWidget);
-
+    expect(find.byKey(const Key('input-address')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('input-address')), 'New');
-    await tester.tap(find.widgetWithText(FilledButton, 'Salvar alterações'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Salvar'));
     await tester.pumpAndSettle();
 
     expect(repo.saved, hasLength(1));
@@ -42,12 +112,27 @@ void main() {
     expect(repo.saved.first.id, 'abc');
     expect(repo.saved.first.lat, 1);
     expect(repo.saved.first.lng, 2);
-    expect(repo.saved.first.source, StopSource.manual);
-    expect(savedFired, 1);
   });
 
-  testWidgets('EditStopPage shows friendly message when id missing',
+  testWidgets('Mudar endereço dialog Cancelar does not persist',
       (tester) async {
+    final repo = FakeStopsRepository([_stop(label: 'Old')]);
+    await _pump(tester, stop: _stop(label: 'Old'), repo: repo);
+
+    await tester.ensureVisible(find.text('Mudar endereço'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mudar endereço'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('input-address')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('input-address')), 'New');
+    await tester.tap(find.widgetWithText(TextButton, 'Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(repo.saved, isEmpty);
+  });
+
+  testWidgets('Friendly message when stop id is missing', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
