@@ -8,11 +8,11 @@ class HomeEmptyPage extends StatelessWidget {
   const HomeEmptyPage({super.key, this.onAddPressed});
 
   /// Nullable so widget tests can assert taps without standing up a GoRouter;
-  /// production falls through to `context.go('/stops/add')`.
+  /// production falls through to `context.push('/stops/add')`.
   final void Function(BuildContext context)? onAddPressed;
 
   void _addStop(BuildContext context) =>
-      (onAddPressed ?? (ctx) => ctx.go('/stops/add'))(context);
+      (onAddPressed ?? (ctx) => ctx.push('/stops/add'))(context);
 
   @override
   Widget build(BuildContext context) {

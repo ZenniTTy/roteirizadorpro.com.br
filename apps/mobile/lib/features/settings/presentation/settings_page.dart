@@ -104,7 +104,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               title: const Text('Indicar para um amigo'),
               subtitle: const Text('Compartilhe sua rota com outros motoboys'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.go('/share'),
+              onTap: () => context.push('/share'),
             ),
             const Divider(height: 32),
             const _SectionHeader('Pagamentos'),

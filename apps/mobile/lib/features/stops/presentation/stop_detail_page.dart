@@ -17,7 +17,7 @@ class StopDetailPage extends ConsumerWidget {
   final String id;
 
   /// Nullable so widget tests can assert taps without standing up a GoRouter;
-  /// production falls through to `context.go('/home')`.
+  /// production falls through to `context.pop()` (or `/home` if the page was deep-linked).
   final void Function(BuildContext context)? onDeleted;
 
   /// Same callback-injection pattern for Editar; route lands in Task 20.
@@ -54,11 +54,13 @@ class StopDetailPage extends ConsumerWidget {
                     .read(stopsControllerProvider.notifier)
                     .remove(stop.id);
                 if (!context.mounted) return;
-                (onDeleted ?? (ctx) => ctx.go('/home'))(context);
+                (onDeleted ??
+                    (ctx) =>
+                        ctx.canPop() ? ctx.pop() : ctx.go('/home'))(context);
               },
               onEdit: () {
                 (onEditPressed ??
-                    (ctx) => ctx.go('/stops/${stop.id}/edit'))(context);
+                    (ctx) => ctx.push('/stops/${stop.id}/edit'))(context);
               },
             );
           },

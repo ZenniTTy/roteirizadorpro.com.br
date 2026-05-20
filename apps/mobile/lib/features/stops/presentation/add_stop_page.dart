@@ -11,7 +11,7 @@ class AddStopPage extends ConsumerWidget {
   const AddStopPage({super.key, this.onSaved});
 
   /// Nullable so widget tests can assert taps without standing up a GoRouter;
-  /// production falls through to `context.go('/home')`.
+  /// production falls through to `context.pop()` (or `/home` if the page was deep-linked).
   final void Function(BuildContext context)? onSaved;
 
   @override
@@ -33,7 +33,8 @@ class AddStopPage extends ConsumerWidget {
               );
               await ref.read(stopsControllerProvider.notifier).add(stop);
               if (!context.mounted) return;
-              (onSaved ?? (ctx) => ctx.go('/home'))(context);
+              (onSaved ??
+                  (ctx) => ctx.canPop() ? ctx.pop() : ctx.go('/home'))(context);
             },
           ),
         ),

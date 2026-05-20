@@ -20,7 +20,8 @@ class ReorderPage extends ConsumerWidget {
           IconButton(
             tooltip: 'Concluir',
             icon: const Icon(Icons.check),
-            onPressed: () => context.go('/home'),
+            onPressed: () =>
+                context.canPop() ? context.pop() : context.go('/home'),
           ),
         ],
       ),

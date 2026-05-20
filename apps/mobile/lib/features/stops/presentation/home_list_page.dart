@@ -46,7 +46,7 @@ class HomeListPage extends ConsumerWidget {
         button: true,
         label: 'Adicionar parada',
         child: FloatingActionButton(
-          onPressed: () => context.go('/stops/add'),
+          onPressed: () => context.push('/stops/add'),
           child: const Icon(Icons.add),
         ),
       ),
@@ -77,7 +77,7 @@ class HomeListPage extends ConsumerWidget {
                       onRemove: () => ref
                           .read(stopsControllerProvider.notifier)
                           .remove(stops[index].id),
-                      onTap: () => rowContext.go('/stops/${stops[index].id}'),
+                      onTap: () => rowContext.push('/stops/${stops[index].id}'),
                     ),
                   ),
                 ),
@@ -88,8 +88,9 @@ class HomeListPage extends ConsumerWidget {
                     label: 'Otimizar rota',
                     icon: const Icon(Icons.auto_awesome),
                     neon: true,
-                    onPressed:
-                        stops.length < 2 ? null : () => context.go('/optimize'),
+                    onPressed: stops.length < 2
+                        ? null
+                        : () => context.push('/optimize'),
                   ),
                 ),
               ],

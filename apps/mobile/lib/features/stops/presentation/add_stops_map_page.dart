@@ -13,7 +13,7 @@ class AddStopsMapPage extends ConsumerStatefulWidget {
   const AddStopsMapPage({super.key, this.onConfirmed});
 
   /// Nullable so widget tests can assert taps without standing up a GoRouter;
-  /// production falls through to `context.go('/home')`.
+  /// production falls through to `context.pop()` (or `/home` if the page was deep-linked).
   final void Function(BuildContext context)? onConfirmed;
 
   @override
@@ -52,7 +52,8 @@ class _AddStopsMapPageState extends ConsumerState<AddStopsMapPage> {
       );
     }
     if (!mounted) return;
-    (widget.onConfirmed ?? (ctx) => ctx.go('/home'))(context);
+    (widget.onConfirmed ??
+        (ctx) => ctx.canPop() ? ctx.pop() : ctx.go('/home'))(context);
   }
 
   @override
