@@ -401,8 +401,8 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - **C-1 (Critical):** System share sheet (`SharePlus.instance.share`) + selectable text dump instead of named-channel ShareCard layout: (a) WhatsApp card (green circle icon), (b) "Copiar link de download" with URL + copy button, (c) "Mostrar QR Code" expandable card. `share_sheet.dart:41-45` vs `prototipo/screens-b.jsx:394-451`.
 - I-1: `context.go('/settings')` back-nav semantics (pop preferred).
 
-### A. apps/mobile/lib/app.dart (router cross-cutting) — ✅ CLOSED (MS-01)
-- **C-1 (Critical) → FIXED (commit 2124b7f, MS-01)**: 10 caller files migrated to Pattern A (`context.push` for parent → child push) + Pattern B (`canPop() ? pop() : go(parent)` fallback-safe back). Sibling-nav (login ↔ register) and bottom-nav root (home ↔ settings) intentionally kept on `context.go`. Verified by D3 fidelity re-audit + D4 code-reviewer.
+### A. apps/mobile/lib/app.dart (router cross-cutting) — ✅ CLOSED (MS-01b)
+- **C-1 (Critical) → FIXED (commit 16718e1, MS-01b after MS-01 partial)**: MS-01 (commit `2124b7f`) attempted `context.push` on flat sibling routes; device smoke proved it still exited the app on Android back. MS-01b restructured `app.dart` with `StatefulShellRoute.indexedStack` + nested sub-routes (per ADR-0022) — push within a branch now creates a hierarchical stack and system back pops correctly. Verified by integration_test 3/3 + manual smoke on Galaxy A06 cases A (FAB), C (tap stop), D (Editar). Sibling auth (login ↔ register) kept outside the shell on `context.go`. Branch-root back (Settings → Android back exits app) intentionally NOT intercepted — standard Android UX per codewithandrea + ADR-0022 §"Out of scope".
 
 ### B. apps/mobile/lib/core/theme/app_theme.dart — ✅ FIEL
 - All 18 color tokens, 4 radii, 1 shadow match `prototipo/tokens.js` 1:1.
@@ -424,4 +424,5 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ### Microsprint execution log
 
-- **MS-01 router back-nav** → ✅ commit `2124b7f` — closed A-1 + Reorder M-1 + back-nav portions of AddStop C-4, Voice C-1, OCR back, Edit back, StopDetail back. 1/16 microsprints done. 20 Criticals remaining.
+- **MS-01 router back-nav** → ⚠️ commit `2124b7f` — partial fix; device smoke proved the regression persisted.
+- **MS-01b statefulshellroute + nested routes (ADR-0022)** → ✅ commit `16718e1` — properly closes A-1 + back-nav portions of AddStop C-4, Voice C-1, OCR back, Edit back, StopDetail back. Restructured `app.dart` with `StatefulShellRoute.indexedStack`; added `integration_test/back_navigation_test.dart` as new hard gate; M2-SLICE-CHECKLIST.md gains the gate row. 2/16 microsprints done (MS-01+MS-01b count as one combined effort toward A-1). 20 Criticals remaining.
