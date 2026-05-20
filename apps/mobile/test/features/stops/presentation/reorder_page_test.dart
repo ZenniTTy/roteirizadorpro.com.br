@@ -13,6 +13,14 @@ import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 import '../_helpers/fake_stops_repository.dart';
 import '../../../_support/phone_surface.dart';
 
+// Wider-than-default test surface; the RpGhostButton "Desenhar o grupo
+// seguinte" label overflows at the canonical 400-wide phone size under
+// the Ahem font that widget tests fall back to. Production fonts render
+// correctly; lift this back to the default once RpGhostButton's label
+// supports `Flexible` or a third real consumer pushes the fix into the
+// shared widget (tracked in TODO.md).
+const _reorderSurface = Size(560, 900);
+
 Stop _s(String id, {double lat = -23.55, double lng = -46.63, String? label}) =>
     Stop(
       id: id,
@@ -70,7 +78,7 @@ void main() {
   testWidgets(
     'Map layer + numbered pins render for geocoded stops',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       final stops = [
         _s('a', lat: -23.55, lng: -46.63),
         _s('b', lat: -23.56, lng: -46.64),
@@ -90,7 +98,7 @@ void main() {
   testWidgets(
     'Dispatcher card renders with persona + body copy',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       await tester.pumpWidget(_hostReorderPage([_s('a')]));
       await _settle(tester);
 
@@ -107,7 +115,7 @@ void main() {
   testWidgets(
     'Bottom panel default state: 0 paradas + both CTAs',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       await tester.pumpWidget(_hostReorderPage([_s('a')]));
       await _settle(tester);
 
@@ -136,7 +144,7 @@ void main() {
   testWidgets(
     'Tapping "Desenhar o grupo seguinte" is idempotent on empty selection',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       await tester.pumpWidget(_hostReorderPage([_s('a')]));
       await _settle(tester);
 
@@ -160,7 +168,7 @@ void main() {
   testWidgets(
     'Tapping "Reotimizar rota" fires onReoptimize callback',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       var fired = 0;
       await tester.pumpWidget(
         _hostReorderPage([_s('a')], onReoptimize: (_) => fired++),
@@ -177,7 +185,7 @@ void main() {
   testWidgets(
     'Lasso pan records points and renders the CustomPaint stroke',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       final stops = [
         _s('a', lat: -23.55, lng: -46.63),
         _s('b', lat: -23.56, lng: -46.64),
@@ -207,7 +215,7 @@ void main() {
   testWidgets(
     'Tapping Undo pill clears the lasso',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       await tester.pumpWidget(_hostReorderPage([_s('a')]));
       await _settle(tester);
 
@@ -231,7 +239,7 @@ void main() {
   testWidgets(
     'Dispatcher card hides after first lasso pan',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       await tester.pumpWidget(_hostReorderPage([_s('a')]));
       await _settle(tester);
 
@@ -250,7 +258,7 @@ void main() {
   testWidgets(
     'Empty stops list renders the empty-state copy',
     (tester) async {
-      await phoneSurface(tester, size: const Size(560, 900));
+      await phoneSurface(tester, size: _reorderSurface);
       await tester.pumpWidget(_hostReorderPage(const []));
       await _settle(tester);
 
