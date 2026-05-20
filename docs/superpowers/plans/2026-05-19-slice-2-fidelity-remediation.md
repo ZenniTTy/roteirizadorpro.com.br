@@ -95,17 +95,11 @@ Do NOT edit any code. Read-only audit. End your turn with a summary count:
 
 ### Task 1.3 — Append catalog to `TODO.md` and commit
 
-- [ ] Open `TODO.md`, find the section "Slice 2 — Telas Core (IN PROGRESS — sub 2a Foundation 10/16 tasks done)" (or current).
-- [ ] Append a new H2 `## Slice 2 fidelity audit — findings (2026-05-19)` with the agent output verbatim.
-- [ ] Stage `TODO.md`, `docs/decisions/0021-slice-2-fidelity-remediation.md`, `docs/superpowers/specs/2026-05-19-slice-2-fidelity-remediation-design.md`, `docs/superpowers/plans/2026-05-19-slice-2-fidelity-remediation.md`.
-- [ ] Commit: `docs(decisions): adr-0021 audit catalog`.
-- [ ] Record post-audit SHA in this plan's `## Execution log` (added at the bottom).
+- [x] Catalog appended to `TODO.md` under `## Slice 2 fidelity audit — findings (2026-05-19, ADR-0021 Phase 1)` (lines 313–431). Commit `80efa67`.
 
 ### Task 1.4 — Triage decision gate
 
-If audit returns **>20 Criticals**, stop and escalate to Eduardo with a partial-ship-vs-full-remediate decision before starting Phase 2 (spec §Risks Mitigation 1).
-
-If **≤20 Criticals**, proceed to Phase 2.
+**Audit returned 22 Criticals (21 actionable; NavigatePage C-1 is pre-scoped by ADR-0017).** Threshold of 20 exceeded → triage gate escalated to Eduardo on 2026-05-20. **Decision: full remediation (option a)** — proceed to Phase 2 with all 21 microsprints. No timeline constraint per Eduardo (memory: time estimates are not constraints).
 
 ---
 
@@ -113,115 +107,680 @@ If **≤20 Criticals**, proceed to Phase 2.
 
 **Goal:** every Critical from the Phase 1 catalog ends with `→ FIXED (commit <sha>)`.
 
-**Duration estimate:** 2–3 days wall-time (depends on Critical count).
+**Execution rule:** microsprints run **strictly serial** — no two in flight at once. Each one fully completes (including commit) before the next starts. This keeps `git log` linear, avoids cross-Critical interference, and makes per-microsprint rollback trivial.
 
-**Microsprint ordering:** by **blast radius** — fix the most foundational first.
+**Microsprint ordering (blast-radius first):** router → shared widgets that screens consume → structural screen rebuilds → widget-level screen fixes. Token theme is ✅ fiel — no microsprint needed.
 
-1. `app.dart` router back-nav fixes (if Criticals there — affects every screen).
-2. `core/theme/app_theme.dart` token drift (if any — affects every screen).
-3. `prototipo/ui.jsx` shared primitives mapped to Dart widgets in `core/widgets/` (HomeTopBar, FAB, BottomNav, FlexibleBottomSheet) — fix these first because screens reuse them.
-4. Then screen-by-screen, in the order discovered, lowest impact first → highest impact last. The high-impact ones (`AddStop`, `Optimize`, `Navigate`) get full attention without rushing.
+### Master microsprint table
 
-### Task 2.N — Per-screen microsprint template
+| # | Slug | Closes Criticals | Touches | Class |
+|---|---|---|---|---|
+| MS-01 | `router-back-nav-push` | A-1 (router cross-cutting) + the back-nav portions of AddStop C-4, Voice C-1, OCR back, Edit back | `apps/mobile/lib/app.dart` + callers in HomeList/HomeEmpty/StopDetail/AddStop/EditStop pages | cross-cutting |
+| MS-02 | `widget-home-top-bar` | shared primitive needed by MS-13 + MS-14 | NEW `core/widgets/home_top_bar.dart` | shared widget |
+| MS-03 | `widget-rp-fab` | shared primitive needed by MS-13 (HomeEmpty C-2) | NEW `core/widgets/rp_fab.dart` | shared widget |
+| MS-04 | `widget-rp-mini-pin` | shared primitive needed by MS-08 (AddStopsMap C-3) | NEW `core/widgets/rp_mini_pin.dart` | shared widget |
+| MS-05 | `stop-detail-rebuild` | StopDetail C-1 (structural — 5 sections) | `stop_detail_page.dart` | structural |
+| MS-06 | `edit-stop-modal-rebuild` | EditStop C-1 (structural — modal sheet + 6 option rows) | `edit_stop_page.dart` | structural |
+| MS-07 | `ocr-dark-viewfinder` | OCR C-1 (structural — dark camera UI) | `ocr_capture_page.dart` | structural |
+| MS-08 | `add-stops-map-floating-ui` | AddStopsMap C-1 + C-2 + C-3 | `add_stops_map_page.dart` (uses MS-04 RpMiniPin) | structural |
+| MS-09 | `map-stops-full-screen` | MapStops C-1 (structural — floating header + neon chip + bottom panel) | `map_stops_page.dart` | structural |
+| MS-10 | `optimize-route-split-layout` | OptimizeRoute C-1 + C-2 | `optimize_route_page.dart` | structural |
+| MS-11 | `reorder-full-map-lasso` | Reorder C-1 (structural — full-map + lasso group selection) | `reorder_page.dart` | structural |
+| MS-12 | `share-named-channels` | ShareSheet C-1 (named channel cards: WhatsApp + Copy + QR) | `share_sheet.dart` | structural |
+| MS-13 | `home-empty-top-bar-and-fab` | HomeEmpty C-1 + C-2 (consumes MS-02 + MS-03) | `home_empty_page.dart` | widget-level |
+| MS-14 | `home-list-top-bar` | HomeList C-1 (consumes MS-02) | `home_list_page.dart` | widget-level |
+| MS-15 | `add-stop-sheet-chips-suggestions` | AddStop C-1 + C-2 + C-3 (back-nav C-4 already closed by MS-01) | `add_stop_page.dart` | structural |
+| MS-16 | `voice-pulsing-mic` | Voice C-1 + C-2 + C-3 (back C-1 partial via MS-01) | `voice_capture_page.dart` | structural |
 
-For each screen N in the prioritized order, execute the pipeline below. Mark this checklist for each microsprint in `TODO.md`'s findings catalog (one checkbox per Critical → fixed).
+**Total: 16 microsprints (the 21 actionable Criticals collapse into 16 because some screens have multiple Criticals fixed together, and the router fix closes 5 back-nav Criticals at once).**
 
-#### 2.N.1 — Pre-flight (controller, 5–10min)
+### Universal microsprint pipeline (applies to every MS below)
 
-- [ ] Re-read prototype function for screen N (line range from catalog).
-- [ ] Re-read current Dart file.
-- [ ] Re-read the catalog entry's Criticals only (Importants noted but not fixed unless behavior-affecting).
-- [ ] State the delta in 1–3 bullets in the microsprint commit-message draft.
-- [ ] Confirm GO/NO-GO criteria: every Critical line must close, no widget test failures introduced.
-
-#### 2.N.2 — DISPATCH 1: prototype-fidelity-checker (single-screen, read-only)
-
-Prompt template:
-
-```
-Re-audit ONE screen: <prototype-function> ↔ <Dart file>.
-Confirm the Criticals listed below are still present and produce a final delta spec
-(the exact widget tree changes needed to close them):
-
-  <paste the catalog entries for this screen>
-
-Read-only. Do NOT edit code. Output the delta spec as a numbered list:
-  1. <change> (prototype: line, current: line)
-  2. <…>
-```
-
-#### 2.N.3 — DISPATCH 2: implementer (Claude, isolated context)
-
-Prompt template:
+Each microsprint, regardless of slug, runs these 7 numbered phases. The per-MS sections below provide only the **MS-specific inputs** to these phases — the structure itself is constant.
 
 ```
-Implement these fixes in <Dart file>. Read these references first:
-  - <Dart file> (current)
-  - <prototype-function in prototipo/screens-X.jsx> (lines L–L)
-  - prototipo/tokens.js (for any color/radius/shadow used)
-  - prototipo/ui.jsx (for any shared primitive used)
-
-Karpathy §3 (Surgical Changes) is the hard rule — fix ONLY these Criticals:
-
-  <paste the delta spec from D1>
-
-Do not refactor adjacent code. Do not "improve" comments. Do not introduce abstractions.
-
-Test discipline (Karpathy §4):
-  - Run `flutter analyze --no-pub <Dart file>` — must be 0 issues.
-  - Run `flutter test test/path-to-test-of-this-screen` — must be all green
-    (rewrite assertions if structure changed; do NOT skip tests).
-
-Output: the diff. Do not commit yet.
+[1] PRE-FLIGHT — controller reads sources, states delta in commit-msg draft, confirms GO/NO-GO.
+[2] D1 prototype-fidelity-checker (single-screen, read-only) — confirms Criticals + produces delta spec.
+[3] D2 implementer (claude subagent, isolated context) — implements delta, runs analyze + test, outputs diff.
+[4] D3 prototype-fidelity-checker (re-audit, single-screen) — confirms Criticals closed + no regressions.
+[5] D4 pr-review-toolkit:code-reviewer — Karpathy 4 + CLAUDE.md + ADR-0010 review.
+[6] COMMIT — lefthook + commitlint + stop-hooks gate.
+[7] CHECKPOINT — update TODO.md catalog row + (if structural) rebuild APK + reinstall A06 + smoke-test.
 ```
 
-#### 2.N.4 — DISPATCH 3: prototype-fidelity-checker (re-audit, single-screen)
+If D3 or D4 returns NO-GO → loop back to D2 with feedback. **Never** advance to the next MS until the current one commits and CHECKPOINT closes.
 
-Prompt: identical to D1 with the new Dart file content. Must return ✅ FIEL or HAS NEW CRITICALS. If new Criticals: loop back to D2 with feedback.
-
-#### 2.N.5 — DISPATCH 4: pr-review-toolkit:code-reviewer
-
-Prompt template:
+### Universal D1 prompt template
 
 ```
-Review this diff against:
-  - Karpathy 4 principles (Think Before, Simplicity First, Surgical Changes, Goal-Driven)
-  - CLAUDE.md conventions (especially ADR-0013 mirror contract if DTOs touched —
-    likely not since this is UI remediation)
-  - ADR-0010 (prototype canonical)
-  - Repo style: no comments unless WHY is non-obvious; no over-abstraction;
-    no unused imports; no half-finished implementations.
+You are prototype-fidelity-checker auditing ONE screen for microsprint <MS-NN>.
 
-Severity:
-  - Important: blocks merge.
-  - Suggestion: optional improvement, dated debt if not addressed now.
+Canonical sources (load once):
+  - prototipo/tokens.js
+  - prototipo/ui.jsx
+  - <prototype file> (see MS section)
 
-Diff:
-  <paste the diff from D2>
+Pair: <Dart file> ↔ <prototype function name>
+Prototype line range: <L-L>
+Current implementation: read <Dart file> in full.
+
+Catalog Criticals to confirm (from TODO.md lines 313-431):
+<paste Criticals for this screen>
+
+Output:
+  1. Confirm each Critical is still present (or note if already fixed).
+  2. Produce a numbered delta spec — exact widget tree changes to close each Critical.
+  3. Cite prototype lines for each change.
+  4. End with "Delta spec ready for implementer."
+
+Read-only. Do NOT edit code.
 ```
 
-If Important issues raised: loop back to D2 with feedback. Else proceed.
+### Universal D2 prompt template
 
-#### 2.N.6 — Commit
+```
+You are implementing microsprint <MS-NN> in isolation. Read these in order:
+  1. <Dart file> (current state)
+  2. <prototype file>:<L-L> (the target structure)
+  3. prototipo/tokens.js (any color/radius/shadow you reference)
+  4. prototipo/ui.jsx (any shared primitive you reference)
+  5. Delta spec from D1 (paste below)
 
-- [ ] Run lefthook pre-commit manually first to catch issues early: `bun run lint` (or equivalent).
-- [ ] Stage only the files touched by this microsprint.
-- [ ] Commit message format:
+Hard constraints:
+  - Karpathy §1 (Think Before): if delta is ambiguous, stop and report; do not infer.
+  - Karpathy §2 (Simplicity First): no flexibility, no extra abstractions beyond the delta.
+  - Karpathy §3 (Surgical Changes): touch ONLY the lines the delta requires.
+    Do not "improve" comments, formatting, or adjacent code.
+  - Karpathy §4 (Goal-Driven): success = all delta items implemented + analyze clean + tests green.
+
+Workflow:
+  1. Implement the delta in <Dart file>.
+  2. Run `flutter analyze --no-pub` (from apps/mobile/). Must report "No issues found".
+  3. Run `flutter test test/<path-matching-this-screen>`. Must be all green.
+     If existing test assertions break because the widget tree changed, update the test
+     assertions in the same edit — do NOT skip tests or mark them as expected-fail.
+  4. Output: the diff (unified format). Do NOT commit yet.
+
+Delta spec (from D1):
+<paste D1 output>
+
+Files allowed to modify:
+  - <list of file paths>
+
+Files NOT allowed to modify (Karpathy §3 enforcement):
+  - any file outside the allowed list, even if it "would be nice".
+```
+
+### Universal D3 prompt template
+
+Identical to D1 but with the new state of `<Dart file>`. Expected: "✅ All Criticals closed. No new Criticals introduced." If new Criticals → loop back to D2.
+
+### Universal D4 prompt template
+
+```
+You are pr-review-toolkit:code-reviewer reviewing microsprint <MS-NN>.
+
+Diff to review:
+<paste D2 diff>
+
+Review against (in order of priority):
+  1. Karpathy 4 principles (Think Before, Simplicity First, Surgical Changes, Goal-Driven).
+  2. CLAUDE.md conventions (no comments unless WHY is non-obvious; no half-finished; no
+     backwards-compat shims; no over-abstraction).
+  3. ADR-0010 (prototype is canonical — every visual choice must trace to prototipo/).
+  4. ADR-0013 (only if DTOs touched — UI remediation typically does not touch them).
+  5. Lefthook + commitlint compliance (scope-enum, conventional commit format).
+
+Severity tags:
+  - BLOCKER: must fix before commit.
+  - IMPORTANT: should fix before commit; if rejected, must be documented in TODO.md.
+  - SUGGESTION: optional polish, eligible for dated debt.
+
+Output:
+  - List findings by severity.
+  - End with one of: "APPROVED" | "REVIEW REQUIRED" | "BLOCKER FOUND".
+```
+
+### Universal COMMIT format
+
+```
+fix(mobile): <screen-slug> — <one-line summary>
+
+Closes catalog Criticals: <C-N list> (TODO.md "Slice 2 fidelity audit").
+
+Prototype: prototipo/screens-X.jsx:LINE-LINE.
+Verified by prototype-fidelity-checker (re-audit) and pr-review-toolkit:code-reviewer.
+
+[optional: brief implementation note if behavior or test surface changed]
+```
+
+For shared-widget microsprints (MS-02/03/04), use `feat(mobile): <widget-slug> — …` since these introduce new files. For the router microsprint (MS-01), use `refactor(mobile): router — push semantics for sheet/detail routes`.
+
+### Universal CHECKPOINT
+
+- Update `TODO.md` catalog: append `→ FIXED (commit <sha>)` to every closed Critical row.
+- Tick the MS's `[ ]` in the master table at the top of this Phase 2 section.
+- **If MS is `structural` class or `cross-cutting` class**: rebuild APK via `bash apps/mobile/scripts/build-release-apk.sh`, reinstall on A06 via `adb install -r`, smoke-test the changed screen visually, screenshot to `docs/sessions/2026-05-19-17-slice-2-fidelity-audit/screenshots/MS-NN-<slug>.png`.
+- **If MS is `shared widget` class**: no rebuild needed (the widget has no caller yet); the consuming MS will rebuild.
+- **If MS is `widget-level` class**: defer rebuild to MS-16 or to Phase 3.
+
+---
+
+### MS-01 — `router-back-nav-push` (cross-cutting)
+
+**Closes:** A-1 + back-nav portions of (StopDetail "back to home"), (AddStop C-4), (Voice C-1 back), (OCR back), (Edit back), (ShareSheet I-1), (Reorder M-1 "Concluir" back).
+
+**D1 inputs:**
+- Pair: `apps/mobile/lib/app.dart` ↔ router meta (no single prototype function — cross-screen pattern)
+- Catalog rows: `### A. apps/mobile/lib/app.dart (router cross-cutting)` (TODO.md ~line 416)
+- Additional rows to scan: any "back-nav" or "context.go" mention in `### 7, ### 8, ### 9, ### 14, ### 15, ### 18`.
+
+**Delta scope:**
+1. In `app.dart`, the `GoRoute` declarations stay as-is (`go_router` supports both push and go on the same route). The fix is at the **caller** site.
+2. Identify each `context.go(<path>)` call where the path corresponds to a screen the prototype wires as a stack-push (parent → detail/sheet). Replace with `context.push(<path>)`.
+3. For the back-buttons inside those pushed screens, replace `context.go(<parent>)` with `context.pop()`.
+4. For `predictive back` (Android 14+ `enableOnBackInvokedCallback`), `pop` flows correctly with the system back gesture; `go` does not.
+
+**Caller sites to inspect (from catalog A-1 cite):**
+- `home_list_page.dart` — tap on stop row, FAB, "Otimizar rota" CTA.
+- `home_empty_page.dart` — FAB, "Como funciona?" pill.
+- `stop_detail_page.dart` — "Editar" button.
+- `add_stop_page.dart` — after submit (where to return).
+- `edit_stop_page.dart` — back arrow + after-save.
+- `voice_capture_page.dart` — back arrow + after-submit.
+- `ocr_capture_page.dart` — back arrow + after-confirm.
+- `share_sheet.dart` — back arrow.
+- `reorder_page.dart` — "Concluir" checkmark.
+- `optimize_route_page.dart` — close button.
+
+**Rule of thumb for go vs push:**
+- Sibling auth screens (login ↔ register), bottom-nav destinations (home ↔ settings), or auth-redirect targets → `context.go`.
+- Push-and-return flows (home → detail, detail → edit, addStop → voice/ocr) → `context.push` + `context.pop`.
+
+**D2 file allowlist:** the 10 caller files above + `app.dart` (no actual route table change expected; allowed in case a new `GoRoute` variant is needed for typed args).
+
+**Test surface:** existing widget tests pass `onAddPressed`/`onSaved` callbacks instead of asserting `context.go`, so the router-fix should not break them. Verify after D2.
+
+**Smoke test on A06 after CHECKPOINT:** add a stop, tap Android back — must return to home (not minimize). Open a stop → Editar → back — must return to detail (not home).
+
+---
+
+### MS-02 — `widget-home-top-bar` (shared widget, NEW file)
+
+**Closes:** prerequisite for MS-13 + MS-14. No direct Critical closure (those happen in MS-13/14 when they consume this widget).
+
+**D1 inputs:**
+- Source-of-truth: `prototipo/ui.jsx` lines wrapping `HomeTopBar` (search "function HomeTopBar"). Also referenced in `prototipo/screens-a.jsx:160-193` (same function).
+- New file path: `apps/mobile/lib/core/widgets/home_top_bar.dart`.
+
+**Delta scope:**
+- Create `HomeTopBar` as a `StatelessWidget` matching the prototype 1:1:
+  - `Container` with `padding: EdgeInsets.fromLTRB(16, 8, 16, 12)`, `color: Colors.white`.
+  - `Row` with `crossAxisAlignment: CrossAxisAlignment.center`, `mainAxisAlignment` left-to-right.
+  - Title `'Rota de hoje'` (`fontSize: 22, fontWeight: w600, letterSpacing: -0.3`), `Expanded`.
+  - ETA chip: `eta` nullable param; if null → `'--:--'` text + muted color; if non-null → highlight with `AppColors.primaryLight` bg + `AppColors.primary` text + `Icons.access_time_outlined` 14px.
+  - Count chip: `Container` height 30, `padding` h 10, `AppColors.surface` bg + `AppColors.border` 1px + `Icons.place_outlined` 14px + count text.
+  - Optional `showMore` param: if true, append a 36×36 transparent `IconButton(Icons.more_vert)` with `AppColors.text` color.
+
+**Constructor signature:**
+```dart
+class HomeTopBar extends StatelessWidget implements PreferredSizeWidget {
+  const HomeTopBar({super.key, this.eta, required this.count, this.showMore = false});
+  final String? eta;
+  final int count;
+  final bool showMore;
+  @override Size get preferredSize => const Size.fromHeight(56);
+  // ...
+}
+```
+
+The `PreferredSizeWidget` implementation allows it to be used as `appBar:` in a Scaffold (cleaner than wrapping a custom widget in `PreferredSize`).
+
+**D2 file allowlist:** new file `core/widgets/home_top_bar.dart` ONLY.
+
+**Test surface:** create `test/core/widgets/home_top_bar_test.dart` with:
+1. Renders title "Rota de hoje" with correct font weight + size.
+2. ETA chip null state shows '--:--' with muted styling.
+3. ETA chip non-null state shows the value with primary styling.
+4. Count chip shows the count number.
+5. `showMore: true` renders the more-vert icon; `false` does not.
+
+**No rebuild** — widget has no callers yet.
+
+---
+
+### MS-03 — `widget-rp-fab` (shared widget, NEW file)
+
+**Closes:** prerequisite for MS-13 (HomeEmpty C-2). HomeList currently doesn't have a FAB (uses persistent CTA) so this widget will have one caller until VRP/Navigate sites grow more.
+
+**D1 inputs:**
+- Source-of-truth: `prototipo/ui.jsx` `function FAB` (search "function FAB"). Also visible at `prototipo/screens-a.jsx:153` + `:272`.
+- New file path: `apps/mobile/lib/core/widgets/rp_fab.dart`.
+
+**Delta scope:**
+- Create `RpFab` as a `StatelessWidget`:
+  - 56×56 circular `Container` with `BoxDecoration`:
+    - `shape: BoxShape.circle`
+    - `gradient: LinearGradient(begin: topLeft, end: bottomRight, colors: [AppColors.accent, AppColors.primary])` (matches `linear-gradient(135deg, accent 0%, primary 100%)`)
+    - `boxShadow: AppShadows.fab` — verify this token exists in `app_theme.dart`; if not, add it: `[BoxShadow(color: Color(0x526C3FC5), blurRadius: 24, offset: Offset(0, 8)), BoxShadow(color: Color(0x2E6C3FC5), blurRadius: 6, offset: Offset(0, 2))]` matching `fabShadow: '0 8px 24px rgba(108,63,197,0.32), 0 2px 6px rgba(108,63,197,0.18)'`.
+  - `Material(type: transparency)` wrapping `InkWell(borderRadius: BorderRadius.circular(28))` for the splash.
+  - `Center(child: Icon(Icons.add, color: Colors.white, size: 24))`.
+- Position concern: in the prototype the FAB is `position: absolute, right: 20, bottom: 88` inside the screen frame, **above** the BottomNav. In Flutter, that's `Scaffold.floatingActionButton: RpFab(onPressed: …)` + `Scaffold.floatingActionButtonLocation: FloatingActionButtonLocation.endFloat` — Material's default placement is close enough; if the BottomNav overlap looks wrong on A06, switch to `FloatingActionButtonLocation.endTop` or use a custom location later. The MS-13 smoke test will validate.
+
+**Constructor signature:**
+```dart
+class RpFab extends StatelessWidget {
+  const RpFab({super.key, required this.onPressed, this.tooltip});
+  final VoidCallback onPressed;
+  final String? tooltip;
+}
+```
+
+**Decision: Material FAB API vs custom.** A `FloatingActionButton.large` cannot accept a gradient via `backgroundColor`. The cleanest path is custom: wrap our container in a `Semantics(button: true, label: tooltip)` + `Tooltip(message: tooltip ?? '')` for accessibility parity with Material FAB.
+
+**D2 file allowlist:** new file `core/widgets/rp_fab.dart` + (only if needed) `core/theme/app_theme.dart` to add `AppShadows.fab` const. If `app_theme.dart` is touched, the catalog row B "✅ FIEL" stays — we're adding a token, not changing existing.
+
+**Test surface:** create `test/core/widgets/rp_fab_test.dart`:
+1. Tap fires `onPressed`.
+2. Tooltip is announced via Semantics when provided.
+
+**No rebuild** — widget has one caller landing in MS-13.
+
+---
+
+### MS-04 — `widget-rp-mini-pin` (shared widget, NEW file)
+
+**Closes:** prerequisite for MS-08 (AddStopsMap C-3). MS-09 (MapStops) also benefits; consume there too if scope-easy.
+
+**D1 inputs:**
+- Source-of-truth: `prototipo/screens-e.jsx:33-58` (MiniPin function — search "function MiniPin" in that file).
+- New file path: `apps/mobile/lib/core/widgets/rp_mini_pin.dart`.
+
+**Delta scope:**
+- Create `RpMiniPin` as a `StatelessWidget`:
+  - 22 wide × 26 tall body + a diamond tail at bottom-center (3-pixel triangle).
+  - `selected: true` → `AppColors.primary` background, white text.
+  - `selected: false` → white background, `AppColors.primary` text + 1px `AppColors.primary` border.
+  - `BorderRadius.circular(6)` on the main rectangle.
+  - Centered `Text(index.toString(), fontSize: 12, fontWeight: w700)`.
+- The diamond tail is a `CustomPaint` extension; for surgical scope, draw with `Transform.rotate(45° → square)` clipped to a triangle path via `ClipPath`. Sketch:
+  ```dart
+  CustomPaint(painter: _PinTailPainter(color: …))
   ```
-  fix(mobile): <screen> — <one-line summary>
+- Tooltip via Semantics (`'Parada $index'`).
 
-  Closes catalog Criticals: C-N1, C-N2.
+**Constructor:**
+```dart
+class RpMiniPin extends StatelessWidget {
+  const RpMiniPin({super.key, required this.index, this.selected = false});
+  final int index;
+  final bool selected;
+}
+```
 
-  Prototype: prototipo/screens-X.jsx:LINE-LINE.
-  Verified by prototype-fidelity-checker (re-audit) and pr-review-toolkit:code-reviewer.
-  ```
-- [ ] `git commit` — lefthook + commitlint enforce; stop-hooks are signal-only.
+**D2 file allowlist:** new file `core/widgets/rp_mini_pin.dart` only.
 
-#### 2.N.7 — Checkpoint
+**Test surface:** create `test/core/widgets/rp_mini_pin_test.dart`:
+1. Renders index number in body.
+2. Selected state has primary background.
+3. Unselected state has white background + primary border.
 
-- [ ] Update `TODO.md` catalog: each closed Critical gets `→ FIXED (commit <sha>)` appended.
-- [ ] If the microsprint touched a structural element (sheet, navigation, bottom nav, top bar) → rebuild APK via `scripts/build-release-apk.sh` and reinstall on A06 to smoke-test the changed screen. Otherwise (pure widget tweak), defer the rebuild to the end of Phase 2.
-- [ ] Tick the microsprint's checkbox here in this plan file.
+**No rebuild** — consumed by MS-08.
+
+---
+
+### MS-05 — `stop-detail-rebuild` (structural)
+
+**Closes:** StopDetail C-1.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-b.jsx:158-214` (function `ScreenStopDetail`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/stop_detail_page.dart`.
+- Catalog row: TODO.md "### 5. stop_detail_page.dart …"
+
+**Delta scope (5 sections to add, in order):**
+1. **MapPlaceholder** (top, 180dp height): use existing flutter_map `FlutterMap` widget with `MapOptions(initialCenter: LatLng(stop.lat, stop.lng), initialZoom: 16)`, a single `MarkerLayer` with one marker at the stop, and `TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'br.com.roteirizadorpro.roteirizador_pro')` + `RichAttributionWidget` per ADR-0016. Wrap in `ClipRRect(borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)))` so it visually anchors as a top section.
+2. **Address + metadata card**: white `Container` with `AppColors.border` 1px + `AppRadii.card` + 16dp padding. Inside: `stop.label` as `headlineSmall` w600, then a `Row` of 3 muted-text items (`Icons.directions_walk` "1.2 km", `Icons.access_time` "5 min", `Icons.phone` "Contato" or blank if absent).
+3. **ActionBtn row** (3 buttons): horizontal `Row` with 3 `_ActionBtn` widgets ("Entregue" green, "Falhou" red, "Próxima" purple). Each is a `Material+InkWell` with icon-above-label layout, ~80dp wide, `AppRadii.card`, distinct colors per state. Wire `onPressed` to placeholder `Navigator.of(context).pop()` for now (full state machine = slice 4 paywall scope).
+4. **Locked PrimaryButton "Iniciar Navegação"**: use `RpButton(locked: true, label: 'Iniciar navegação')` (RpButton already supports `locked` per audit C catalog). Below it, `TextButton(child: Text('Assine para navegar →'), style: TextStyle(color: AppColors.primary))` linking to `/paywall` (not yet a route; use `onPressed: null` with `Tooltip(message: 'Disponível no slice 4')`).
+5. **Move-options card**: white `Container` with `AppColors.border` 1px + `AppRadii.card`. Inside, 3 `ListTile`-style rows: "Tornar próxima parada" / "Mover para o início" / "Mover para o final", each with a leading icon (`Icons.arrow_upward`, `Icons.first_page`, `Icons.last_page`) and `onTap` calling `ref.read(stopsControllerProvider.notifier).reorder(stop.id, target_index)`.
+
+The "Parada N de M" title (already implemented in earlier session) **stays** in the AppBar; the AppBar itself is acceptable here per the prototype's `TopBar` shape (back arrow + title + nothing else), but since the rest of the screen scrolls, swap `AppBar` for `SliverAppBar(pinned: true)` if scrolling looks odd — leave as `AppBar` unless D3 flags it.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/stop_detail_page.dart` (full rewrite)
+- `test/features/stops/presentation/stop_detail_page_test.dart` (rewrite assertions)
+- No new files beyond inline private widget classes inside the page file.
+
+**Test surface:** existing test asserts the old detail body (label headline, lat/lng rows, Excluir/Editar buttons). Rewrite assertions:
+1. Renders the map at top.
+2. Renders address card with label as headline.
+3. Renders 3 ActionBtn row.
+4. Renders locked PrimaryButton + "Assine para navegar →" link.
+5. Renders 3 move-option rows.
+
+**Smoke test on A06 after CHECKPOINT:** open a stop from HomeList → see map + cards + buttons matching the prototype layout. Move-option taps update stop order (verify by going back to HomeList).
+
+---
+
+### MS-06 — `edit-stop-modal-rebuild` (structural)
+
+**Closes:** EditStop C-1.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-e.jsx:471-627` (function `ScreenEditStop`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/edit_stop_page.dart`.
+
+**Delta scope:**
+1. **Switch from `Scaffold` to a modal sheet pattern.** Wrap the body in `DraggableScrollableSheet(initialChildSize: 0.85, minChildSize: 0.5, maxChildSize: 0.95)` over a faded background (`Container(color: AppColors.text.withOpacity(0.4))`). The page is still a route (not a `showModalBottomSheet`) so we keep deep-link compatibility, but the visual mimics a sheet.
+2. **Drag handle** at the top of the sheet (40 wide × 4 tall pill, `AppColors.border` color).
+3. **Header bar**: "Editar parada" left-aligned (fontSize 18 w600), "Concluído" right-aligned button — `TextButton(child: Text('Concluído', color: AppColors.primary))` that triggers save + pop.
+4. **Color tag pill** (mock for now): chip with 4 swatches the user could pick from. Implement as a `Wrap` of 4 `_ColorSwatch` widgets, each a 32×32 circle (`AppColors.primary`/`accent`/`neon`/`success`). The selected swatch has a 2px white ring inside a 2px primary outer ring.
+5. **Address title** (large): `stop.label` as `headlineSmall` w700.
+6. **Gate-code chip**: small chip "Portão / Condomínio" with edit icon.
+7. **Freetext note**: `TextFormField` multi-line, label "Observação", `border: OutlineInputBorder(borderRadius: AppRadii.input)`.
+8. **6 option rows** (each a `RowItem`-style `ListTile`):
+   - Localizador (leading `Icons.gps_fixed`, trailing chevron)
+   - Pacotes (leading `Icons.inventory_2`, trailing stepper -1 / count / +1)
+   - Ordem (leading `Icons.format_list_numbered`, trailing `SegmentedButton<int>` mock)
+   - Tipo (leading `Icons.category`, trailing `SegmentedButton<String>` mock — Residência/Comércio/Devolução)
+   - Horário de chegada (leading `Icons.schedule`, trailing time picker chip)
+   - Tempo na parada (leading `Icons.timer_outlined`, trailing `'5 min'` chip)
+9. **Action footer**: two `GhostButton` rows — "Mudar endereço" + "Duplicar parada".
+
+The implementation can leave row interactivity as stubs (`onTap: () {}`) — the structural skeleton is what closes C-1; functional wiring becomes slice-3 polish.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/edit_stop_page.dart` (full rewrite)
+- `test/features/stops/presentation/edit_stop_page_test.dart` (rewrite assertions)
+
+**Test surface:** assert presence of: drag handle, header "Editar parada" + "Concluído" button, address title, 6 named option rows, 2 footer ghost buttons.
+
+**Smoke test on A06:** open StopDetail → tap "Editar" → see modal sheet with all 6 rows; tap "Concluído" → returns to detail.
+
+---
+
+### MS-07 — `ocr-dark-viewfinder` (structural)
+
+**Closes:** OCR C-1.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-b.jsx:4-100` (function `ScreenOCR`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/ocr_capture_page.dart`.
+
+**Delta scope:**
+1. **Dark scaffold**: `Scaffold(backgroundColor: Color(0xFF0E0E1A))` (matches prototype `#0E0E1A`). No `AppBar`.
+2. **Frosted-glass close button** (top-left): `Positioned(top: MediaQuery.padding.top + 12, left: 12)` containing a 40×40 circle with `BackdropFilter(filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12))` + semi-transparent fill (`Colors.white.withOpacity(0.15)`) + `Icons.close, color: Colors.white`. Tap pops the route (MS-01 made this stack-push from AddStop).
+3. **Mock package label** (centered viewfinder area): a `Container` with a fake address text mock-up, slightly offset to feel like a real label being scanned. Used only when no live camera preview is wired (which it isn't in slice 2 per spec non-goals).
+4. **Dashed scan frame + 4 corner brackets**: a `Stack` over the viewfinder with a `CustomPaint(painter: _ScanFramePainter(accent: AppColors.accent))` drawing a dashed rectangle + 4 L-shaped corner accents in `AppColors.accent` (`#9B6DFF`).
+5. **76×76 white capture button** (bottom-center): `Positioned(bottom: MediaQuery.padding.bottom + 32)` + outer ring 76 (white border 4px) + inner 60 white-filled circle. Tap triggers the existing `image_picker` flow (`pickImage(source: ImageSource.camera)`).
+6. **Result card** (conditional state): when `_stage == OcrStage.result`, render a sheet at the bottom containing the recognized text + two buttons (Editar / Confirmar). The existing implementation already calls ML Kit per slice-2 scope; preserve the recognition logic, just rewrap the result UI in this card.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/ocr_capture_page.dart` (full rewrite)
+- `test/features/stops/presentation/ocr_capture_page_test.dart` (rewrite assertions)
+
+**Test surface:** assert dark background, close button, scan frame, capture button rendered; result card appears when state is `result`.
+
+**Smoke test on A06:** AddStop → "Câmera" chip → see dark viewfinder; tap capture → camera permission prompt → photograph an address label → see result card; tap Confirmar → stop added, return to HomeList.
+
+---
+
+### MS-08 — `add-stops-map-floating-ui` (structural)
+
+**Closes:** AddStopsMap C-1 + C-2 + C-3 (consumes MS-04 RpMiniPin).
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-e.jsx:62-154` (function `ScreenAddStopsMap`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/add_stops_map_page.dart`.
+
+**Delta scope:**
+1. **Remove the Material `AppBar`.** Switch to `Scaffold(extendBodyBehindAppBar: true, body: Stack(...))`.
+2. **Floating top header** (`Positioned(top: MediaQuery.padding.top + 12, left: 12, right: 12)`): `Row` with a 40×40 circular back button (`Material+InkWell`, white bg, `Icons.arrow_back`) + `Expanded` containing a search bar pill (`Container` height 40, white bg, `AppRadii.card`, `Icons.search` 18 + placeholder "Buscar endereço…" + soft `boxShadow`).
+3. **Pin layer**: replace `CircleAvatar` markers with `RpMiniPin(index: i, selected: i == _selectedIndex)` from MS-04.
+4. **Bottom sheet** (`Positioned(bottom: 0, left: 0, right: 0)`): a `Container` with `BoxDecoration(color: white, borderRadius: BorderRadius.vertical(top: AppRadii.sheet), boxShadow: AppShadows.sheet)`. Inside:
+   - Drag handle (40×4 pill).
+   - Selected pin's address text + a small `IconButton(Icons.edit)` for "Editar antes de adicionar".
+   - `RpButton(label: 'Adicionar parada', neon: false)` (full-width).
+   - `RpGhostButton(label: 'Adicionar e editar')` — tapping pushes `/stops/:id/edit` after adding the stop.
+5. **Conditional rendering**: when no pin is selected, show only the floating header + map; when a pin exists, show the bottom sheet. Animate sheet appearance with `AnimatedSwitcher` or `AnimatedSlide` (250ms).
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/add_stops_map_page.dart` (full rewrite)
+- `test/features/stops/presentation/add_stops_map_page_test.dart` (rewrite)
+
+**Test surface:** floating header + search bar present at all times; bottom sheet absent when no pin; bottom sheet present with Adicionar/Editar buttons when a pin exists.
+
+**Smoke test on A06:** AddStop → "Mapa" or wherever this is reached (TBD — see MS-15) → tap map → pin appears with bottom sheet → tap Adicionar → stop count goes up; tap "Adicionar e editar" → routes to EditStop with the new stop.
+
+---
+
+### MS-09 — `map-stops-full-screen` (structural)
+
+**Closes:** MapStops C-1.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-c.jsx:3-197` (function `ScreenMapStops`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/map_stops_page.dart`.
+
+**Delta scope:**
+1. Remove `AppBar`. Full-screen `FlutterMap`.
+2. **Floating top header card** (`Positioned(top: padding.top + 12)`): back arrow + "Rota de hoje · N paradas" title (where N = `stops.length`) + a small stats row + "Adicionar" button routing to `/stops/add-map`.
+3. **"AO VIVO" neon chip** (`Positioned(top: padding.top + 12, right: 12)`): `Container` with `AppColors.neon` background, `AppColors.neonInk` text, 8dp padding, `AppRadii.card`, "AO VIVO" label + pulsing dot animation. Use `AnimationController` with a `Tween<double>` driving opacity 0.4 ↔ 1.0 at 1Hz.
+4. **Map controls column** (`Positioned(right: 12, top: 50% center)`): vertical stack of 3 buttons — zoom +, zoom −, recenter. Each is a 40×40 white circle with shadow. Wire to FlutterMap controller (`mapController.move(...)` for zoom; `mapController.move(currentLocation, currentZoom)` for recenter).
+5. **Bottom action panel** (`Positioned(bottom: 0)`): floating card with the current-stop preview at top, Adicionar + Editar buttons mid, and a gradient "Iniciar navegação" CTA (use `RpButton(neon: true, icon: Icons.navigation, label: 'Iniciar navegação')`). The "Iniciar navegação" tap routes to `/navigate` (existing route).
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/map_stops_page.dart` (full rewrite)
+- `test/features/stops/presentation/map_stops_page_test.dart` (likely create — verify if exists)
+
+**Test surface:** floating header rendered; AO VIVO chip rendered with pulse; map controls rendered; bottom action panel rendered with Iniciar navegação CTA.
+
+**Smoke test on A06:** HomeList → some entry point to MapStops (TBD — verify routing) → see full-screen map with all overlays matching prototype.
+
+---
+
+### MS-10 — `optimize-route-split-layout` (structural)
+
+**Closes:** OptimizeRoute C-1 + C-2.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-e.jsx:157-297` (function `ScreenOptimizeRoute`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/optimize_route_page.dart`.
+
+**Delta scope:**
+1. Remove `AppBar`. Use `Stack` with `extendBodyBehindAppBar: true`.
+2. **Top map area** (`Positioned(top: 0, left: 0, right: 0, height: 460)`): full-bleed `FlutterMap` with optimized route polyline + `RpMiniPin` markers numbered 1..N.
+3. **Close button** (`Positioned(top: padding.top + 12, left: 12)`): 40×40 white circle + `Icons.arrow_back` calling `context.pop()`.
+4. **"ROTA OTIMIZADA" neon badge** (`Positioned(top: padding.top + 12, right: 12)`): `Container` with `AppColors.neon` background, `AppColors.neonInk` text, "ROTA OTIMIZADA" label.
+5. **Overlapping bottom sheet** (`Positioned(bottom: 0, top: 420)` — 40dp overlap with map): `Container(decoration: …borderRadius vertical top, AppShadows.sheet)`. Inside:
+   - Drag handle.
+   - Search bar (filter stops).
+   - Title "São Paulo · 27 paradas" — replace literal with `'<city> · ${stops.length} paradas'`. City TBD; for now, hardcode "São Paulo" since slice 1 ADR-0015 §3 locked SP-only.
+   - Action chips: "Compartilhar rota" + "Carregar veículo" — `OutlinedButton.icon` row. "Compartilhar rota" pushes `/share`. "Carregar veículo" stub (slice-3 polish).
+   - `ListView.builder` of stops with ETA column on the right (mock ETA for now — slice 3 VRP supplies real values).
+6. **Bottom CTA**: keep the existing `RpButton(neon: true, label: 'Iniciar rota', icon: Icons.navigation)` *inside* the sheet (not floating below). Wire it to existing nav-provider chunking logic (already implemented).
+
+The existing `_MetricsRow` widget (distance/duration) can be repurposed inside the sheet header row (above the action chips) or removed if it duplicates the new title row.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/optimize_route_page.dart` (significant rewrite — keep navigation provider chunking logic verbatim, restructure rest)
+- `test/features/stops/presentation/optimize_route_page_test.dart` (rewrite assertions)
+
+**Test surface:** map area + close button + neon badge + overlapping sheet with title/chips/stops + Iniciar rota CTA.
+
+**Smoke test on A06:** Add 5+ stops → Otimizar rota → arrive at OptimizeRoute screen → verify visual match with prototype. Tap Compartilhar rota → routes to /share.
+
+---
+
+### MS-11 — `reorder-full-map-lasso` (structural)
+
+**Closes:** Reorder C-1.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-e.jsx:630-737` (function `ScreenReorder`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/reorder_page.dart`.
+
+**Delta scope:**
+1. Remove `AppBar`. Full-screen `Stack` over `FlutterMap`.
+2. **Route polyline** + numbered `RpMiniPin` markers (1..N).
+3. **Lasso ellipse**: a `CustomPaint(painter: _LassoPainter(points: _draggedPoints, color: AppColors.error))` — dashed red stroke. The painter renders the convex hull of `_draggedPoints` as an ellipse with a dashed stroke.
+4. **Gesture detection**: `GestureDetector(onPanUpdate: …)` accumulating points into `_draggedPoints`. When the user releases (`onPanEnd`), compute which stops fall inside the lasso (point-in-polygon test on map coordinates) and mark them as `_selectedGroup`.
+5. **Floating dispatcher card** (`Positioned(top: padding.top + 12)`): a small notification-style card explaining the lasso interaction ("Desenhe um círculo ao redor das paradas que deseja agrupar"). Dismiss-able.
+6. **Undo pill button** (`Positioned(left: 12, centerVertical)`): vertical button "Desfazer" with `Icons.undo`. Reverts the last reorder action.
+7. **Bottom panel** (`Positioned(bottom: 0)`): drag handle + `'<count> paradas selecionadas'` label + `RpGhostButton(label: 'Desenhar o grupo seguinte')` + `RpButton(neon: true, label: 'Reotimizar rota')`. The neon button triggers re-optimization (calls existing optimize flow).
+8. **Drag-and-drop reorder fallback**: if the lasso interaction is too complex for slice-2 polish, ship the lasso skeleton (visual only) and keep the existing `ReorderableListView.builder` behavior accessible via a "Modo lista" toggle in the bottom panel. **Decision deferred to D2 implementer** — D1 should flag this and D4 reviewer should weigh complexity vs delivery.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/reorder_page.dart` (significant rewrite)
+- `test/features/stops/presentation/reorder_page_test.dart` (rewrite)
+
+**Test surface:** map rendered with route polyline; floating notification card; bottom panel with Reotimizar button; pan gesture on map registers lasso points.
+
+**Smoke test on A06:** OptimizeRoute → reorder entry point → draw a circle around 3 stops → see them highlighted → tap Reotimizar.
+
+---
+
+### MS-12 — `share-named-channels` (structural)
+
+**Closes:** ShareSheet C-1.
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-b.jsx:394-451` (function `ScreenShare`).
+- Dart file: `apps/mobile/lib/features/share/presentation/share_sheet.dart`.
+
+**Delta scope:**
+1. **Replace the single `Card` of selectable route text** with 3 named channel cards in a `Column`:
+2. **Card 1 — WhatsApp**: white `Container` with `AppColors.border` 1px + `AppRadii.card` + `AppShadows.card`. Inside: 48×48 green circle (`Color(0xFF25D366)`) with `Icons.share` (substitute for WhatsApp icon if no asset; or use `FaIcon(FontAwesomeIcons.whatsapp)` if `font_awesome_flutter` is available — verify via Context7 before adding the dep). Title "WhatsApp" + subtitle "Compartilhar via app". Trailing `Icons.chevron_right`. Tap calls `SharePlus.instance.share(ShareParams(text: buildRouteText(stops), subject: 'Minha rota'))` with `text/plain` mime — system selects WhatsApp from the share menu.
+3. **Card 2 — Copiar link de download**: same chrome. Inside: `Icons.link` 48×48 in `AppColors.primaryLight` circle. Title "Copiar link de download" + subtitle showing the URL `'roteirizadorpro.com.br/download'`. Trailing `IconButton(Icons.copy)` calling `Clipboard.setData(ClipboardData(text: 'https://roteirizadorpro.com.br/download'))` + a `ScaffoldMessenger.showSnackBar(SnackBar(content: Text('Link copiado!')))` confirmation.
+4. **Card 3 — Mostrar QR Code**: same chrome. Inside: `Icons.qr_code_2` 48×48. Title "Mostrar QR Code" + subtitle "Escaneie para baixar". Tap expands the card to show a generated QR pointing at `https://roteirizadorpro.com.br/download` (use `qr_flutter` — Context7 first before adding the dep; if rejected, ship as a placeholder `Container(child: Icon(Icons.qr_code_2, size: 200))` with a TODO comment naming the dep).
+5. **Keep the existing route text dump** as a secondary section at the bottom, marked as "Pré-visualização do texto" — useful for debugging.
+
+**Decision on `font_awesome_flutter` and `qr_flutter`:** Context7 those packages before adding. They are eligible per ADR-0015 cost ceiling (both are free, on-device, no per-request cost). If rejected, fall back to Material icon + placeholder QR.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/share/presentation/share_sheet.dart` (significant rewrite)
+- `test/features/share/share_sheet_test.dart` (rewrite assertions)
+- `apps/mobile/pubspec.yaml` IF a new dep is added (Context7-validated, with version pin)
+- `docs/decisions/0015-m2-plan-and-libraries.md` IF a new dep is added (amend the table)
+
+**Test surface:** 3 cards rendered; WhatsApp card tap fires `SharePlus.instance.share` (mock injection); Copy card tap writes to `Clipboard` (mock); QR card tap expands.
+
+**Smoke test on A06:** Settings → Indicações → Indicar para um amigo → ShareSheet → see 3 cards; tap WhatsApp → system share dialog; tap Copy → snackbar; tap QR → see code.
+
+---
+
+### MS-13 — `home-empty-top-bar-and-fab`
+
+**Closes:** HomeEmpty C-1 + C-2 (consumes MS-02 + MS-03).
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-a.jsx:133-156` (function `ScreenHomeEmpty`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/home_empty_page.dart`.
+
+**Delta scope:**
+1. Replace `AppBar(title: const Text('Rota de hoje'))` with `HomeTopBar(eta: null, count: 0)` from MS-02. The `PreferredSizeWidget` interface lets it slot directly into `Scaffold.appBar:`.
+2. Replace `FloatingActionButton(onPressed: …, child: Icon(Icons.add))` with `RpFab(onPressed: () => _addStop(context), tooltip: 'Adicionar parada')` from MS-03.
+3. Optional Important I-1 (custom `EmptyIllustration` SVG): leave `Icon(Icons.local_shipping_outlined)` as-is for now; this is not a Critical and the SVG would require an additional asset import. Marked as slice-3 polish debt in TODO.md.
+
+**D2 file allowlist:** `home_empty_page.dart` + `test/features/stops/presentation/home_empty_page_test.dart` (update if assertions reference AppBar by type).
+
+**Smoke test on A06:** Fresh install → see HomeEmpty with the new top bar (chips visible) + gradient FAB.
+
+---
+
+### MS-14 — `home-list-top-bar`
+
+**Closes:** HomeList C-1 (consumes MS-02).
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-a.jsx:257-276` (function `ScreenHomeList`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/home_list_page.dart`.
+
+**Delta scope:**
+1. Replace `AppBar(title: const Text('Rota de hoje'), actions: …Chip(count)…)` with `HomeTopBar(eta: <computed ETA or '~14:30' placeholder>, count: stops.length, showMore: true)` from MS-02. ETA computation TBD (slice 3 VRP supplies); for now, pass a hardcoded placeholder or `null`.
+2. Wire the `showMore: true` IconButton (MoreVertical) to a `PopupMenuButton` with options like "Limpar rota" (calls `ref.read(stopsControllerProvider.notifier).clear()`).
+
+**D2 file allowlist:** `home_list_page.dart` + `test/features/stops/presentation/home_list_page_test.dart`.
+
+**Smoke test on A06:** Add 3 stops → HomeList shows new top bar with ETA chip (placeholder OK) + count chip + more menu.
+
+---
+
+### MS-15 — `add-stop-sheet-chips-suggestions` (structural)
+
+**Closes:** AddStop C-1 + C-2 + C-3 (C-4 already closed by MS-01).
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-a.jsx:279-364` (function `ScreenAddStop`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/add_stop_page.dart`.
+
+**Delta scope:**
+1. **Switch from full-screen `Scaffold` to a modal bottom sheet route.** Two options:
+   - (a) Keep AddStop as a route (`/stops/add`) and render its body as a `DraggableScrollableSheet` with a dark scrim background (like MS-06 EditStop pattern).
+   - (b) Convert to `showModalBottomSheet` invoked from HomeList's FAB tap.
+   - **Recommendation in D1: (a)** — keeps deep-link compat with router + matches MS-06 pattern. D2 implementer follows (a).
+2. **Drag handle** at top of the sheet (40 wide × 4 tall, `AppColors.border`).
+3. **Title "Adicionar parada"** (fontSize 18 w600, left-aligned).
+4. **Address input** (`RpInput` widget already exists): focused state, prefix `Icons.search`, placeholder "Digite o endereço ou CEP...". When the input has ≥3 chars, show the suggestions list (item 6 below).
+5. **3 method chips** (Teclado / Voz / Câmera): horizontal `Row` of 3 equal-width chips, each 56dp tall with `AppRadii.input` radius. Selected = `AppColors.primaryLight` bg + `AppColors.primary` 1.5px border + `AppColors.primary` text/icon. Default selected = "Teclado". Tap behavior:
+   - "Teclado" → no nav (current state).
+   - "Voz" → `context.push('/stops/voice')` (push semantics from MS-01).
+   - "Câmera" → `context.push('/stops/ocr')` (push semantics from MS-01).
+6. **Suggestions list** (when input ≥3 chars): a `Column` of 4 mock results in a `Container` with `AppColors.border` 1px + `AppRadii.card`. First result highlighted with `AppColors.primaryLight` bg + `AppColors.primary` text. Each row: `Icons.place_outlined` 18 + truncated address text. Real geocoding (Nominatim) is **slice-3 polish per spec non-goal** — these are hardcoded mocks for slice 2: `['Rua Haddock Lobo, 1500 · São Paulo', 'Rua Haddock Lobo, 150 · São Paulo', 'Av. Henrique Lobo, 200 · São Paulo', 'Rua Hadid Lobo, 15 · Guarulhos']`. Tap a suggestion → populate input + ready to submit.
+7. **Add button** at the bottom (inside the sheet): `RpButton(neon: false, label: 'Adicionar parada')`. Tap calls existing `StopsController.add(...)` flow then `context.pop()`.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/add_stop_page.dart` (full rewrite)
+- `test/features/stops/presentation/add_stop_page_test.dart` (rewrite assertions)
+- Possibly `apps/mobile/lib/app.dart` if the route needs `routePushOverlay: true` style; expected: not needed since we render the scrim inside the page widget.
+
+**Test surface:** drag handle + 3 chips + suggestions list (when input has text) + Add button. Chip tap on Voz/Câmera fires `context.push` to correct routes.
+
+**Smoke test on A06:** HomeEmpty → tap FAB → see modal sheet over blurred home; tap chip Voz → ScreenVoice; back → still on AddStop sheet; type address → see suggestions; tap a suggestion → input populated; tap Adicionar parada → stop count goes up, returns to HomeList.
+
+---
+
+### MS-16 — `voice-pulsing-mic` (structural)
+
+**Closes:** Voice C-1 + C-2 + C-3 (C-1 back portion was MS-01).
+
+**D1 inputs:**
+- Prototype: `prototipo/screens-a.jsx:367-411` (function `ScreenVoice`).
+- Dart file: `apps/mobile/lib/features/stops/presentation/voice_capture_page.dart`.
+
+**Delta scope:**
+1. **Switch from Material `AppBar` to a flat `TopBar`** — create a small private `_FlatTopBar` widget in the file or use a simple `Row` at the top of the body with a back IconButton + title text. The back action calls `context.pop()` (push-stack now thanks to MS-01).
+2. **Pulsing mic (centerpiece)**: a 200×200 `Stack` widget centered in the body. Inside:
+   - **3 pulse rings** (`Positioned.fill`): each is a `AnimatedContainer` (or use `TweenAnimationBuilder<double>` for opacity/scale) with `AppColors.primaryLight` background, decoration `BoxShape.circle`. Drive `scale: 0.8 → 1.4` and `opacity: 0.7 → 0` over 1.6s, staggered with 0.5s offsets between rings. The animations match `@keyframes rpPulse` from `Roteirizador Pro.html:13-19` and `rpPulseDot` from `:17-19`.
+   - **100×100 gradient mic circle** (centered): `Container` with `LinearGradient(begin: topLeft, end: bottomRight, colors: [AppColors.accent, AppColors.primary])` (matches `accent → primary` gradient) + `Icon(Icons.mic, size: 42, color: Colors.white)`.
+3. **Transcript area** (below the mic): a `Container` with `AppColors.surface` background + `AppColors.border` 1px border + `AppRadii.card`. Inside, the live transcript text (from `speech_to_text` package, already wired) styled `italic` + `AppColors.text`. When no transcript yet, show muted placeholder "Aguardando você falar…".
+4. **Two-button bottom row** (replace single CTA): `Row` of:
+   - `RpGhostButton(label: 'Parar')` — stops the `speech_to_text` listener.
+   - `TextButton(label: 'Tentar novamente')` — resets the transcript and restarts the listener.
+5. **Confirm action**: after the listener stops with a non-empty transcript, an additional `RpButton(label: 'Adicionar parada')` appears at the very bottom that adds the stop via `StopsController.add(...)` then `context.pop()`. This replaces the implicit single CTA that was there before.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/features/stops/presentation/voice_capture_page.dart` (full rewrite)
+- `test/features/stops/presentation/voice_capture_page_test.dart` (rewrite assertions — likely already has `MockSpeechToText` style fakes; keep the existing test substrate but assert the new widget tree)
+
+**Test surface:** flat top bar with back arrow; centered pulsing-mic widget (assert via `find.byKey(const Key('voice-mic-pulse'))` or by widget type); transcript container; Parar + Tentar novamente row; conditional Adicionar parada button.
+
+**Smoke test on A06:** AddStop sheet → Voz chip → ScreenVoice opens with pulsing mic animation; speak an address ("Rua Augusta cinco mil"); transcript appears; tap Parar; tap Adicionar parada → stop count goes up.
+
+---
+
+### Phase 2 end of microsprints
+
+After MS-16 commits and CHECKPOINT closes, Phase 2 is complete. Verify:
+
+- [ ] All 16 MS rows in the master table at the top of Phase 2 have `[x]`.
+- [ ] All 21 Criticals (22 minus NavigatePage C-1) in TODO.md catalog have `→ FIXED (commit <sha>)`.
+- [ ] `flutter analyze --no-pub` 0 issues.
+- [ ] `flutter test` all green.
+- [ ] `bun run typecheck` clean.
+
+Then advance to Phase 3.
 
 ---
 
