@@ -154,8 +154,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(_currentScreen(tester), 'Parada 1 de 2');
 
-      // Tap the Editar button (FilledButton.icon with "Editar" label).
-      await tester.tap(find.widgetWithText(FilledButton, 'Editar'));
+      // MS-05 moved Editar to an AppBar action icon (the body no longer
+      // surfaces Excluir/Editar buttons — prototype ScreenStopDetail doesn't
+      // have them; AppBar action keeps the route reachable for back-nav).
+      await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
 
       // EditStopPage's AppBar is "Editar parada".
