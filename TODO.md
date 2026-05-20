@@ -381,7 +381,7 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ### 15. reorder_page.dart ↔ ScreenReorder — 🔴 HAS CRITICAL (structural)
 - **C-1 (Critical, structural):** Plain `ReorderableListView.builder` + AppBar instead of full-screen map with route polyline + numbered pins + dashed lasso ellipse + dispatcher-notification card + Undo pill + bottom panel (count, "Desenhar grupo seguinte" GhostBtn, neon "Reotimizar rota" PrimaryBtn). `reorder_page.dart:14-66` vs `prototipo/screens-e.jsx:630-737`. The lasso reorder is a fundamentally different interaction model.
-- M-1: "Concluir" checkmark uses `context.go('/home')` (replace) where `pop` is correct.
+- M-1 → FIXED (commit 2124b7f, MS-01): "Concluir" now uses `canPop() ? pop() : go('/home')` fallback-safe.
 
 ### 16. route_complete_page.dart ↔ ScreenRouteComplete — 🟡 IMPORTANT-ONLY
 - Tokens, card shape, gradient check, stat tiles all match.
@@ -401,8 +401,8 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - **C-1 (Critical):** System share sheet (`SharePlus.instance.share`) + selectable text dump instead of named-channel ShareCard layout: (a) WhatsApp card (green circle icon), (b) "Copiar link de download" with URL + copy button, (c) "Mostrar QR Code" expandable card. `share_sheet.dart:41-45` vs `prototipo/screens-b.jsx:394-451`.
 - I-1: `context.go('/settings')` back-nav semantics (pop preferred).
 
-### A. apps/mobile/lib/app.dart (router cross-cutting) — 🔴 HAS CRITICAL
-- **C-1 (Critical):** All routes use `GoRoute` + `context.go` (stack-replace). Routes that should push (back returns to parent, not exits app): `/stops/add` (`app.dart:72`), `/stops/voice` (`app.dart:75`), `/stops/ocr` (`app.dart:79`), `/stops/:id/edit` (`app.dart:89`). Fix: change navigation calls in CALLERS from `context.go` to `context.push` for these 4 destinations; router itself stays as-is (GoRoute supports both semantics depending on caller).
+### A. apps/mobile/lib/app.dart (router cross-cutting) — ✅ CLOSED (MS-01)
+- **C-1 (Critical) → FIXED (commit 2124b7f, MS-01)**: 10 caller files migrated to Pattern A (`context.push` for parent → child push) + Pattern B (`canPop() ? pop() : go(parent)` fallback-safe back). Sibling-nav (login ↔ register) and bottom-nav root (home ↔ settings) intentionally kept on `context.go`. Verified by D3 fidelity re-audit + D4 code-reviewer.
 
 ### B. apps/mobile/lib/core/theme/app_theme.dart — ✅ FIEL
 - All 18 color tokens, 4 radii, 1 shadow match `prototipo/tokens.js` 1:1.
@@ -418,14 +418,10 @@ Detailed plan: `docs/08-ROADMAP.md`.
 
 ---
 
-### Triage gate (ADR-0021 plan §1.4) — DECISION REQUIRED
+### Triage gate (ADR-0021 plan §1.4) — DECISION: (a) FULL REMEDIATION
 
-**Total: 22 Criticals. Actionable: 21 (NavigatePage C-1 pre-scoped by ADR-0017).**
+**Total: 22 Criticals. Actionable: 21 (NavigatePage C-1 pre-scoped by ADR-0017).** Decision taken 2026-05-20: full remediation via the 16 microsprints inlined in `docs/superpowers/plans/2026-05-19-slice-2-fidelity-remediation.md`. No timeline constraint per Eduardo (memory: time estimates are not constraints).
 
-Threshold of 20 exceeded → Phase 2 paused for Eduardo's decision between:
+### Microsprint execution log
 
-- **(a) Full remediation** (~2-3 weeks): 21 microsprints, each with full pipeline (PRE-FLIGHT → fidelity-check → implementer → re-check → code-review → commit). Estimated 6 microsprints can be batched as "structural rebuild from sheet/map pattern" (StopDetail, EditStop, OCR, AddStopsMap, MapStops, OptimizeRoute, Reorder, ShareSheet — actually 8). Remaining 13 are smaller widget-level fixes.
-- **(b) Partial remediation + ship**: cherry-pick Criticals that block slice-2 acceptance criteria (voice+OCR reachability → C-2 of AddStop; back-nav → A-1; HomeTopBar → C-1 of HomeEmpty/HomeList). Tag `v1.1.0-partial`, document remaining Criticals as `v1.1.x` follow-up debt.
-- **(c) Hybrid**: structural rebuilds (6-8 telas) + back-nav fix as one big batch; lighter visual fixes as slice-3 polish.
-
-Awaiting decision.
+- **MS-01 router back-nav** → ✅ commit `2124b7f` — closed A-1 + Reorder M-1 + back-nav portions of AddStop C-4, Voice C-1, OCR back, Edit back, StopDetail back. 1/16 microsprints done. 20 Criticals remaining.
