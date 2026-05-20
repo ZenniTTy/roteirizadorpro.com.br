@@ -17,6 +17,7 @@ import 'features/stops/presentation/ocr_capture_page.dart';
 import 'features/stops/presentation/optimize_page.dart';
 import 'features/stops/presentation/optimize_route_page.dart';
 import 'features/stops/presentation/reorder_page.dart';
+import 'features/stops/presentation/route_complete_page.dart';
 import 'features/stops/presentation/stop_detail_page.dart';
 import 'features/stops/presentation/voice_capture_page.dart';
 
@@ -62,6 +63,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const OptimizeRoutePage(),
       ),
       GoRoute(path: '/navigate', builder: (_, __) => const NavigatePage()),
+      GoRoute(
+        path: '/route-complete',
+        builder: (_, __) => const RouteCompletePage(),
+      ),
       GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
       GoRoute(
         path: '/stops/voice',

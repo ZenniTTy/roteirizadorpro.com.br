@@ -89,6 +89,9 @@ Important:
 - [ ] `NavigatePage` stop metadata chips — prototype `prototipo/screens-e.jsx:414-421` shows `📦 Pequeno` and `🛍️ Sacola` chips per stop; `Stop` domain model has no `packageSize` / `bagType` fields yet. Data-model gap.
 - [ ] `NavigatePage` AppBar vs full-screen — prototype `prototipo/screens-e.jsx:302` uses `<Phone hideNav>` (full-screen with no AppBar) plus a bottom black bar at line 442-464 (`12 min / 09:41 · 0,49 km`); implementation uses a standard `AppBar` because the turn-by-turn map mock requires Mapbox Nav SDK (ADR-0017 §6 deferral). Restore when in-app turn-by-turn is approved.
 - [ ] `NavigatePage` button radius — prototype lines 426/433 use `borderRadius: 12` (`AppRadii.input`); implementation uses Material's default `FilledButton` pill (`AppRadii.btn`=24). Adjust when the Falhou/Entregue per-stop pair lands.
+- [ ] `RouteCompletePage` savings banner absent — prototype `prototipo/screens-e.jsx:813-829` shows neon-light banner "Você economizou 1h 24min · 35 km 🎉". Requires unoptimized-baseline comparison from slice 3 VRP solver. **Must ship before M2 closes.**
+- [ ] `RouteCompletePage` faded `BigMap` background — prototype lines 745-746. `BigMap` widget doesn't exist yet; add when `flutter_map` static decorative layer is integrated.
+- [ ] `RouteCompletePage` microcopy — prototype line 833 says "Voltar para casa"; implementation uses "Nova rota". Prototype line 838 says "Compartilhar conquista →"; implementation uses "Compartilhar". Client sign-off before release.
 - [ ] `HomeEmptyPage` `BottomNav` indicator pill geometry — Material 3 `NavigationBar` renders an oval-fit-to-icon indicator; prototype `prototipo/ui.jsx:193–196` specifies an explicit `64×32 borderRadius:16` pill. Re-audit Section C finding.
 - [ ] `HomeBottomNav` border-top color — prototype `prototipo/ui.jsx:204` sets `borderTop: 1px solid RP.border` (`#E8E4F0`); Material 3 default may resolve differently. Re-audit Section C finding.
 - [ ] `StopDetailPage` body fullness — prototype `prototipo/screens-b.jsx:162–210` has map placeholder + address card with DISTÂNCIA/TEMPO/CONTATO rows + Entregue/Falhou/Próxima action triplet + locked nav button + move-options list; implementation has only Excluir/Editar buttons. Pre-existing gap (not introduced by `8a08386`); restore in slice 3 polish pass.
@@ -102,6 +105,8 @@ Minor (post-merge polish):
 - [ ] `StopListItem` address complement subtitle (data-model gap; introduce `Stop.complement` when prototype card semantics are fully restored).
 - [ ] `OptimizeRoutePage` title — prototype `prototipo/screens-e.jsx:254` reads `"São Paulo · 27 paradas"` (city name prefix); implementation metrics row has no city label. Track for slice 3 when reverse geocode lands.
 - [ ] `OptimizeRoutePage` sheet shadow — `prototipo/tokens.js:27` declares `sheetShadow: '0 -8px 32px rgba(108,63,197,0.16)'`; absent in current implementation (no sheet container). Restore alongside drag-handle when the sheet lands.
+- [ ] `RouteCompletePage` confetti accents — prototype `prototipo/screens-e.jsx:749-763` shows 6 colored 8×14 rotated rectangles at fixed percentage positions (neon, primary, warning, success, accent, neonDark). Decorative only.
+- [ ] `RouteCompletePage` neon ring around check circle — prototype lines 784-787, `2px solid neon` outset at `inset: -6 borderRadius: 42 opacity: 0.6`. Decorative.
 
 Sub 2d (Optimization + Nav, plan tasks 26-32) and Sub 2e (Periféricos, plan tasks 33-34): pending; details verbatim in the plan. Release tasks 35-41 follow.
 
