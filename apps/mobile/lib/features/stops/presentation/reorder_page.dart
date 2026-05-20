@@ -155,6 +155,9 @@ class _ReorderPageState extends ConsumerState<ReorderPage> {
               stops.where((s) => s.isGeocoded).toList(growable: false);
           final points = [for (final s in geocoded) LatLng(s.lat, s.lng)];
           final topPad = MediaQuery.of(context).padding.top;
+          final lassoCentroid = _draggedPoints.isEmpty
+              ? Offset.zero
+              : _polygonCentroid(_draggedPoints);
 
           return Stack(
             children: [
@@ -185,8 +188,8 @@ class _ReorderPageState extends ConsumerState<ReorderPage> {
                 ),
               if (_selectedStopIds.isNotEmpty && _draggedPoints.isNotEmpty)
                 Positioned(
-                  left: _polygonCentroid(_draggedPoints).dx - 14,
-                  top: _polygonCentroid(_draggedPoints).dy - 14,
+                  left: lassoCentroid.dx - 14,
+                  top: lassoCentroid.dy - 14,
                   child: _LassoBadge(count: _selectedStopIds.length),
                 ),
               if (_draggedPoints.isNotEmpty)
