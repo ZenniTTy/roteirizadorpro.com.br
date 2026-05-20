@@ -414,13 +414,7 @@ class _BottomSheet extends StatelessWidget {
             topLeft: Radius.circular(AppRadii.sheet),
             topRight: Radius.circular(AppRadii.sheet),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x296C3FC5),
-              blurRadius: 32,
-              offset: Offset(0, -8),
-            ),
-          ],
+          boxShadow: AppShadows.sheetTop,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

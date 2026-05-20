@@ -74,6 +74,19 @@ class AppShadows {
       offset: Offset(0, 4),
     ),
   ];
+
+  /// Upward shadow for bottom sheets that sit over a map or a darker
+  /// canvas. Mirrors `prototipo/tokens.js:27` `sheetShadow`:
+  /// `0 -8px 32px rgba(108,63,197,0.16)`. Used by OptimizeRoute (MS-10).
+  /// MS-11 Reorder uses a 24-px blur variant defined inline at the call
+  /// site because `screens-e.jsx:720` specifies that local override.
+  static const List<BoxShadow> sheetTop = [
+    BoxShadow(
+      color: Color(0x296C3FC5),
+      blurRadius: 32,
+      offset: Offset(0, -8),
+    ),
+  ];
 }
 
 class AppTheme {
