@@ -58,6 +58,11 @@ class AppShadows {
   static const List<BoxShadow> logo = [
     BoxShadow(color: Color(0x4D6C3FC5), blurRadius: 24, offset: Offset(0, 8)),
   ];
+
+  static const List<BoxShadow> fab = [
+    BoxShadow(color: Color(0x526C3FC5), blurRadius: 24, offset: Offset(0, 8)),
+    BoxShadow(color: Color(0x2E6C3FC5), blurRadius: 6, offset: Offset(0, 2)),
+  ];
 }
 
 class AppTheme {
