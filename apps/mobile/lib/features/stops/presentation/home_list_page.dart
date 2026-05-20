@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/rp_button.dart';
+import '../domain/stop.dart';
 import '../state/stops_controller.dart';
 import 'shared/home_bottom_nav.dart';
 import 'shared/stop_list_item.dart';
@@ -13,7 +16,6 @@ class HomeListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncStops = ref.watch(stopsControllerProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -49,19 +51,6 @@ class HomeListPage extends ConsumerWidget {
         ),
       ),
       bottomNavigationBar: const HomeBottomNav(),
-      persistentFooterButtons: [
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: asyncStops.maybeWhen(
-              data: (s) => s.length < 2 ? null : () => context.go('/optimize'),
-              orElse: () => null,
-            ),
-            icon: const Icon(Icons.auto_awesome),
-            label: const Text('Otimizar rota'),
-          ),
-        ),
-      ],
       body: SafeArea(
         child: stopsAsyncView(
           asyncStops,
@@ -72,38 +61,88 @@ class HomeListPage extends ConsumerWidget {
                 child: Text('Nenhuma parada ainda. Toque em Adicionar.'),
               );
             }
-            return ListView.separated(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: stops.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final stop = stops[index];
-                return Dismissible(
-                  key: ValueKey(stop.id),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    color: theme.colorScheme.errorContainer,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Icon(
-                      Icons.delete_outline,
-                      color: theme.colorScheme.onErrorContainer,
+            // Per prototipo/screens-a.jsx:257-275: list of cards with an
+            // 8-px gap and an "Otimizar rota" PrimaryButton (neon) pinned
+            // in a white container above the BottomNav.
+            return Column(
+              children: [
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    itemCount: stops.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (rowContext, index) => _StopRow(
+                      index: index,
+                      stop: stops[index],
+                      onRemove: () => ref
+                          .read(stopsControllerProvider.notifier)
+                          .remove(stops[index].id),
+                      onTap: () => rowContext.go('/stops/${stops[index].id}'),
                     ),
                   ),
-                  onDismissed: (_) => ref
-                      .read(stopsControllerProvider.notifier)
-                      .remove(stop.id),
-                  child: StopListItem(
-                    index: index,
-                    stop: stop,
-                    onTap: () => context.go('/stops/${stop.id}'),
+                ),
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: RpButton(
+                    label: 'Otimizar rota',
+                    icon: const Icon(Icons.auto_awesome),
+                    neon: true,
+                    onPressed:
+                        stops.length < 2 ? null : () => context.go('/optimize'),
                   ),
-                );
-              },
+                ),
+              ],
             );
           },
         ),
       ),
+    );
+  }
+}
+
+class _StopRow extends StatelessWidget {
+  const _StopRow({
+    required this.index,
+    required this.stop,
+    required this.onRemove,
+    required this.onTap,
+  });
+
+  final int index;
+  final Stop stop;
+  final VoidCallback onRemove;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: ValueKey(stop.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        decoration: BoxDecoration(
+          color: AppColors.error,
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(Icons.delete_outline, color: Colors.white),
+            SizedBox(width: 6),
+            Text(
+              'Excluir',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+      onDismissed: (_) => onRemove(),
+      child: StopListItem(index: index, stop: stop, onTap: onTap),
     );
   }
 }

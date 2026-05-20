@@ -157,6 +157,10 @@ This ADR governs the **plan**. Each slice's local design lives in its own ADR, f
 
 The decision rule for whether a slice needs its own ADR: **any new dependency, any new external service, any pattern future agents would need to understand → ADR.** Pure feature work within an existing pattern → no ADR, just the slice's session log.
 
+### Slice-2 schema shape promotion (note, 2026-05-19)
+
+`OptimizeResponseSchema` was promoted from the M1 placeholder (`{ status: 'not_implemented', message: String }`) to the wire-final shape (`{ optimizedOrder: int[], totalDistanceM: number, totalDurationS: number }`) inside slice 2 (commits `c45f742` + `7437c1a`), even though the real solver is slice 3 work per item 6 above. The slice-2 handler returns the input order with `totalDistanceM=0` and `totalDurationS=0` as a 200 mock; slice 3 will swap the handler implementation only — the schema does not change. This is intentional: shipping the final response shape early lets the mobile DTO (`OptimizeResult` in `optimize_controller.dart`) and the consumer screens (`OptimizeRoutePage`, `RouteCompletePage`) bind against the canonical contract from day one and avoid a second mobile-side migration when slice 3 lands. The ADR-0013 mirror contract is satisfied: the TypeBox schema change and its Dart consumer ship in the same commit set.
+
 ## References
 
 - Context7: `/fleaflet/flutter_map` (queried 2026-05-13 — TileLayer + OSM usage, attribution patterns).
