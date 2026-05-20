@@ -21,11 +21,32 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('NAVEGAÇÃO'), findsOneWidget);
-    expect(find.textContaining('ENDEREÇO DE CASA'), findsOneWidget);
-    expect(find.textContaining('PAGAMENTOS'), findsOneWidget);
-    expect(find.textContaining('CONTA'), findsOneWidget);
-    expect(find.text('Sair da conta'), findsOneWidget);
+    // skipOffstage: false because the 5-section ListView pushes Conta
+    // below the 600×800 default test viewport.
+    expect(
+      find.textContaining('NAVEGAÇÃO', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('ENDEREÇO DE CASA', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('INDICAÇÕES', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('PAGAMENTOS', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('CONTA', skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Sair da conta', skipOffstage: false),
+      findsOneWidget,
+    );
     expect(find.text('Waze'), findsOneWidget);
     expect(find.text('Google Maps'), findsOneWidget);
   });

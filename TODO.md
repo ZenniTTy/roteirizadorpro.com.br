@@ -111,6 +111,11 @@ Minor (post-merge polish):
 - [ ] `SettingsPage` — "Conta" section currently shows only "Sair da conta"; prototype `prototipo/screens-b.jsx:367-370` has E-mail (display), Alterar senha, Minha assinatura. Add as disabled stubs once the post-M2 account flow lands.
 - [ ] `SettingsPage` — section card visual: prototype `prototipo/screens-b.jsx:351` wraps each section in a white container with `border: 1px solid border` + `borderRadius: rCard (16)`. Implementation uses bare `ListTile` rows with `Divider` separators. Restore the card chrome.
 - [ ] `SettingsPage` — row label drift: prototype `prototipo/screens-b.jsx:361` uses "App de GPS padrão" as the row label; implementation uses only the section header "Aplicativo de navegação" with no row label inside. Client sign-off on the copy choice.
+- [ ] `ShareSheet` — WhatsApp branded card from `prototipo/screens-b.jsx:406-409` with pre-composed message. Android's native share sheet routes there generically, but without the pre-filled text.
+- [ ] `ShareSheet` — "Copiar link de download" card from prototype lines 413-427 with `roteirizadorpro.com.br/download` copy + ephemeral "Copiado!" feedback pill (`RP.success` / `RP.successBg`).
+- [ ] `ShareSheet` — QR Code card + expanded panel from prototype lines 431-447. Referral QR is post-M2 marketing.
+- [ ] `ShareSheet` — referral subtitle "Passe o link para outro motoboy e ganhe um mês grátis quando ele assinar." (`prototipo/screens-b.jsx:401`). Currently absent.
+- [ ] `ShareSheet` — `shareFn` typedef in `share_sheet.dart` uses positional `(text, {subject})` while `share_plus` 12.x canonical API is `SharePlus.instance.share(ShareParams)`. Production path wraps correctly; the typedef diverges only at the test injection boundary. Either align the typedef to take `ShareParams` directly or accept the wrapping shim. Code-correctness item only.
 
 Sub 2d (Optimization + Nav, plan tasks 26-32) and Sub 2e (Periféricos, plan tasks 33-34): pending; details verbatim in the plan. Release tasks 35-41 follow.
 

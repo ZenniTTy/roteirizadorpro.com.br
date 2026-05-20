@@ -7,6 +7,7 @@ import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/settings/presentation/settings_page.dart';
+import 'features/share/presentation/share_sheet.dart';
 import 'features/stops/presentation/add_stop_page.dart';
 import 'features/stops/presentation/add_stops_map_page.dart';
 import 'features/stops/presentation/edit_stop_page.dart';
@@ -67,6 +68,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
         path: '/route-complete',
         builder: (_, __) => const RouteCompletePage(),
       ),
+      GoRoute(path: '/share', builder: (_, __) => const ShareSheet()),
       GoRoute(path: '/stops/add', builder: (_, __) => const AddStopPage()),
       GoRoute(
         path: '/stops/voice',
