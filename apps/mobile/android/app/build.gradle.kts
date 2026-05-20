@@ -59,6 +59,16 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
+            // R8 strip would remove ML Kit language-specific classes that
+            // `google_mlkit_text_recognition` references in its dispatch but
+            // does not bundle by default (Latin-only per ADR-0015). The
+            // dontwarn rules live in proguard-rules.pro.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
