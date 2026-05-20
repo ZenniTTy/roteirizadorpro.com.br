@@ -310,3 +310,122 @@ Detailed plan: `docs/08-ROADMAP.md`.
 - [x] **2026-05-08** — Codified the schema source-of-truth ([ADR-0013](docs/decisions/0013-api-contract-source-of-truth.md)): Prisma owns the DB; TypeBox owns the HTTP API contract; Dart DTOs mirror TypeBox 1:1 with a `// Mirror of:` header. Added the rule to `CLAUDE.md`, `docs/02-ARCHITECTURE.md` ("API Contracts & Type Safety"), `docs/03-CONVENTIONS.md` §8, and the reference template at `apps/mobile/lib/features/auth/data/dto/_template.dart`. Verified clean with `flutter analyze --no-pub`. OpenAPI export + Dart codegen deferred to post-M1.
 - [x] **2026-05-08** — Mobile auth integration shipped end-to-end. `flutter_secure_storage` (with `EncryptedSharedPreferences` + namespaced keys) wraps `access`/`refresh` tokens; `AuthRepository` wraps Dio; `AuthInterceptor extends QueuedInterceptor` adds Bearer on every non-`/auth/*` request and rotates atomically on 401 (separate `refreshDio` to avoid recursion; on refresh failure clears tokens + signals `signOutLocal` via Riverpod ref). `@riverpod AuthController` validates persisted tokens via `/auth/me` on startup and exposes `login`/`register`/`signOut`. GoRouter redirect is reactive to auth state via a `ChangeNotifier` bridge. `lib/features/home/presentation/home_placeholder_page.dart` is the post-login stub (real Screen 03 is M2). Android `network_security_config.xml` permits cleartext only for 10.0.2.2/127.0.0.1/localhost so prod stays HTTPS-only. End-to-end smoke-tested on Pixel_8 emulator: register-via-curl → login on UI → /home renders with `/auth/me` payload → tap Sair → /login. All `flutter analyze` clean post `dart run build_runner build`.
 - [x] **2026-05-08** — Backend auth + healthchecks shipped (Phase 2). `POST /auth/{register,login,refresh}` and `GET /auth/me` with TypeBox schemas as source of truth, JWT RS256 (15min access + 7d opaque refresh, rotation + reuse detection cascading to revoke all of the user's tokens), bcrypt cost 12, per-route rate limits (login 5/15min, register 3/h, refresh 10/min), `GET /health{,/db,/graphhopper}`, and `POST /routes/optimize` placeholder (auth-gated, 501). Mirrored every TypeBox schema into `apps/mobile/lib/features/auth/data/dto/auth_dtos.dart` per ADR-0013, same commit. Smoke-tested all 12 paths (round-trip + reuse cascade + validation 400 + 401/403/409/501) green. Moved Prisma client generator output to `src/generated/client` so TS rootDir resolves; backend runtime standardized on `tsx src/index.ts` (tsx promoted from devDependency to dependency). Added `scripts/generate-jwt-keys.sh` for local key bootstrap.
+
+---
+
+## Slice 2 fidelity audit — findings (2026-05-19, ADR-0021 Phase 1)
+
+**Audit run:** prototype-fidelity-checker (single-agent sequential) over 18 slice-1+2 screens + `app.dart` router + `core/theme/app_theme.dart` + `core/widgets/`.
+**Output summary:** **22 Criticals across 13 screens/cross-cutting files; 17 Importants; 10 Minors.**
+**Triage gate (§1.4 of plan):** 22 > 20 — escalation to Eduardo required before Phase 2 starts. NavigatePage C-1 is pre-scoped by ADR-0017 as accepted deviation, making the actionable count **21 Criticals**.
+
+### 1. login_page.dart ↔ ScreenLogin — ✅ FIEL
+- M-1 (Minor): no show-password toggle on register (login has it). M-2 (Minor): `context.go('/register')` sibling-nav semantics (acceptable).
+
+### 2. register_page.dart ↔ ScreenRegister — 🟡 IMPORTANT-ONLY
+- I-1 (Important): Material `AppBar` instead of prototype's flat `TopBar` (`prototipo/screens-a.jsx:92-109`).
+
+### 3. home_empty_page.dart ↔ ScreenHomeEmpty — 🔴 HAS CRITICAL
+- **C-1 (Critical):** Material `AppBar` instead of custom `HomeTopBar` with ETA chip + count chip — `home_empty_page.dart:21` vs `prototipo/screens-a.jsx:136,160-193`. Fix: replace AppBar with custom HomeTopBar widget.
+- **C-2 (Critical):** Plain Material `FloatingActionButton(Icon(Icons.add))` instead of prototype's gradient FAB (`linear-gradient(135deg, accent → primary)`) + `fabShadow` token — `home_empty_page.dart:22-26` vs `prototipo/ui.jsx:169-183`. Fix: extract `RpFab` widget with gradient + shadow.
+- I-1 (Important): generic `Icons.local_shipping_outlined` replaces the custom `EmptyIllustration` SVG (bike-on-dashed-route) at `prototipo/screens-a.jsx:112-130`.
+
+### 4. home_list_page.dart ↔ ScreenHomeList — 🔴 HAS CRITICAL
+- **C-1 (Critical):** Same `HomeTopBar` issue as #3 — uses Material `AppBar` + simple `Chip` (count only, no ETA, no MoreVertical) — `home_list_page.dart:21-43` vs `prototipo/screens-a.jsx:257-276`. Fix: use the same custom HomeTopBar from #3.
+- M-1 (Minor): RpButton neon gradient matches. M-2 (Minor): `StopCard` data-model gap (no `a2` second line, no `Badge`).
+
+### 5. stop_detail_page.dart ↔ ScreenStopDetail — 🔴 HAS CRITICAL (structural)
+- **C-1 (Critical, structural):** Plain detail body — replaces 5 prototype sections: (a) MapPlaceholder, (b) address+metadata card, (c) ActionBtn row (Entregue/Falhou/Próxima), (d) locked PrimaryButton "Iniciar Navegação" + paywall link, (e) move-options card (Tornar próxima / Início / Final). `stop_detail_page.dart:83-133` vs `prototipo/screens-b.jsx:158-214`. Fix: rebuild body matching prototype section-by-section.
+
+### 6. edit_stop_page.dart ↔ ScreenEditStop — 🔴 HAS CRITICAL (structural)
+- **C-1 (Critical, structural):** Plain Scaffold + single `StopForm` instead of modal bottom sheet over blurred map. Prototype has 6 option rows (Localizador, Pacotes stepper, Ordem, Tipo, Horário, Tempo) + Mudar endereço / Duplicar parada. `edit_stop_page.dart:23-53` vs `prototipo/screens-e.jsx:471-627`. Fix: rebuild as bottom sheet with 6 option rows.
+
+### 7. add_stop_page.dart ↔ ScreenAddStop — 🔴 HAS CRITICAL (4 confirmed session-17)
+- **C-1 (Critical):** Full-screen Scaffold instead of bottom sheet over blurred dim home. `add_stop_page.dart:19-43` vs `prototipo/screens-a.jsx:279-364`. Fix: bottom-sheet structure.
+- **C-2 (Critical):** Missing 3 method chips (Teclado/Voz/Câmera) — voice+OCR UI-unreachable. `prototipo/screens-a.jsx:316-343`. Fix: add chip row navigating to `/stops/voice` and `/stops/ocr`.
+- **C-3 (Critical):** Missing autocomplete suggestions list (4 mock results). `prototipo/screens-a.jsx:345-358`. Fix: add static placeholder list (real geocoding = slice 3 per non-goal).
+- **C-4 (Critical):** `context.go('/home')` back-nav — minimizes app. `app.dart:72`. Fix: see router cross-cutting A-1.
+
+### 8. voice_capture_page.dart ↔ ScreenVoice — 🔴 HAS CRITICAL
+- **C-1 (Critical):** Material `AppBar` + no explicit back handler — should be flat `TopBar` returning to AddStop sheet. `voice_capture_page.dart:89` vs `prototipo/screens-a.jsx:370`.
+- **C-2 (Critical):** `IconButton.filled(iconSize:42)` instead of 200×200 pulsing mic with 3 concentric pulse rings + 100×100 gradient circle. `voice_capture_page.dart:99-104` vs `prototipo/screens-a.jsx:373-386`. Fix: custom widget with `rpPulse` animations from `Roteirizador Pro.html:13-19`.
+- **C-3 (Critical):** Single bottom CTA "Adicionar parada" — should be two-button row Parar (GhostButton) + Tentar novamente (text). `voice_capture_page.dart:127-131` vs `prototipo/screens-a.jsx:396-408`.
+- M-1 (Minor): transcript border uses `theme.dividerColor` instead of `AppColors.border`.
+
+### 9. ocr_capture_page.dart ↔ ScreenOCR — 🔴 HAS CRITICAL (structural)
+- **C-1 (Critical, structural):** White Scaffold + AppBar + centered IconButton instead of dark `#0E0E1A` full-screen camera viewfinder with: mock package label, frosted X-button top-left, dashed scan frame + 4 accent corner brackets, 76×76 white capture button, result card with Editar/Confirmar. `ocr_capture_page.dart:83-136` vs `prototipo/screens-b.jsx:4-100`. Fix: full structural rebuild.
+
+### 10. add_stops_map_page.dart ↔ ScreenAddStopsMap — 🔴 HAS CRITICAL
+- **C-1 (Critical):** Material `AppBar` + missing floating search bar pill (`top:12` overlay). `add_stops_map_page.dart:64-74` vs `prototipo/screens-e.jsx:62-154`.
+- **C-2 (Critical):** Missing bottom sheet (drag handle, selected address, edit btn, PrimaryButton "Adicionar parada", GhostButton "Adicionar e editar"). Only `FloatingActionButton.extended` on pin-placed. `add_stops_map_page.dart:121-129` vs `prototipo/screens-e.jsx:122-153`.
+- **C-3 (Critical):** Pin style: `CircleAvatar` instead of `MiniPin` (22×26 chip with diamond tail, selected/unselected states). `add_stops_map_page.dart:104-110` vs `prototipo/screens-e.jsx:33-58`.
+- M-1 (Minor): Home pin absent (slice 5 dep — acceptable).
+
+### 11. map_stops_page.dart ↔ ScreenMapStops — 🔴 HAS CRITICAL (structural)
+- **C-1 (Critical, structural):** Scaffold + AppBar + plain FlutterMap markers/polyline. Prototype: full-screen map + (a) floating header card (back, "Rota de hoje · N paradas", stats, "Adicionar"), (b) "AO VIVO" neon chip top-right, (c) zoom +/− + recenter controls column, (d) bottom action panel (current-stop card, Adicionar+Editar btns, "Iniciar navegação" gradient CTA). `map_stops_page.dart:21-105` vs `prototipo/screens-c.jsx:3-197`. Fix: full structural rebuild.
+
+### 12. optimize_page.dart ↔ ScreenOptimize — 🟡 IMPORTANT-ONLY
+- I-1: Material `Icons.alt_route` replaces `Logo size={48}` brand element.
+- I-2: missing animated dashed-path SVG with pulsing dots (`prototipo/screens-b.jsx:116-123`).
+- I-3: `LinearProgressIndicator()` solid color at indeterminate width instead of `linear-gradient(90deg, accent, primary)` at 80%.
+- M-1: third step text "Encontrando o melhor caminho..." truncates "para casa" thematic suffix.
+
+### 13. optimize_route_page.dart ↔ ScreenOptimizeRoute — 🔴 HAS CRITICAL
+- **C-1 (Critical):** Scaffold + AppBar + Column layout. Prototype: split layout — top 460dp map (full-bleed, no AppBar) + overlapping bottom sheet (drag handle, search bar, "São Paulo · 27 paradas", "Compartilhar rota"/"Carregar veículo" action chips, stops list with ETA col, close button + "ROTA OTIMIZADA" neon badge overlays). `optimize_route_page.dart:91-240` vs `prototipo/screens-e.jsx:157-297`.
+- **C-2 (Critical):** Bottom CTA `FilledButton.icon` instead of inline `PrimaryButton` with gradient + icon inside the sheet.
+- M-1: numbered pin style — CircleAvatar instead of white-chips-with-purple-border (22×24).
+
+### 14. navigate_page.dart ↔ ScreenNavigate — 🔴 HAS CRITICAL (ADR-0017 scoped)
+- **C-1 (Critical, ADR-0017 scoped):** Plain checklist + AppBar instead of turn-by-turn nav UI (perspective road, dark top instruction card with neon label, end-time chip, 56×56 speed gauge, vehicle marker, bottom stop card + black bottom bar). ADR-0017 §6 explicitly scopes out turn-by-turn — **C-1 NOT actionable in this remediation**. Actionable Critical count = 22 − 1 = 21.
+- M-1 (Minor): no near-black bottom bar element.
+
+### 15. reorder_page.dart ↔ ScreenReorder — 🔴 HAS CRITICAL (structural)
+- **C-1 (Critical, structural):** Plain `ReorderableListView.builder` + AppBar instead of full-screen map with route polyline + numbered pins + dashed lasso ellipse + dispatcher-notification card + Undo pill + bottom panel (count, "Desenhar grupo seguinte" GhostBtn, neon "Reotimizar rota" PrimaryBtn). `reorder_page.dart:14-66` vs `prototipo/screens-e.jsx:630-737`. The lasso reorder is a fundamentally different interaction model.
+- M-1: "Concluir" checkmark uses `context.go('/home')` (replace) where `pop` is correct.
+
+### 16. route_complete_page.dart ↔ ScreenRouteComplete — 🟡 IMPORTANT-ONLY
+- Tokens, card shape, gradient check, stat tiles all match.
+- I-1: missing confetti layer (6 colored rects across screen, `prototipo/screens-e.jsx:749-764`).
+- I-2: missing "Você economizou" neon banner (`neonLight` bg, `neon` border, Sparkle icon).
+- I-3: button label "Compartilhar" vs prototype "Compartilhar conquista →".
+- M-1: no faded-map background (`opacity:0.4` + white overlay).
+
+### 17. settings_page.dart ↔ ScreenSettings — 🟡 IMPORTANT-ONLY
+- I-1: sections lack the white-card-with-border container wrapper (sections bleed to screen edges).
+- I-2: "Sair da conta" missing card chrome (color OK).
+- I-3: `SegmentedButton<NavProvider>` is structurally different from the prototype's `RowItem` + inline value display ("Waze" with #33CCFF square).
+- M-1: title "Aplicativo de navegação" vs prototype "Navegação".
+- M-2: "Sobre o app" section absent (acceptable stub).
+
+### 18. share_sheet.dart ↔ ScreenShare — 🔴 HAS CRITICAL
+- **C-1 (Critical):** System share sheet (`SharePlus.instance.share`) + selectable text dump instead of named-channel ShareCard layout: (a) WhatsApp card (green circle icon), (b) "Copiar link de download" with URL + copy button, (c) "Mostrar QR Code" expandable card. `share_sheet.dart:41-45` vs `prototipo/screens-b.jsx:394-451`.
+- I-1: `context.go('/settings')` back-nav semantics (pop preferred).
+
+### A. apps/mobile/lib/app.dart (router cross-cutting) — 🔴 HAS CRITICAL
+- **C-1 (Critical):** All routes use `GoRoute` + `context.go` (stack-replace). Routes that should push (back returns to parent, not exits app): `/stops/add` (`app.dart:72`), `/stops/voice` (`app.dart:75`), `/stops/ocr` (`app.dart:79`), `/stops/:id/edit` (`app.dart:89`). Fix: change navigation calls in CALLERS from `context.go` to `context.push` for these 4 destinations; router itself stays as-is (GoRoute supports both semantics depending on caller).
+
+### B. apps/mobile/lib/core/theme/app_theme.dart — ✅ FIEL
+- All 18 color tokens, 4 radii, 1 shadow match `prototipo/tokens.js` 1:1.
+- M-1 (Minor): `cardShadow` opacity ≈0.08/0.04 — fiel.
+
+### C. apps/mobile/lib/core/widgets/ — 🟡 IMPORTANT-ONLY
+- RpButton, RpGhostButton, RpInput, RpLogo: ✅ fiel.
+- I-1: missing `transition: 'transform .12s'` press effect on RpButton (InkWell splash replaces — minor visual diff).
+- I-3: HomeBottomNav indicator pill shape: Flutter `NavigationBar` indicator is narrower than the 64×32 pill the prototype specifies.
+- I-4: `StopListItem` swipe-to-delete is implemented at `HomeListPage._StopRow` level, not in the shared widget itself.
+- I-5: `StopCard` trailing Badge (Pendente/Entregue/Falhou) absent due to `Stop` model gap.
+- M-2: "Rota" tab icon: `Icons.alt_route` vs prototype `<I.Route>` (lucide).
+
+---
+
+### Triage gate (ADR-0021 plan §1.4) — DECISION REQUIRED
+
+**Total: 22 Criticals. Actionable: 21 (NavigatePage C-1 pre-scoped by ADR-0017).**
+
+Threshold of 20 exceeded → Phase 2 paused for Eduardo's decision between:
+
+- **(a) Full remediation** (~2-3 weeks): 21 microsprints, each with full pipeline (PRE-FLIGHT → fidelity-check → implementer → re-check → code-review → commit). Estimated 6 microsprints can be batched as "structural rebuild from sheet/map pattern" (StopDetail, EditStop, OCR, AddStopsMap, MapStops, OptimizeRoute, Reorder, ShareSheet — actually 8). Remaining 13 are smaller widget-level fixes.
+- **(b) Partial remediation + ship**: cherry-pick Criticals that block slice-2 acceptance criteria (voice+OCR reachability → C-2 of AddStop; back-nav → A-1; HomeTopBar → C-1 of HomeEmpty/HomeList). Tag `v1.1.0-partial`, document remaining Criticals as `v1.1.x` follow-up debt.
+- **(c) Hybrid**: structural rebuilds (6-8 telas) + back-nav fix as one big batch; lighter visual fixes as slice-3 polish.
+
+Awaiting decision.
