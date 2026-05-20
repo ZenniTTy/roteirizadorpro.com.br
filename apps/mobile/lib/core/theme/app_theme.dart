@@ -63,6 +63,17 @@ class AppShadows {
     BoxShadow(color: Color(0x526C3FC5), blurRadius: 24, offset: Offset(0, 8)),
     BoxShadow(color: Color(0x2E6C3FC5), blurRadius: 6, offset: Offset(0, 2)),
   ];
+
+  /// Shadow for floating circular buttons + search pills hovering over a map.
+  /// Mirrors `prototipo/screens-e.jsx:82-89` and `:215-218`: `0 4px 12px
+  /// rgba(26,26,46,0.18)`. Used by map screens (MS-08, MS-09, MS-10, MS-11).
+  static const List<BoxShadow> floatingCircle = [
+    BoxShadow(
+      color: Color(0x2E1A1A2E),
+      blurRadius: 12,
+      offset: Offset(0, 4),
+    ),
+  ];
 }
 
 class AppTheme {
