@@ -43,6 +43,7 @@
 - [ ] **`aapt2 dump permissions <built APK>`** if Android permissions changed — verify the expected `android.permission.*` entries are all present. **This is the slice 1 lesson.** Path: `~/Library/Android/sdk/build-tools/<latest>/aapt2`.
 - [ ] **`apksigner verify --verbose --print-certs <built APK>`** confirms v2 signature scheme and the cert SHA-256 matches the keystore (`D9:C9:61:D6:A3:2A:0C:45:B6:11:E0:E1:2D:86:FA:7E:52:1C:D3:3C:88:83:3C:7C:5D:5A:B9:91:9F:E9:14:31`).
 - [ ] **Manual end-to-end** on a real Android device (Samsung Galaxy A06 currently); install via `adb install -r <apk>`, exercise the slice's golden path, capture a screenshot for the PR body.
+- [ ] **HARD GATE — device fidelity sweep (ADR-0021).** Before PR open, every screen exercised in the device E2E above must visually match its `Screen*` counterpart in `prototipo/screens-*.jsx`. The session-17 slice-2 audit proved that `flutter analyze` + `flutter test` + static `prototype-fidelity-checker` can pass while the device still ships 4 Criticals on a single screen. The fix: capture a screenshot per E2E step, file it under `docs/sessions/<slice-session>/screenshots/`, and either (a) eyeball it against the prototype OR (b) dispatch `prototype-fidelity-checker` on each touched Dart file. Any Critical found here blocks the tag — slip the tag date, don't skip this gate.
 - [ ] **Curl evidence** for any new backend endpoint. Paste the `curl -i` output into the PR body. No "trust me, it works."
 
 ## Version bumping
