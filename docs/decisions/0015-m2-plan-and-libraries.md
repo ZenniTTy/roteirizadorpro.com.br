@@ -121,8 +121,17 @@ Build all six slices on parallel feature branches, merge in one PR.
    | External app hand-off | `url_launcher` | ^6.3.2 | 0 | well-established |
    | Runtime permissions | `permission_handler` | ^12.0.1 | 0 | well-established |
    | Photo capture / gallery | `image_picker` | ^1.2.2 | 0 | well-established |
+   | Brand icon set (WhatsApp) | `font_awesome_flutter` | ^10.12.0 | 0 | `fluttercommunity` (FA 7.2.0 free; 2000+ icons; WhatsApp brand glyph) |
+   | QR-code generator | `qr_flutter` | ^4.1.0 | 0 | `/theyakka/qr.flutter` (null-safe; on-device; auto version detection) |
 
    **Update 2026-05-18 (slice 2 sub-2a):** versions resolved by `flutter pub add` and recorded in `apps/mobile/pubspec.lock`. Five new libs (`uuid`, `shared_preferences`, `url_launcher`, `permission_handler`, `image_picker`) joined the original six listed above; the full list is reflected in the table.
+
+   **Update 2026-05-20 (slice 2 sub-2e / MS-12):** two new direct deps added for the named-channel ShareSheet rebuild (Reorder catalog row 18 / C-1):
+
+   - `font_awesome_flutter: ^10.12.0` — `FaIcon(FontAwesomeIcons.whatsapp)` gives the canonical WhatsApp brand glyph (`prototipo/screens-b.jsx:406` shows the green-circle WhatsApp icon). Material Icons has no WhatsApp brand glyph; the alternative was bundling a custom SVG asset, which Context7 confirmed is heavier and harder to color-tint than `FaIcon`. Cost: 0 (font asset, no network).
+   - `qr_flutter: ^4.1.0` — `QrImageView(data: 'https://roteirizadorpro.com.br/download', version: QrVersions.auto, size: 180)` per Context7 `/theyakka/qr.flutter`. Renders an on-device QR pointing at the APK download URL; the prototype's expanded QR card at `screens-b.jsx:438-447` mandates this. Alternative was a static PNG asset bundled in `assets/` — rejected because the URL may change before launch. Cost: 0 (pure-Dart canvas painter, no network).
+
+   Both deps are on the cost ceiling (free, on-device, no per-request cost). Validated via Context7 + WebSearch May 2026 before adding.
 
 4. **OSM tile policy** must be honored:
 
