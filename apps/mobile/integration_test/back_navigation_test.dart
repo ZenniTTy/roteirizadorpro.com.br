@@ -160,12 +160,17 @@ void main() {
       await tester.tap(find.byIcon(Icons.edit_outlined));
       await tester.pumpAndSettle();
 
-      // EditStopPage's AppBar is "Editar parada".
-      expect(_currentScreen(tester), 'Editar parada');
+      // MS-06 rebuilt EditStop as a modal-sheet layout with NO AppBar;
+      // the title "Editar parada" lives in the sheet header as a plain
+      // Text widget. The "Concluído" button is also unique to the sheet
+      // header — using it as the screen signature here.
+      expect(find.text('Editar parada'), findsOneWidget);
+      expect(find.text('Concluído'), findsOneWidget);
 
       await _systemBack(tester);
 
-      // Back from edit returns to the same detail screen.
+      // Back from edit returns to the same detail screen (which DOES
+      // have an AppBar, so the helper works).
       expect(_currentScreen(tester), 'Parada 1 de 2');
     });
   });
