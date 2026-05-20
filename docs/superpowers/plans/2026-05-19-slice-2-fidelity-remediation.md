@@ -116,6 +116,7 @@ Do NOT edit any code. Read-only audit. End your turn with a summary count:
 | # | Slug | Closes Criticals | Touches | Class |
 |---|---|---|---|---|
 | MS-01 | `router-back-nav-push` | A-1 (router cross-cutting) + the back-nav portions of AddStop C-4, Voice C-1, OCR back, Edit back | `apps/mobile/lib/app.dart` + callers in HomeList/HomeEmpty/StopDetail/AddStop/EditStop pages | cross-cutting |
+| MS-01b | `router-stateful-shell` | re-opens MS-01: device smoke proved flat-routes + `push` still minimizes app on Android back for sibling top-level routes. Restructure to `StatefulShellRoute.indexedStack` per ADR-0022 + add `integration_test/back_navigation_test.dart` as new harness gate. | `apps/mobile/lib/app.dart` (rewrite) + 10 callers' navigation calls + NEW `apps/mobile/integration_test/back_navigation_test.dart` + `M2-SLICE-CHECKLIST.md` (add gate) + memory entry | cross-cutting |
 | MS-02 | `widget-home-top-bar` | shared primitive needed by MS-13 + MS-14 | NEW `core/widgets/home_top_bar.dart` | shared widget |
 | MS-03 | `widget-rp-fab` | shared primitive needed by MS-13 (HomeEmpty C-2) | NEW `core/widgets/rp_fab.dart` | shared widget |
 | MS-04 | `widget-rp-mini-pin` | shared primitive needed by MS-08 (AddStopsMap C-3) | NEW `core/widgets/rp_mini_pin.dart` | shared widget |
@@ -302,6 +303,79 @@ For shared-widget microsprints (MS-02/03/04), use `feat(mobile): <widget-slug> �
 **Test surface:** existing widget tests pass `onAddPressed`/`onSaved` callbacks instead of asserting `context.go`, so the router-fix should not break them. Verify after D2.
 
 **Smoke test on A06 after CHECKPOINT:** add a stop, tap Android back — must return to home (not minimize). Open a stop → Editar → back — must return to detail (not home).
+
+---
+
+### MS-01b — `router-stateful-shell` (cross-cutting; amends MS-01)
+
+**Why it exists:** MS-01 (commit `2124b7f`) passed all four pipeline gates (analyze + 91 tests + fidelity re-audit + code review) and shipped a release APK that still minimized the app on Android system back in two real flows (Home → tap stop → back; Settings → back). The smoke test on Galaxy A06 with USB install surfaced the regression. Root cause confirmed by Context7 (`/websites/pub_dev_packages_go_router`) + WebSearch (flutter/flutter#145198, codewithandrea Go-vs-Push, csells/go_router docs): `context.push` on flat sibling top-level routes does not produce a back-poppable stack; on Android 14+ with `enableOnBackInvokedCallback="true"` the system back resolves to "pop the Activity" → minimize. The fix is architectural — switch to `StatefulShellRoute.indexedStack` with hierarchical sub-routes per ADR-0022.
+
+**Closes:** A-1 (re-open from MS-01) + the device-confirmed regression. Adds a new harness gate (`integration_test`) that future microsprints rely on.
+
+**D1 inputs:**
+
+- ADR-0022 (`docs/decisions/0022-router-stateful-shell-route.md`) is the normative reference.
+- Context7 corpus loaded: `/websites/pub_dev_packages_go_router` for `StatefulShellRoute.indexedStack`, `StatefulNavigationShell.goBranch`, branch-scoped navigators, push semantics inside branches.
+- Current file: `apps/mobile/lib/app.dart` (111 lines).
+- Current callers (from the MS-01 grep map): `home_list_page.dart`, `home_empty_page.dart`, `stop_detail_page.dart`, `edit_stop_page.dart`, `add_stop_page.dart`, `voice_capture_page.dart`, `ocr_capture_page.dart`, `add_stops_map_page.dart`, `reorder_page.dart`, `settings_page.dart`, `share_sheet.dart`, `home_bottom_nav.dart`, `login_page.dart`, `register_page.dart`.
+
+**Delta scope:**
+
+1. **Rewrite `apps/mobile/lib/app.dart`** to declare:
+   - Top-level routes (outside the shell): `/login`, `/register`.
+   - One `StatefulShellRoute.indexedStack` containing two `StatefulShellBranch` instances:
+     - **Branch 0** — root path `/home` with these sub-routes: `stops/add`, `stops/voice`, `stops/ocr`, `stops/map`, `stops/add-map`, `stops/reorder`, `stops/:id` (with child route `edit`), `optimize` (with child route `route`), `navigate`, `route-complete`.
+     - **Branch 1** — root path `/settings` with sub-route `share`.
+   - The shell's `builder` returns a Scaffold containing the active branch's navigator (`navigationShell` parameter) as body. The shell's Scaffold does NOT include the bottom nav widget — the `HomeBottomNav` stays in `HomeEmptyPage`/`HomeListPage`/`SettingsPage` because the prototype shows the bottom nav as part of the individual screen, not the shell. The shell only provides the indexed-stack navigator infrastructure.
+   - URL surface stays identical: `/stops/<id>`, `/settings/share`, etc. — go_router's URL-to-route resolver handles nested paths transparently.
+   - The `redirect` callback's auth logic is preserved verbatim; only the routes list changes.
+   - The `_AuthListenable` class is preserved verbatim.
+
+2. **Update `home_bottom_nav.dart`** to accept a `navigationShell: StatefulNavigationShell` parameter (passed from each consuming screen) and call `navigationShell.goBranch(index)` on tab tap instead of `context.go(...)`. Active-tab detection becomes `navigationShell.currentIndex == index` instead of the page-supplied `active` prop. Each page (`HomeEmptyPage`, `HomeListPage`, `SettingsPage`) reads the shell from `StatefulNavigationShell.of(context)` and passes it to `HomeBottomNav`.
+
+3. **Update the 10 callers** to use branch-relative paths or branch-local push:
+   - Inside Branch 0: `context.push('/home/stops/add')` style — the full URL form still works thanks to go_router's path matching; or use named routes if cleaner. The implementer chooses the style that keeps test assertions simplest.
+   - Inside Branch 1: `context.push('/settings/share')` for the Indicar tile.
+   - Auth siblings (`login_page.dart`, `register_page.dart`): KEEP `context.go` — those are outside the shell.
+
+4. **Add `apps/mobile/integration_test/back_navigation_test.dart`** asserting:
+   - Test 1: launch app, login, tap a stop on HomeList, fire `await tester.runAsync(() => SystemChannels.platform.invokeMethod('SystemNavigator.pop'))` (or use `tester.binding.handlePopRoute()` if cleaner), assert the current route is `/home` and the app's Navigator is non-empty.
+   - Test 2: launch app, tap Configurações bottom-nav tab, fire system back, assert Branch 0 is active again OR the test framework still reports the app as foreground (no `SystemNavigator.pop` was reached).
+   - Test 3: launch app, tap FAB → AddStop, fire system back, assert current route is `/home`.
+   - Use `IntegrationTestWidgetsFlutterBinding.ensureInitialized()` and `MaterialApp.router` setup matching production.
+
+5. **Add `pubspec.yaml` dev dependency** `integration_test:` from Flutter SDK (it ships with Flutter — declare with `sdk: flutter`). Verify with Context7 before adding if the resolved version differs from Flutter SDK's bundled.
+
+6. **Update `M2-SLICE-CHECKLIST.md`** §Verification: add a hard-gate bullet "**`flutter test integration_test/` must pass on a connected Android device before tag**, for any slice that touches `apps/mobile/lib/app.dart` or modifies a navigation expression." Cite ADR-0022.
+
+7. **File a memory entry** at `~/.claude/projects/-Users-eduardorodrigues-Downloads-Elo-Vision-Digital--EVD----Meus-Projetos--APP----Entrega-Smart/memory/go_router-flat-routes-back-button.md` (type: feedback) capturing the anti-pattern and the fix, plus a link to ADR-0022 and the flutter/flutter issue.
+
+**D2 file allowlist:**
+- `apps/mobile/lib/app.dart` (rewrite)
+- `apps/mobile/lib/features/stops/presentation/shared/home_bottom_nav.dart` (refactor to take shell)
+- `apps/mobile/lib/features/stops/presentation/home_empty_page.dart` (pass shell to nav)
+- `apps/mobile/lib/features/stops/presentation/home_list_page.dart` (pass shell to nav)
+- `apps/mobile/lib/features/settings/presentation/settings_page.dart` (pass shell to nav + update Indicar tile push call)
+- Any of the 10 caller files where a `context.push`/`context.go` argument needs to become a branch-relative path. Surgical edits — touch the exact lines.
+- NEW `apps/mobile/integration_test/back_navigation_test.dart`
+- `apps/mobile/pubspec.yaml` (only if `integration_test:` dev_dependency is missing; verify first)
+- `docs/M2-SLICE-CHECKLIST.md` (one new bullet)
+
+**Files NOT to touch:**
+- Auth pages (`login_page.dart`, `register_page.dart`) — sibling-nav stays `go`.
+- Existing 91 widget tests — they inject custom callbacks, won't break under the refactor.
+- Visual code (any Scaffold body, any widget tree) — D3 fidelity re-audit catches drift.
+
+**Test surface:**
+- 91 existing widget tests must stay green (callback injection means they don't touch the router).
+- 1 new integration test file with ≥3 scenarios passes on the Galaxy A06 via `flutter test integration_test/back_navigation_test.dart -d <device-id>`.
+- `flutter analyze --no-pub` clean.
+
+**Smoke test on A06 after CHECKPOINT (USB install required):**
+- 4 cases — Home tap stop → back returns to Home; Settings tab → back returns to Home or stays in app (no minimize); FAB → AddStop → back returns to Home; StopDetail → Editar → back returns to StopDetail.
+- All four must pass before MS-01b is considered closed.
+
+**Pipeline override for MS-01b:** the **D2 step now mandates running `flutter test integration_test/` on the connected device before declaring done** — this is the new gate the ADR introduces. D3 and D4 still run after D2 with their standard prompts.
 
 ---
 
