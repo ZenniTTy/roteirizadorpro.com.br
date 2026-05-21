@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/home_top_bar.dart';
+import '../../../core/widgets/rp_fab.dart';
 import 'shared/home_bottom_nav.dart';
 
 class HomeEmptyPage extends StatelessWidget {
@@ -16,13 +18,11 @@ class HomeEmptyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Rota de hoje')),
-      floatingActionButton: FloatingActionButton(
+      appBar: const HomeTopBar(count: 0),
+      floatingActionButton: RpFab(
         onPressed: () => _addStop(context),
         tooltip: 'Adicionar parada',
-        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: HomeBottomNav(
         navigationShell: StatefulNavigationShell.maybeOf(context)?.widget,
@@ -34,22 +34,30 @@ class HomeEmptyPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.local_shipping_outlined,
                 size: 96,
-                color: theme.colorScheme.primary,
+                color: AppColors.primary,
               ),
               const SizedBox(height: 24),
-              Text(
+              const Text(
                 'Nenhuma entrega ainda',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
+                ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Adicione sua primeira parada para começar a planejar a rota.',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
               ),
               const SizedBox(height: 28),
               _HowItWorksPill(onPressed: () => _addStop(context)),

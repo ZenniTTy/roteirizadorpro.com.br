@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:roteirizador_pro/core/widgets/rp_fab.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/presentation/home_page.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
@@ -32,7 +33,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Nenhuma entrega ainda'), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byType(RpFab), findsOneWidget);
     expect(find.text('Como funciona?'), findsOneWidget);
   });
 

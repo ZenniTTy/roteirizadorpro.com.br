@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:roteirizador_pro/core/widgets/rp_fab.dart';
 import 'package:roteirizador_pro/features/stops/presentation/home_empty_page.dart';
 
 void main() {
@@ -25,7 +26,7 @@ void main() {
     await tester.pumpWidget(harness(onAddPressed: (_) => taps++));
     await tester.pumpAndSettle();
 
-    final fab = find.byType(FloatingActionButton);
+    final fab = find.byType(RpFab);
     expect(fab, findsOneWidget);
 
     await tester.tap(fab);
