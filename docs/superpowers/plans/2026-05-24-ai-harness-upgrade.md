@@ -100,9 +100,9 @@ in `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`.
 - [ ] Phase 1 — Dart & Flutter MCP server (ADR-0023)
 - [ ] Phase 2 — Riverpod codegen hook (ADR-0024)
 - [ ] Phase 3 — `flutter-test-author` subagent (ADR-0025)
-- [ ] Phase 4 — `flutter-perf-auditor` subagent (ADR-0026)
-- [ ] Phase 5 — `mcp_flutter` decision (ADR-0027, adopt OR reject)
-- [ ] Phase 6 — Golden tests baseline (ADR-0028, conditional)
+- [ ] Phase 4 — `flutter-perf-auditor` subagent (ADR-0027)
+- [ ] Phase 5 — `mcp_flutter` decision (ADR-0028, adopt OR reject)
+- [ ] Phase 6 — Golden tests baseline (ADR-0029, conditional)
 - [ ] Phase 7 — Docs consolidate + retro
 ```
 

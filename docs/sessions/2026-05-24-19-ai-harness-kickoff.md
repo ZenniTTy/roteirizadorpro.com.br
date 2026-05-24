@@ -37,7 +37,7 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 ## Open Questions Left
 
 - [ ] (Phase 3) Mock library for `flutter-test-author` — inspect `apps/mobile/pubspec.yaml` at execution time; if neither `mocktail` nor `mockito` present, default to `mocktail`. Lock in ADR-0025.
-- [ ] (Phase 5) `mcp_flutter` adopt or reject — decision criteria documented in SPRINT-MD §Phase 5; outcome (either way) ships as ADR-0027.
+- [ ] (Phase 5) `mcp_flutter` adopt or reject — decision criteria documented in SPRINT-MD §Phase 5; outcome (either way) ships as ADR-0028.
 - [ ] (Phase 1) Exact `dart_mcp_server` version to pin — resolve at install via `dart pub global activate` output and record in ADR-0023.
 
 ## Files Changed

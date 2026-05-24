@@ -23,11 +23,11 @@
 |---|---|---|---|
 | 0 — Pré-flight | ✅ entregue (sessão 19) | `4b528f8`, `baaea44`, `782eb99` | — |
 | 1 — Dart & Flutter MCP server | ✅ entregue (sessão 20) + smoke validado pós-reload | `2abe6bc`, `8c15f7c` | ADR-0023 |
-| 2 — Riverpod codegen hook | ✅ entregue (sessão 22) | (este commit) | ADR-0024 |
-| 3 — Subagent `flutter-test-author` | ☐ pendente | — | ADR-0025 (planejado) |
-| 4 — Subagent `flutter-perf-auditor` | ☐ pendente | — | ADR-0026 (planejado) |
-| 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0027 (planejado) |
-| 6 — Golden tests baseline | ☐ pendente | — | ADR-0028 (planejado) |
+| 2 — Riverpod codegen hook | ✅ entregue (sessão 22) | `0a6f094` | ADR-0024 |
+| 3 — Subagent `flutter-test-author` | ✅ entregue (sessão 22, smoke dispatch deferred to sessão 23 post-reload) | (este commit) | ADR-0025 |
+| 4 — Subagent `flutter-perf-auditor` | ☐ pendente | — | ADR-0027 (planejado) |
+| 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0028 (planejado) |
+| 6 — Golden tests baseline | ☐ pendente | — | ADR-0029 (planejado) |
 | 7 — Docs consolidate | ☐ pendente | — | — |
 
 **Commits orthogonais entregues junto:**
@@ -36,10 +36,11 @@
 
 **Próxima sessão deve:**
 1. **Não** criar branch nova — seguir trabalhando em `feat/m2-ai-harness` (`git status` deve mostrar essa branch e working tree clean).
-2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu; deve seguir funcionando).
-3. Ler a seção §Fase 2 abaixo + spec Q2 + ADR-0018 antes de tocar arquivos de hook.
-4. Executar Fase 2 → commit no padrão `feat(harness): …` → o PR #8 absorve.
-5. Seguir Fases 3–7 na ordem. Quando todas fecharem, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
+2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu).
+3. **Validar Phase 3 (smoke test deferred):** confirmar que `flutter-test-author` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0025 §Verification (TDD num CounterController + tentativa explícita de fazer o agent implementar a lógica e ver recusa).
+4. Ler a seção §Fase 4 abaixo + spec Q4 + ADR-0018 antes de tocar arquivos.
+5. Executar Fase 4 → commit no padrão `feat(harness): …` → o PR #8 absorve.
+6. Seguir Fases 5–7 na ordem. Quando todas fecharem, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
 
 ---
 
@@ -110,9 +111,9 @@ A pesquisa foi feita em 2026-05-24 com WebSearch + Context7 + queries diretas a 
 | 1 | Dart & Flutter MCP server oficial | 🔥🔥🔥 | 1–2h | sim | 0023 | 0 |
 | 2 | Hook `riverpod-codegen-runner` | 🔥🔥 | 1h | sim | 0024 | 1 |
 | 3 | Subagent `flutter-test-author` | 🔥🔥 | 2h | sim | 0025 | 1 |
-| 4 | Subagent `flutter-perf-auditor` | 🔥 | 1.5h | sim | 0026 | 1 (paralelo a 3) |
-| 5 | Decisão `mcp_flutter` (fork) | 🔥 ou 0 | 30 min – 2h | sim | 0027 | 1 |
-| 6 | Golden tests com `golden_toolkit` | 🔥 | 2h | sim | 0028 | 3 |
+| 4 | Subagent `flutter-perf-auditor` | 🔥 | 1.5h | sim | 0027 | 1 (paralelo a 3) |
+| 5 | Decisão `mcp_flutter` (fork) | 🔥 ou 0 | 30 min – 2h | sim | 0028 | 1 |
+| 6 | Golden tests com `golden_toolkit` | 🔥 | 2h | sim | 0029 | 3 |
 | 7 | Documentação consolidada + retro | — | 45 min | n/a | — | todas |
 
 **Total estimado:** 10–13h de trabalho dirigido (calendário a critério do humano).
@@ -254,7 +255,7 @@ Slice 2 (Telas Core) vai gerar muito `@riverpod`. Esquecer `dart run build_runne
 
 ## Fase 3 — Subagent `flutter-test-author` 🔥🔥
 
-**Status:** ☐ não iniciado
+**Status:** ✅ entregue 2026-05-24 (sessão 22). Mock-lib decision: `mocktail ^1.0.5` (Q3 da spec resolvida via inspeção do pubspec + `pub_dev_search`). Subagent + ADR-0025 + atualização CLAUDE.md commitados. Smoke-test funcional (dispatch contra spec trivial CounterController) deferred para sessão 23 pós-reload do Claude Code — agent registry, igual MCP, carrega na boot da sessão.
 **Tempo:** 2h
 **Depende de:** Fase 1.
 
@@ -325,19 +326,19 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
    - Criar branch temporária com tela propositalmente ruim (`ListView` com children list + sem `const` + `ref.watch` amplo) → agent flagra todos os 3.
    - Rodar contra uma tela limpa já existente → "no issues found".
 3. Atualizar `docs/M2-SLICE-CHECKLIST.md` seção **§Verification** → adicionar passo "run flutter-perf-auditor" entre os passos existentes (após `flutter analyze`, antes de `prototype-fidelity-checker`).
-4. Criar **ADR-0026 — Subagent flutter-perf-auditor**.
+4. Criar **ADR-0027 — Subagent flutter-perf-auditor**.
 
 ### Gate de aceite
 - [ ] Smoke test "tela ruim" detecta os 3 problemas plantados.
 - [ ] Smoke test "tela limpa" retorna sem falsos positivos.
-- [ ] ADR-0026 commitado.
+- [ ] ADR-0027 commitado.
 - [ ] `docs/M2-SLICE-CHECKLIST.md` atualizado.
 
 ### Riscos conhecidos
 - Falsos positivos em `ref.watch` amplo quando o uso é intencional — punch-list categorizada como "should-fix" ajuda a humano avaliar.
 
 ### Commit
-`feat(harness): flutter-perf-auditor subagent (ADR-0026)`
+`feat(harness): flutter-perf-auditor subagent (ADR-0027)`
 
 ---
 
@@ -359,7 +360,7 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 3. O custo de pequena instrumentação em `main.dart` (guard `kDebugMode`) é aceitável? (Não → rejeite.)
 4. Há preocupação com APK release size por causa do plugin? (Avaliar — se instalado em `dev_dependencies` + tree-shake correto, não deveria afetar release.)
 
-**Decisão registrada em ADR-0027** — adotar OU rejeitar. **Ambos viram ADR.** Uma rejeição com motivo documentado é tão valiosa quanto adoção.
+**Decisão registrada em ADR-0028** — adotar OU rejeitar. **Ambos viram ADR.** Uma rejeição com motivo documentado é tão valiosa quanto adoção.
 
 ### Sub-fase 5a — Se adotar
 
@@ -373,11 +374,11 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 
 ### Sub-fase 5b — Se rejeitar
 
-5b.1. Apenas ADR-0027 registrando o "não" com motivo (qual critério acima falhou).
+5b.1. Apenas ADR-0028 registrando o "não" com motivo (qual critério acima falhou).
 5b.2. Sprint segue direto para Fase 6.
 
 ### Gate de aceite
-- [ ] ADR-0027 commitado (qualquer dos lados).
+- [ ] ADR-0028 commitado (qualquer dos lados).
 - [ ] Se adotado: snapshot funciona em debug; release build limpo (sem código de instrumentação ativo).
 - [ ] Se rejeitado: motivo claro no ADR.
 
@@ -386,7 +387,7 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 - Risco de leakage para release: mitigado pelo `kDebugMode` guard + verificação no smoke test 5a.6.
 
 ### Commit
-`docs(decisions): ADR-0027 mcp_flutter adoption decision`
+`docs(decisions): ADR-0028 mcp_flutter adoption decision`
 (seguido de `feat(harness): mcp_flutter visual snapshot integration` se adotar)
 
 ---
@@ -410,13 +411,13 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 7. Verificar que CI/dev local reproduz o golden idêntico (Flutter golden é determinístico mas font rendering pode variar entre OSes — documentar no ADR).
 8. Adicionar passo opcional em `docs/M2-SLICE-CHECKLIST.md`: *"se a slice toca UI, atualizar goldens com `flutter test --update-goldens` e revisar diff visual no PR".*
 9. **Decisão consciente: NÃO virar hook.** Goldens são caros de rodar; deixar manual no checklist.
-10. Criar **ADR-0028 — Adoção de golden_toolkit**. Escopo explícito: telas estáveis pós-slice, não durante desenvolvimento ativo. Trade-off: baseline maintenance vs regressão visual.
+10. Criar **ADR-0029 — Adoção de golden_toolkit**. Escopo explícito: telas estáveis pós-slice, não durante desenvolvimento ativo. Trade-off: baseline maintenance vs regressão visual.
 
 ### Gate de aceite
 - [ ] Mudar 1 pixel intencionalmente na tela alvo → `flutter test` falha apontando o golden.
 - [ ] Reverter a mudança → passa.
 - [ ] Baseline (`*.png`) commitado.
-- [ ] ADR-0028 commitado.
+- [ ] ADR-0029 commitado.
 - [ ] `docs/M2-SLICE-CHECKLIST.md` atualizado.
 
 ### Riscos conhecidos
@@ -424,7 +425,7 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 - Tentação de virar golden tests em hook automático — **resistir**, custo > benefício.
 
 ### Commit
-`test(mobile): golden tests baseline (ADR-0028)`
+`test(mobile): golden tests baseline (ADR-0029)`
 
 ---
 

@@ -30,7 +30,7 @@ What stays out: any change to product code under `apps/mobile/lib/features/` (sp
 | Q1 | Adopt the official Dart & Flutter MCP server now or wait until post-slice-2? | **Adopt now (Phase 1 of sprint)** | Highest ROI of any harness change. Cuts hallucination cost on every subsequent fase. Reversible (remove from `.claude/settings.json`). Slice 2's `flutter_map` work specifically benefits — agent will resolve real `MapController` API instead of guessing. |
 | Q2 | Implement Riverpod codegen as a **Stop** hook (end of turn, like the existing three) or a **PostToolUse** hook (right after the edit)? | **PostToolUse with `Edit\|Write` matcher** | PostToolUse runs sooner — `.g.dart` files exist before the next agent action that might depend on them. Stop hooks would leave a window where Claude reads stale generated code. Trade-off accepted: slightly more invocations, mitigated by the in-script grep filter for `@riverpod` / `part '.g.dart'`. |
 | Q3 | Mock library for `flutter-test-author` subagent: `mocktail` (no codegen) or `mockito @GenerateMocks` (codegen)? | **Defer to Phase 3** — inspect `apps/mobile/pubspec.yaml` at execution time. If neither is present, default to **`mocktail`** to avoid yet another `build_runner` invocation. The chosen library is locked in ADR-0025. | The repo may already have one; honor existing convention. If green-field, `mocktail` minimizes codegen load (we already have Riverpod codegen + planned `riverpod-codegen-runner` hook). |
-| Q4 | `mcp_flutter` (visual snapshot, community plugin) — adopt or reject? | **Decision deferred to Phase 5 of sprint** (gate-of-decision sub-fase 5.0). Both outcomes produce ADR-0027. | Real decision data won't exist until slice 2 surfaces whether `prototype-fidelity-checker` + manual screenshots are sufficient. Premature commitment risks instrumenting `main.dart` for no benefit. |
+| Q4 | `mcp_flutter` (visual snapshot, community plugin) — adopt or reject? | **Decision deferred to Phase 5 of sprint** (gate-of-decision sub-fase 5.0). Both outcomes produce ADR-0028. | Real decision data won't exist until slice 2 surfaces whether `prototype-fidelity-checker` + manual screenshots are sufficient. Premature commitment risks instrumenting `main.dart` for no benefit. |
 | Q5 | Should the sprint block on slice 2, or run in parallel? | **Run in parallel on a separate branch (`feat/m2-ai-harness`)** | Slice 2 is the actual M2 deliverable; this sprint is leverage. Branch isolation lets us merge harness improvements without coupling to slice 2's release tag. |
 | Q6 | Filename convention for spec/plan: `NNNN-<slug>` (numeric, as SPRINT-MD initially drafted) or `YYYY-MM-DD-<slug>` (date, as project convention)? | **`YYYY-MM-DD-<slug>` — match existing project convention** | Inspection of `docs/superpowers/specs/` and `plans/` shows all four prior artifacts use the date convention. Consistency beats the numeric scheme I proposed. SPRINT-MD will be amended in Phase 0 to match. |
 
@@ -43,7 +43,7 @@ A fresh Claude Code session opened on `feat/m2-ai-harness` after sprint completi
 3. Edit any file containing `@riverpod` under `apps/mobile/lib/` and observe the `riverpod-codegen-runner` hook regenerate matching `.g.dart` files within ~120 s, with a single log line.
 4. Invoke the `flutter-test-author` subagent against a new provider and observe it write a failing test **before** any `lib/` edit.
 5. Invoke the `flutter-perf-auditor` subagent against any slice-2 screen and observe a punch-list of `must-fix` / `should-fix` / `nit` items (or "no issues found" if clean).
-6. Read ADR-0027 and find a clear adopt-or-reject verdict on `mcp_flutter` with rationale.
+6. Read ADR-0028 and find a clear adopt-or-reject verdict on `mcp_flutter` with rationale.
 7. (If Phase 6 ran) `flutter test` against a 1-pixel-changed widget under golden coverage fails with a clear pixel-diff message; reverting passes.
 8. Read `CLAUDE.md`, `docs/02-ARCHITECTURE.md`, `docs/03-CONVENTIONS.md`, and `docs/10-CHANGELOG.md` and find the sprint reflected coherently — no doc drift.
 
@@ -149,9 +149,9 @@ TODO.md                                        [MODIFY] — Phase 0 (sprint trac
 | 1 — Dart MCP server | 1–2 | Install + settings.json + smoke test + ADR-0023 + CLAUDE.md update | `/mcp` lists `dart` ✅; symbol-resolve smoke test returns real source path |
 | 2 — Riverpod codegen hook | 1 | `.claude/hooks/run-riverpod-codegen.sh` + settings.json + ADR-0024 + CLAUDE.md | Edit `@riverpod` file → `.g.dart` regenerated; edit non-`@riverpod` Dart → no codegen |
 | 3 — `flutter-test-author` subagent | 2 | `.claude/agents/flutter-test-author.md` + ADR-0025 (with mock-lib decision) + CLAUDE.md | TDD smoke test: red → impl → green; subagent refuses `lib/` edit without red test |
-| 4 — `flutter-perf-auditor` subagent | 1.5 | `.claude/agents/flutter-perf-auditor.md` + ADR-0026 + M2-SLICE-CHECKLIST update | Planted-bad-tela smoke test flags 3 issues; clean tela returns no findings |
-| 5 — `mcp_flutter` decision | 0.5–2 | ADR-0027 (adopt OR reject); if adopt: pubspec + main.dart guard + settings.json + smoke | Adopt path: snapshot works in debug, release build clean. Reject path: ADR rationale clear. |
-| 6 — Golden tests | 2 | `golden_toolkit` dev-dep + `flutter_test_config.dart` + 1 baseline + ADR-0028 + checklist update | 1-pixel change fails; revert passes; baseline `.png` committed |
+| 4 — `flutter-perf-auditor` subagent | 1.5 | `.claude/agents/flutter-perf-auditor.md` + ADR-0027 + M2-SLICE-CHECKLIST update | Planted-bad-tela smoke test flags 3 issues; clean tela returns no findings |
+| 5 — `mcp_flutter` decision | 0.5–2 | ADR-0028 (adopt OR reject); if adopt: pubspec + main.dart guard + settings.json + smoke | Adopt path: snapshot works in debug, release build clean. Reject path: ADR rationale clear. |
+| 6 — Golden tests | 2 | `golden_toolkit` dev-dep + `flutter_test_config.dart` + 1 baseline + ADR-0029 + checklist update | 1-pixel change fails; revert passes; baseline `.png` committed |
 | 7 — Docs consolidate + retro | 0.75 | CLAUDE.md, 02/03/10 docs, sessions index, retro session log, SPRINT-MD final status | All doc cross-references coherent; CHANGELOG entry dated |
 
 **Estimate:** 9.25–11.75 working hours. Calendar pace at human's discretion — sprint does not block slice 2.
@@ -161,8 +161,8 @@ TODO.md                                        [MODIFY] — Phase 0 (sprint trac
 | Purpose | Package | Version target | Cost | Context7 ID (or rationale) |
 |---|---|---|---|---|
 | Dart analyzer + symbol resolver + agentic hot reload (MCP server) | `dart_mcp_server` (Dart global) | latest as of 2026-05-24, pinned in ADR-0023 | 0 (local process) | Official Flutter team — `docs.flutter.dev/ai/mcp-server` (fetched 2026-05-24). Context7 query not applicable for CLI tooling distributed via `dart pub global`. |
-| Visual + semantic snapshot of running Flutter app (Phase 5, conditional) | `mcp_flutter` (community, Arenukvern) | latest, pinned in ADR-0027 if adopted | 0 (local process) | Community — `github.com/Arenukvern/mcp_flutter`. Context7 ID to be resolved at Phase 5 execution if adopted. |
-| Golden tests for widget regression (Phase 6) | `golden_toolkit` | resolved at install time, recorded in ADR-0028 | 0 (dev-only) | Pub.dev — query Context7 at Phase 6 for current version + breaking-changes window. |
+| Visual + semantic snapshot of running Flutter app (Phase 5, conditional) | `mcp_flutter` (community, Arenukvern) | latest, pinned in ADR-0028 if adopted | 0 (local process) | Community — `github.com/Arenukvern/mcp_flutter`. Context7 ID to be resolved at Phase 5 execution if adopted. |
+| Golden tests for widget regression (Phase 6) | `golden_toolkit` | resolved at install time, recorded in ADR-0029 | 0 (dev-only) | Pub.dev — query Context7 at Phase 6 for current version + breaking-changes window. |
 | Mock library for `flutter-test-author` (Phase 3, decision pending) | `mocktail` OR `mockito` | TBD in Phase 3 | 0 (dev-only) | Both Flutter-team-friendly; ADR-0025 will record the choice + Context7 query timestamp. |
 
 No new runtime dependency. No backend dependency. Cost ceiling per `docs/M2-COST-MODEL.md` is unaffected.
@@ -172,9 +172,9 @@ No new runtime dependency. No backend dependency. Cost ceiling per `docs/M2-COST
 - **ADR-0023** — Adopt official Dart & Flutter MCP server. Filed in Phase 1.
 - **ADR-0024** — PostToolUse hook for Riverpod codegen. Filed in Phase 2.
 - **ADR-0025** — `flutter-test-author` subagent + mock-library choice. Filed in Phase 3.
-- **ADR-0026** — `flutter-perf-auditor` subagent. Filed in Phase 4.
-- **ADR-0027** — `mcp_flutter` adoption decision (adopt OR reject). Filed in Phase 5.
-- **ADR-0028** — `golden_toolkit` adoption. Filed in Phase 6 (if Phase 6 executes).
+- **ADR-0027** — `flutter-perf-auditor` subagent. Filed in Phase 4.
+- **ADR-0028** — `mcp_flutter` adoption decision (adopt OR reject). Filed in Phase 5.
+- **ADR-0029** — `golden_toolkit` adoption. Filed in Phase 6 (if Phase 6 executes).
 
 ## Risks and mitigations
 
@@ -185,7 +185,7 @@ No new runtime dependency. No backend dependency. Cost ceiling per `docs/M2-COST
 | **`flutter-test-author` subagent writes tests using imagined APIs** | Mitigated by Phase 1 (Dart MCP up first); subagent description explicitly instructs MCP-first symbol resolution. |
 | **`flutter-perf-auditor` produces false positives that erode trust** | Punch-list categorized by severity (must / should / nit); subagent has read-only tools (cannot "fix" speculatively). |
 | **`mcp_flutter` instrumentation leaks to release APK** | `kDebugMode` guard in `main.dart` + manual `flutter build apk --release` verification in Phase 5a smoke. |
-| **Golden tests churn baselines on every CI run (font rendering across OS)** | Phase 6 starts with **one** baseline only; `loadAppFonts()` in test config; explicit ADR-0028 note on OS-divergence risk. |
+| **Golden tests churn baselines on every CI run (font rendering across OS)** | Phase 6 starts with **one** baseline only; `loadAppFonts()` in test config; explicit ADR-0029 note on OS-divergence risk. |
 | **Sprint scope creep — temptation to refactor adjacent CLAUDE.md sections** | Karpathy §3 (Surgical Changes) enforced via Phase-bounded ADRs; any "while I'm here" idea goes to TODO.md, not into a sprint commit. |
 | **Filename convention drift (numeric vs date)** | Already caught and locked in Q6; SPRINT-MD amended in Phase 0. |
 
@@ -206,7 +206,7 @@ This sprint ships no UI. Accessibility section is **explicitly waived** with thi
 
 **Tech debt explicit (added to `TODO.md` in the kickoff commit):**
 
-- *2026-05-24:* Phase 5 `mcp_flutter` decision deferred until execution time; outcome (adopt or reject) determines whether ADR-0027 ships an installation or a rejection rationale.
+- *2026-05-24:* Phase 5 `mcp_flutter` decision deferred until execution time; outcome (adopt or reject) determines whether ADR-0028 ships an installation or a rejection rationale.
 - *2026-05-24:* Phase 6 starts with **one** golden baseline only; expanding to all slice-2 screens is post-sprint work and lives outside this spec.
 
 ## Verification gates (per `M2-SLICE-CHECKLIST.md` + sprint-specific)

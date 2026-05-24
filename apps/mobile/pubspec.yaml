@@ -44,6 +44,8 @@ dev_dependencies:
   riverpod_lint: ^3.0.0
   # Direct dep so tests can use InMemorySharedPreferencesAsync substrate.
   shared_preferences_platform_interface: ^2.4.2
+  # Mock library — no codegen, used by flutter-test-author subagent (ADR-0025).
+  mocktail: ^1.0.5
 
 flutter:
   uses-material-design: true
