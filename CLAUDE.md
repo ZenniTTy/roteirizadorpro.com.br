@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1+2+3+4+5+6 shipped — ADR-0023 Dart MCP, ADR-0024 PostToolUse Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail dep, ADR-0026 GH_DATA_DIR env override, ADR-0027 `flutter-perf-auditor` subagent, ADR-0028 `mcp_flutter` rejected for M2 with re-evaluation trigger, ADR-0029 `alchemist` golden tests with one canary baseline; Phase 7 (docs consolidate + retrospective) is the last remaining step on `feat/m2-ai-harness` before PR #8 merges into `feat/m2-slice-2-telas-core`)
+> **Last updated:** 2026-05-24 (M2-AI sprint **CLOSED** — all 7 phases shipped on `feat/m2-ai-harness`: ADR-0023 Dart MCP, ADR-0024 Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail, ADR-0026 GH_DATA_DIR env override, ADR-0027 `flutter-perf-auditor` subagent, ADR-0028 `mcp_flutter` rejected with re-evaluation trigger, ADR-0029 `alchemist` golden tests with one canary baseline. PR #8 ready to merge into `feat/m2-slice-2-telas-core`. Two smoke dispatches deferred to next session post-reload: `flutter-test-author` (ADR-0025 §Verification) and `flutter-perf-auditor` (ADR-0027 §Verification) — Claude Code agent registry only loads at session boot.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -20,6 +20,7 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
 | `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). ADR-0023. |
 | `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected after a session restart following Phase 1 of the M2-AI sprint. |
+| `cd apps/mobile && flutter test --tags golden` | Run only the alchemist golden tests (ADR-0029). Add `--update-goldens` to regenerate baselines after an intentional visual change; review the PNG diff in the PR. |
 
 ## What This Project Is
 

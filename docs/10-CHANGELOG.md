@@ -2,6 +2,21 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-05-24 — M2-AI harness sprint (sessions 19–22f)
+
+Seven-phase sprint on `feat/m2-ai-harness` (orthogonal to slice 2) that adopts the official Flutter team's AI tooling onto the existing harness without disturbing product code. PR #8 against `feat/m2-slice-2-telas-core`.
+
+- **ADR-0023** — official Dart & Flutter MCP server adopted via `.mcp.json` + `enabledMcpjsonServers` allowlist (Phase 1).
+- **ADR-0024** — PostToolUse hook auto-regenerates Riverpod `.g.dart` after `@riverpod` edits, with 90 s lock-file debounce; sits next to `format-dart.sh` (Phase 2).
+- **ADR-0025** — `flutter-test-author` subagent enforces test-first TDD for `apps/mobile/lib/`; refuses to write production code itself. `mocktail ^1.0.5` added as dev_dep, manual fakes remain the default (Phase 3).
+- **ADR-0026** — `GH_DATA_DIR` env override in `infra/graphhopper/extract-sp.sh` (housekeeping; closed an `adr-guardian` BLOCKING finding from commit `bff1b6c` filed in another session).
+- **ADR-0027** — `flutter-perf-auditor` read-only subagent, 9-item canonical perf checklist; Edit/Write/MultiEdit excluded from the allowlist so the read-only contract is mechanical, not just prompt-enforced. Wired into `M2-SLICE-CHECKLIST.md` §Verification (Phase 4).
+- **ADR-0028** — `mcp_flutter` (Arenukvern) **rejected** for M2 with a documented re-evaluation trigger (iterations > 7/screen OR 2 consecutive device-E2E gates with > 2 Criticals each cleared by the static checker). Plugin is healthy (v3.0.7, debug-only) but the gap it would close is already covered by ADR-0021's device-E2E gate + ADR-0022's integration_test gate (Phase 5).
+- **ADR-0029** — `alchemist ^0.14.0` (Betterment + VGV) adopted for golden tests after WebFetch confirmed `golden_toolkit` is discontinued by eBay. One canary baseline (`HomeEmptyPage`, 400×930 PNG) in CI mode. NOT a hook (Phase 6).
+- **Docs updated:** `CLAUDE.md` ("Last updated" + 2 new Executable Commands rows + §"Context7 Mandatory" 3-tier precedence + §"In-Loop Auto-Validation" 4-hook split + §"Verify Your Work" 2 new bullets), `docs/03-CONVENTIONS.md` §Testing (2 bullets on TDD subagent + goldens), `docs/M2-SLICE-CHECKLIST.md` §Verification (perf-auditor + goldens bullets). `docs/02-ARCHITECTURE.md` unchanged — product topology unaffected by harness tooling.
+- **Deferred to next session:** functional smoke dispatches of `flutter-test-author` and `flutter-perf-auditor` — Claude Code's agent registry only loads at session boot. Exact dispatch prompts captured in ADR-0025 §Verification and ADR-0027 §Verification.
+- **In-loop validation:** every phase ran the in-loop hooks (`analyze-changed-dart.sh`, `check-dto-mirror.sh`, `warn-adr-drift.sh`) at turn end; `adr-guardian` dispatched at each phase boundary (caught and closed the ADR-0026 gap from commit `bff1b6c`); lefthook + commitlint passed on every commit without `--no-verify`.
+
 ## 2026-05-19 — slice 2 sub-2a remainder + sub-2b + sub-2c (session 13)
 
 - **Sub 2a (Foundation) closed**: `StopsController` Riverpod 3 codegen with the 7 mutations the slice consumes (`add`, `remove`, `updateStop`, `reorder`, `applyOptimizedOrder`, `clear`, `build`-hydrate). `StopListItem` shared widget, `ScreenHomeEmpty`, `ScreenHomeList` with `HomeListPageOrEmpty` dispatcher + GoRouter wiring, `ScreenAddStop` with shared `StopForm` (address-only per prototype; Nominatim arrives in slice 3).

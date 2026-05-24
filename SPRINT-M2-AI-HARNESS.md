@@ -3,7 +3,7 @@
 > **Branch:** `feat/m2-ai-harness` (a partir de `feat/m2-slice-2-telas-core`, **não** de `main`)
 > **Criado em:** 2026-05-24
 > **Owner:** Eduardo Rodrigues — `eduardo@ianelli.tech`
-> **Status:** 🟡 Em execução — Fases 0 + 1 entregues; PR #8 aberto contra `feat/m2-slice-2-telas-core`; Fases 2–7 continuam **nesta mesma branch** (`feat/m2-ai-harness`) e novos commits empurram para o PR #8 já aberto.
+> **Status:** ✅ **FECHADA 2026-05-24** — todas as 7 fases entregues nesta branch (`feat/m2-ai-harness`). PR #8 contra `feat/m2-slice-2-telas-core` pronto para merge. Smoke dispatches dos subagents `flutter-test-author` e `flutter-perf-auditor` ficam deferred para a próxima sessão pós-reload (Claude Code carrega o agent registry só na boot da sessão — ADR-0025 §Verification e ADR-0027 §Verification têm os prompts exatos).
 > **Spec canônica:** `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`
 > **Plan canônico:** `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`
 >
@@ -11,7 +11,7 @@
 
 ---
 
-## 🟡 Sprint state & handoff (2026-05-24, atualizado)
+## ✅ Sprint state & handoff (2026-05-24, **FECHADA**)
 
 **Onde estamos.** Fases 0 e 1 entregues e commitadas em `feat/m2-ai-harness`. PR #8 aberto contra `feat/m2-slice-2-telas-core` (branch-mãe), **não** contra `develop` — porque slice-2 ainda tem trabalho próprio pendente (MS-15+, 7 Criticals restantes).
 
@@ -28,20 +28,16 @@
 | 4 — Subagent `flutter-perf-auditor` | ✅ entregue (sessão 22c, smoke dispatch deferred to sessão 23 post-reload) | `95d365f` | ADR-0027 |
 | 5 — Decisão sobre `mcp_flutter` | ✅ entregue (sessão 22d) — **rejeitado** com critério de re-avaliação documentado | (este commit) | ADR-0028 |
 | 6 — Golden tests baseline | ✅ entregue (sessão 22e) — pivot `golden_toolkit` (descontinuado) → `alchemist 0.14.0` | (este commit) | ADR-0029 |
-| 7 — Docs consolidate | ☐ pendente | — | — |
+| 7 — Docs consolidate + retro | ✅ entregue (sessão 22f) | (este commit) | — |
 
 **Commits orthogonais entregues junto:**
 - `bff1b6c` `chore(infra): support relocating graphhopper data outside the repo` — `GH_DATA_DIR` env var + TODO(ADR) em docker-compose.yml. Não é da sprint M2-AI; carona no PR para limpar working tree.
 - `fbf4508` `docs(sessions): session 2026-05-24-21 — graphhopper data relocation off-repo` — log da sessão que executou o item acima.
 
-**Próxima sessão deve:**
-1. **Não** criar branch nova — seguir trabalhando em `feat/m2-ai-harness` (`git status` deve mostrar essa branch e working tree clean).
-2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu).
-3. **Validar Phase 3 (smoke test deferred):** confirmar que `flutter-test-author` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0025 §Verification (TDD num CounterController + tentativa explícita de fazer o agent implementar a lógica e ver recusa).
-4. **Validar Phase 4 (smoke test deferred):** confirmar que `flutter-perf-auditor` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0027 §Verification (bad-screen com 3 violações plantadas + clean-screen como `home_empty_page.dart` sem falsos positivos).
-5. Ler §Fase 7 abaixo. Fases 5 e 6 já fechadas (sessões 22d + 22e) — não voltar.
-6. Executar Fase 7 (docs consolidate + retrospective session log). Última fase da sprint, sem código.
-7. Quando Fase 7 fechar, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
+**Próxima sessão deve (sprint FECHADA — tarefas pós-merge):**
+1. **Validar Phase 3 + Phase 4 smoke (deferred desta sprint):** confirmar `/agents` lista `flutter-test-author` e `flutter-perf-auditor`; rodar os 4 prompts de smoke capturados em ADR-0025 §Verification + ADR-0027 §Verification. Resultados vão num session log curto (qualquer pendência de ajuste se algum smoke falhar → ADR de correção).
+2. Mergear PR #8 em `feat/m2-slice-2-telas-core` (squash ou merge-commit a critério do owner).
+3. Voltar para os microsprints próprios de slice 2 (MS-15+ — 7 Criticals restantes), agora com o harness completo (Dart MCP + Riverpod codegen hook + 2 subagents + goldens disponíveis).
 
 ---
 
@@ -431,7 +427,7 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 
 ## Fase 7 — Documentação consolidada + retro
 
-**Status:** ☐ não iniciado
+**Status:** ✅ entregue 2026-05-24 (sessão 22f). CLAUDE.md (Last updated, 1 nova Executable Commands row pra goldens) + docs/03-CONVENTIONS.md §Testing (2 bullets — TDD subagent + goldens) + docs/10-CHANGELOG.md (1 entrada consolidada cobrindo as 7 fases). docs/02-ARCHITECTURE.md propositalmente não tocado — descreve arquitetura do produto (auth, webhook Pix, route), não tooling da IA; harness vive em `.claude/` + `.mcp.json` + ADRs. Retro session log em `docs/sessions/2026-05-24-22f-sprint-m2ai-retrospective.md`. Header deste MD marca ✅ FECHADA. Sprint pronta para PR #8 mergear.
 **Tempo:** 45 min
 **Depende de:** todas as fases anteriores.
 
