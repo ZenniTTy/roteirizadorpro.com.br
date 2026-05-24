@@ -3,11 +3,38 @@
 > **Branch:** `feat/m2-ai-harness` (a partir de `feat/m2-slice-2-telas-core`, **não** de `main`)
 > **Criado em:** 2026-05-24
 > **Owner:** Eduardo Rodrigues — `eduardo@ianelli.tech`
-> **Status:** 📋 Planejado — Fase 0 não iniciada
-> **Spec canônica:** `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md` ✅ criado em Phase 0 (2026-05-24)
-> **Plan canônico:** `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md` ✅ criado em Phase 0 (2026-05-24)
+> **Status:** ⏸ Em pausa — Fases 0 + 1 entregues; PR para `develop` aberto; Fases 2–7 retomarão em **nova branch off `develop`** após o merge.
+> **Spec canônica:** `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`
+> **Plan canônico:** `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`
 >
 > **Nota de convenção (Q6 da spec):** Os arquivos seguem o padrão `YYYY-MM-DD-<slug>` do projeto, **não** o padrão numérico `NNNN-<slug>` que o draft inicial deste documento sugeria. Convenção corrigida no commit de Phase 0.
+
+---
+
+## ⏸ Sprint pause & handoff (2026-05-24)
+
+**Onde paramos.** Fases 0 e 1 estão entregues e commitadas em `feat/m2-ai-harness`. PR para `develop` aberto após esta atualização. Não há trabalho pendente nesta branch.
+
+**Decisão explícita:** as Fases 2–7 **NÃO** serão retomadas nesta branch. Após o merge do PR, abra **nova branch off `develop`** (sugestão: `feat/m2-ai-harness-phase-2` ou similar por fase) e siga as seções "Fase 2", "Fase 3", etc. abaixo. Branch isolada por par-de-fases ou por fase — opcional; o que **não** vale é continuar empilhando commits aqui.
+
+**Estado entregue:**
+
+| Fase | Status | Commits | ADR |
+|---|---|---|---|
+| 0 — Pré-flight | ✅ entregue (sessão 19) | `4b528f8`, `baaea44`, `782eb99` | — |
+| 1 — Dart & Flutter MCP server | ✅ entregue (sessão 20) + smoke validado pós-reload | `2abe6bc`, `8c15f7c` | ADR-0023 |
+| 2–7 | ☐ não iniciadas | — | ADRs 0024–0028 (planejados) |
+
+**Commits orthogonais entregues junto:**
+- `bff1b6c` `chore(infra): support relocating graphhopper data outside the repo` — `GH_DATA_DIR` env var + TODO(ADR) em docker-compose.yml. Não é da sprint M2-AI; carona no PR para limpar working tree.
+- `fbf4508` `docs(sessions): session 2026-05-24-21 — graphhopper data relocation off-repo` — log da sessão que executou o item acima.
+
+**Próxima sessão deve:**
+1. Confirmar que o PR de `feat/m2-ai-harness` → `develop` foi mergeado (`gh pr view` ou `git log develop`).
+2. Criar nova branch off `develop` (`git checkout develop && git pull && git checkout -b feat/<nova>`).
+3. Re-ler este SPRINT-MD a partir da seção "Fase 2".
+4. Re-ler a spec (`docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`) — segue válida; nada foi superseded.
+5. Confirmar que `dart` aparece em `/mcp` (a Fase 1 estabeleceu isso; deve seguir funcionando em qualquer branch que herde `.mcp.json` e `.claude/settings.json`).
 
 ---
 
@@ -89,8 +116,8 @@ A pesquisa foi feita em 2026-05-24 com WebSearch + Context7 + queries diretas a 
 
 ## Fase 0 — Pré-flight
 
-**Status:** ☐ não iniciado
-**Tempo:** 30 min
+**Status:** ✅ concluída 2026-05-24 (sessão 19)
+**Tempo real:** ~30 min
 **Bloqueia:** todas as outras fases.
 
 ### Por que existe

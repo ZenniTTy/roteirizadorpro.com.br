@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI sprint Phase 1 — Dart & Flutter MCP server adopted via ADR-0023)
+> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1 shipped — ADR-0023 + Dart MCP smoke validated post-reload; GraphHopper data relocated off-repo via `GH_DATA_DIR`; sprint paused at PR boundary, Phases 2–7 will resume on a new branch off `develop`)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)

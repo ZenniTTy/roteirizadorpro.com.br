@@ -45,7 +45,7 @@ See spec §Architecture "Harness file layout" for the full tree. Summary:
 
 ---
 
-## Phase 0 — Pre-flight (executing NOW)
+## Phase 0 — Pre-flight (✅ shipped 2026-05-24, session 19, commits `4b528f8` + `baaea44` + `782eb99`)
 
 ### Task 0.1: Verify branch and clean tree
 
@@ -116,9 +116,9 @@ Create `docs/sessions/2026-05-24-19-ai-harness-kickoff.md` from the `0000-templa
 
 Append the new session entry to `docs/sessions/0001-INDEX.md` following the existing format.
 
-### Task 0.6: Commit Phase 0
+### Task 0.6: Commit Phase 0 (✅ done)
 
-- [ ] **Step 0.6.1: Stage Phase 0 files only**
+- [x] **Step 0.6.1: Stage Phase 0 files only**
 
 ```bash
 git add SPRINT-M2-AI-HARNESS.md \
@@ -131,7 +131,7 @@ git add SPRINT-M2-AI-HARNESS.md \
 
 Do **not** stage `CONTINUATION-PROMPT.md`, `infra/docker-compose.yml`, `infra/graphhopper/extract-sp.sh` — these are pre-existing untracked/modified files unrelated to Phase 0.
 
-- [ ] **Step 0.6.2: Commit**
+- [x] **Step 0.6.2: Commit**
 
 ```bash
 git commit -m "$(cat <<'EOF'
@@ -152,9 +152,9 @@ EOF
 )"
 ```
 
-- [ ] **Step 0.6.3: Run harness validation**
+- [x] **Step 0.6.3: Run harness validation**
 
-After commit, run the harness validation pipeline (see Phase 0 Self-Review below) and confirm everything is consistent.
+After commit, run the harness validation pipeline (see Phase 0 Self-Review below) and confirm everything is consistent. `adr-guardian` audit went YELLOW → YELLOW → GREEN across two follow-up commits (`baaea44` ADR renumber 0021..0026 → 0023..0028 to avoid collision with real ADRs 0021/0022; `782eb99` stale-ref sweep for two spots the rename sed missed).
 
 ---
 
