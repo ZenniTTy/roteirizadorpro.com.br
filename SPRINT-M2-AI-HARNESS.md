@@ -75,12 +75,12 @@ A pesquisa foi feita em 2026-05-24 com WebSearch + Context7 + queries diretas a 
 | Fase | Item | ROI | Tempo | Reversível? | ADR planejado | Depende de |
 |---|---|---|---|---|---|---|
 | 0 | Pré-flight: spec + plan + branch | — | 30 min | sim | — | — |
-| 1 | Dart & Flutter MCP server oficial | 🔥🔥🔥 | 1–2h | sim | 0021 | 0 |
-| 2 | Hook `riverpod-codegen-runner` | 🔥🔥 | 1h | sim | 0022 | 1 |
-| 3 | Subagent `flutter-test-author` | 🔥🔥 | 2h | sim | 0023 | 1 |
-| 4 | Subagent `flutter-perf-auditor` | 🔥 | 1.5h | sim | 0024 | 1 (paralelo a 3) |
-| 5 | Decisão `mcp_flutter` (fork) | 🔥 ou 0 | 30 min – 2h | sim | 0025 | 1 |
-| 6 | Golden tests com `golden_toolkit` | 🔥 | 2h | sim | 0026 | 3 |
+| 1 | Dart & Flutter MCP server oficial | 🔥🔥🔥 | 1–2h | sim | 0023 | 0 |
+| 2 | Hook `riverpod-codegen-runner` | 🔥🔥 | 1h | sim | 0024 | 1 |
+| 3 | Subagent `flutter-test-author` | 🔥🔥 | 2h | sim | 0025 | 1 |
+| 4 | Subagent `flutter-perf-auditor` | 🔥 | 1.5h | sim | 0026 | 1 (paralelo a 3) |
+| 5 | Decisão `mcp_flutter` (fork) | 🔥 ou 0 | 30 min – 2h | sim | 0027 | 1 |
+| 6 | Golden tests com `golden_toolkit` | 🔥 | 2h | sim | 0028 | 3 |
 | 7 | Documentação consolidada + retro | — | 45 min | n/a | — | todas |
 
 **Total estimado:** 10–13h de trabalho dirigido (calendário a critério do humano).
@@ -428,7 +428,7 @@ Se você é uma sessão Claude que está abrindo este projeto e este MD existe c
 
 1. **Não chute onde parou** — leia o "Status" no header de cada fase.
 2. Rode `git log --oneline feat/m2-ai-harness ^main` para ver o que já foi commitado.
-3. Rode `ls docs/decisions/0021* 0022* 0023* 0024* 0025* 0026*` para ver quais ADRs já existem.
+3. Rode `ls docs/decisions/0023* 0024* 0025* 0026* 0027* 0028*` para ver quais ADRs do sprint já existem (ADR-0021 e ADR-0022 são ADRs reais pré-existentes, não pertencem a este sprint).
 4. Combine os dois sinais — a primeira fase **sem** ADR correspondente é onde retomar.
 5. Antes de tocar código, releia a fase atual **inteira** + a seção "Princípios desta sprint" no topo.
 6. Se houver dúvida sobre o estado atual, **pergunte ao humano**. Não infira.
