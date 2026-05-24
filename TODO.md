@@ -185,6 +185,8 @@ Post-merge:
 
 Replaces the `POST /routes/optimize` mock with a real solver. Approach in `docs/08-ROADMAP.md` slice 3 section: distance matrix from individual GraphHopper route calls (n² parallel) + nearest-neighbor + 2-opt in Node TS. New endpoint `POST /geocode` backed by Nominatim with the OSMF policy in mind. ADRs to file: ADR-0018 (geocoding policy + migration trigger), ADR-0019 (solver design). Estimated 3-5 days.
 
+**Slice 3 entry tech debt — GraphHopper image pinning (carried from session 2026-05-24-21):** `infra/docker-compose.yml` still uses `image: israelhikingmap/graphhopper:latest` (currently `12.0-SNAPSHOT` per `docker run --entrypoint sh ... ls /graphhopper/*.jar`). Tried pinning to `:8.0@sha256:b7178b…` per Docker best practice; reverted because `config.yml` declares `car_access` (introduced in GH 9+) and `:8.0` crash-loops with `IllegalArgumentException: DefaultEncodedValueFactory cannot find EncodedValue car_access`. Slice 3 entry checklist must (a) file an ADR-0008 amendment choosing a stable tag (likely `:9.1`), (b) re-validate `config.yml` `graph.encoded_values` against that tag, (c) rebuild graph-cache with the pinned image, (d) verify `benchmark.sh` p95 < 200ms still holds. Inline `TODO(ADR)` comment in the compose file marks the spot.
+
 ### ⏳ Slice 4 — Pix Split paywall via Efí Bank (after slice 3)
 
 Pay-per-route flow per `02-ARCHITECTURE.md` Flow 3. **Prereqs from Eduardo before this slice starts:** `.p12` mTLS certificate (sandbox + prod) downloaded from the Efí dashboard, HMAC webhook secret configured. `client_id`/`client_secret` already in `.env.deploy` (both sandbox and prod). ADR-0007 already covers the architecture decision; this slice files no new ADR unless we deviate. Estimated 4-6 days.
