@@ -26,7 +26,7 @@
 | 2 — Riverpod codegen hook | ✅ entregue (sessão 22) | `0a6f094` | ADR-0024 |
 | 3 — Subagent `flutter-test-author` | ✅ entregue (sessão 22b, smoke dispatch deferred to sessão 23 post-reload) | `3dd30f8` | ADR-0025 + ADR-0026 (housekeeping) |
 | 4 — Subagent `flutter-perf-auditor` | ✅ entregue (sessão 22c, smoke dispatch deferred to sessão 23 post-reload) | `95d365f` | ADR-0027 |
-| 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0028 (planejado) |
+| 5 — Decisão sobre `mcp_flutter` | ✅ entregue (sessão 22d) — **rejeitado** com critério de re-avaliação documentado | (este commit) | ADR-0028 |
 | 6 — Golden tests baseline | ☐ pendente | — | ADR-0029 (planejado) |
 | 7 — Docs consolidate | ☐ pendente | — | — |
 
@@ -39,9 +39,9 @@
 2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu).
 3. **Validar Phase 3 (smoke test deferred):** confirmar que `flutter-test-author` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0025 §Verification (TDD num CounterController + tentativa explícita de fazer o agent implementar a lógica e ver recusa).
 4. **Validar Phase 4 (smoke test deferred):** confirmar que `flutter-perf-auditor` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0027 §Verification (bad-screen com 3 violações plantadas + clean-screen como `home_empty_page.dart` sem falsos positivos).
-5. Ler a seção §Fase 5 abaixo + spec Q4 + ADR-0023 (MCP server) antes de tocar arquivos. Fase 5 é um **gate de decisão** (adopt ou reject `mcp_flutter` — ambos viram ADR-0028).
-6. Executar Fase 5 → commit no padrão `docs(decisions): ADR-0028 mcp_flutter …` → o PR #8 absorve.
-7. Seguir Fases 6–7 na ordem. Quando todas fecharem, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
+5. Ler §Fase 6 abaixo (Phase 5 já fechada pela sessão 22d com rejeição documentada em ADR-0028 — não voltar).
+6. Executar Fase 6 (golden tests com `golden_toolkit`) → commit `test(mobile): golden tests baseline (ADR-0029)` → o PR #8 absorve.
+7. Executar Fase 7 (docs consolidate + retrospective). Quando fechar, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
 
 ---
 
@@ -345,9 +345,8 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 
 ## Fase 5 — Decisão `mcp_flutter` (visual snapshot) — **GATE DE DECISÃO**
 
-**Status:** ☐ não iniciado
+**Status:** ✅ entregue 2026-05-24 (sessão 22d). **Decisão: REJEITAR para o ciclo M2.** Critério 2 (gap visual real) já está fechado por ADR-0021 + ADR-0022 (device-E2E + integration_test + screenshot manual). Adotar agora duplica o gate sem evidência de que o manual falha. Critério de re-avaliação documentado em ADR-0028 (acionável em slice 3+ se: iterações visuais > 7/tela OU 2 device-E2E consecutivos com > 2 Criticals que o checker estático perdeu).
 **Tempo:** 30 min decisão + 2h se adotar
-**Depende de:** Fase 1.
 **Fonte:** [github.com/Arenukvern/mcp_flutter](https://github.com/Arenukvern/mcp_flutter)
 
 ### Por que é um fork explícito
