@@ -12,6 +12,19 @@
 
 ## M2 — Slices
 
+### 🔧 Sprint M2-AI (Harness upgrade — orthogonal to slice 2, branch `feat/m2-ai-harness`)
+
+Playbook: `SPRINT-M2-AI-HARNESS.md` (root). Spec: `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`. Plan: `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`. Does NOT block slice 2; runs in parallel on its own branch off `feat/m2-slice-2-telas-core` at `7808911`.
+
+- [ ] **Phase 0** — Pre-flight (spec + plan + branch + TODO + session log) — in progress 2026-05-24
+- [ ] **Phase 1** — Dart & Flutter MCP server (ADR-0021) — highest ROI
+- [ ] **Phase 2** — Riverpod codegen PostToolUse hook (ADR-0022)
+- [ ] **Phase 3** — `flutter-test-author` subagent (ADR-0023, includes mock-lib choice)
+- [ ] **Phase 4** — `flutter-perf-auditor` subagent (ADR-0024)
+- [ ] **Phase 5** — `mcp_flutter` adopt-or-reject decision (ADR-0025)
+- [ ] **Phase 6** — Golden tests baseline with `golden_toolkit` (ADR-0026, conditional)
+- [ ] **Phase 7** — Docs consolidate + retrospective session log
+
 ### ✅ Slice 1 — Android APK distribuível (shipped 2026-05-13 as `v1.0.0`)
 
 Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 34.3 MB, `Content-Type: application/vnd.android.package-archive`, signed v2 + cert SHA-256 `D9:C9:61:D6:…:14:31`). Validated end-to-end on a Samsung Galaxy A06 against production API. ADR-0014 + session logs 09/10 + memory entry `flutter-android-release-internet-permission.md` capture the design, the diagnosis ladder, and the INTERNET-permission gotcha.
