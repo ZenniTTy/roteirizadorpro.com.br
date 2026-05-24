@@ -101,7 +101,7 @@ Total revert is a 3-file diff with no codebase touch. Zero risk to product code 
 3. `flutter analyze` continues to pass clean (no regression from harness changes).
 4. The three Stop-hooks remain silent on a no-op turn (no false positives from the new MCP).
 
-Smoke test results captured in `docs/sessions/2026-05-24-19-ai-harness-kickoff.md` continuation and Phase 1 commit body.
+Smoke test results to be captured in the **next** session log after Claude Code restart (Claude Code loads MCP servers at session start; the session that registered the server cannot validate the `/mcp` listing inline). Phase 1 commit body documents the install + the deferred-validation procedure; the next session log appends the actual `/mcp` ✅ output and the `MapController` resolve result.
 
 ## References
 
