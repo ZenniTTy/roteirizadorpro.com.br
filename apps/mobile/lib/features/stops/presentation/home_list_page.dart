@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/home_top_bar.dart';
 import '../../../core/widgets/rp_button.dart';
 import '../domain/stop.dart';
 import '../state/stops_controller.dart';
@@ -18,29 +19,13 @@ class HomeListPage extends ConsumerWidget {
     final asyncStops = ref.watch(stopsControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rota de hoje'),
-        actions: [
-          asyncStops.maybeWhen(
-            data: (stops) => Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: Semantics(
-                  label:
-                      '${stops.length} ${stops.length == 1 ? 'parada' : 'paradas'}',
-                  child: ExcludeSemantics(
-                    child: Chip(
-                      avatar: const Icon(Icons.place_outlined, size: 16),
-                      label: Text('${stops.length}'),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-        ],
+      appBar: asyncStops.maybeWhen(
+        data: (stops) => HomeTopBar(
+          count: stops.length,
+          showMore: true,
+          onMorePressed: () => _showMoreMenu(context, ref),
+        ),
+        orElse: () => const HomeTopBar(count: 0),
       ),
       floatingActionButton: Semantics(
         button: true,
@@ -102,6 +87,45 @@ class HomeListPage extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showMoreMenu(BuildContext context, WidgetRef ref) async {
+    final button = context.findRenderObject()! as RenderBox;
+    final overlay =
+        Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
+    final position = RelativeRect.fromRect(
+      button.localToGlobal(Offset.zero, ancestor: overlay) & button.size,
+      Offset.zero & overlay.size,
+    );
+    final selection = await showMenu<String>(
+      context: context,
+      position: position,
+      items: const [
+        PopupMenuItem(value: 'clear', child: Text('Limpar rota')),
+      ],
+    );
+    if (selection != 'clear') return;
+    if (!context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Limpar rota?'),
+        content: const Text('Todas as paradas desta rota serão removidas.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Limpar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(stopsControllerProvider.notifier).clear();
+    }
   }
 }
 
