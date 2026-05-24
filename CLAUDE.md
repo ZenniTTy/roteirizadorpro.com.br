@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-18 (harness upgrade — allowed-tools, SessionStart hook, executable commands)
+> **Last updated:** 2026-05-24 (M2-AI sprint Phase 1 — Dart & Flutter MCP server adopted via ADR-0023)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -18,6 +18,8 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `cd apps/landing && bun run lint` | Before every landing commit. Lefthook enforces. |
 | `bash apps/mobile/scripts/build-release-apk.sh` | Cuts a signed release APK. ADR-0014. |
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
+| `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). ADR-0023. |
+| `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected after a session restart following Phase 1 of the M2-AI sprint. |
 
 ## What This Project Is
 
@@ -128,6 +130,14 @@ Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Pos
 ### Context7 Mandatory
 
 Before proposing OR installing any external library/framework, query Context7 (`resolve-library-id` then `query-docs`). Training-data knowledge has a cutoff; Context7 has current docs. **No exceptions for libraries within reach of the cutoff date.** Stdlib and well-established APIs (HTTP, SQL) are exempt.
+
+**Precedence after ADR-0023 (Dart & Flutter MCP server adopted):**
+
+1. **Dart MCP first** — for any symbol, class, or method from a Dart/Flutter package **already installed** in `apps/mobile/pubspec.yaml` (i.e. resolvable from local `.pub-cache/`), use the Dart MCP tools (`resolve_symbol`, `analyze`, etc.) instead of `Read`ing pub-cache files or hitting Context7. The MCP returns the real signature from the local analyzer — zero hallucination, zero token spent on file traversal.
+2. **Context7 second** — for any library not yet installed, or to confirm the current pub.dev version before adding a dependency, or for any non-Dart library (Fastify, Prisma, TypeBox, Next.js, etc.). Context7 stays mandatory there.
+3. **Training-data answers third (rarely)** — only for stdlib and stable APIs (HTTP verbs, SQL syntax) where the answer hasn't changed in years.
+
+If the Dart MCP is unavailable (process crash, Dart < 3.9, `dart` not in `/mcp` list), fall back to Context7 + `Read` — but say so explicitly in the turn so the human can re-establish the MCP.
 
 ### Verify Your Work
 

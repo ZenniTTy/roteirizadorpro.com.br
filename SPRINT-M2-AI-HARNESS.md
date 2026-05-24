@@ -117,10 +117,16 @@ Sem spec + plan + branch isolada, o resto da sprint corre risco de drift. Esta f
 
 ## Fase 1 — Dart & Flutter MCP server oficial 🔥🔥🔥
 
-**Status:** ☐ não iniciado
-**Tempo:** 1–2h
+**Status:** ✅ concluída 2026-05-24 (sessão 20, ADR-0023)
+**Tempo real:** ~1h
 **Depende de:** Fase 0.
 **Fonte primária:** [docs.flutter.dev/ai/mcp-server](https://docs.flutter.dev/ai/mcp-server)
+
+### Descobertas durante a execução (registradas para sessões futuras)
+
+1. **A doc oficial Flutter mostra 3 formatos de config** (Gemini CLI, OpenCode, Claude Code). O formato Gemini-style (`mcpServers` no `settings.json`) **foi tentado primeiro e rejeitado pelo schema validator do Claude Code**. O formato canônico do Claude Code é `.mcp.json` no root do repo + `enabledMcpjsonServers: ["dart"]` em `.claude/settings.json`. Trade-off: dois arquivos em vez de um, mas separação semântica correta (declaração vs aprovação).
+2. **O servidor MCP vem embutido no Dart SDK** (`dart mcp-server` subcomando), não como pacote separado em `dart pub global`. Plano original assumia activation; correção: nenhum activate necessário se Dart ≥ 3.9.
+3. **Smoke test depende de restart da sessão Claude Code** — `/mcp` só lista servidores carregados na inicialização. Não há como validar inline durante a sessão que registrou o server.
 
 ### Por que primeiro
 Maior ROI da sprint inteira. Reduz alucinação de API e custo de token em **todas** as fases seguintes. Instalar antes faz o resto da sprint ser mais barato. O Claude para de "lembrar" API do Flutter/Riverpod/flutter_map e passa a consultar o analyzer local.
@@ -156,10 +162,13 @@ Maior ROI da sprint inteira. Reduz alucinação de API e custo de token em **tod
    - Bumpar `Last updated` no topo.
 
 ### Gate de aceite
-- [ ] `/mcp` lista `dart` como ✅ connected.
-- [ ] Smoke test acima retorna lista real de métodos com source path local.
-- [ ] ADR-0023 commitado em `docs/decisions/0023-dart-flutter-mcp-server.md`.
-- [ ] `CLAUDE.md` atualizado e data bumpada.
+- [ ] `/mcp` lista `dart` como ✅ connected. **(requer restart de sessão Claude Code — humano valida)**
+- [ ] Smoke test acima retorna lista real de métodos com source path local. **(requer restart — humano valida)**
+- [x] ADR-0023 commitado em `docs/decisions/0023-dart-flutter-mcp-server.md`.
+- [x] `CLAUDE.md` atualizado e data bumpada (2026-05-24).
+- [x] `.mcp.json` criado e válido (`python3 -m json.tool` passa).
+- [x] `.claude/settings.json` aceito pelo schema validator com `enabledMcpjsonServers: ["dart"]`.
+- [x] `dart mcp-server --help` executa com exit=0 e lista flags reais (`--tools`, `--exclude-tool`, `--dart-sdk`, etc.).
 
 ### Riscos conhecidos
 - Versão do `dart_mcp_server` ainda pode estar em evolução — fixar a versão exata no ADR é mandatório.
