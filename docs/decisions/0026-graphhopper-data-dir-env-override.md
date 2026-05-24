@@ -4,7 +4,7 @@
 - **Date:** 2026-05-24
 - **Deciders:** Eduardo
 - **Supersedes:** none
-- **Related ADRs:** ADR-0008 (GraphHopper self-hosted routing — the original infra decision that this amends), ADR-0017 deferred TODO note in `infra/docker-compose.yml` about pinning the GraphHopper image
+- **Related ADRs:** ADR-0008 (GraphHopper self-hosted routing — the original infra decision that this amends). An inline `TODO(ADR)` comment in `infra/docker-compose.yml` (added in commit `bff1b6c`) flags a separate, still-open gap: the `israelhikingmap/graphhopper:latest` tag needs a proper pin, which requires an ADR-0008 amendment plus a config-compat revalidation. That work is sized for slice-3 entry, not this ADR.
 - **Sprint:** Filed during M2-AI Harness — Phase 3 to close an `adr-guardian` BLOCKING finding from commit `bff1b6c` (other session, GraphHopper data relocate)
 
 ## Context

@@ -24,8 +24,8 @@
 | 0 — Pré-flight | ✅ entregue (sessão 19) | `4b528f8`, `baaea44`, `782eb99` | — |
 | 1 — Dart & Flutter MCP server | ✅ entregue (sessão 20) + smoke validado pós-reload | `2abe6bc`, `8c15f7c` | ADR-0023 |
 | 2 — Riverpod codegen hook | ✅ entregue (sessão 22) | `0a6f094` | ADR-0024 |
-| 3 — Subagent `flutter-test-author` | ✅ entregue (sessão 22, smoke dispatch deferred to sessão 23 post-reload) | (este commit) | ADR-0025 |
-| 4 — Subagent `flutter-perf-auditor` | ✅ entregue (sessão 22c, smoke dispatch deferred to sessão 23 post-reload) | (este commit) | ADR-0027 |
+| 3 — Subagent `flutter-test-author` | ✅ entregue (sessão 22b, smoke dispatch deferred to sessão 23 post-reload) | `3dd30f8` | ADR-0025 + ADR-0026 (housekeeping) |
+| 4 — Subagent `flutter-perf-auditor` | ✅ entregue (sessão 22c, smoke dispatch deferred to sessão 23 post-reload) | `95d365f` | ADR-0027 |
 | 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0028 (planejado) |
 | 6 — Golden tests baseline | ☐ pendente | — | ADR-0029 (planejado) |
 | 7 — Docs consolidate | ☐ pendente | — | — |
