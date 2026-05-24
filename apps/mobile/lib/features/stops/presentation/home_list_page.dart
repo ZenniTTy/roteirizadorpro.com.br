@@ -22,7 +22,10 @@ class HomeListPage extends ConsumerWidget {
       appBar: asyncStops.maybeWhen(
         data: (stops) => HomeTopBar(
           count: stops.length,
-          showMore: true,
+          // Hide the more-menu when there are no stops: the only menu
+          // item is "Limpar rota", which would be a destructive prompt
+          // for a no-op on an empty list.
+          showMore: stops.isNotEmpty,
           onMorePressed: () => _showMoreMenu(context, ref),
         ),
         orElse: () => const HomeTopBar(count: 0),
@@ -90,12 +93,17 @@ class HomeListPage extends ConsumerWidget {
   }
 
   Future<void> _showMoreMenu(BuildContext context, WidgetRef ref) async {
-    final button = context.findRenderObject()! as RenderBox;
-    final overlay =
-        Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
+    // Anchor + overlay can be null while the route is mid-pop or the
+    // overlay hasn't attached yet. Bail quietly instead of crashing on
+    // `!` cast — the user just sees no menu, which is the safer fallback.
+    final buttonRO = context.findRenderObject();
+    final overlayState = Navigator.of(context).overlay;
+    if (buttonRO is! RenderBox || overlayState == null) return;
+    final overlayRO = overlayState.context.findRenderObject();
+    if (overlayRO is! RenderBox) return;
     final position = RelativeRect.fromRect(
-      button.localToGlobal(Offset.zero, ancestor: overlay) & button.size,
-      Offset.zero & overlay.size,
+      buttonRO.localToGlobal(Offset.zero, ancestor: overlayRO) & buttonRO.size,
+      Offset.zero & overlayRO.size,
     );
     final selection = await showMenu<String>(
       context: context,
@@ -123,8 +131,17 @@ class HomeListPage extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed == true) {
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+    try {
       await ref.read(stopsControllerProvider.notifier).clear();
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível limpar a rota. Tente novamente.'),
+        ),
+      );
     }
   }
 }

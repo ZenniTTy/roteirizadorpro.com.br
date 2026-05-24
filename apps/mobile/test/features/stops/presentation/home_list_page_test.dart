@@ -117,4 +117,48 @@ void main() {
     expect(find.text('L-a'), findsOneWidget);
     expect(find.text('L-b'), findsOneWidget);
   });
+
+  testWidgets('More menu -> Limpar rota -> barrier-dismiss keeps stops',
+      (tester) async {
+    final repo = FakeStopsRepository([_s('a'), _s('b')]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [stopsRepositoryProvider.overrideWithValue(repo)],
+        child: const MaterialApp(home: HomeListPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Mais opções'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Limpar rota'));
+    await tester.pumpAndSettle();
+
+    // Barrier-dismiss returns null from showDialog. The guard
+    // `if (confirmed != true) return;` must treat null as "no" so the
+    // stops survive.
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pumpAndSettle();
+
+    expect(find.text('L-a'), findsOneWidget);
+    expect(find.text('L-b'), findsOneWidget);
+  });
+
+  testWidgets('Empty stops list hides the more-menu (no destructive no-op)',
+      (tester) async {
+    final repo = FakeStopsRepository(const []);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [stopsRepositoryProvider.overrideWithValue(repo)],
+        child: const MaterialApp(home: HomeListPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomeTopBar), findsOneWidget);
+    expect(find.byTooltip('Mais opções'), findsNothing);
+  });
 }
