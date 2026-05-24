@@ -38,6 +38,10 @@ services:
       retries: 10
 
   graphhopper:
+    # TODO(ADR): pin to specific tag+digest. Tried :8.0 but config.yml uses
+    # encoded values (car_access) only present in GH 9+; :latest is currently
+    # 12.0-SNAPSHOT. Needs ADR-0008 amendment + config compatibility check
+    # before pinning. Tracked as M2 tech debt — :latest is acceptable in beta.
     image: israelhikingmap/graphhopper:latest
     container_name: roteirizador-graphhopper
     restart: unless-stopped
