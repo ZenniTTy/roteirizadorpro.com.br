@@ -25,7 +25,7 @@ Execute Phase 1 of the M2-AI harness sprint: register the official Dart & Flutte
 - Smoke-tested `dart mcp-server --help` — exit 0, lists real flags (`--tools=all|dart`, `--exclude-tool`, `--dart-sdk`, `--flutter-sdk`, `--log-file`).
 - Authored ADR-0023 — full Options Considered (A: CLI user-scope rejected for non-reproducibility; B: `mcpServers` in settings.json rejected by schema; C: `.mcp.json` + allowlist accepted), Decision, Version pinning (server ships with Dart SDK, no separate pin), Consequences (positive: anti-hallucination + token economy + agentic hot reload + cross-machine reproducibility; negative: extra local process + silent failure mode if MCP crashes + MCP-first discipline must be taught), Rollback (3-file revert, zero risk to product code), Verification procedure (smoke test requires session restart), References.
 - Updated CLAUDE.md (3 edits): bumped `Last updated` to 2026-05-24; added 2 rows to Executable Commands table (`dart mcp-server --help` + `/mcp`); extended §"Context7 Mandatory" with a 3-tier precedence rule (Dart MCP first for installed packages, Context7 second for not-yet-installed or non-Dart libs, training-data third for stable stdlib only) plus fallback instruction when MCP unavailable.
-- Updated SPRINT-M2-AI-HARNESS.md Phase 1 section: marked status ✅; added "Descobertas durante a execução" subsection with three lessons (Gemini-style `mcpServers` rejected; server is SDK-embedded not a separately activated package; smoke test requires session restart); updated gate-de-aceite checklist with 5 done items and 2 deferred-to-human items (the `/mcp` listing + symbol-resolve smoke test, both gated by restart).
+- Updated docs/sprints/2026-05-24-m2-ai-harness.md Phase 1 section: marked status ✅; added "Descobertas durante a execução" subsection with three lessons (Gemini-style `mcpServers` rejected; server is SDK-embedded not a separately activated package; smoke test requires session restart); updated gate-de-aceite checklist with 5 done items and 2 deferred-to-human items (the `/mcp` listing + symbol-resolve smoke test, both gated by restart).
 - Updated TODO.md: marked Phase 0 ✅ (catching up from previous session, with commit refs) and Phase 1 ✅ with full discovery narrative.
 - Authored this session log; index update in same commit.
 
@@ -52,7 +52,7 @@ Execute Phase 1 of the M2-AI harness sprint: register the official Dart & Flutte
 **Modified**:
 - `.claude/settings.json` — added `enabledMcpjsonServers: ["dart"]`.
 - `CLAUDE.md` — bumped Last updated; added 2 rows to Executable Commands; extended Context7 Mandatory with MCP-first precedence rule.
-- `SPRINT-M2-AI-HARNESS.md` — marked Phase 1 ✅; added Descobertas subsection.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — marked Phase 1 ✅; added Descobertas subsection.
 - `TODO.md` — marked Phase 0 ✅ (catch-up) and Phase 1 ✅ with discovery narrative.
 - `docs/sessions/0001-INDEX.md` — new entry for session 20.
 

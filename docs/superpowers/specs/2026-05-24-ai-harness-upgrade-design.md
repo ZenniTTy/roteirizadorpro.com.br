@@ -4,7 +4,7 @@
 > **Author:** Claude Code (with Eduardo)
 > **Status:** Awaiting user review before invoking `writing-plans`
 > **Branch:** `feat/m2-ai-harness` (off `feat/m2-slice-2-telas-core` at `7808911`)
-> **Source of truth:** `SPRINT-M2-AI-HARNESS.md` (this sprint's canonical playbook in the repo root). This spec elaborates Phases 0–7 of that document; if the two disagree, the SPRINT-MD wins and the contradiction is a bug to fix in the same PR.
+> **Source of truth:** `docs/sprints/2026-05-24-m2-ai-harness.md` (this sprint's canonical playbook in the repo root). This spec elaborates Phases 0–7 of that document; if the two disagree, the SPRINT-MD wins and the contradiction is a bug to fix in the same PR.
 
 > **NOTE:** This spec is **orthogonal to M2 slice 2**. It does not deliver product surface — it upgrades the AI development harness (subagents, hooks, MCP servers) so that slice 2 (Telas Core) and every subsequent slice ship faster and with fewer hallucinated APIs. Slice 2 work continues unblocked on its own branch.
 
@@ -97,7 +97,7 @@ apps/mobile/
 └── test/.../*.png                             [NEW]    — Phase 6 (baseline image)
 
 CLAUDE.md                                      [MODIFY] — Phases 1, 2, 3, 7
-SPRINT-M2-AI-HARNESS.md                        [MODIFY] — Phase 0 (filename convention fix); Phase 7 (status final)
+docs/sprints/2026-05-24-m2-ai-harness.md                        [MODIFY] — Phase 0 (filename convention fix); Phase 7 (status final)
 TODO.md                                        [MODIFY] — Phase 0 (sprint tracking entry); Phase 7 (mark done)
 ```
 
@@ -227,7 +227,7 @@ This sprint does not ship a slice in the M2 sense (no APK, no E2E golden path on
 
 ## References
 
-- `SPRINT-M2-AI-HARNESS.md` — sprint canonical playbook (created 2026-05-24, repo root).
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — sprint canonical playbook (created 2026-05-24, repo root).
 - `CLAUDE.md` — operating manual; sections "Stack — Locked Versions", "Context7 Mandatory", "In-Loop Auto-Validation", "Verify Your Work".
 - `docs/08-ROADMAP.md` — M2 canonical sequence (this sprint is orthogonal; does not appear as a slice).
 - `docs/M2-SLICE-CHECKLIST.md` — gate definitions inherited where applicable.

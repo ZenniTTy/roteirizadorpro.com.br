@@ -5,7 +5,7 @@
 - **Deciders:** Eduardo
 - **Supersedes:** none
 - **Related ADRs:** ADR-0018 (in-loop hooks), ADR-0023 (Dart MCP — the symbol-resolution backbone that makes test authoring trustworthy), ADR-0024 (Riverpod codegen hook — generated `.g.dart` consumed by the tests this subagent writes), ADR-0015 (M2 plan + libraries)
-- **Sprint:** M2-AI Harness — Phase 3 (see `SPRINT-M2-AI-HARNESS.md`)
+- **Sprint:** M2-AI Harness — Phase 3 (see `docs/sprints/2026-05-24-m2-ai-harness.md`)
 
 ## Context
 
@@ -147,14 +147,14 @@ Total revert: 4-file diff. The subagent is read-only as far as production code i
 - One-off sanity test (`MockFoo` + `when().thenAnswer()` + `verify().called(1)`) compiles, runs, passes. ✅
 - Full test suite: `flutter test` 164/164 green; `flutter analyze --no-pub` clean. ✅ (no regression from the pubspec addition)
 
-### Deferred to next session (session 23) — captured in `SPRINT-M2-AI-HARNESS.md` §Fase 3
+### Deferred to next session (session 23) — captured in `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 3
 
 - Dispatch `flutter-test-author` against a trivial spec (a CounterController in `core/state/`); confirm it produces a red test, creates a `throw UnimplementedError()` stub, and outputs the handoff summary without writing the production logic.
 - Dispatch a second time with an explicit "also implement the logic for me" prompt; confirm refusal with the rationale from the prompt body.
 
 ## References
 
-- `SPRINT-M2-AI-HARNESS.md` §Fase 3 — task list this ADR codifies.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 3 — task list this ADR codifies.
 - ADR-0023 — Dart MCP that grounds the agent's symbol lookups.
 - ADR-0024 — Riverpod codegen hook that ensures `.g.dart` is fresh when the agent's tests import a `@riverpod` provider.
 - ADR-0015 — locked stack (Flutter + Riverpod 3 codegen) the agent targets.

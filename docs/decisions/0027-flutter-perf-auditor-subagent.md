@@ -5,7 +5,7 @@
 - **Deciders:** Eduardo
 - **Supersedes:** none
 - **Related ADRs:** ADR-0023 (Dart MCP — grounds the agent's symbol lookups), ADR-0025 (`flutter-test-author` — sibling subagent, same project-scope pattern), ADR-0018 (in-loop hooks — `flutter analyze` Stop hook is the auditor's input for §2), ADR-0016 (map + tile policy — informs the §6 cache check)
-- **Sprint:** M2-AI Harness — Phase 4 (see `SPRINT-M2-AI-HARNESS.md`)
+- **Sprint:** M2-AI Harness — Phase 4 (see `docs/sprints/2026-05-24-m2-ai-harness.md`)
 
 ## Context
 
@@ -114,7 +114,7 @@ If the checklist needs heavy revision (e.g., a category produces > 20% false pos
 - All 3 allowlisted `mcp__dart__*` tools exist in the Dart MCP's published surface (cross-checked against Phase 1's `dart mcp-server --help` capture). ✅
 - `flutter analyze --no-pub` clean after the file lands (the agent file lives outside `apps/mobile/`, so it cannot affect Dart analysis — confirmed). ✅
 
-### Deferred to next session (session 23) — captured in `SPRINT-M2-AI-HARNESS.md` §Fase 4
+### Deferred to next session (session 23) — captured in `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 4
 
 Two smoke dispatches gating the gate-de-aceite:
 
@@ -123,7 +123,7 @@ Two smoke dispatches gating the gate-de-aceite:
 
 ## References
 
-- `SPRINT-M2-AI-HARNESS.md` §Fase 4 — task list this ADR codifies.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 4 — task list this ADR codifies.
 - ADR-0023 — Dart MCP backing the agent's symbol-lookup tools.
 - ADR-0025 — `flutter-test-author` (sibling subagent, same scope pattern).
 - ADR-0018 — in-loop hooks. The auditor's §2 cross-references the `analyze-changed-dart.sh` Stop hook output but is itself separate (Stop hook runs every turn; auditor runs on demand at slice close).

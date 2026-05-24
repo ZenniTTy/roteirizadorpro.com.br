@@ -36,7 +36,7 @@ Criterion 1 is the real reopen trigger: if slice 3 starts averaging > 10 visual 
 
 ## Rollback
 
-This is a rejection. There is nothing to roll back. To reverse the decision, file a superseding ADR-NNNN naming this one, then follow Sub-fase 5a from `SPRINT-M2-AI-HARNESS.md`.
+This is a rejection. There is nothing to roll back. To reverse the decision, file a superseding ADR-NNNN naming this one, then follow Sub-fase 5a from `docs/sprints/2026-05-24-m2-ai-harness.md`.
 
 ## Re-evaluation trigger
 
@@ -47,7 +47,7 @@ Open a new ADR (revisit, not amend) if **either** is true at slice-N entry:
 
 ## References
 
-- `SPRINT-M2-AI-HARNESS.md` §Fase 5 (decision criteria + adopt/reject sub-fases).
+- `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 5 (decision criteria + adopt/reject sub-fases).
 - ADR-0021 (device-fidelity remediation — the gate that closed criterion 2's gap).
 - ADR-0022 (integration_test for navigation — closed the MS-01 back-nav regression).
 - ADR-0023 (official Dart MCP — the baseline; this ADR does not affect it).

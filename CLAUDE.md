@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI sprint **CLOSED** — all 7 phases shipped on `feat/m2-ai-harness`: ADR-0023 Dart MCP, ADR-0024 Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail, ADR-0026 GH_DATA_DIR env override, ADR-0027 `flutter-perf-auditor` subagent, ADR-0028 `mcp_flutter` rejected with re-evaluation trigger, ADR-0029 `alchemist` golden tests with one canary baseline. PR #8 ready to merge into `feat/m2-slice-2-telas-core`. Two smoke dispatches deferred to next session post-reload: `flutter-test-author` (ADR-0025 §Verification) and `flutter-perf-auditor` (ADR-0027 §Verification) — Claude Code agent registry only loads at session boot.)
+> **Last updated:** 2026-05-24 (M2-AI harness sprint shipped, ADRs 0023–0029; PR #8 against `feat/m2-slice-2-telas-core` awaiting merge. Retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`. Two deferred smoke dispatches captured in ADR-0025 + ADR-0027 §Verification.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -28,12 +28,12 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M2 (slice 2 — Telas Core is next)
+## Current Focus: M2 (slice 2 — Telas Core, IN PROGRESS)
 
-M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress; six slices remain.** The locked order is:
+M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress.** The locked order is:
 
 1. ✅ APK distribuível (`v1.0.0`).
-2. ⏳ Telas Core — 15 prototype screens + map (`flutter_map` + OSM) + voice/OCR shells.
+2. 🟡 **Telas Core — IN PROGRESS** (13/16 fidelity microsprints done as of 2026-05-23 / MS-14; 7 Criticals remain — MS-15 AddStop, MS-16 Voice, Navigate C-1 ADR-0017-scoped). On parallel branch `feat/m2-ai-harness` the **M2-AI Harness sprint shipped (2026-05-24) — ADRs 0023–0029**; PR #8 against `feat/m2-slice-2-telas-core` ready to merge before slice 2's own microsprints resume.
 3. ⏳ VRP real (in-process Node TS solver + GraphHopper matrix).
 4. ⏳ Pix Split paywall (Efí Bank, pay-per-route BRL 25.90).
 5. ⏳ Sentido casa.
@@ -55,6 +55,7 @@ When you start a session in this repo, read in this order:
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
 8. The slice's section in `docs/08-ROADMAP.md` (e.g. "Slice 2 — Telas Core") and the `prototipo/screens-*.jsx` files matching it.
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
+10. **AI harness state** (one-time orientation, then internalized): `docs/decisions/0023-*` through `0029-*` cover the Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, and the `mcp_flutter` rejection. `docs/sprints/2026-05-24-m2-ai-harness.md` holds the historical playbook + retrospective. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below — skim those sections before dispatching the subagents.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 

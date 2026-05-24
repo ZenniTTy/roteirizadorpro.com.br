@@ -86,7 +86,7 @@ Close the M2-AI Harness sprint: consolidate doc touches that span phases, write 
 - `CLAUDE.md` — "Last updated" + 1 Executable Commands row.
 - `docs/03-CONVENTIONS.md` — §Testing 2 bullets.
 - `docs/10-CHANGELOG.md` — sprint entry.
-- `SPRINT-M2-AI-HARNESS.md` — header ✅ FECHADA + phase 7 status + handoff rewritten as "merge PR #8 + run deferred smoke + back to slice 2".
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — header ✅ FECHADA + phase 7 status + handoff rewritten as "merge PR #8 + run deferred smoke + back to slice 2".
 - `TODO.md` — Phase 7 + carry-overs.
 - `docs/sessions/0001-INDEX.md` — entry added.
 

@@ -38,7 +38,7 @@ Execute Phase 3 of the M2-AI Harness sprint: a project-scoped subagent that enfo
 - Updated `CLAUDE.md`:
   - "Last updated" footer extended to include Phase 3 + ADR-0025.
   - §"Verify Your Work" gained a fifth bullet explicitly directing mobile TDD through `flutter-test-author`, with the mocktail decision called out.
-- Updated `SPRINT-M2-AI-HARNESS.md` phase table (Phase 3 → ✅) and Fase 3 status block (with the deferred-smoke explanation).
+- Updated `docs/sprints/2026-05-24-m2-ai-harness.md` phase table (Phase 3 → ✅) and Fase 3 status block (with the deferred-smoke explanation).
 - Updated `TODO.md` Phase 3 checkbox done with the inline validation summary.
 - This session log.
 
@@ -66,7 +66,7 @@ Execute Phase 3 of the M2-AI Harness sprint: a project-scoped subagent that enfo
 - `apps/mobile/pubspec.yaml` — `mocktail: ^1.0.5` under `dev_dependencies` with a clarifying comment.
 - `apps/mobile/pubspec.lock` — auto, from `flutter pub get`.
 - `CLAUDE.md` — "Last updated" footer + §"Verify Your Work" extension.
-- `SPRINT-M2-AI-HARNESS.md` — phase table row + Fase 3 status block.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — phase table row + Fase 3 status block.
 - `TODO.md` — Phase 3 checkbox done.
 - `docs/sessions/0001-INDEX.md` — entry added at top.
 

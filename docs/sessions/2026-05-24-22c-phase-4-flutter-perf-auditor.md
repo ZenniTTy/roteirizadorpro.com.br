@@ -34,7 +34,7 @@ Execute Phase 4 of the M2-AI sprint: a project-scoped read-only subagent that au
 - Updated `CLAUDE.md`:
   - "Last updated" footer extended to include Phase 4 + ADR-0027.
   - §"Verify Your Work" gained a 6th bullet directing mobile perf review through the auditor.
-- Updated `SPRINT-M2-AI-HARNESS.md` phase table (Phase 4 → ✅), Fase 4 status block, "Próxima sessão deve" extended to validate both Phase 3 and Phase 4 smoke dispatches post-reload and then move on to Phase 5.
+- Updated `docs/sprints/2026-05-24-m2-ai-harness.md` phase table (Phase 4 → ✅), Fase 4 status block, "Próxima sessão deve" extended to validate both Phase 3 and Phase 4 smoke dispatches post-reload and then move on to Phase 5.
 - Updated `TODO.md` Phase 4 checkbox done with the inline validation summary.
 - This session log + INDEX entry.
 
@@ -59,7 +59,7 @@ Execute Phase 4 of the M2-AI sprint: a project-scoped read-only subagent that au
 
 **Modified**:
 - `CLAUDE.md` — "Last updated" footer + §"Verify Your Work" 6th bullet.
-- `SPRINT-M2-AI-HARNESS.md` — phase table row + Fase 4 status block + "Próxima sessão deve".
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — phase table row + Fase 4 status block + "Próxima sessão deve".
 - `TODO.md` — Phase 4 checkbox done.
 - `docs/M2-SLICE-CHECKLIST.md` — §Verification gained the auditor bullet.
 - `docs/sessions/0001-INDEX.md` — entry added at top.

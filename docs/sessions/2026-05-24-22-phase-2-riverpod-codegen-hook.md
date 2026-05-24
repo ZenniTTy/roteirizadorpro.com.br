@@ -61,7 +61,7 @@ Continue the M2-AI Harness sprint after `/compact`. First, correct the SPRINT-MD
 **Modified**:
 - `.claude/settings.json` — second entry in `PostToolUse` matcher block.
 - `CLAUDE.md` — header "Last updated" + §"In-Loop Auto-Validation" rewrite.
-- `SPRINT-M2-AI-HARNESS.md` — status line, handoff section, Phase 2 status block, phase table.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — status line, handoff section, Phase 2 status block, phase table.
 - `TODO.md` — Phase 2 checkbox done.
 
 ## Cross-References
@@ -69,4 +69,4 @@ Continue the M2-AI Harness sprint after `/compact`. First, correct the SPRINT-MD
 - ADR-0018 (Stop-hook family) — this PostToolUse hook is the first non-Stop addition to the harness's in-loop validation surface; ADR-0024 explicitly extends ADR-0018.
 - ADR-0023 (Dart MCP) — Phase 1 prerequisite; the MCP doesn't run codegen, this hook does.
 - ADR-0012 (lefthook layered boundary) — clarifies hook-vs-lefthook responsibility: codegen at the agent-turn boundary now, lefthook still catches the regression case (commit with stale `.g.dart`).
-- SPRINT-M2-AI-HARNESS.md §Fase 2 — task list this session executed against.
+- docs/sprints/2026-05-24-m2-ai-harness.md §Fase 2 — task list this session executed against.

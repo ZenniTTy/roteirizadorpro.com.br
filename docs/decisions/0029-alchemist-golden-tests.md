@@ -5,7 +5,7 @@
 - **Deciders:** Eduardo
 - **Supersedes:** none
 - **Related ADRs:** ADR-0025 (`flutter-test-author` subagent — golden tests are the third test category it can author), ADR-0021 (device-fidelity gate — goldens are the static counterpart), ADR-0028 (rejected `mcp_flutter`; visual fidelity now leans on static checker + goldens + device-E2E)
-- **Sprint:** M2-AI Harness — Phase 6 (see `SPRINT-M2-AI-HARNESS.md`)
+- **Sprint:** M2-AI Harness — Phase 6 (see `docs/sprints/2026-05-24-m2-ai-harness.md`)
 
 ## Context
 
@@ -68,4 +68,4 @@ Total revert: 5 file groups. No production-code touch.
 - pub.dev: `golden_toolkit` — discontinued; reason for the pivot.
 - `apps/mobile/test/_support/phone_surface.dart` — 400×900 surface convention reused here.
 - ADR-0025 — `flutter-test-author` subagent (golden tests are its third category, opt-in per screen).
-- SPRINT-M2-AI-HARNESS.md §Fase 6 — task list this ADR codifies (with the golden_toolkit → alchemist pivot called out).
+- docs/sprints/2026-05-24-m2-ai-harness.md §Fase 6 — task list this ADR codifies (with the golden_toolkit → alchemist pivot called out).

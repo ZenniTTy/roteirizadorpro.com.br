@@ -5,7 +5,7 @@
 - **Deciders:** Eduardo
 - **Supersedes:** none
 - **Related ADRs:** ADR-0002 (Flutter mobile), ADR-0012 (lefthook + Conventional Commits), ADR-0018 (in-loop auto-validation hooks), ADR-0019 (spec-driven templates)
-- **Sprint:** M2-AI Harness — Phase 1 (see `SPRINT-M2-AI-HARNESS.md`)
+- **Sprint:** M2-AI Harness — Phase 1 (see `docs/sprints/2026-05-24-m2-ai-harness.md`)
 
 ## Context
 
@@ -77,7 +77,7 @@ The Dart MCP server is **shipped with the Dart SDK** (`dart mcp-server` subcomma
 ### Negative
 
 - **One more local process** during a Claude Code session. Trivial cost (idle stdio server until called) but non-zero.
-- **MCP failures degrade silently if not surfaced.** If `dart mcp-server` errors at startup (e.g. broken Dart SDK install), the assistant falls back to training-data answers without an obvious warning. Mitigation: Phase 1 smoke test (`/mcp` lists `dart` ✅ + symbol-resolve test) is the canonical post-install verification; documented in `SPRINT-M2-AI-HARNESS.md` §Fase 1.
+- **MCP failures degrade silently if not surfaced.** If `dart mcp-server` errors at startup (e.g. broken Dart SDK install), the assistant falls back to training-data answers without an obvious warning. Mitigation: Phase 1 smoke test (`/mcp` lists `dart` ✅ + symbol-resolve test) is the canonical post-install verification; documented in `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 1.
 - **MCP-first discipline must be taught.** Without a guideline, the assistant might continue to `Read` pub-cache or query Context7 out of habit. Mitigation: amend CLAUDE.md "Context7 Mandatory" section with a precedence rule (Dart MCP first for installed packages, Context7 for not-yet-installed or version-shopping).
 
 ### Neutral
@@ -105,7 +105,7 @@ Smoke test results to be captured in the **next** session log after Claude Code 
 
 ## References
 
-- `SPRINT-M2-AI-HARNESS.md` (repo root) — sprint canonical playbook, §"Fase 1 — Dart & Flutter MCP server oficial".
+- `docs/sprints/2026-05-24-m2-ai-harness.md` (repo root) — sprint canonical playbook, §"Fase 1 — Dart & Flutter MCP server oficial".
 - `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md` — Q1 of the spec's Decisions table.
 - `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md` — Phase 1 task decomposition.
 - ADR-0018 — in-loop auto-validation hooks (this ADR is the MCP twin of those hooks: hooks fire after, MCP fires before).

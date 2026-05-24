@@ -64,7 +64,7 @@ Execute Phase 6 — add golden-test regression coverage to catch visual drift on
 - `apps/mobile/pubspec.lock` — auto.
 - `apps/mobile/.gitignore` — `test/**/failures/` line.
 - `CLAUDE.md` — "Last updated" footer.
-- `SPRINT-M2-AI-HARNESS.md` — phase table + Fase 6 status block + "Próxima sessão deve" pointing at Fase 7.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — phase table + Fase 6 status block + "Próxima sessão deve" pointing at Fase 7.
 - `TODO.md` — Phase 6 checkbox done.
 - `docs/M2-SLICE-CHECKLIST.md` — §Verification got the golden bullet.
 - `docs/sessions/0001-INDEX.md` — new entry at top.

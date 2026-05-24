@@ -446,7 +446,7 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
    - O que descartou e por quê (especialmente Fase 5 se rejeitada)?
    - Métrica de antes/depois se mediu (token cost por turno, frequência de "erro de API alucinada", etc. — ideal mas opcional).
    - Próximos itens descobertos durante a sprint → vão pra `TODO.md`.
-7. Atualizar este `SPRINT-M2-AI-HARNESS.md` marcando todas as fases como ✅ no header.
+7. Atualizar este `docs/sprints/2026-05-24-m2-ai-harness.md` marcando todas as fases como ✅ no header.
 
 ### Gate de aceite
 - [ ] `CLAUDE.md` "Last updated" reflete data de fechamento.
@@ -460,16 +460,16 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 
 ---
 
-## Como uma sessão futura retoma esta sprint
+## Histórico — leitura, não execução
 
-Se você é uma sessão Claude que está abrindo este projeto e este MD existe com fases incompletas:
+A sprint **terminou em 2026-05-24** (todas as 7 fases entregues, PR #8 contra `feat/m2-slice-2-telas-core` aguardando merge). Este documento é **registro histórico**, não checklist de trabalho.
 
-1. **Não chute onde parou** — leia o "Status" no header de cada fase.
-2. Rode `git log --oneline feat/m2-ai-harness ^main` para ver o que já foi commitado.
-3. Rode `ls docs/decisions/0023* 0024* 0025* 0026* 0027* 0028*` para ver quais ADRs do sprint já existem (ADR-0021 e ADR-0022 são ADRs reais pré-existentes, não pertencem a este sprint).
-4. Combine os dois sinais — a primeira fase **sem** ADR correspondente é onde retomar.
-5. Antes de tocar código, releia a fase atual **inteira** + a seção "Princípios desta sprint" no topo.
-6. Se houver dúvida sobre o estado atual, **pergunte ao humano**. Não infira.
+Se você é uma sessão Claude lendo isto:
+
+- Não tente "retomar" nada deste MD — está fechado.
+- Para entender o que cada fase entregou e por quê, leia os ADRs 0023–0029 em `docs/decisions/` (são o registro canônico das decisões).
+- Para o resumo executivo da sprint (lições, métricas, carry-overs), `docs/sessions/2026-05-24-22f-sprint-m2ai-retrospective.md`.
+- Trabalho pendente que sobrou desta sprint vive em `TODO.md` § "Carry-overs from M2-AI sprint".
 
 ---
 

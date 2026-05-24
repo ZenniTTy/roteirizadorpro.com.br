@@ -2,14 +2,14 @@
 
 > **This file is the single source of truth for what we are building, in what order, and what "done" means for each step.** When the answer to "should I do X now?" is ambiguous, this file wins. Conflicts with any other doc are resolved by editing this file *and* the other doc in the same commit.
 
-**Last updated:** 2026-05-13 (session 11 — M2 roadmap made canonical).
+**Last updated:** 2026-05-24 (session 22f — M2-AI harness sprint shipped on parallel branch; slice 2 status snapshot refreshed).
 
 ## Status snapshot
 
 | Milestone | Scope summary | Value | Status |
 |---|---|---|---|
 | **M1** | DO droplet hardened + GraphHopper SP-only + landing live + backend auth + Flutter Login/Register screens | BRL 2,000 | ✅ **Delivered 2026-05-09** (escrow release pending the client's written confirmation on Workana) |
-| **M2** | Distributable APK + remaining 15 Flutter screens + real route optimization + Pix Split paywall + home-bias optimization + LGPD endpoints + admin panel | BRL 2,000 | 🟡 **In progress.** Slice 1 (APK distribution) shipped on 2026-05-13 as `v1.0.0`. Six slices remaining. |
+| **M2** | Distributable APK + remaining 15 Flutter screens + real route optimization + Pix Split paywall + home-bias optimization + LGPD endpoints + admin panel | BRL 2,000 | 🟡 **In progress.** Slice 1 ✅ shipped 2026-05-13 as `v1.0.0`. Slice 2 in progress: 13/16 fidelity microsprints done as of 2026-05-23 (MS-14); 7 Criticals remain (MS-15 AddStop, MS-16 Voice, Navigate C-1 ADR-0017-scoped). On parallel branch `feat/m2-ai-harness` the **M2-AI Harness sprint shipped 2026-05-24 (ADRs 0023–0029)** — PR #8 against `feat/m2-slice-2-telas-core` ready to merge before slice 2 resumes. Slices 3–7 unchanged. |
 
 Production endpoints:
 

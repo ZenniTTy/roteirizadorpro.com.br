@@ -4,7 +4,7 @@
 
 **Goal:** Upgrade the Roteirizador Pro AI development harness by adopting the official Dart & Flutter MCP server, adding one PostToolUse hook for Riverpod codegen, two specialized subagents (`flutter-test-author`, `flutter-perf-auditor`), deciding on the community `mcp_flutter` visual-snapshot plugin, and seeding `golden_toolkit` regression coverage — each step backed by its own ADR, none of which touch product code under `apps/mobile/lib/features/`. The result: a fresh session on `feat/m2-ai-harness` can resolve real Flutter APIs via MCP (zero hallucination), have `.g.dart` files auto-regenerated after every relevant edit, and invoke specialized subagents for TDD and performance review.
 
-**Architecture:** This plan ships 0 product code. It adds: 1 MCP server entry in `.claude/settings.json`; 1 PostToolUse hook script under `.claude/hooks/`; 2 subagent definitions under `.claude/agents/`; 6 ADRs (0023–0028, with 0026 conditional on Phase 6 execution); 1 golden test scaffold under `apps/mobile/test/`. Documentation touches: `CLAUDE.md`, `SPRINT-M2-AI-HARNESS.md`, `docs/02-ARCHITECTURE.md`, `docs/03-CONVENTIONS.md`, `docs/10-CHANGELOG.md`, `docs/M2-SLICE-CHECKLIST.md`, `TODO.md`, plus one session log per executed phase and `docs/sessions/0001-INDEX.md` updates.
+**Architecture:** This plan ships 0 product code. It adds: 1 MCP server entry in `.claude/settings.json`; 1 PostToolUse hook script under `.claude/hooks/`; 2 subagent definitions under `.claude/agents/`; 6 ADRs (0023–0028, with 0026 conditional on Phase 6 execution); 1 golden test scaffold under `apps/mobile/test/`. Documentation touches: `CLAUDE.md`, `docs/sprints/2026-05-24-m2-ai-harness.md`, `docs/02-ARCHITECTURE.md`, `docs/03-CONVENTIONS.md`, `docs/10-CHANGELOG.md`, `docs/M2-SLICE-CHECKLIST.md`, `TODO.md`, plus one session log per executed phase and `docs/sessions/0001-INDEX.md` updates.
 
 **Tech Stack:** Dart ≥ 3.9 (existing); `dart_mcp_server` (new, global Dart package); `mocktail` OR `mockito` (Phase 3 decision); `golden_toolkit` (Phase 6 dev-dep); optionally `mcp_flutter` (Phase 5 conditional). No backend changes; ADR-0011 (Bun) untouched.
 
@@ -41,7 +41,7 @@ See spec §Architecture "Harness file layout" for the full tree. Summary:
 - `docs/sessions/` — 1 kickoff + up to 7 per-phase logs + 1 retro + index updates.
 - `docs/` — 4 doc modifications (02, 03, 10, M2-SLICE-CHECKLIST).
 - `apps/mobile/` — `pubspec.yaml` + `test/flutter_test_config.dart` + 1 golden test (Phase 6 only).
-- Root — `CLAUDE.md`, `SPRINT-M2-AI-HARNESS.md`, `TODO.md`.
+- Root — `CLAUDE.md`, `docs/sprints/2026-05-24-m2-ai-harness.md`, `TODO.md`.
 
 ---
 
@@ -63,7 +63,7 @@ git rev-parse HEAD
 Expected:
 - Branch: `feat/m2-ai-harness`
 - HEAD: `7808911...` (the tip of `feat/m2-slice-2-telas-core` at sprint kickoff)
-- Working tree may have pre-existing untracked: `CONTINUATION-PROMPT.md`, `SPRINT-M2-AI-HARNESS.md`, plus modified `infra/docker-compose.yml`, `infra/graphhopper/extract-sp.sh` — these are NOT part of Phase 0. Leave untouched.
+- Working tree may have pre-existing untracked: `CONTINUATION-PROMPT.md`, `docs/sprints/2026-05-24-m2-ai-harness.md`, plus modified `infra/docker-compose.yml`, `infra/graphhopper/extract-sp.sh` — these are NOT part of Phase 0. Leave untouched.
 
 If branch is wrong: `git checkout feat/m2-ai-harness` (already created).
 
@@ -77,11 +77,11 @@ If branch is wrong: `git checkout feat/m2-ai-harness` (already created).
 
 `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md` — this file.
 
-### Task 0.3: Update SPRINT-M2-AI-HARNESS.md filename convention
+### Task 0.3: Update docs/sprints/2026-05-24-m2-ai-harness.md filename convention
 
 - [x] **Step 0.3.1: Fix the proposed paths in SPRINT-MD**
 
-`SPRINT-M2-AI-HARNESS.md` currently references `docs/superpowers/specs/0002-ai-harness-upgrade.md` (numeric). The repo's actual convention is `YYYY-MM-DD-<slug>-design.md` for specs and `YYYY-MM-DD-<slug>.md` for plans. Update the SPRINT-MD header references and any in-body mentions to the date-based paths. Drop the `0002-` prefix entirely.
+`docs/sprints/2026-05-24-m2-ai-harness.md` currently references `docs/superpowers/specs/0002-ai-harness-upgrade.md` (numeric). The repo's actual convention is `YYYY-MM-DD-<slug>-design.md` for specs and `YYYY-MM-DD-<slug>.md` for plans. Update the SPRINT-MD header references and any in-body mentions to the date-based paths. Drop the `0002-` prefix entirely.
 
 ### Task 0.4: Add TODO.md tracking entry
 
@@ -92,18 +92,18 @@ Under "## M2 — Slices" or as a sibling top-level section, add:
 ```markdown
 ### 🔧 Sprint M2-AI (Harness upgrade — orthogonal to slice 2)
 
-Branch `feat/m2-ai-harness`. Playbook in `SPRINT-M2-AI-HARNESS.md`. Spec
+Branch `feat/m2-ai-harness`. Playbook in `docs/sprints/2026-05-24-m2-ai-harness.md`. Spec
 in `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`. Plan
 in `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`.
 
-- [ ] Phase 0 — Pre-flight (spec + plan + branch + TODO + session log)
-- [ ] Phase 1 — Dart & Flutter MCP server (ADR-0023)
-- [ ] Phase 2 — Riverpod codegen hook (ADR-0024)
-- [ ] Phase 3 — `flutter-test-author` subagent (ADR-0025)
-- [ ] Phase 4 — `flutter-perf-auditor` subagent (ADR-0027)
-- [ ] Phase 5 — `mcp_flutter` decision (ADR-0028, adopt OR reject)
-- [ ] Phase 6 — Golden tests baseline (ADR-0029, conditional)
-- [ ] Phase 7 — Docs consolidate + retro
+- [x] Phase 0 — Pre-flight (spec + plan + branch + TODO + session log) — `4b528f8` + `baaea44` + `782eb99` (sessão 19).
+- [x] Phase 1 — Dart & Flutter MCP server (ADR-0023) — `2abe6bc` + `8c15f7c` (sessão 20).
+- [x] Phase 2 — Riverpod codegen hook (ADR-0024) — `0a6f094` (sessão 22).
+- [x] Phase 3 — `flutter-test-author` subagent (ADR-0025) + housekeeping ADR-0026 — `3dd30f8` (sessão 22b).
+- [x] Phase 4 — `flutter-perf-auditor` subagent (ADR-0027) — `95d365f` (sessão 22c).
+- [x] Phase 5 — `mcp_flutter` decision (ADR-0028) — REJECTED with re-evaluation trigger, `b09e207` (sessão 22d).
+- [x] Phase 6 — Golden tests baseline (ADR-0029) — pivot from discontinued `golden_toolkit` to `alchemist`, `6a7f4f0` (sessão 22e).
+- [x] Phase 7 — Docs consolidate + retro — `714147c` (sessão 22f). Sprint CLOSED.
 ```
 
 ### Task 0.5: Create kickoff session log
@@ -121,7 +121,7 @@ Append the new session entry to `docs/sessions/0001-INDEX.md` following the exis
 - [x] **Step 0.6.1: Stage Phase 0 files only**
 
 ```bash
-git add SPRINT-M2-AI-HARNESS.md \
+git add docs/sprints/2026-05-24-m2-ai-harness.md \
         docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md \
         docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md \
         docs/sessions/2026-05-24-19-ai-harness-kickoff.md \
@@ -147,7 +147,7 @@ commits (0023..0028).
 
 Spec:  docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md
 Plan:  docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md
-Sprint playbook: SPRINT-M2-AI-HARNESS.md
+Sprint playbook: docs/sprints/2026-05-24-m2-ai-harness.md
 EOF
 )"
 ```
@@ -160,11 +160,11 @@ After commit, run the harness validation pipeline (see Phase 0 Self-Review below
 
 ## Phases 1–7
 
-The full step-by-step bodies for Phases 1–7 are documented in `SPRINT-M2-AI-HARNESS.md` (root of repo). That document is the canonical execution playbook; this plan's role is to register the spec linkage and the Phase 0 task breakdown.
+The full step-by-step bodies for Phases 1–7 are documented in `docs/sprints/2026-05-24-m2-ai-harness.md` (root of repo). That document is the canonical execution playbook; this plan's role is to register the spec linkage and the Phase 0 task breakdown.
 
 When executing Phase N (N ≥ 1):
 
-1. Re-read the corresponding section in `SPRINT-M2-AI-HARNESS.md`.
+1. Re-read the corresponding section in `docs/sprints/2026-05-24-m2-ai-harness.md`.
 2. Re-read the spec's §Architecture, §Data flow, and §Risks rows relevant to that phase.
 3. Decompose into TDD-shaped tasks if not already (the SPRINT-MD's "Tarefas" lists are close — promote each to a Task with steps as needed).
 4. Commit at the end of the phase with the ADR.

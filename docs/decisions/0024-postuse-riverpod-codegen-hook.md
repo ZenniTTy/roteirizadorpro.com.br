@@ -5,7 +5,7 @@
 - **Deciders:** Eduardo
 - **Supersedes:** none
 - **Related ADRs:** ADR-0018 (in-loop auto-validation hooks family), ADR-0012 (lefthook layered boundary), ADR-0023 (Dart & Flutter MCP server)
-- **Sprint:** M2-AI Harness — Phase 2 (see `SPRINT-M2-AI-HARNESS.md`)
+- **Sprint:** M2-AI Harness — Phase 2 (see `docs/sprints/2026-05-24-m2-ai-harness.md`)
 
 ## Context
 
@@ -98,7 +98,7 @@ Total revert is a 3-file diff, no codebase impact. The fallback is the status qu
 
 ## References
 
-- `SPRINT-M2-AI-HARNESS.md` §Fase 2.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` §Fase 2.
 - ADR-0018 — Stop-hook family (analyze, dto-mirror, adr-drift) that this PostToolUse hook complements.
 - ADR-0012 — lefthook + Conventional Commits; clarifies that hooks at the agent-turn boundary are distinct from hooks at the git-commit boundary.
 - Claude Code hooks docs — `code.claude.com/docs/en/hooks-guide` (PostToolUse contract).

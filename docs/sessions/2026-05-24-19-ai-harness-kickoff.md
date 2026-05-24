@@ -18,7 +18,7 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 ## What Was Done
 
 - Ran research pass via WebSearch + Context7 (`/websites/flutter_dev`) on 2026-05-24 covering: official Flutter AI rules (updated 2026-01-05), Dart & Flutter MCP server doc, Agent Skills doc, community subagents (cleydson/flutter-claude-code, evanca/flutter-ai-rules, VoltAgent/awesome-claude-code-subagents, affaan-m), MCP plugins (Arenukvern/mcp_flutter), and competing spec-driven systems (gmickel/flow-next, gotalab/cc-sdd).
-- Synthesized a 7-phase sprint into `SPRINT-M2-AI-HARNESS.md` at repo root — playbook with motivation, tarefas, gate de aceite, riscos, commit message per phase, plus a "how a future session resumes this sprint" section.
+- Synthesized a 7-phase sprint into `docs/sprints/2026-05-24-m2-ai-harness.md` at repo root — playbook with motivation, tarefas, gate de aceite, riscos, commit message per phase, plus a "how a future session resumes this sprint" section.
 - Created branch `feat/m2-ai-harness` off `feat/m2-slice-2-telas-core` at SHA `7808911`.
 - Authored canonical spec at `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md` with 13 H2 sections, including a 6-row Decisions table (Q1 adopt MCP now; Q2 PostToolUse not Stop; Q3 mock-lib deferred to Phase 3; Q4 mcp_flutter deferred to Phase 5; Q5 parallel branch not block; Q6 date-based filename convention).
 - Authored companion plan at `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md` with Phase 0 fully decomposed; Phases 1–7 reference back to the SPRINT-MD as the canonical execution playbook.
@@ -31,7 +31,7 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 1. **Sprint runs on `feat/m2-ai-harness` orthogonal to slice 2** (Q5). Branch-isolated; sprint never touches `apps/mobile/lib/features/`. Slice 2 continues unblocked on its own branch.
 2. **Filename convention: `YYYY-MM-DD-<slug>`, not numeric** (Q6). Matches all four existing spec/plan artifacts. SPRINT-MD amended.
 3. **Phase 0 ships no ADR.** ADRs 0023–0028 are phase-scoped, one per decision, committed alongside their implementation in their own phase. Phase 0 = pure scaffolding.
-4. **`SPRINT-M2-AI-HARNESS.md` is the canonical execution playbook;** the plan file (`2026-05-24-ai-harness-upgrade.md`) registers spec linkage and Phase 0 decomposition but defers Phase 1–7 step bodies to the SPRINT-MD to avoid duplication that would drift.
+4. **`docs/sprints/2026-05-24-m2-ai-harness.md` is the canonical execution playbook;** the plan file (`2026-05-24-ai-harness-upgrade.md`) registers spec linkage and Phase 0 decomposition but defers Phase 1–7 step bodies to the SPRINT-MD to avoid duplication that would drift.
 5. **Rejected from adoption: `flow-next` and `cc-sdd`** (documented in spec §References). Our `superpowers:` SDD is well-calibrated; replacing it would be churn-for-churn.
 
 ## Open Questions Left
@@ -43,7 +43,7 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 ## Files Changed
 
 **Created**:
-- `SPRINT-M2-AI-HARNESS.md` (root)
+- `docs/sprints/2026-05-24-m2-ai-harness.md` (root)
 - `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`
 - `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`
 - `docs/sessions/2026-05-24-19-ai-harness-kickoff.md` (this file)
@@ -64,7 +64,7 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 
 - **Branch:** `feat/m2-ai-harness` (off `feat/m2-slice-2-telas-core` at `7808911`).
 - **Sprint state:** Phase 0 complete; Phases 1–7 not started.
-- **Next phase:** Phase 1 — install `dart_mcp_server` (highest ROI of the sprint). Re-read `SPRINT-M2-AI-HARNESS.md` §"Fase 1" before starting.
+- **Next phase:** Phase 1 — install `dart_mcp_server` (highest ROI of the sprint). Re-read `docs/sprints/2026-05-24-m2-ai-harness.md` §"Fase 1" before starting.
 - **Slice 2 is unaffected:** `feat/m2-slice-2-telas-core` continues its own work. Do NOT merge or rebase this sprint's branch into slice-2 until at least Phase 7 closes.
 - **Pre-existing untracked items on the branch** (carried over from `feat/m2-slice-2-telas-core` tip): `CONTINUATION-PROMPT.md`, `infra/docker-compose.yml` (modified), `infra/graphhopper/extract-sp.sh` (modified). These are NOT this sprint's responsibility — leave untouched.
 - **Validation gate at end of every phase:** the three Stop-hooks (`analyze-changed-dart.sh`, `check-dto-mirror.sh`, `warn-adr-drift.sh`) auto-fire; `warn-adr-drift.sh` should stay silent on Phase 0 (no `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` edits) and active on Phase 1 (no ADR added means the hook should warn — but we ARE adding ADR-0023 in Phase 1, so it should be silent post-commit).

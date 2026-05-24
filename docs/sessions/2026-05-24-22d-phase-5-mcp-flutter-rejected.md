@@ -39,7 +39,7 @@ ADR-0028 was written under a new "enxuto" pattern at Eduardo's direction: ~60 li
 
 **Modified**:
 - `CLAUDE.md` — "Last updated" footer.
-- `SPRINT-M2-AI-HARNESS.md` — phase table row 5 + Fase 5 status block + "Próxima sessão deve" pointing at Fase 6.
+- `docs/sprints/2026-05-24-m2-ai-harness.md` — phase table row 5 + Fase 5 status block + "Próxima sessão deve" pointing at Fase 6.
 - `TODO.md` — Phase 5 checkbox done.
 - `docs/sessions/0001-INDEX.md` — new entry at top.
 
