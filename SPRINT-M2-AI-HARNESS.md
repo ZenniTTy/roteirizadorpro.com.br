@@ -3,7 +3,7 @@
 > **Branch:** `feat/m2-ai-harness` (a partir de `feat/m2-slice-2-telas-core`, **não** de `main`)
 > **Criado em:** 2026-05-24
 > **Owner:** Eduardo Rodrigues — `eduardo@ianelli.tech`
-> **Status:** ⏸ Em pausa — Fases 0 + 1 entregues; PR para `develop` aberto; Fases 2–7 retomarão em **nova branch off `develop`** após o merge.
+> **Status:** 🟡 Em execução — Fases 0 + 1 entregues; PR #8 aberto contra `feat/m2-slice-2-telas-core`; Fases 2–7 continuam **nesta mesma branch** (`feat/m2-ai-harness`) e novos commits empurram para o PR #8 já aberto.
 > **Spec canônica:** `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`
 > **Plan canônico:** `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`
 >
@@ -11,11 +11,11 @@
 
 ---
 
-## ⏸ Sprint pause & handoff (2026-05-24)
+## 🟡 Sprint state & handoff (2026-05-24, atualizado)
 
-**Onde paramos.** Fases 0 e 1 estão entregues e commitadas em `feat/m2-ai-harness`. PR para `develop` aberto após esta atualização. Não há trabalho pendente nesta branch.
+**Onde estamos.** Fases 0 e 1 entregues e commitadas em `feat/m2-ai-harness`. PR #8 aberto contra `feat/m2-slice-2-telas-core` (branch-mãe), **não** contra `develop` — porque slice-2 ainda tem trabalho próprio pendente (MS-15+, 7 Criticals restantes).
 
-**Decisão explícita:** as Fases 2–7 **NÃO** serão retomadas nesta branch. Após o merge do PR, abra **nova branch off `develop`** (sugestão: `feat/m2-ai-harness-phase-2` ou similar por fase) e siga as seções "Fase 2", "Fase 3", etc. abaixo. Branch isolada por par-de-fases ou por fase — opcional; o que **não** vale é continuar empilhando commits aqui.
+**Decisão de topologia (substitui o handoff anterior).** As Fases 2–7 **continuam nesta mesma branch** `feat/m2-ai-harness`. Cada fase adiciona commits que entram automaticamente no PR #8 já aberto. Quando todas as 7 fases fecharem, o PR #8 é mergeado em `feat/m2-slice-2-telas-core`. A slice-2 termina seus microsprints próprios depois, e tudo vai junto para `develop` em outro PR. Motivo: evitar proliferação de branches paralelas que o owner já se perdeu uma vez; manter uma linha clara `harness → slice-2 → develop`.
 
 **Estado entregue:**
 
@@ -23,18 +23,23 @@
 |---|---|---|---|
 | 0 — Pré-flight | ✅ entregue (sessão 19) | `4b528f8`, `baaea44`, `782eb99` | — |
 | 1 — Dart & Flutter MCP server | ✅ entregue (sessão 20) + smoke validado pós-reload | `2abe6bc`, `8c15f7c` | ADR-0023 |
-| 2–7 | ☐ não iniciadas | — | ADRs 0024–0028 (planejados) |
+| 2 — Riverpod codegen hook | ☐ próxima | — | ADR-0024 (planejado) |
+| 3 — Subagent `flutter-test-author` | ☐ pendente | — | ADR-0025 (planejado) |
+| 4 — Subagent `flutter-perf-auditor` | ☐ pendente | — | ADR-0026 (planejado) |
+| 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0027 (planejado) |
+| 6 — Golden tests baseline | ☐ pendente | — | ADR-0028 (planejado) |
+| 7 — Docs consolidate | ☐ pendente | — | — |
 
 **Commits orthogonais entregues junto:**
 - `bff1b6c` `chore(infra): support relocating graphhopper data outside the repo` — `GH_DATA_DIR` env var + TODO(ADR) em docker-compose.yml. Não é da sprint M2-AI; carona no PR para limpar working tree.
 - `fbf4508` `docs(sessions): session 2026-05-24-21 — graphhopper data relocation off-repo` — log da sessão que executou o item acima.
 
 **Próxima sessão deve:**
-1. Confirmar que o PR de `feat/m2-ai-harness` → `develop` foi mergeado (`gh pr view` ou `git log develop`).
-2. Criar nova branch off `develop` (`git checkout develop && git pull && git checkout -b feat/<nova>`).
-3. Re-ler este SPRINT-MD a partir da seção "Fase 2".
-4. Re-ler a spec (`docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`) — segue válida; nada foi superseded.
-5. Confirmar que `dart` aparece em `/mcp` (a Fase 1 estabeleceu isso; deve seguir funcionando em qualquer branch que herde `.mcp.json` e `.claude/settings.json`).
+1. **Não** criar branch nova — seguir trabalhando em `feat/m2-ai-harness` (`git status` deve mostrar essa branch e working tree clean).
+2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu; deve seguir funcionando).
+3. Ler a seção §Fase 2 abaixo + spec Q2 + ADR-0018 antes de tocar arquivos de hook.
+4. Executar Fase 2 → commit no padrão `feat(harness): …` → o PR #8 absorve.
+5. Seguir Fases 3–7 na ordem. Quando todas fecharem, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
 
 ---
 

@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1 shipped — ADR-0023 + Dart MCP smoke validated post-reload; GraphHopper data relocated off-repo via `GH_DATA_DIR`; sprint paused at PR boundary, Phases 2–7 will resume on a new branch off `develop`)
+> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1 shipped — ADR-0023 + Dart MCP smoke validated post-reload; GraphHopper data relocated off-repo via `GH_DATA_DIR`; Phases 2–7 continue on `feat/m2-ai-harness` and feed PR #8 against `feat/m2-slice-2-telas-core`)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
