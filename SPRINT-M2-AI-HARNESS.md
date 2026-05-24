@@ -25,7 +25,7 @@
 | 1 — Dart & Flutter MCP server | ✅ entregue (sessão 20) + smoke validado pós-reload | `2abe6bc`, `8c15f7c` | ADR-0023 |
 | 2 — Riverpod codegen hook | ✅ entregue (sessão 22) | `0a6f094` | ADR-0024 |
 | 3 — Subagent `flutter-test-author` | ✅ entregue (sessão 22, smoke dispatch deferred to sessão 23 post-reload) | (este commit) | ADR-0025 |
-| 4 — Subagent `flutter-perf-auditor` | ☐ pendente | — | ADR-0027 (planejado) |
+| 4 — Subagent `flutter-perf-auditor` | ✅ entregue (sessão 22c, smoke dispatch deferred to sessão 23 post-reload) | (este commit) | ADR-0027 |
 | 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0028 (planejado) |
 | 6 — Golden tests baseline | ☐ pendente | — | ADR-0029 (planejado) |
 | 7 — Docs consolidate | ☐ pendente | — | — |
@@ -38,9 +38,10 @@
 1. **Não** criar branch nova — seguir trabalhando em `feat/m2-ai-harness` (`git status` deve mostrar essa branch e working tree clean).
 2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu).
 3. **Validar Phase 3 (smoke test deferred):** confirmar que `flutter-test-author` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0025 §Verification (TDD num CounterController + tentativa explícita de fazer o agent implementar a lógica e ver recusa).
-4. Ler a seção §Fase 4 abaixo + spec Q4 + ADR-0018 antes de tocar arquivos.
-5. Executar Fase 4 → commit no padrão `feat(harness): …` → o PR #8 absorve.
-6. Seguir Fases 5–7 na ordem. Quando todas fecharem, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
+4. **Validar Phase 4 (smoke test deferred):** confirmar que `flutter-perf-auditor` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0027 §Verification (bad-screen com 3 violações plantadas + clean-screen como `home_empty_page.dart` sem falsos positivos).
+5. Ler a seção §Fase 5 abaixo + spec Q4 + ADR-0023 (MCP server) antes de tocar arquivos. Fase 5 é um **gate de decisão** (adopt ou reject `mcp_flutter` — ambos viram ADR-0028).
+6. Executar Fase 5 → commit no padrão `docs(decisions): ADR-0028 mcp_flutter …` → o PR #8 absorve.
+7. Seguir Fases 6–7 na ordem. Quando todas fecharem, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
 
 ---
 
@@ -302,7 +303,7 @@ Com MCP ativo, o subagent escreve testes corretos (vê API real, não inventa). 
 
 ## Fase 4 — Subagent `flutter-perf-auditor` 🔥
 
-**Status:** ☐ não iniciado
+**Status:** ✅ entregue 2026-05-24 (sessão 22c). `.claude/agents/flutter-perf-auditor.md` (read-only allowlist: Read/Grep/Glob/Bash + 3 Dart MCP tools — sem Edit/Write/MultiEdit) + ADR-0027 + atualização CLAUDE.md + `M2-SLICE-CHECKLIST.md` §Verification ganhou bullet do auditor. Smoke-test funcional (bad-screen + clean-screen) deferred para sessão 23 pós-reload — agent registry carrega na boot da sessão, igual MCP e Phase 3.
 **Tempo:** 1.5h
 **Depende de:** Fase 1. **Pode rodar em paralelo com Fase 3** (são independentes).
 

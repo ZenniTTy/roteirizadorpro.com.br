@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1+2+3 shipped — ADR-0023 Dart MCP, ADR-0024 PostToolUse Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail dep; Phases 4–7 continue on `feat/m2-ai-harness` and feed PR #8 against `feat/m2-slice-2-telas-core`)
+> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1+2+3+4 shipped — ADR-0023 Dart MCP, ADR-0024 PostToolUse Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail dep, ADR-0026 GH_DATA_DIR env override, ADR-0027 `flutter-perf-auditor` subagent; Phases 5–7 continue on `feat/m2-ai-harness` and feed PR #8 against `feat/m2-slice-2-telas-core`)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -148,6 +148,7 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - If you can't verify it, don't ship it.
 - Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
 - **For mobile TDD, dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
+- **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit. Now part of `M2-SLICE-CHECKLIST.md` §Verification. See ADR-0027.
 
 ### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
 
