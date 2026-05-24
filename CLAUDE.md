@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-18 (harness upgrade — allowed-tools, SessionStart hook, executable commands)
+> **Last updated:** 2026-05-24 (M2-AI harness sprint shipped, ADRs 0023–0029; PR #8 against `feat/m2-slice-2-telas-core` awaiting merge. Retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`. Two deferred smoke dispatches captured in ADR-0025 + ADR-0027 §Verification.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -18,6 +18,9 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `cd apps/landing && bun run lint` | Before every landing commit. Lefthook enforces. |
 | `bash apps/mobile/scripts/build-release-apk.sh` | Cuts a signed release APK. ADR-0014. |
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
+| `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). ADR-0023. |
+| `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected after a session restart following Phase 1 of the M2-AI sprint. |
+| `cd apps/mobile && flutter test --tags golden` | Run only the alchemist golden tests (ADR-0029). Add `--update-goldens` to regenerate baselines after an intentional visual change; review the PNG diff in the PR. |
 
 ## What This Project Is
 
@@ -25,12 +28,12 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M2 (slice 2 — Telas Core is next)
+## Current Focus: M2 (slice 2 — Telas Core, IN PROGRESS)
 
-M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress; six slices remain.** The locked order is:
+M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress.** The locked order is:
 
 1. ✅ APK distribuível (`v1.0.0`).
-2. ⏳ Telas Core — 15 prototype screens + map (`flutter_map` + OSM) + voice/OCR shells.
+2. 🟡 **Telas Core — IN PROGRESS** (13/16 fidelity microsprints done as of 2026-05-23 / MS-14; 7 Criticals remain — MS-15 AddStop, MS-16 Voice, Navigate C-1 ADR-0017-scoped). On parallel branch `feat/m2-ai-harness` the **M2-AI Harness sprint shipped (2026-05-24) — ADRs 0023–0029**; PR #8 against `feat/m2-slice-2-telas-core` ready to merge before slice 2's own microsprints resume.
 3. ⏳ VRP real (in-process Node TS solver + GraphHopper matrix).
 4. ⏳ Pix Split paywall (Efí Bank, pay-per-route BRL 25.90).
 5. ⏳ Sentido casa.
@@ -52,6 +55,7 @@ When you start a session in this repo, read in this order:
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
 8. The slice's section in `docs/08-ROADMAP.md` (e.g. "Slice 2 — Telas Core") and the `prototipo/screens-*.jsx` files matching it.
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
+10. **AI harness state** (one-time orientation, then internalized): `docs/decisions/0023-*` through `0029-*` cover the Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, and the `mcp_flutter` rejection. `docs/sprints/2026-05-24-m2-ai-harness.md` holds the historical playbook + retrospective. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below — skim those sections before dispatching the subagents.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
@@ -129,6 +133,14 @@ Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Pos
 
 Before proposing OR installing any external library/framework, query Context7 (`resolve-library-id` then `query-docs`). Training-data knowledge has a cutoff; Context7 has current docs. **No exceptions for libraries within reach of the cutoff date.** Stdlib and well-established APIs (HTTP, SQL) are exempt.
 
+**Precedence after ADR-0023 (Dart & Flutter MCP server adopted):**
+
+1. **Dart MCP first** — for any symbol, class, or method from a Dart/Flutter package **already installed** in `apps/mobile/pubspec.yaml` (i.e. resolvable from local `.pub-cache/`), use the Dart MCP tools (`resolve_symbol`, `analyze`, etc.) instead of `Read`ing pub-cache files or hitting Context7. The MCP returns the real signature from the local analyzer — zero hallucination, zero token spent on file traversal.
+2. **Context7 second** — for any library not yet installed, or to confirm the current pub.dev version before adding a dependency, or for any non-Dart library (Fastify, Prisma, TypeBox, Next.js, etc.). Context7 stays mandatory there.
+3. **Training-data answers third (rarely)** — only for stdlib and stable APIs (HTTP verbs, SQL syntax) where the answer hasn't changed in years.
+
+If the Dart MCP is unavailable (process crash, Dart < 3.9, `dart` not in `/mcp` list), fall back to Context7 + `Read` — but say so explicitly in the turn so the human can re-establish the MCP.
+
 ### Verify Your Work
 
 Per Anthropic's official guidance, this is the single highest-leverage thing you can do.
@@ -137,16 +149,24 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - Address root causes, not symptoms.
 - If you can't verify it, don't ship it.
 - Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
+- **For mobile TDD, dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
+- **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit. Now part of `M2-SLICE-CHECKLIST.md` §Verification. See ADR-0027.
 
-### In-Loop Auto-Validation (ADR-0018)
+### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
 
-Three `Stop`-hooks run automatically at the end of every agent turn — non-blocking, signal-only:
+Four hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
+
+**Stop hooks** (fire once at end of turn, batched across all edits):
 
 - `analyze-changed-dart.sh` — `flutter analyze --no-pub` over `.dart` files edited in `apps/mobile/lib/` this turn.
 - `check-dto-mirror.sh` — warns when an `apps/backend/src/<feature>/schemas.ts` edit lacks its paired Dart DTO update (ADR-0013 contract).
 - `warn-adr-drift.sh` — warns when `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` was edited this turn but no ADR was added/modified.
 
-These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; layered boundary in ADR-0012.
+**PostToolUse hook** (fires per Edit/Write/MultiEdit, debounced):
+
+- `run-riverpod-codegen.sh` (ADR-0024) — when a `@riverpod`-annotated Dart file or any `part '*.g.dart'` host is edited, regenerates `.g.dart` via `dart run build_runner build --delete-conflicting-outputs`. Lock-file debounce (90s window) coalesces burst-edits so multiple provider edits in one turn run codegen only once. Sits next to the pre-existing `format-dart.sh` in the same matcher entry.
+
+These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; PostToolUse extension rationale in ADR-0024; layered boundary in ADR-0012.
 
 ### Spec-Driven Workflow (ADR-0019)
 

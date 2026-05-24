@@ -44,6 +44,11 @@ dev_dependencies:
   riverpod_lint: ^3.0.0
   # Direct dep so tests can use InMemorySharedPreferencesAsync substrate.
   shared_preferences_platform_interface: ^2.4.2
+  # Mock library — no codegen, used by flutter-test-author subagent (ADR-0025).
+  mocktail: ^1.0.5
+  # Golden-test toolkit (ADR-0029). Spec drafted with golden_toolkit but that
+  # package is discontinued by eBay; pivoted to alchemist (Betterment + VGV).
+  alchemist: ^0.14.0
 
 flutter:
   uses-material-design: true

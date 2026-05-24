@@ -31,3 +31,8 @@ custom_lint.log
 
 # IDE module files (flutter create produces these alongside .idea/)
 *.iml
+
+# Alchemist golden-test failure artifacts (ADR-0029). Baselines live next to
+# their tests under `goldens/ci/`; only the failures/ subfolder (regenerated
+# on every diff) is gitignored.
+test/**/failures/

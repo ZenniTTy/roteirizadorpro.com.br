@@ -60,6 +60,8 @@ This structure materializes incrementally as we build. We don't pre-create empty
 - E2E tests for the API live in `apps/backend/test/e2e/`.
 - The bar: **tests where it hurts** (payment, route optimization, paywall, OCR, auth). Not on getters.
 - A bug fix without a regression test is incomplete.
+- **Mobile TDD path (ADR-0025):** dispatch the `flutter-test-author` subagent BEFORE implementing a new widget/provider/service — it writes the failing test first, refuses to write production code. Mock library is `mocktail ^1.0.5`; manual fakes under `test/<feature>/_helpers/` remain the default.
+- **Golden tests (ADR-0029):** `alchemist ^0.14.0` in CI mode (Ahem font, platform-agnostic). One baseline per stable screen, added at slice close. Tag is `golden` — run with `flutter test --tags golden`; regenerate with `flutter test --update-goldens --tags golden`. NOT a hook — intentional-change moment.
 
 ## Commit Conventions
 

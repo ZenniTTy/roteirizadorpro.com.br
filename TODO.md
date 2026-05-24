@@ -12,6 +12,27 @@
 
 ## M2 — Slices
 
+### ✅ Sprint M2-AI Harness (shipped 2026-05-24, PR #8 pending merge)
+
+All 7 phases delivered on `feat/m2-ai-harness`. **Full retrospective + per-phase narrative:** [`docs/sessions/2026-05-24-22f-sprint-m2ai-retrospective.md`](docs/sessions/2026-05-24-22f-sprint-m2ai-retrospective.md). **Historical playbook:** [`docs/sprints/2026-05-24-m2-ai-harness.md`](docs/sprints/2026-05-24-m2-ai-harness.md).
+
+- [x] Phase 0 — Pre-flight (sessão 19)
+- [x] Phase 1 — Dart & Flutter MCP server (ADR-0023, sessão 20)
+- [x] Phase 2 — Riverpod codegen PostToolUse hook (ADR-0024, sessão 22)
+- [x] Phase 3 — `flutter-test-author` subagent + `mocktail` dep (ADR-0025, sessão 22b) + housekeeping ADR-0026 GH_DATA_DIR
+- [x] Phase 4 — `flutter-perf-auditor` subagent (ADR-0027, sessão 22c)
+- [x] Phase 5 — `mcp_flutter` REJECTED with re-evaluation trigger (ADR-0028, sessão 22d)
+- [x] Phase 6 — Golden tests baseline with `alchemist` (ADR-0029, sessão 22e) — pivoted from discontinued `golden_toolkit`
+- [x] Phase 7 — Docs consolidate + retrospective (sessão 22f)
+
+**Carry-overs (active, must do before slice-2 microsprints resume):**
+
+- [ ] Smoke-validate the two new subagents post-reload — exact prompts in ADR-0025 §Verification + ADR-0027 §Verification.
+- [ ] Re-run `adr-guardian` against the full PR #8 diff right before merging — per-phase sweeps were branch-base-relative.
+- [ ] Encode the `Scaffold + BoxConstraints.tightFor` golden-test lesson into `flutter-test-author`'s prompt body (discovered in Phase 6).
+- [ ] On slice-3 entry, glance at ADR-0028 §Re-evaluation trigger — reopen `mcp_flutter` decision if criteria 1 or 2 trip.
+
+
 ### ✅ Slice 1 — Android APK distribuível (shipped 2026-05-13 as `v1.0.0`)
 
 Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 34.3 MB, `Content-Type: application/vnd.android.package-archive`, signed v2 + cert SHA-256 `D9:C9:61:D6:…:14:31`). Validated end-to-end on a Samsung Galaxy A06 against production API. ADR-0014 + session logs 09/10 + memory entry `flutter-android-release-internet-permission.md` capture the design, the diagnosis ladder, and the INTERNET-permission gotcha.
@@ -171,6 +192,8 @@ Post-merge:
 ### ⏳ Slice 3 — VRP real (after slice 2)
 
 Replaces the `POST /routes/optimize` mock with a real solver. Approach in `docs/08-ROADMAP.md` slice 3 section: distance matrix from individual GraphHopper route calls (n² parallel) + nearest-neighbor + 2-opt in Node TS. New endpoint `POST /geocode` backed by Nominatim with the OSMF policy in mind. ADRs to file: ADR-0018 (geocoding policy + migration trigger), ADR-0019 (solver design). Estimated 3-5 days.
+
+**Slice 3 entry tech debt — GraphHopper image pinning (carried from session 2026-05-24-21):** `infra/docker-compose.yml` still uses `image: israelhikingmap/graphhopper:latest` (currently `12.0-SNAPSHOT` per `docker run --entrypoint sh ... ls /graphhopper/*.jar`). Tried pinning to `:8.0@sha256:b7178b…` per Docker best practice; reverted because `config.yml` declares `car_access` (introduced in GH 9+) and `:8.0` crash-loops with `IllegalArgumentException: DefaultEncodedValueFactory cannot find EncodedValue car_access`. Slice 3 entry checklist must (a) file an ADR-0008 amendment choosing a stable tag (likely `:9.1`), (b) re-validate `config.yml` `graph.encoded_values` against that tag, (c) rebuild graph-cache with the pinned image, (d) verify `benchmark.sh` p95 < 200ms still holds. Inline `TODO(ADR)` comment in the compose file marks the spot.
 
 ### ⏳ Slice 4 — Pix Split paywall via Efí Bank (after slice 3)
 
