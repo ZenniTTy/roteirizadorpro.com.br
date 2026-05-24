@@ -39,6 +39,7 @@
 - [ ] `flutter analyze` clean.
 - [ ] `flutter test` passes (widget tests at minimum for new screens).
 - [ ] **Dispatch `flutter-perf-auditor` (ADR-0027)** against the slice's touched mobile files. Resolve every `must-fix` before merge; document any deliberately-skipped `should-fix` in the slice doc with a one-line rationale. Nits are advisory. The auditor is read-only — its output is a punch list, not a code change.
+- [ ] **Goldens (ADR-0029)** — if the slice touches UI on a screen that already has a baseline under `apps/mobile/test/**/goldens/ci/`, run `flutter test --tags golden`; for intentional visual changes, regenerate with `flutter test --update-goldens --tags golden` and review the PNG diff in the PR. Optional: add a baseline for a newly-stabilized screen.
 - [ ] `bun run typecheck` clean in the modified apps (`apps/backend/`, `apps/landing/`).
 - [ ] `bun run lint` clean in the landing.
 - [ ] **`aapt2 dump permissions <built APK>`** if Android permissions changed — verify the expected `android.permission.*` entries are all present. **This is the slice 1 lesson.** Path: `~/Library/Android/sdk/build-tools/<latest>/aapt2`.

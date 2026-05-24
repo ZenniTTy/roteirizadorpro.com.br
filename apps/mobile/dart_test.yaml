@@ -1,0 +1,7 @@
+# Test runner tags (ADR-0029).
+# `golden` lets us run/skip golden tests independently of the full suite:
+#   flutter test --tags golden          # only golden tests
+#   flutter test --exclude-tags golden  # everything else (faster local iteration)
+tags:
+  golden:
+    description: Alchemist golden tests (ADR-0029)

@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1+2+3+4+5 shipped — ADR-0023 Dart MCP, ADR-0024 PostToolUse Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail dep, ADR-0026 GH_DATA_DIR env override, ADR-0027 `flutter-perf-auditor` subagent, ADR-0028 `mcp_flutter` rejected for M2 with re-evaluation trigger; Phases 6–7 continue on `feat/m2-ai-harness` and feed PR #8 against `feat/m2-slice-2-telas-core`)
+> **Last updated:** 2026-05-24 (M2-AI sprint Phases 0+1+2+3+4+5+6 shipped — ADR-0023 Dart MCP, ADR-0024 PostToolUse Riverpod codegen hook, ADR-0025 `flutter-test-author` subagent + mocktail dep, ADR-0026 GH_DATA_DIR env override, ADR-0027 `flutter-perf-auditor` subagent, ADR-0028 `mcp_flutter` rejected for M2 with re-evaluation trigger, ADR-0029 `alchemist` golden tests with one canary baseline; Phase 7 (docs consolidate + retrospective) is the last remaining step on `feat/m2-ai-harness` before PR #8 merges into `feat/m2-slice-2-telas-core`)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)

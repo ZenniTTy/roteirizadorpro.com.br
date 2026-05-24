@@ -27,7 +27,7 @@
 | 3 — Subagent `flutter-test-author` | ✅ entregue (sessão 22b, smoke dispatch deferred to sessão 23 post-reload) | `3dd30f8` | ADR-0025 + ADR-0026 (housekeeping) |
 | 4 — Subagent `flutter-perf-auditor` | ✅ entregue (sessão 22c, smoke dispatch deferred to sessão 23 post-reload) | `95d365f` | ADR-0027 |
 | 5 — Decisão sobre `mcp_flutter` | ✅ entregue (sessão 22d) — **rejeitado** com critério de re-avaliação documentado | (este commit) | ADR-0028 |
-| 6 — Golden tests baseline | ☐ pendente | — | ADR-0029 (planejado) |
+| 6 — Golden tests baseline | ✅ entregue (sessão 22e) — pivot `golden_toolkit` (descontinuado) → `alchemist 0.14.0` | (este commit) | ADR-0029 |
 | 7 — Docs consolidate | ☐ pendente | — | — |
 
 **Commits orthogonais entregues junto:**
@@ -39,9 +39,9 @@
 2. Confirmar que `dart` aparece em `/mcp` (Fase 1 já estabeleceu).
 3. **Validar Phase 3 (smoke test deferred):** confirmar que `flutter-test-author` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0025 §Verification (TDD num CounterController + tentativa explícita de fazer o agent implementar a lógica e ver recusa).
 4. **Validar Phase 4 (smoke test deferred):** confirmar que `flutter-perf-auditor` aparece em `/agents`; rodar os dois smoke prompts capturados em ADR-0027 §Verification (bad-screen com 3 violações plantadas + clean-screen como `home_empty_page.dart` sem falsos positivos).
-5. Ler §Fase 6 abaixo (Phase 5 já fechada pela sessão 22d com rejeição documentada em ADR-0028 — não voltar).
-6. Executar Fase 6 (golden tests com `golden_toolkit`) → commit `test(mobile): golden tests baseline (ADR-0029)` → o PR #8 absorve.
-7. Executar Fase 7 (docs consolidate + retrospective). Quando fechar, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
+5. Ler §Fase 7 abaixo. Fases 5 e 6 já fechadas (sessões 22d + 22e) — não voltar.
+6. Executar Fase 7 (docs consolidate + retrospective session log). Última fase da sprint, sem código.
+7. Quando Fase 7 fechar, sinalizar ao owner para mergear PR #8 em `feat/m2-slice-2-telas-core`.
 
 ---
 
@@ -392,9 +392,9 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 
 ---
 
-## Fase 6 — Golden tests com `golden_toolkit` 🔥
+## Fase 6 — Golden tests (pivot para `alchemist`) 🔥
 
-**Status:** ☐ não iniciado
+**Status:** ✅ entregue 2026-05-24 (sessão 22e). **Pivot técnico:** `golden_toolkit` (descontinuado pelo eBay há 3 anos) → **`alchemist ^0.14.0`** (Betterment + Very Good Ventures, ativo, 237k downloads, inspirado em golden_toolkit). Baseline canário em `HomeEmptyPage` (400×930 PNG, 10 KB) sob `apps/mobile/test/features/stops/presentation/goldens/ci/`. Gate-de-aceite validado: pixel-flip → FAIL com diff PNG; revert → PASS. Suite full 165/165. ADR-0029 documenta pivot + setup CI-mode-only + reasoning anti-hook.
 **Tempo:** 2h
 **Depende de:** Fase 3 (subagent test-author precisa saber escrever golden).
 
