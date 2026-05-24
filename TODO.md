@@ -17,12 +17,12 @@
 Playbook: `SPRINT-M2-AI-HARNESS.md` (root). Spec: `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`. Plan: `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`. Does NOT block slice 2; runs in parallel on its own branch off `feat/m2-slice-2-telas-core` at `7808911`.
 
 - [ ] **Phase 0** — Pre-flight (spec + plan + branch + TODO + session log) — in progress 2026-05-24
-- [ ] **Phase 1** — Dart & Flutter MCP server (ADR-0021) — highest ROI
-- [ ] **Phase 2** — Riverpod codegen PostToolUse hook (ADR-0022)
-- [ ] **Phase 3** — `flutter-test-author` subagent (ADR-0023, includes mock-lib choice)
-- [ ] **Phase 4** — `flutter-perf-auditor` subagent (ADR-0024)
-- [ ] **Phase 5** — `mcp_flutter` adopt-or-reject decision (ADR-0025)
-- [ ] **Phase 6** — Golden tests baseline with `golden_toolkit` (ADR-0026, conditional)
+- [ ] **Phase 1** — Dart & Flutter MCP server (ADR-0023) — highest ROI
+- [ ] **Phase 2** — Riverpod codegen PostToolUse hook (ADR-0024)
+- [ ] **Phase 3** — `flutter-test-author` subagent (ADR-0025, includes mock-lib choice)
+- [ ] **Phase 4** — `flutter-perf-auditor` subagent (ADR-0026)
+- [ ] **Phase 5** — `mcp_flutter` adopt-or-reject decision (ADR-0027)
+- [ ] **Phase 6** — Golden tests baseline with `golden_toolkit` (ADR-0028, conditional)
 - [ ] **Phase 7** — Docs consolidate + retrospective session log
 
 ### ✅ Slice 1 — Android APK distribuível (shipped 2026-05-13 as `v1.0.0`)

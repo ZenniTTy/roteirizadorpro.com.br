@@ -4,7 +4,7 @@
 
 **Goal:** Upgrade the Roteirizador Pro AI development harness by adopting the official Dart & Flutter MCP server, adding one PostToolUse hook for Riverpod codegen, two specialized subagents (`flutter-test-author`, `flutter-perf-auditor`), deciding on the community `mcp_flutter` visual-snapshot plugin, and seeding `golden_toolkit` regression coverage — each step backed by its own ADR, none of which touch product code under `apps/mobile/lib/features/`. The result: a fresh session on `feat/m2-ai-harness` can resolve real Flutter APIs via MCP (zero hallucination), have `.g.dart` files auto-regenerated after every relevant edit, and invoke specialized subagents for TDD and performance review.
 
-**Architecture:** This plan ships 0 product code. It adds: 1 MCP server entry in `.claude/settings.json`; 1 PostToolUse hook script under `.claude/hooks/`; 2 subagent definitions under `.claude/agents/`; 6 ADRs (0021–0026, with 0026 conditional on Phase 6 execution); 1 golden test scaffold under `apps/mobile/test/`. Documentation touches: `CLAUDE.md`, `SPRINT-M2-AI-HARNESS.md`, `docs/02-ARCHITECTURE.md`, `docs/03-CONVENTIONS.md`, `docs/10-CHANGELOG.md`, `docs/M2-SLICE-CHECKLIST.md`, `TODO.md`, plus one session log per executed phase and `docs/sessions/0001-INDEX.md` updates.
+**Architecture:** This plan ships 0 product code. It adds: 1 MCP server entry in `.claude/settings.json`; 1 PostToolUse hook script under `.claude/hooks/`; 2 subagent definitions under `.claude/agents/`; 6 ADRs (0023–0028, with 0026 conditional on Phase 6 execution); 1 golden test scaffold under `apps/mobile/test/`. Documentation touches: `CLAUDE.md`, `SPRINT-M2-AI-HARNESS.md`, `docs/02-ARCHITECTURE.md`, `docs/03-CONVENTIONS.md`, `docs/10-CHANGELOG.md`, `docs/M2-SLICE-CHECKLIST.md`, `TODO.md`, plus one session log per executed phase and `docs/sessions/0001-INDEX.md` updates.
 
 **Tech Stack:** Dart ≥ 3.9 (existing); `dart_mcp_server` (new, global Dart package); `mocktail` OR `mockito` (Phase 3 decision); `golden_toolkit` (Phase 6 dev-dep); optionally `mcp_flutter` (Phase 5 conditional). No backend changes; ADR-0011 (Bun) untouched.
 
@@ -36,7 +36,7 @@ From here on, paths are repo-root-relative.
 See spec §Architecture "Harness file layout" for the full tree. Summary:
 
 - `.claude/` — 1 settings.json modification, 1 hook script, 2 subagent definitions.
-- `docs/decisions/` — 6 new ADRs (0021–0026).
+- `docs/decisions/` — 6 new ADRs (0023–0028).
 - `docs/superpowers/` — 1 spec + 1 plan (this file).
 - `docs/sessions/` — 1 kickoff + up to 7 per-phase logs + 1 retro + index updates.
 - `docs/` — 4 doc modifications (02, 03, 10, M2-SLICE-CHECKLIST).
@@ -97,12 +97,12 @@ in `docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md`. Plan
 in `docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md`.
 
 - [ ] Phase 0 — Pre-flight (spec + plan + branch + TODO + session log)
-- [ ] Phase 1 — Dart & Flutter MCP server (ADR-0021)
-- [ ] Phase 2 — Riverpod codegen hook (ADR-0022)
-- [ ] Phase 3 — `flutter-test-author` subagent (ADR-0023)
-- [ ] Phase 4 — `flutter-perf-auditor` subagent (ADR-0024)
-- [ ] Phase 5 — `mcp_flutter` decision (ADR-0025, adopt OR reject)
-- [ ] Phase 6 — Golden tests baseline (ADR-0026, conditional)
+- [ ] Phase 1 — Dart & Flutter MCP server (ADR-0023)
+- [ ] Phase 2 — Riverpod codegen hook (ADR-0024)
+- [ ] Phase 3 — `flutter-test-author` subagent (ADR-0025)
+- [ ] Phase 4 — `flutter-perf-auditor` subagent (ADR-0026)
+- [ ] Phase 5 — `mcp_flutter` decision (ADR-0027, adopt OR reject)
+- [ ] Phase 6 — Golden tests baseline (ADR-0028, conditional)
 - [ ] Phase 7 — Docs consolidate + retro
 ```
 
@@ -143,7 +143,7 @@ SPRINT-MD filename convention from numeric to date-based to match
 project precedent (Q6 in spec).
 
 No code changes. No ADR yet — ADRs land in their respective phase
-commits (0021..0026).
+commits (0023..0028).
 
 Spec:  docs/superpowers/specs/2026-05-24-ai-harness-upgrade-design.md
 Plan:  docs/superpowers/plans/2026-05-24-ai-harness-upgrade.md

@@ -143,7 +143,7 @@ Maior ROI da sprint inteira. Reduz alucinação de API e custo de token em **tod
    > "Use o Dart MCP para resolver o símbolo `MapController` de `flutter_map` e listar seus métodos públicos."
 
    Resultado esperado: lista real de métodos com source path apontando para o pacote local (não para training data).
-8. Criar **ADR-0021 — Adoção do Dart & Flutter MCP server oficial**. Conteúdo mínimo:
+8. Criar **ADR-0023 — Adoção do Dart & Flutter MCP server oficial**. Conteúdo mínimo:
    - Contexto: alucinação de API Flutter/Dart como fonte recorrente de retrabalho.
    - Decisão: adotar `dart_mcp_server` oficial.
    - Versão fixada (anotar a versão resolvida por `dart pub global activate`).
@@ -158,7 +158,7 @@ Maior ROI da sprint inteira. Reduz alucinação de API e custo de token em **tod
 ### Gate de aceite
 - [ ] `/mcp` lista `dart` como ✅ connected.
 - [ ] Smoke test acima retorna lista real de métodos com source path local.
-- [ ] ADR-0021 commitado em `docs/decisions/0021-dart-flutter-mcp-server.md`.
+- [ ] ADR-0023 commitado em `docs/decisions/0023-dart-flutter-mcp-server.md`.
 - [ ] `CLAUDE.md` atualizado e data bumpada.
 
 ### Riscos conhecidos
@@ -166,7 +166,7 @@ Maior ROI da sprint inteira. Reduz alucinação de API e custo de token em **tod
 - Pode haver conflito de porta se já houver Dart Tooling Daemon rodando — checar `lsof` se reiniciar não funcionar.
 
 ### Commit
-`feat(harness): adopt official Dart & Flutter MCP server (ADR-0021)`
+`feat(harness): adopt official Dart & Flutter MCP server (ADR-0023)`
 
 ---
 
@@ -194,12 +194,12 @@ Slice 2 (Telas Core) vai gerar muito `@riverpod`. Esquecer `dart run build_runne
    - Editar um provider `@riverpod` qualquer (trocar uma linha de comentário) → hook dispara → `.g.dart` regenerado → `flutter analyze` limpo.
    - Editar um arquivo Dart **sem** `@riverpod` → hook **não** roda build_runner (log mostra "no @riverpod changes detected").
 5. Atualizar `CLAUDE.md` seção **"In-Loop Auto-Validation (ADR-0018)"** — adicionar 4º hook ao lado dos 3 existentes. Nota: este é o primeiro hook **PostToolUse** (não Stop) — explicitar.
-6. Criar **ADR-0022 — Hook PostToolUse para Riverpod codegen**. Conteúdo: motivação, escolha de PostToolUse vs Stop (PostToolUse roda mais cedo, antes do próximo turno), trade-off (custo de build_runner em cada edit relevante), rollback.
+6. Criar **ADR-0024 — Hook PostToolUse para Riverpod codegen**. Conteúdo: motivação, escolha de PostToolUse vs Stop (PostToolUse roda mais cedo, antes do próximo turno), trade-off (custo de build_runner em cada edit relevante), rollback.
 
 ### Gate de aceite
 - [ ] Smoke test "com `@riverpod`" passa.
 - [ ] Smoke test "sem `@riverpod`" passa (hook não desperdiça tempo).
-- [ ] ADR-0022 commitado.
+- [ ] ADR-0024 commitado.
 - [ ] `CLAUDE.md` atualizado.
 
 ### Riscos conhecidos
@@ -207,7 +207,7 @@ Slice 2 (Telas Core) vai gerar muito `@riverpod`. Esquecer `dart run build_runne
 - Se o usuário editar 5 providers num turno, o hook só deve rodar uma vez (debounce implícito pelo fato do hook rodar **uma vez por turno**, não por arquivo — confirmar no Claude Code hooks doc).
 
 ### Commit
-`feat(harness): post-edit riverpod codegen hook (ADR-0022)`
+`feat(harness): post-edit riverpod codegen hook (ADR-0024)`
 
 ---
 
@@ -223,7 +223,7 @@ Com MCP ativo, o subagent escreve testes corretos (vê API real, não inventa). 
 ### Decisão pendente (resolver no início da fase)
 **Mock library:** `mocktail` (sem codegen) **vs** `mockito @GenerateMocks` (com codegen).
 - Verificar qual já está em `apps/mobile/pubspec.yaml`.
-- Se nenhum, decidir antes de escrever o subagent — a escolha vai pro ADR-0023.
+- Se nenhum, decidir antes de escrever o subagent — a escolha vai pro ADR-0025.
 - Recomendação pessoal sem mais contexto: `mocktail` por evitar mais um build_runner; mas se já tem `mockito` no projeto, manter.
 
 ### Tarefas
@@ -241,12 +241,12 @@ Com MCP ativo, o subagent escreve testes corretos (vê API real, não inventa). 
    - Invocar o agent num provider novo trivial → ele gera teste falhando → você implementa stub → teste passa.
    - Confirmar que o agent **não** edita `lib/` antes de teste vermelho existir.
 5. Atualizar `CLAUDE.md` seção **"Verify Your Work"** → mencionar `flutter-test-author` como caminho TDD canônico para mobile.
-6. Criar **ADR-0023 — Subagent flutter-test-author + escolha de mock library**.
+6. Criar **ADR-0025 — Subagent flutter-test-author + escolha de mock library**.
 
 ### Gate de aceite
 - [ ] Smoke test "TDD provider" passa: teste vermelho → implementação → verde.
 - [ ] Smoke test "discipline" passa: agent recusa editar `lib/` sem teste vermelho.
-- [ ] ADR-0023 commitado (inclui decisão de mock lib).
+- [ ] ADR-0025 commitado (inclui decisão de mock lib).
 - [ ] `CLAUDE.md` atualizado.
 
 ### Riscos conhecidos
@@ -254,7 +254,7 @@ Com MCP ativo, o subagent escreve testes corretos (vê API real, não inventa). 
 - Riverpod 3 codegen exige `part 'foo.g.dart'` — agent precisa lembrar (MCP ajuda).
 
 ### Commit
-`feat(harness): flutter-test-author subagent (ADR-0023)`
+`feat(harness): flutter-test-author subagent (ADR-0025)`
 
 ---
 
@@ -284,19 +284,19 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
    - Criar branch temporária com tela propositalmente ruim (`ListView` com children list + sem `const` + `ref.watch` amplo) → agent flagra todos os 3.
    - Rodar contra uma tela limpa já existente → "no issues found".
 3. Atualizar `docs/M2-SLICE-CHECKLIST.md` seção **§Verification** → adicionar passo "run flutter-perf-auditor" entre os passos existentes (após `flutter analyze`, antes de `prototype-fidelity-checker`).
-4. Criar **ADR-0024 — Subagent flutter-perf-auditor**.
+4. Criar **ADR-0026 — Subagent flutter-perf-auditor**.
 
 ### Gate de aceite
 - [ ] Smoke test "tela ruim" detecta os 3 problemas plantados.
 - [ ] Smoke test "tela limpa" retorna sem falsos positivos.
-- [ ] ADR-0024 commitado.
+- [ ] ADR-0026 commitado.
 - [ ] `docs/M2-SLICE-CHECKLIST.md` atualizado.
 
 ### Riscos conhecidos
 - Falsos positivos em `ref.watch` amplo quando o uso é intencional — punch-list categorizada como "should-fix" ajuda a humano avaliar.
 
 ### Commit
-`feat(harness): flutter-perf-auditor subagent (ADR-0024)`
+`feat(harness): flutter-perf-auditor subagent (ADR-0026)`
 
 ---
 
@@ -318,7 +318,7 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 3. O custo de pequena instrumentação em `main.dart` (guard `kDebugMode`) é aceitável? (Não → rejeite.)
 4. Há preocupação com APK release size por causa do plugin? (Avaliar — se instalado em `dev_dependencies` + tree-shake correto, não deveria afetar release.)
 
-**Decisão registrada em ADR-0025** — adotar OU rejeitar. **Ambos viram ADR.** Uma rejeição com motivo documentado é tão valiosa quanto adoção.
+**Decisão registrada em ADR-0027** — adotar OU rejeitar. **Ambos viram ADR.** Uma rejeição com motivo documentado é tão valiosa quanto adoção.
 
 ### Sub-fase 5a — Se adotar
 
@@ -332,11 +332,11 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 
 ### Sub-fase 5b — Se rejeitar
 
-5b.1. Apenas ADR-0025 registrando o "não" com motivo (qual critério acima falhou).
+5b.1. Apenas ADR-0027 registrando o "não" com motivo (qual critério acima falhou).
 5b.2. Sprint segue direto para Fase 6.
 
 ### Gate de aceite
-- [ ] ADR-0025 commitado (qualquer dos lados).
+- [ ] ADR-0027 commitado (qualquer dos lados).
 - [ ] Se adotado: snapshot funciona em debug; release build limpo (sem código de instrumentação ativo).
 - [ ] Se rejeitado: motivo claro no ADR.
 
@@ -345,7 +345,7 @@ Slice 2 (Telas Core) tem map (`flutter_map` + OSM tiles) + listas grandes de sto
 - Risco de leakage para release: mitigado pelo `kDebugMode` guard + verificação no smoke test 5a.6.
 
 ### Commit
-`docs(decisions): ADR-0025 mcp_flutter adoption decision`
+`docs(decisions): ADR-0027 mcp_flutter adoption decision`
 (seguido de `feat(harness): mcp_flutter visual snapshot integration` se adotar)
 
 ---
@@ -369,13 +369,13 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 7. Verificar que CI/dev local reproduz o golden idêntico (Flutter golden é determinístico mas font rendering pode variar entre OSes — documentar no ADR).
 8. Adicionar passo opcional em `docs/M2-SLICE-CHECKLIST.md`: *"se a slice toca UI, atualizar goldens com `flutter test --update-goldens` e revisar diff visual no PR".*
 9. **Decisão consciente: NÃO virar hook.** Goldens são caros de rodar; deixar manual no checklist.
-10. Criar **ADR-0026 — Adoção de golden_toolkit**. Escopo explícito: telas estáveis pós-slice, não durante desenvolvimento ativo. Trade-off: baseline maintenance vs regressão visual.
+10. Criar **ADR-0028 — Adoção de golden_toolkit**. Escopo explícito: telas estáveis pós-slice, não durante desenvolvimento ativo. Trade-off: baseline maintenance vs regressão visual.
 
 ### Gate de aceite
 - [ ] Mudar 1 pixel intencionalmente na tela alvo → `flutter test` falha apontando o golden.
 - [ ] Reverter a mudança → passa.
 - [ ] Baseline (`*.png`) commitado.
-- [ ] ADR-0026 commitado.
+- [ ] ADR-0028 commitado.
 - [ ] `docs/M2-SLICE-CHECKLIST.md` atualizado.
 
 ### Riscos conhecidos
@@ -383,7 +383,7 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 - Tentação de virar golden tests em hook automático — **resistir**, custo > benefício.
 
 ### Commit
-`test(mobile): golden tests baseline (ADR-0026)`
+`test(mobile): golden tests baseline (ADR-0028)`
 
 ---
 
@@ -401,7 +401,7 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
    - Bumpar `Last updated` no topo.
 2. Atualizar `docs/02-ARCHITECTURE.md` se a topologia de tooling mudou — adicionar nota/diagrama sobre Dart MCP server.
 3. Atualizar `docs/03-CONVENTIONS.md` se convenção de teste mudou (TDD via subagent).
-4. Atualizar `docs/10-CHANGELOG.md` com a sprint completa (1 entrada datada listando ADRs 0021–0026).
+4. Atualizar `docs/10-CHANGELOG.md` com a sprint completa (1 entrada datada listando ADRs 0023–0028).
 5. Atualizar `docs/sessions/0001-INDEX.md`.
 6. Criar `docs/sessions/2026-05-XX-NN-ai-harness-complete.md` com retrospectiva:
    - O que funcionou?
@@ -413,7 +413,7 @@ Maior custo de manutenção (baselines). Só vale depois das telas estarem está
 ### Gate de aceite
 - [ ] `CLAUDE.md` "Last updated" reflete data de fechamento.
 - [ ] `docs/10-CHANGELOG.md` tem entrada da sprint.
-- [ ] ADRs 0021–0026 (menos os rejeitados) listados em `docs/decisions/`.
+- [ ] ADRs 0023–0028 (menos os rejeitados) listados em `docs/decisions/`.
 - [ ] Sessão de retro commitada e indexada.
 - [ ] Este MD reflete status final.
 

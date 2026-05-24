@@ -8,7 +8,7 @@
 - **Human**: Eduardo
 - **Topic**: M2-AI harness upgrade — Phase 0 kickoff
 - **Duration**: ~1h (research + sprint MD + Phase 0 scaffolds)
-- **Related ADRs**: none in this commit; ADRs 0021–0026 land in their respective phase commits
+- **Related ADRs**: none in this commit; ADRs 0023–0028 land in their respective phase commits
 - **Related TODO items**: new section "Sprint M2-AI (Harness upgrade — orthogonal to slice 2)"
 
 ## Goal of the Session
@@ -30,15 +30,15 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 
 1. **Sprint runs on `feat/m2-ai-harness` orthogonal to slice 2** (Q5). Branch-isolated; sprint never touches `apps/mobile/lib/features/`. Slice 2 continues unblocked on its own branch.
 2. **Filename convention: `YYYY-MM-DD-<slug>`, not numeric** (Q6). Matches all four existing spec/plan artifacts. SPRINT-MD amended.
-3. **Phase 0 ships no ADR.** ADRs 0021–0026 are phase-scoped, one per decision, committed alongside their implementation in their own phase. Phase 0 = pure scaffolding.
+3. **Phase 0 ships no ADR.** ADRs 0023–0028 are phase-scoped, one per decision, committed alongside their implementation in their own phase. Phase 0 = pure scaffolding.
 4. **`SPRINT-M2-AI-HARNESS.md` is the canonical execution playbook;** the plan file (`2026-05-24-ai-harness-upgrade.md`) registers spec linkage and Phase 0 decomposition but defers Phase 1–7 step bodies to the SPRINT-MD to avoid duplication that would drift.
 5. **Rejected from adoption: `flow-next` and `cc-sdd`** (documented in spec §References). Our `superpowers:` SDD is well-calibrated; replacing it would be churn-for-churn.
 
 ## Open Questions Left
 
-- [ ] (Phase 3) Mock library for `flutter-test-author` — inspect `apps/mobile/pubspec.yaml` at execution time; if neither `mocktail` nor `mockito` present, default to `mocktail`. Lock in ADR-0023.
-- [ ] (Phase 5) `mcp_flutter` adopt or reject — decision criteria documented in SPRINT-MD §Phase 5; outcome (either way) ships as ADR-0025.
-- [ ] (Phase 1) Exact `dart_mcp_server` version to pin — resolve at install via `dart pub global activate` output and record in ADR-0021.
+- [ ] (Phase 3) Mock library for `flutter-test-author` — inspect `apps/mobile/pubspec.yaml` at execution time; if neither `mocktail` nor `mockito` present, default to `mocktail`. Lock in ADR-0025.
+- [ ] (Phase 5) `mcp_flutter` adopt or reject — decision criteria documented in SPRINT-MD §Phase 5; outcome (either way) ships as ADR-0027.
+- [ ] (Phase 1) Exact `dart_mcp_server` version to pin — resolve at install via `dart pub global activate` output and record in ADR-0023.
 
 ## Files Changed
 
@@ -67,7 +67,7 @@ Bootstrap the M2-AI harness sprint: a parallel, branch-isolated effort to absorb
 - **Next phase:** Phase 1 — install `dart_mcp_server` (highest ROI of the sprint). Re-read `SPRINT-M2-AI-HARNESS.md` §"Fase 1" before starting.
 - **Slice 2 is unaffected:** `feat/m2-slice-2-telas-core` continues its own work. Do NOT merge or rebase this sprint's branch into slice-2 until at least Phase 7 closes.
 - **Pre-existing untracked items on the branch** (carried over from `feat/m2-slice-2-telas-core` tip): `CONTINUATION-PROMPT.md`, `infra/docker-compose.yml` (modified), `infra/graphhopper/extract-sp.sh` (modified). These are NOT this sprint's responsibility — leave untouched.
-- **Validation gate at end of every phase:** the three Stop-hooks (`analyze-changed-dart.sh`, `check-dto-mirror.sh`, `warn-adr-drift.sh`) auto-fire; `warn-adr-drift.sh` should stay silent on Phase 0 (no `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` edits) and active on Phase 1 (no ADR added means the hook should warn — but we ARE adding ADR-0021 in Phase 1, so it should be silent post-commit).
+- **Validation gate at end of every phase:** the three Stop-hooks (`analyze-changed-dart.sh`, `check-dto-mirror.sh`, `warn-adr-drift.sh`) auto-fire; `warn-adr-drift.sh` should stay silent on Phase 0 (no `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` edits) and active on Phase 1 (no ADR added means the hook should warn — but we ARE adding ADR-0023 in Phase 1, so it should be silent post-commit).
 
 ## Reference Material Used
 
