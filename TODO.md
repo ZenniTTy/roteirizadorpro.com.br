@@ -18,7 +18,7 @@ Playbook: `SPRINT-M2-AI-HARNESS.md` (root). Spec: `docs/superpowers/specs/2026-0
 
 - [x] **Phase 0** — Pre-flight (spec + plan + branch + TODO + session log) — done 2026-05-24 (commits `4b528f8` + `baaea44` + `782eb99`)
 - [x] **Phase 1** — Dart & Flutter MCP server (ADR-0023) — done 2026-05-24, session 20. `.mcp.json` + `enabledMcpjsonServers` in `.claude/settings.json`. Discovery during execution: Claude Code rejects the `mcpServers` key in `settings.json` (Gemini-style format from Flutter doc); canonical Claude Code shape is `.mcp.json` at repo root + allowlist in `settings.json`. Schema validator caught it before commit. Dart 3.11.5 / Flutter 3.41.9 both satisfy the ≥3.9 prereq. `dart mcp-server --help` runs clean. CLAUDE.md gained MCP-first precedence rule in §"Context7 Mandatory". Smoke test (`/mcp` + symbol resolve) requires a session restart to validate — pending human action; ADR-0023 documents the verification procedure.
-- [ ] **Phase 2** — Riverpod codegen PostToolUse hook (ADR-0024)
+- [x] **Phase 2** — Riverpod codegen PostToolUse hook (ADR-0024) — done 2026-05-24. `.claude/hooks/run-riverpod-codegen.sh` (matcher `Edit|Write|MultiEdit`, timeout 120s, 90s lock-file debounce). Smoke test passed all three paths (plain Dart silent, `@riverpod` triggers codegen, debounce coalesces burst). `flutter analyze` clean after codegen.
 - [ ] **Phase 3** — `flutter-test-author` subagent (ADR-0025, includes mock-lib choice)
 - [ ] **Phase 4** — `flutter-perf-auditor` subagent (ADR-0026)
 - [ ] **Phase 5** — `mcp_flutter` adopt-or-reject decision (ADR-0027)

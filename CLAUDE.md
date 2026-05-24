@@ -148,15 +148,21 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - If you can't verify it, don't ship it.
 - Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
 
-### In-Loop Auto-Validation (ADR-0018)
+### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
 
-Three `Stop`-hooks run automatically at the end of every agent turn — non-blocking, signal-only:
+Four hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
+
+**Stop hooks** (fire once at end of turn, batched across all edits):
 
 - `analyze-changed-dart.sh` — `flutter analyze --no-pub` over `.dart` files edited in `apps/mobile/lib/` this turn.
 - `check-dto-mirror.sh` — warns when an `apps/backend/src/<feature>/schemas.ts` edit lacks its paired Dart DTO update (ADR-0013 contract).
 - `warn-adr-drift.sh` — warns when `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` was edited this turn but no ADR was added/modified.
 
-These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; layered boundary in ADR-0012.
+**PostToolUse hook** (fires per Edit/Write/MultiEdit, debounced):
+
+- `run-riverpod-codegen.sh` (ADR-0024) — when a `@riverpod`-annotated Dart file or any `part '*.g.dart'` host is edited, regenerates `.g.dart` via `dart run build_runner build --delete-conflicting-outputs`. Lock-file debounce (90s window) coalesces burst-edits so multiple provider edits in one turn run codegen only once. Sits next to the pre-existing `format-dart.sh` in the same matcher entry.
+
+These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; PostToolUse extension rationale in ADR-0024; layered boundary in ADR-0012.
 
 ### Spec-Driven Workflow (ADR-0019)
 

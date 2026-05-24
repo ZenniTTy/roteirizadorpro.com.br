@@ -23,7 +23,7 @@
 |---|---|---|---|
 | 0 — Pré-flight | ✅ entregue (sessão 19) | `4b528f8`, `baaea44`, `782eb99` | — |
 | 1 — Dart & Flutter MCP server | ✅ entregue (sessão 20) + smoke validado pós-reload | `2abe6bc`, `8c15f7c` | ADR-0023 |
-| 2 — Riverpod codegen hook | ☐ próxima | — | ADR-0024 (planejado) |
+| 2 — Riverpod codegen hook | ✅ entregue (sessão 22) | (este commit) | ADR-0024 |
 | 3 — Subagent `flutter-test-author` | ☐ pendente | — | ADR-0025 (planejado) |
 | 4 — Subagent `flutter-perf-auditor` | ☐ pendente | — | ADR-0026 (planejado) |
 | 5 — Decisão sobre `mcp_flutter` | ☐ pendente (gate) | — | ADR-0027 (planejado) |
@@ -213,7 +213,7 @@ Maior ROI da sprint inteira. Reduz alucinação de API e custo de token em **tod
 
 ## Fase 2 — Hook `riverpod-codegen-runner` 🔥🔥
 
-**Status:** ☐ não iniciado
+**Status:** ✅ entregue 2026-05-24 (sessão 22). `.claude/hooks/run-riverpod-codegen.sh` + registro em `.claude/settings.json` + ADR-0024 + atualização CLAUDE.md.
 **Tempo:** 1h
 **Depende de:** Fase 1 (testar com MCP ativo para validação cruzada).
 
