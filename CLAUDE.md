@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI harness sprint shipped, ADRs 0023–0029; retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`; two deferred smoke dispatches in ADR-0025 + ADR-0027 §Verification. Same day: **ADR-0030** migrated the Pix gateway from Efí Bank to Stripe + 30-day access pass model — supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
+> **Last updated:** 2026-05-25 (Session 24 — M2-AI sprint carry-overs A.1+A.2+A.3 executed; `flutter-perf-auditor` smoke PASSED both dispatches; `flutter-test-author` Dispatch 2 failed the refusal-discipline gate and was remediated by **ADR-0031** — three-layer defense: new PreToolUse hook `.claude/hooks/block-test-author-impl.sh` declared in subagent frontmatter + hardened prompt body with top-of-file `## 🛑 What you must NEVER do` section + hardened description. A.1 Dispatch 2 functional re-validation **DEFERRED to next session** because subagent registry binds at session boot. **Next session MUST re-run A.1 Dispatch 2 before MS-15** — see `docs/sessions/2026-05-25-24-subagent-smoke-and-tdd-hardening.md` §"Hand-off Notes". Previous: M2-AI harness sprint shipped, ADRs 0023–0029; retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`. **ADR-0030** migrated Pix gateway Efí Bank → Stripe + 30-day access pass model — supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
