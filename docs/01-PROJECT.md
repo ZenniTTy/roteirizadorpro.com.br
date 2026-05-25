@@ -6,7 +6,7 @@
 
 ## Why It Exists
 
-Independent Brazilian delivery riders need a fast, reliable route planner that respects local realities (one-way streets, cul-de-sacs, urban geography of São Paulo and the Sudeste region) and lets them end the workday near home. Circuit solves this elegantly but is priced and engineered for international markets. Roteirizador Pro is engineered for the Brazilian market specifically: monthly subscription in BRL, payment via Pix (instant and ubiquitous in Brazil), self-hosted routing engine to avoid Google Maps API fees, and APK distribution to bypass Play Store friction.
+Independent Brazilian delivery riders need a fast, reliable route planner that respects local realities (one-way streets, cul-de-sacs, urban geography of São Paulo and the Sudeste region) and lets them end the workday near home. Circuit solves this elegantly but is priced and engineered for international markets. Roteirizador Pro is engineered for the Brazilian market specifically: 30-day access pass priced in BRL, payment via Pix (instant and ubiquitous in Brazil), self-hosted routing engine to avoid Google Maps API fees, and APK distribution to bypass Play Store friction.
 
 ## Who It Is For
 
@@ -16,14 +16,15 @@ Independent Brazilian delivery riders need a fast, reliable route planner that r
 
 ## Business Model
 
-- **Pay-per-route** model (revised by the client on 2026-05-10; the original brief assumed a monthly subscription).
-  - Adding stops, optimizing the route, and viewing the optimized result are **free**.
-  - The paywall fires on "Iniciar navegação": one Pix charge of **BRL 25.90** unlocks turn-by-turn for that one route.
-  - No subscriptions, no trials, no recurring billing.
+- **30-day access pass** model (current; revised by the client on 2026-05-24, superseding the brief 2026-05-10 "pay-per-route" attempt).
+  - Adding stops, optimizing the route, viewing the optimized result, sharing, map view, "sentido casa" — all **free forever**.
+  - The paywall fires on "Iniciar Navegação": one Pix charge of **R$ 25,90** unlocks the button (and external navigation handoff to Waze/Google Maps) for **30 days**.
+  - When 30 days expire, the user pays again — a fresh manual Pix payment, not a recurring charge. **No Stripe Billing, no Stripe Subscriptions, no cancellation flow, no refund flow.**
 - Payment exclusively via Pix (no credit card support in V1).
-- Effective gateway fee: 1.19% + BRL 0.31 per transaction (Efí Bank pricing). Net per charge ≈ BRL 25.28; partner share ≈ BRL 12.64 each. Full unit economics in `docs/M2-COST-MODEL.md`.
-- Revenue is automatically split 50/50 between the two partners at the moment of payment, using Efí Bank's native Pix Split feature.
-- Distribution: APK direct download from the project's domain. **No Google Play Store** in V1 (the client explicitly chose to bypass Play Store bureaucracy and distribute the APK directly).
+- Effective gateway fee: ~1,5% + R$ 0,40 per transaction (Stripe Pix pricing). Net per charge ≈ R$ 25,11; partner share ≈ R$ 12,56 each. Full unit economics in `docs/M2-COST-MODEL.md`.
+- Revenue is automatically split 50/50 between the two partners via **Stripe Connect** (Separate Charges and Transfers — two `stripe.transfers.create` calls fire from the webhook handler).
+- Distribution: APK direct download from the project's domain. **No Google Play Store** in V1 (the client explicitly chose to bypass Play Store bureaucracy and distribute the APK directly). Future Play Store path is documented in `docs/BUSINESS-RULES.md` §14 (Stripe Pix would not be allowed inside the app; the workaround is a browser redirect to `roteirizadorpro.com.br/assinar`).
+- Full operational rules — paywall UX, "what does NOT exist", LGPD touchpoints — in `docs/BUSINESS-RULES.md`. Gateway architecture decision in [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) (supersedes ADR-0007 Efí Bank).
 
 ## Positioning Statement
 

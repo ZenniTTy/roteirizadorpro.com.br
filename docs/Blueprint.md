@@ -13,8 +13,8 @@
 | Type | Mobile-first subscription SaaS (B2C) — Android route planner |
 | Distribution | APK direct download from `roteirizadorpro.com.br` (no Play Store in V1) |
 | Public | Independent Brazilian delivery riders (motoboys), Sudeste region |
-| Pricing | Single tier: BRL 25.90 / month |
-| Payment | Pix only (Efí Bank), 50/50 auto-split between two business partners |
+| Pricing | Single tier: R$ 25,90 grants 30 days of access (no recurring billing — each renewal is a fresh manual Pix payment) |
+| Payment | Pix only via Stripe + Stripe Connect 50/50 split (Separate Charges and Transfers) between two business partners — [ADR-0030](decisions/0030-stripe-pix-30-day-access-pass.md) |
 | Positioning | Functional fork of Spoke/Circuit Route Planner with 100% original visual identity ([ADR-0010](decisions/0010-clone-positioning.md)) |
 | Current milestone | **M1** (deadline 2026-05-26): server, GraphHopper SP-only, landing, backend auth API, Flutter Login + Register |
 | Next milestone | M2 (post-M1, scope to reconfirm with client) — full feature set per [docs/04-FEATURES.md](04-FEATURES.md) |
@@ -36,7 +36,7 @@
 | Database | PostgreSQL | 16 | [0009](decisions/0009-postgresql-database.md) |
 | Cache / pub-sub | Redis | 7 | [02-ARCHITECTURE.md](02-ARCHITECTURE.md) |
 | Routing engine | GraphHopper self-hosted (motorcycle profile, CH) | latest official Docker image | [0008](decisions/0008-graphhopper-routing.md) |
-| Payment gateway | Efí Bank Pix Split (API v2, mTLS, no SDK) | API v2 | [0007](decisions/0007-efi-bank-payment.md) |
+| Payment gateway | Stripe Pix + Stripe Connect (Separate Charges and Transfers, official Node SDK) | latest | [0030](decisions/0030-stripe-pix-30-day-access-pass.md) (supersedes [0007](decisions/0007-efi-bank-payment.md)) |
 | Landing | Next.js 14 (App Router) + Tailwind | 14.x | [0001](decisions/0001-monorepo-structure.md), [04-FEATURES.md F14](04-FEATURES.md) |
 | Repo structure | Monorepo (`apps/{mobile,backend,landing,admin}`) | — | [0001](decisions/0001-monorepo-structure.md) |
 | Server OS | Ubuntu | 24.04 | [07-INFRA.md](07-INFRA.md) |
@@ -61,7 +61,7 @@ For every opinionated layer, alternatives that were considered and rejected. Pul
 | State management | GetX | Mixes routing/DI/state in anti-pattern ways; community sentiment shifted away. ([ADR-0005](decisions/0005-riverpod-3-state.md)) |
 | Backend | NestJS | Decorator/DI overhead overkill for ~20 endpoints; performance below Fastify. ([ADR-0003](decisions/0003-fastify-backend.md)) |
 | Backend | Express | No TS-first design; no built-in validation; legacy by 2026. ([ADR-0003](decisions/0003-fastify-backend.md)) |
-| Backend | Python + FastAPI | Asymmetry with Flutter; no Efí Bank SDK in any language so no language-savings argument. ([ADR-0003](decisions/0003-fastify-backend.md)) |
+| Backend | Python + FastAPI | Asymmetry with Flutter; the chosen payment gateway (now Stripe per ADR-0030) has first-class SDKs in both ecosystems so no language-savings argument either way. ([ADR-0003](decisions/0003-fastify-backend.md)) |
 | Validation | Hand-written JSON Schema | Verbose; types must be hand-maintained; drift risk. ([ADR-0006](decisions/0006-typebox-validation.md)) |
 | Validation | Zod with adapter | Not natively built for Fastify; slower at runtime than TypeBox; doesn't compile to JSON Schema natively (loses Fastify's serialization optimization). ([ADR-0006](decisions/0006-typebox-validation.md)) |
 | ORM | Drizzle | Less mature; SQL-first style adds friction for the 80% of CRUD work. ([ADR-0004](decisions/0004-prisma-7-orm.md)) |
@@ -243,7 +243,7 @@ Folders materialize incrementally. No empty placeholders. No `packages/` until a
 
 | Integration | Purpose | Milestone | Auth method | Detailed in |
 |---|---|---|---|---|
-| Efí Bank Pix v2 with Split | Subscription payments + 50/50 auto-split | M2 | mTLS (`.p12` cert on server) + OAuth2 client credentials | [ADR-0007](decisions/0007-efi-bank-payment.md) |
+| Stripe Pix + Stripe Connect | 30-day access pass payment + 50/50 auto-split (Separate Charges and Transfers) | M2 | API key (`STRIPE_SECRET_KEY`) + webhook signing secret (`STRIPE_WEBHOOK_SECRET`) | [ADR-0030](decisions/0030-stripe-pix-30-day-access-pass.md) |
 | GraphHopper (self-hosted Docker) | Route optimization | M1 (infra) / M2 (full usage) | localhost-only, no external auth | [ADR-0008](decisions/0008-graphhopper-routing.md) |
 | Geofabrik PBF | OpenStreetMap data source for GraphHopper | M1 (SP-only) / post-M1 (full Sudeste) | none (public download) | [07-INFRA.md](07-INFRA.md) |
 | Vercel | Landing page hosting + DNS | M1 | Vercel CLI / dashboard | [07-INFRA.md](07-INFRA.md) |
@@ -252,7 +252,7 @@ Folders materialize incrementally. No empty placeholders. No `packages/` until a
 | Waze deep-link | External navigation | M2 | none (intent-based) | [04-FEATURES.md F08](04-FEATURES.md) |
 | Google Maps deep-link | External navigation | M2 | none (intent-based) | [04-FEATURES.md F08](04-FEATURES.md) |
 
-**No SDKs:** Efí Bank has no official SDK in any language — direct HTTPS client with mTLS is the documented approach.
+**SDKs:** Stripe ships an official Node SDK (`stripe` npm package); the backend uses it directly per ADR-0030.
 
 ---
 
@@ -320,7 +320,7 @@ Conventional Commits scopes derived from the entities, integrations, and apps. S
 | `routes` | Route entity, route optimization endpoints |
 | `stops` | Stop entity, stop-list logic |
 | `subscriptions` | Subscription entity and lifecycle |
-| `payments` | Efí integration, webhooks, Pix Split |
+| `payments` | Stripe integration, webhooks, Stripe Connect 50/50 split (ADR-0030) |
 | `geocoding` | Address resolution, Nominatim |
 | `graphhopper` | Routing engine integration, motorcycle profile |
 | `paywall` | Subscription gate on "Iniciar Navegação" |
@@ -345,8 +345,8 @@ Conventional Commits scopes derived from the entities, integrations, and apps. S
 | 3 | Vercel project name + staging URL | Eduardo | At landing page deploy (Phase 3 of [08-ROADMAP.md](08-ROADMAP.md)) |
 | 4 | Nominatim — self-hosted vs public API for geocoding | Eduardo | Before F02 implementation (M2) — needs a new ADR |
 | 5 | OCR strategy verification — confirm `google_mlkit_text_recognition` works offline on the Android versions targeted | Eduardo | M2 spike before F04 implementation |
-| 6 | WebSocket auth strategy — JWT in query string vs subprotocol | Eduardo | Before F11 implementation (M2) |
-| 7 | Are both partner Efí accounts approved and ready for split config? | Client | Before any M2 payment work — gating dependency |
+| 6 | WebSocket auth strategy — JWT in query string vs subprotocol | Eduardo | Only relevant if a future feature reintroduces WebSocket — F11 was removed (see `04-FEATURES.md`); slice 4 paywall uses polling, not WS |
+| 7 | Both Stripe Connected Accounts onboarded for the two partners + Pix payment method approved in the platform account (invite-only in BR) — ✅ confirmed 2026-05-24, reconfirm at slice 4 start | Client | Before slice 4 starts — gating dependency (ADR-0030) |
 | 8 | Domain DNS — current registrar and where to point it (Vercel vs DO)? | Eduardo + client | At Phase 3 of [08-ROADMAP.md](08-ROADMAP.md) |
 
 ---

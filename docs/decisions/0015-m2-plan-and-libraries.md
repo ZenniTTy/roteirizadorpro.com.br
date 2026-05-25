@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-05-13
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0002 (Flutter mobile), ADR-0007 (Efí Bank Pix), ADR-0008 (GraphHopper routing), ADR-0014 (Android release signing). Subsequent slice-specific ADRs (0016, 0017, 0018, 0019, 0020, 0021) elaborate individual slices.
+- **Related ADRs:** ADR-0002 (Flutter mobile), ADR-0007 (Efí Bank Pix — **superseded by ADR-0030**), ADR-0008 (GraphHopper routing), ADR-0014 (Android release signing). Subsequent slice-specific ADRs (0016, 0017, 0018, 0019, 0020, 0021) elaborate individual slices.
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-24 (M2-AI harness sprint shipped, ADRs 0023–0029; PR #8 against `feat/m2-slice-2-telas-core` awaiting merge. Retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`. Two deferred smoke dispatches captured in ADR-0025 + ADR-0027 §Verification.)
+> **Last updated:** 2026-05-24 (M2-AI harness sprint shipped, ADRs 0023–0029; retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`; two deferred smoke dispatches in ADR-0025 + ADR-0027 §Verification. Same day: **ADR-0030** migrated the Pix gateway from Efí Bank to Stripe + 30-day access pass model — supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -35,7 +35,7 @@ M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-0
 1. ✅ APK distribuível (`v1.0.0`).
 2. 🟡 **Telas Core — IN PROGRESS** (13/16 fidelity microsprints done as of 2026-05-23 / MS-14; 7 Criticals remain — MS-15 AddStop, MS-16 Voice, Navigate C-1 ADR-0017-scoped). On parallel branch `feat/m2-ai-harness` the **M2-AI Harness sprint shipped (2026-05-24) — ADRs 0023–0029**; PR #8 against `feat/m2-slice-2-telas-core` ready to merge before slice 2's own microsprints resume.
 3. ⏳ VRP real (in-process Node TS solver + GraphHopper matrix).
-4. ⏳ Pix Split paywall (Efí Bank, pay-per-route BRL 25.90).
+4. ⏳ Stripe Pix paywall (Stripe Connect 50/50 split, R$ 25,90 grants 30 days of access; renewal is a fresh manual Pix payment, not Stripe Billing — ADR-0030 + `docs/BUSINESS-RULES.md`).
 5. ⏳ Sentido casa.
 6. ⏳ LGPD.
 7. ⏳ Painel admin.

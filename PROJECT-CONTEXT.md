@@ -36,7 +36,7 @@
 
 **Roteirizador Pro** is an Android-only route planning app for Brazilian delivery riders (motoboys). Functional fork of Spoke Route Planner (formerly Circuit) with 100% original visual identity. APK direct download from `roteirizadorpro.com.br` — no Google Play Store.
 
-**Business model:** BRL 25.90/month via Pix. Split 50/50 between two partners via Efi Bank native Pix Split. No cancellation — subscription expires in 30 days, user renews by paying again.
+**Business model:** R$ 25,90 grants 30 days of access via Pix. Split 50/50 between two partners via Stripe Connect (Separate Charges and Transfers). No cancellation, no refund, no recurring charge — when 30 days expire, the user pays again manually. Full rules in `docs/BUSINESS-RULES.md`; architecture in ADR-0030.
 
 **Contract:** BRL 4,000 via Workana escrow. M1 = R$2,000 (infra + landing + backend). M2 = R$2,000 (APK + payments + all features).
 
@@ -62,7 +62,7 @@
 | Database | PostgreSQL 16 | — |
 | Cache | Redis 7 | — |
 | Routing | GraphHopper self-hosted (motorcycle profile) | latest |
-| Payment | Efi Bank API Pix v2 (mTLS, no official SDK) | — |
+| Payment | Stripe Pix + Stripe Connect 50/50 split (ADR-0030) | — |
 | Landing | Next.js 14 + Tailwind on Vercel | — |
 | Server | Ubuntu 24.04 DigitalOcean (1GB/$6 now, resize 8GB/$48 post-M1) | — |
 
@@ -132,10 +132,10 @@ Active tasks: `TODO.md`
 
 - Paywall: Iniciar Navegacao is the gate. Adding stops and optimizing are free.
 - No cancellation: zero cancel buttons anywhere. Subscription expires 30 days. Renews by paying again. Prevents chargeback abuse.
-- No refunds: Efi Bank Pix Split does not support refunds on split cobrancas.
+- No refunds: deliberate product decision (no `POST /payments/:id/refund` endpoint). Disclosed in Terms of Service.
 - No Play Store (V1): APK at roteirizadorpro.com.br/download
 - Clone positioning: replicate flows/UX only. No icons, colors, typography, illustrations, microcopy from Spoke/Circuit. (ADR-0010)
-- Payment: Efi Bank only (not Mercado Pago, not Primepag). Pix Split 50/50 native.
+- Payment: Stripe Pix + Stripe Connect 50/50 split via Separate Charges and Transfers. ADR-0030 (supersedes ADR-0007 Efí Bank).
 - No AI features: OCR (MLKit) and STT are deterministic ML. Route is TSP algorithm. No LLMs.
 
 ---
@@ -158,7 +158,7 @@ Active tasks: `TODO.md`
 | DigitalOcean | Account active, droplet NOT created | Owner |
 | Vercel | Account active, project created | Owner |
 | GitHub | ZenniTTy/-APP---Entrega-Smart | Owner (transfers at M1) |
-| Efi Bank | Both partner accounts ready | Client-owned |
+| Stripe | Both partner Connected Accounts onboarded; Pix payment method approved (invite-only in Brazil) | Client-owned |
 
 Full guide: docs/INFRA-ACCESS.md
 

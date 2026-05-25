@@ -1,7 +1,10 @@
 # BUSINESS-RULES.md — Regras de Negócio
 
-> Fonte de verdade para regras de negócio do produto. Leia antes de implementar qualquer funcionalidade de pagamento, paywall ou assinatura.
-> **Última atualização:** 2026-05-24 — gateway alterado de Efí Bank para Stripe.
+- **Status:** Accepted
+- **Última atualização:** 2026-05-24
+- **Decisão arquitetural:** [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) (Stripe Pix + 30-day access pass; supersedes ADR-0007)
+
+> Fonte de verdade para regras de negócio do produto. Leia antes de implementar qualquer funcionalidade de pagamento, paywall ou assinatura. Para a decisão técnica e options-considered, ver ADR-0030.
 
 ---
 
@@ -16,14 +19,14 @@ Roteirizador Pro é um app Android para motoboys fazerem entregas com rota otimi
 
 ## 2. Modelo de monetização
 
-- Preço: R$ 25,90 por mês
+- Preço: **R$ 25,90 por 30 dias de acesso** (não é assinatura recorrente — é um pass que dura 30 dias)
 - Pagamento: Pix exclusivamente (nenhum outro método em V1)
-- Gateway atual: **Stripe** (substituiu Efí Bank — decisão do cliente em 2026-05-24)
+- Gateway: **Stripe** (ADR-0030)
 - Split: 50/50 entre dois sócios via Stripe Connect (Separate Charges and Transfers)
 - Taxa Stripe Pix: ~1,5% + R$ 0,40 = ~R$ 0,79 por transação sobre R$ 25,90
 - Líquido por sócio: ~R$ 12,56
 
-> Qualquer referência a Efí Bank, `.p12`, mTLS, `splitConfigId` ou webhook HMAC do Efí no código pertence à versão anterior e deve ser ignorada.
+> **Sutileza importante:** "R$ 25,90 por mês" no marketing/UI = "R$ 25,90 a cada renovação manual de 30 dias". Não há cobrança automática mensal. Cada renovação é um novo `PaymentIntent` que o usuário inicia ativamente no app — Pix Automático é invite-only no Brasil e o produto explicitamente escolheu o modelo de renovação manual. Ver §8 (inviolable).
 
 ---
 

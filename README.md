@@ -15,7 +15,7 @@ Detailed roadmap: [`docs/08-ROADMAP.md`](./docs/08-ROADMAP.md).
 
 ## Architecture (one-liner)
 
-Flutter app → Fastify API on DigitalOcean → GraphHopper (self-hosted) + PostgreSQL + Redis → Efí Bank Pix for subscriptions (M2).
+Flutter app → Fastify API on DigitalOcean → GraphHopper (self-hosted) + PostgreSQL + Redis → Stripe Pix + Connect 50/50 split for the 30-day access pass (M2).
 
 Detail: [`docs/02-ARCHITECTURE.md`](./docs/02-ARCHITECTURE.md).
 
@@ -34,7 +34,7 @@ Documentation: [`docs/05-SCREENS.md`](./docs/05-SCREENS.md), [`docs/06-DESIGN-SY
 | ORM / DB | Prisma 7 + PostgreSQL 16 |
 | Cache | Redis 7 |
 | Routing engine | GraphHopper (self-hosted, motorcycle profile) |
-| Payments (M2) | Efí Bank API Pix v2 (mTLS, Split) |
+| Payments (M2) | Stripe Pix + Stripe Connect 50/50 split (ADR-0030) |
 | Landing | Next.js 14 on Vercel |
 | Server | Ubuntu 24.04 on DigitalOcean (client's account) |
 

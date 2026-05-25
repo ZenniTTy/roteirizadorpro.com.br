@@ -33,10 +33,10 @@ When all 7 slices below are green in production:
 1. **APK live and downloadable** at `https://roteirizadorpro.com.br/roteirizador-pro-v<latest>.apk` — done in slice 1.
 2. **The 15 remaining prototype screens** match the canonical `prototipo/` 1:1 in visual identity, structure, and flows — slice 2.
 3. **`POST /routes/optimize` returns a real optimized route** (not the 501 placeholder) computed against the SP graph in under 2 s for 20-stop inputs — slice 3.
-4. **Paywall on "Iniciar navegação"** dispatches a Pix charge via Efí, the webhook unlocks turn-by-turn after confirmation, the 50/50 split lands in the two partner accounts — slice 4.
+4. **Paywall on "Iniciar Navegação"** dispatches a Stripe Pix charge, the webhook unlocks the button for 30 days after confirmation, the 50/50 split lands in the two partner accounts via Stripe Connect — slice 4 (ADR-0030).
 5. **"Sentido casa" toggle** in Settings biases route ending toward the rider's saved home — slice 5.
 6. **LGPD endpoints** for export + delete + the `/termos` and `/privacidade` pages on the landing — slice 6.
-7. **Partner admin panel** lets the two business partners see users, payments, and basic KPIs (DAU/MRR/paradas-dia) — slice 7.
+7. **Partner admin panel** lets the two business partners see users, payments, and basic KPIs (DAU / receita-30-dias / paradas-dia) — slice 7.
 
 The client signs off on a Loom video walking the seven items, then releases the escrow on Workana.
 
@@ -169,46 +169,43 @@ apps/backend/src/routes/
 
 **New ADR:** ADR-0019 (route-optimization architecture).
 
-### Slice 4 — Pix Split paywall via Efí Bank (4-6 days)
+### Slice 4 — Stripe Pix paywall, 30-day access pass (4-6 days)
 
-**Goal:** the user can tap "Iniciar navegação" → see a Pix QR code → pay BRL 25.90 → the webhook fires → the app unlocks turn-by-turn navigation for that route. The Pix Split automatically routes 50/50 to the two partner Efí accounts at the moment of payment.
+> Gateway + model: **ADR-0030** (supersedes ADR-0007). Operational rules in `docs/BUSINESS-RULES.md`.
+
+**Goal:** the user can tap "Iniciar Navegação" → see a Pix QR code → pay R$ 25,90 → the Stripe webhook fires → the app unlocks navigation for **30 days**. The amount is automatically split 50/50 between the two partners via Stripe Connect (Separate Charges and Transfers) at the moment the webhook handler runs.
 
 **Prerequisites Eduardo must collect before this slice can start:**
 
-1. **Efí Bank `.p12` certificate** for mTLS (both sandbox and production), downloaded from the Efí dashboard.
-2. **HMAC webhook secret** configured in the Efí dashboard with the URL `https://api.roteirizadorpro.com.br/webhooks/efi/pix`.
-3. **Both partner Efí accounts must be active** (MEI or PJ) and the split config registered via `POST /v2/gn/split/config` (one-time).
+1. **Stripe platform account** with Pix payment method approved (Pix is invite-only in Brazil — client confirmed approved 2026-05-24; **re-verify in Dashboard → Settings → Payment Methods at slice start**).
+2. **Two Stripe Connect Connected Accounts** (partner A, partner B) onboarded via Stripe's Connect flow. The `acct_…` IDs go into env as `STRIPE_CONNECTED_ACCOUNT_SOCIO_1` and `STRIPE_CONNECTED_ACCOUNT_SOCIO_2`.
+3. **Stripe webhook endpoint** configured in the Stripe dashboard pointing at `https://api.roteirizadorpro.com.br/webhooks/stripe` with the webhook signing secret captured as `STRIPE_WEBHOOK_SECRET`.
+4. **API key** (`STRIPE_SECRET_KEY=sk_live_...` for prod; `sk_test_...` for sandbox).
 
-Credentials sandbox + production are already in `.env.deploy`:
+No mTLS, no `.p12` certificate.
 
-```
-EFI_HOMOLOG_CLIENT_ID=Client_Id_658f0c83cf76842bef9be71b84ddc6073e2004ad
-EFI_HOMOLOG_CLIENT_SECRET=…
-EFI_PROD_CLIENT_ID=Client_Id_7050a183368859f342aa406c13a9a39b83829479
-EFI_PROD_CLIENT_SECRET=…
-```
+**Implementation outline** (per ADR-0030):
 
-**Implementation outline** (per ADR-0007 which already covers the architecture decision):
+- Official Stripe Node SDK (`stripe` npm package).
+- `POST /payments/pix-intent { userId }` creates a `PaymentIntent` (`amount=2590`, `currency='brl'`, `payment_method_types=['pix']`, `metadata={userId}`) and returns `next_action.pix_display_qr_code`.
+- `POST /webhooks/stripe` validates the signature via `stripe.webhooks.constructEvent(payload, sig, secret)`, dedupes by `stripeEventId` in `webhook_events` (Prisma migration in this slice), fires two `stripe.transfers.create` calls (50/50 split), upserts `subscription` with `status='active'`, `expires_at=now+30d`, returns 200.
+- Daily cron at 03:00 BRT flips `subscription` rows where `expires_at<now()` to `status='inactive'`.
+- Mobile: `ScreenPaywall` (`prototipo/screens-b.jsx` → `ScreenPaywall`) shows the QR + the copy-and-paste Pix code; polls `GET /subscription/status` every 5 s until `active` or the user closes the modal.
 
-- Direct mTLS HTTPS client in Node (no official SDK), backed by `https.Agent({ pfx, passphrase })`.
-- OAuth2 client_credentials grant → token cache → `POST /v2/cob` to create the charge → `PUT /v2/gn/split/cob/:txid/vinculo/:splitConfigId` to attach the split.
-- `POST /webhooks/efi/pix` validates HMAC, deduplicates by `e2e_id` in a `webhook_events` table (Prisma migration in this slice), updates `route_payments.status = 'CONFIRMED'`, and emits a Riverpod event that the mobile app's open SSE / poll picks up to unlock the screen.
-- Mobile: `ScreenPaywall` (`prototipo/screens-b.jsx` → `ScreenPaywall`) shows the QR + the copy-paste BR Code; polling every 2 s until status = CONFIRMED or the user backs out.
-
-**Cost note:** Efí charges 1.19% + BRL 0.31 per transaction. On BRL 25.90 per route that's BRL 0.31 + BRL 0.31 = ~BRL 0.62 per payment, or ~2.4% effective. Documented in `M2-COST-MODEL.md`.
+**Cost note:** Stripe Pix charges ~1,5% + R$ 0,40 per transaction. On R$ 25,90 that's ~R$ 0,79 per payment (~3,05% effective). Documented in `M2-COST-MODEL.md`.
 
 **Files added in this slice:**
 
 ```
 apps/backend/src/payments/
-├── efi_client.ts          # mTLS HTTPS client, token cache, signing
-├── schemas.ts             # TypeBox for the Pix flow
-├── handlers.ts            # POST /payments/route-charge, GET /payments/:id
-├── webhook_handlers.ts    # POST /webhooks/efi/pix with HMAC validation
+├── stripe_client.ts        # Stripe SDK setup, helpers
+├── schemas.ts              # TypeBox for the Pix flow
+├── handlers.ts             # POST /payments/pix-intent, GET /subscription/status
+├── webhook_handlers.ts     # POST /webhooks/stripe with signature validation
 └── routes.ts
 
-apps/backend/prisma/migrations/<date>_route_payments_and_webhooks/
-└── migration.sql          # route_payments + webhook_events tables
+apps/backend/prisma/migrations/<date>_subscriptions_and_webhooks/
+└── migration.sql           # subscription + webhook_events tables
 
 apps/mobile/lib/features/payments/
 ├── data/dto/payment_dto.dart
@@ -216,7 +213,9 @@ apps/mobile/lib/features/payments/
 └── presentation/paywall_page.dart   # ScreenPaywall
 ```
 
-**ADRs touched:** ADR-0007 (Efí, already accepted) — no new ADR needed unless we deviate from the architecture in that ADR.
+**ADRs:** ADR-0030 already covers the architecture decision; no new ADR needed unless the implementation deviates from it (e.g. if Stripe Pix approval is revoked and a different gateway is chosen — that would be a new ADR superseding 0030).
+
+**Forbidden in this slice (per `BUSINESS-RULES.md` §8 — non-negotiable):** any `DELETE /subscription`, `POST /subscription/cancel`, `POST /payments/:id/refund`, any call to `stripe.subscriptions.*`, any Stripe Billing setup, any "cancel" / "manage subscription" button anywhere in the app.
 
 ### Slice 5 — Sentido casa (1 day)
 
@@ -257,7 +256,7 @@ apps/landing/src/app/(legal)/
 **Metrics (slice 7):**
 
 - DAU (daily active users — count of distinct users with a route in the last 24h).
-- MRR (monthly recurring — since we're pay-per-route, this is "average paid routes × BRL 25.90 × 30 / lookback days").
+- Receita 30 dias (R$ 25,90 × passes de acesso ativados no período — não é "MRR" clássico porque não há cobrança recorrente; cada renovação é manual).
 - Paradas-dia (average stops per active user per day).
 
 **Files:**
@@ -287,11 +286,11 @@ apps/backend/src/admin/
 | Vercel (landing + admin, free tier) | 0 |
 | OSM tile usage (free public tiles, within usage policy) | 0 |
 | Nominatim geocoding (free public API, within policy) | 0 |
-| Efí Bank Pix fees (1.19% + BRL 0.31 per charge) | variable, per-transaction (not infra) |
+| Stripe Pix fees (~1,5% + R$ 0,40 per charge) | variable, per-transaction (not infra) |
 | Backups (pg_dump local, no external blob in M2) | 0 |
 | **Total infra (beta)** | **~BRL 36-68 / month** |
 
-When slice 4 has ≥ 50 paying users (~BRL 1.3k MRR), revisit:
+When slice 4 has ≥ 50 paying users (~R$ 1,3k receita/30 dias), revisit:
 
 - Migrate tiles to self-hosted MapTiler or paid Mapbox if OSM usage policy gets close to the limit.
 - Bump droplet to 4 GB so GraphHopper can hold the full Sudeste graph, expanding the addressable market beyond São Paulo capital.

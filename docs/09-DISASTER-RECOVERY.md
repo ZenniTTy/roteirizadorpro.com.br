@@ -39,7 +39,7 @@
 
 - Production secrets live only on the droplet at `/home/roteirizador/.env` with `chmod 600`.
 - Backup of secrets: encrypted copy with the client (e.g., 1Password, Bitwarden vault). Eduardo provides the contents at handoff.
-- **If the droplet is destroyed and secrets are not backed up off-server, every credential must be rotated on recovery** (Postgres password, Efí webhook HMAC secret, JWT keys, etc.).
+- **If the droplet is destroyed and secrets are not backed up off-server, every credential must be rotated on recovery** (Postgres password, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, JWT keys, etc.).
 
 ## Recovery Procedures
 
@@ -91,12 +91,12 @@
 3. Vercel outages are typically short (< 1 hour). No active recovery needed.
 4. Long outage: consider hosting a static fallback at `landing.roteirizadorpro.com.br` on the same droplet. Out of scope for M1/M2.
 
-### Scenario 6 — Efí Bank outage
+### Scenario 6 — Stripe outage
 
-1. New subscription checkouts fail (no Pix QR can be generated).
-2. Existing active subscriptions are unaffected (subscription status is in our DB, not Efí's).
-3. Show users a friendly error: "Payment service temporarily unavailable. Please try again later."
-4. Webhook backlog: when Efí recovers, queued webhooks fire. Idempotency in the handler ensures no duplicate activations.
+1. New paywall checkouts fail (no Pix `next_action.pix_display_qr_code` can be generated).
+2. Existing active access passes are unaffected (subscription status is in our DB, not Stripe's).
+3. Show users a friendly error: "Serviço de pagamento temporariamente indisponível. Tente novamente em instantes."
+4. Webhook backlog: when Stripe recovers, queued events fire. Idempotency by `stripeEventId` in `webhook_events` (ADR-0030) ensures no duplicate activations.
 
 ### Scenario 7 — Secret leak (password, API key, JWT key)
 
@@ -104,7 +104,8 @@
 2. Rotate immediately:
    - **Postgres password:** Update in `.env`, restart Postgres + backend.
    - **JWT keys:** Generate new keypair. Existing tokens become invalid; users have to log in again. Acceptable cost for a leak.
-   - **Efí HMAC webhook secret:** Reconfigure webhook endpoint with new secret in Efí dashboard.
+   - **`STRIPE_SECRET_KEY`:** Rotate in Stripe Dashboard → Developers → API keys (revoke old, generate new), update `.env`, restart backend.
+   - **`STRIPE_WEBHOOK_SECRET`:** Rotate in Stripe Dashboard → Developers → Webhooks → endpoint details (regenerate signing secret), update `.env`, restart backend.
    - **SSH key:** Add new key, remove old one from `authorized_keys`.
 3. Scrub Git history if the leak was committed: `git filter-repo` + force-push.
 4. Document the incident in a session log with timeline and lessons learned.

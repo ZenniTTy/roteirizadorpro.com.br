@@ -195,9 +195,9 @@ Replaces the `POST /routes/optimize` mock with a real solver. Approach in `docs/
 
 **Slice 3 entry tech debt — GraphHopper image pinning (carried from session 2026-05-24-21):** `infra/docker-compose.yml` still uses `image: israelhikingmap/graphhopper:latest` (currently `12.0-SNAPSHOT` per `docker run --entrypoint sh ... ls /graphhopper/*.jar`). Tried pinning to `:8.0@sha256:b7178b…` per Docker best practice; reverted because `config.yml` declares `car_access` (introduced in GH 9+) and `:8.0` crash-loops with `IllegalArgumentException: DefaultEncodedValueFactory cannot find EncodedValue car_access`. Slice 3 entry checklist must (a) file an ADR-0008 amendment choosing a stable tag (likely `:9.1`), (b) re-validate `config.yml` `graph.encoded_values` against that tag, (c) rebuild graph-cache with the pinned image, (d) verify `benchmark.sh` p95 < 200ms still holds. Inline `TODO(ADR)` comment in the compose file marks the spot.
 
-### ⏳ Slice 4 — Pix Split paywall via Efí Bank (after slice 3)
+### ⏳ Slice 4 — Stripe Pix paywall, 30-day access pass (after slice 3)
 
-Pay-per-route flow per `02-ARCHITECTURE.md` Flow 3. **Prereqs from Eduardo before this slice starts:** `.p12` mTLS certificate (sandbox + prod) downloaded from the Efí dashboard, HMAC webhook secret configured. `client_id`/`client_secret` already in `.env.deploy` (both sandbox and prod). ADR-0007 already covers the architecture decision; this slice files no new ADR unless we deviate. Estimated 4-6 days.
+Per `02-ARCHITECTURE.md` Flow 3 + `08-ROADMAP.md` §"Slice 4" + `BUSINESS-RULES.md` (operational). **Prereqs from Eduardo before this slice starts:** verify Stripe Pix payment method still approved in the platform account dashboard (invite-only in BR — client confirmed approved 2026-05-24 but reconfirm at slice start); both Connected Account IDs (`acct_…`) captured into env vars; webhook endpoint configured in Stripe dashboard pointing at `https://api.roteirizadorpro.com.br/webhooks/stripe` with `STRIPE_WEBHOOK_SECRET` captured. ADR-0030 already covers the architecture decision; this slice files no new ADR unless we deviate. Estimated 4-6 days.
 
 ### ⏳ Slice 5 — Sentido casa (after slice 4)
 

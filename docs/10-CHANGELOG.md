@@ -2,6 +2,18 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-05-24 — Pix gateway migration: Efí Bank → Stripe + 30-day access pass model (ADR-0030)
+
+Client decision late on 2026-05-24, after slice-2 fidelity work resumed: migrate the slice-4 Pix gateway from **Efí Bank** to **Stripe** and revert the brief 2026-05-10 "pay-per-route" model to a **30-day access pass** charged manually (R$ 25,90 grants 30 days; no Stripe Subscriptions, no automatic renewal — Pix Automático is invite-only in BR).
+
+- **Filed [ADR-0030](decisions/0030-stripe-pix-30-day-access-pass.md)** — supersedes [ADR-0007](decisions/0007-efi-bank-payment.md). 4-row options table, decision in 1 sentence, consequences in 3 bullets, rollback, sandbox verification checklist.
+- **ADR-0007 marked Superseded** with a header banner pointing at ADR-0030; body preserved as historical context.
+- **`docs/BUSINESS-RULES.md`** got `Status: Accepted` + ADR cross-ref + clarification that "R$ 25,90 por mês" is **not** recurring billing; it's R$ 25,90 to start a fresh 30-day pass that the user actively renews via a new Pix payment.
+- **Six canonical docs reconciled in this same PR** (CLAUDE.md, 01-PROJECT, 02-ARCHITECTURE Flow 3 + payment subsystem + DB schema, 04-FEATURES F09/F10, 08-ROADMAP §"Slice 4" + KPIs + cost line, M2-COST-MODEL fees + unit economics).
+- **Hot-path docs swept** (README.md, PROJECT-CONTEXT.md, AGENTS.md, TODO.md slice-4 entry, SECURITY.md, Blueprint.md, 03-CONVENTIONS.md env-var example, 07-INFRA.md secrets inventory, 09-DISASTER-RECOVERY.md Scenario 6 outage + Scenario 7 secret-rotation, INSTALL.md `certs/` note). All references to Efí/mTLS/`.p12`/HMAC removed from active surface area; only intentional "ADR-0007 (Efí Bank) superseded by ADR-0030" cross-refs remain.
+- **Untouched by design (historical immutability):** session logs (sessions 01–22f), `docs/briefing/original-briefing.md`, `docs/superpowers/specs/` and `plans/` older than this entry, ADR-0003 (its Efí mention was true at decision time — 2026-05-05), ADR-0007 body. ADR-0015's `Related ADRs` line got a `superseded by ADR-0030` annotation but body is untouched.
+- **adr-guardian sweep:** GREEN, zero BLOCKING — no `pubspec.yaml` / `package.json` / `infra/` / `prisma/` touched (slice 4 will introduce Stripe deps + schema migration when it starts).
+
 ## 2026-05-24 — M2-AI harness sprint (sessions 19–22f)
 
 Seven-phase sprint on `feat/m2-ai-harness` (orthogonal to slice 2) that adopts the official Flutter team's AI tooling onto the existing harness without disturbing product code. PR #8 against `feat/m2-slice-2-telas-core`.

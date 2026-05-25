@@ -20,7 +20,7 @@ Code style, naming, and structural conventions for this repository.
 | Dart private members | leading underscore | `_internalCache` |
 | Database tables | snake_case plural | `users`, `webhook_events` |
 | Database columns | snake_case | `created_at`, `home_address` |
-| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `EFI_CLIENT_ID` |
+| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `STRIPE_SECRET_KEY` |
 | Git branches | kebab-case | `feat/jwt-auth`, `docs/architecture-update` |
 | Conventional Commit scopes | flat lowercase (enforced) | `feat(mobile):`, `chore(tooling):` — see `commitlint.config.cjs` `scope-enum` |
 
