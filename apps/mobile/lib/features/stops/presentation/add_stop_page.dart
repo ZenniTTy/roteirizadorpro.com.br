@@ -64,19 +64,39 @@ class _AddStopPageState extends State<AddStopPage> {
     );
     if (!mounted) return;
 
+    // Pop the wrapper route ('/home/stops/add') BEFORE navigating anywhere
+    // else. This wrapper is transparent (build returns SizedBox.shrink), so
+    // leaving it on the stack would cause a black/blank screen when the
+    // user navigates back from the next route (voice/ocr) — they would
+    // land on the wrapper instead of /home. We always want /home to be
+    // the back-target after the sheet closes, regardless of which intent
+    // the sheet returned.
+    //
+    // GoRouter.maybeOf returns null in widget tests that mount AddStopPage
+    // under a plain MaterialApp (no GoRouter). In that case, falls back
+    // to onSaved callback contract (existing test fixtures).
+    final router = GoRouter.maybeOf(context);
+    if (router != null && router.canPop()) {
+      router.pop();
+    }
+
     switch (result) {
       case AddStopResult.voice:
-        context.push('/home/stops/voice');
+        router?.push('/home/stops/voice');
       case AddStopResult.camera:
-        context.push('/home/stops/ocr');
+        router?.push('/home/stops/ocr');
       case AddStopResult.saved:
       case null:
-        // saved → fire onSaved (or default-pop), so HomeList rebuilds.
-        // null  → barrier-tap / swipe-down dismiss; still cleanup the
-        //         /home/stops/add route by popping it.
-        final cb = widget.onSaved ??
-            (ctx) => ctx.canPop() ? ctx.pop() : ctx.go('/home');
-        cb(context);
+        // saved → fire onSaved (HomeList rebuilds via stopsController
+        //         provider already triggered inside the sheet).
+        // null  → barrier-tap / swipe-down dismiss; nothing else to do
+        //         (we already popped the wrapper above when router exists).
+        //
+        // In production the router.pop above handles the visual transition;
+        // onSaved is a no-op semantic hook for tests that need a signal
+        // that the wrapper resolved.
+        if (!mounted) return;
+        widget.onSaved?.call(context);
     }
   }
 
