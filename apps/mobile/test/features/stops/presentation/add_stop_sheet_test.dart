@@ -113,8 +113,10 @@ void main() {
       expect(find.text('Câmera'), findsOneWidget);
 
       // CTA FilledButton — at least one 'Adicionar parada' text is under it
-      expect(find.widgetWithText(FilledButton, 'Adicionar parada'),
-          findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Adicionar parada'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -135,7 +137,9 @@ void main() {
       // After selecting "Voz", the _MethodButton for Voz must carry the
       // selected key so assertions can pinpoint it.
       expect(
-          find.byKey(const Key('method-btn-voice-selected')), findsOneWidget);
+        find.byKey(const Key('method-btn-voice-selected')),
+        findsOneWidget,
+      );
     },
   );
 
@@ -249,10 +253,13 @@ void main() {
       await tester.tap(find.text('Voz'));
       await tester.pump();
 
-      // Immediately pop the route (simulates swipe-down / barrier tap).
-      final NavigatorState navigator =
-          tester.state(find.byType(Navigator).first);
-      navigator.pop();
+      // Simulate sheet dismissal by replacing the widget tree entirely —
+      // this triggers AddStopSheet.dispose(), which is what Risk-1
+      // (cancellable Future.delayed → Timer cancel in dispose) protects
+      // against. Using `navigator.pop()` here doesn't work because the
+      // sheet IS the root route in this spy router setup; swapping the
+      // tree is the cleanest way to provoke real dispose in a widget test.
+      await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
       await tester.pump();
 
       // Wait longer than the 200ms delayed callback.
