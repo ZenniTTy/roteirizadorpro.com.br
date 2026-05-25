@@ -17,6 +17,12 @@ import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 /// Voice and Câmera tap fires a 200 ms visual-feedback delay then closes the
 /// sheet and navigates to the matching capture route. Keyboard is the inline
 /// default — the user types directly and submits via the CTA.
+///
+/// The [onSaved] callback fires after a successful stop submission. When this
+/// sheet is hosted by `AddStopPage` (the production path), the wrapper passes
+/// `onSaved: null` and invokes onSaved itself after the sheet future
+/// resolves — avoiding a double-fire. Direct-pump test paths may still pass
+/// a callback to assert submission behavior in isolation.
 class AddStopSheet extends ConsumerStatefulWidget {
   const AddStopSheet({super.key, this.onSaved});
 
@@ -28,6 +34,7 @@ class AddStopSheet extends ConsumerStatefulWidget {
 
 class _AddStopSheetState extends ConsumerState<AddStopSheet> {
   late final TextEditingController _textController;
+  late final FocusNode _inputFocus;
   String _selectedMethod = 'keyboard';
   Timer? _navTimer;
 
@@ -35,6 +42,8 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
   void initState() {
     super.initState();
     _textController = TextEditingController();
+    _inputFocus = FocusNode();
+    _inputFocus.addListener(_onFocusChange);
   }
 
   @override
@@ -43,8 +52,16 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
     // context.push never run against a defunct context after the sheet
     // is dismissed (swipe-down, barrier tap, programmatic pop).
     _navTimer?.cancel();
+    _inputFocus.removeListener(_onFocusChange);
+    _inputFocus.dispose();
     _textController.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    // Force rebuild so the input focus-ring + background swap update
+    // (mirrors prototype Input :focus state in ui.jsx:122-145).
+    if (mounted) setState(() {});
   }
 
   void _selectMethod(String method) {
@@ -89,88 +106,196 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Material(
-      color: Colors.white,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + bottomInset),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                key: const Key('drag-handle'),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
+    // Outer Container carries the sheetTop shadow (mirrors prototype
+    // tokens.js:27 `sheetShadow`). Material handles the clipping for the
+    // rounded top corners.
+    return Container(
+      decoration: const BoxDecoration(
+        boxShadow: AppShadows.sheetTop,
+      ),
+      child: Material(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadii.sheet),
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + bottomInset),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _DragHandle(),
+              const SizedBox(height: 16),
+              const Text(
+                'Adicionar parada',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Adicionar parada',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text,
+              const SizedBox(height: 16),
+              _SearchInput(
+                controller: _textController,
+                focusNode: _inputFocus,
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(
-                  Icons.search,
-                  size: 20,
-                  color: AppColors.textMuted,
-                ),
-                hintText: 'Digite o endereço ou CEP...',
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MethodButton(
+                      label: 'Teclado',
+                      icon: Icons.keyboard,
+                      isSelected: _selectedMethod == 'keyboard',
+                      onTap: () => _onMethodTap('keyboard'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _MethodButton(
+                      label: 'Voz',
+                      icon: Icons.mic,
+                      isSelected: _selectedMethod == 'voice',
+                      onTap: () => _onMethodTap('voice'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _MethodButton(
+                      label: 'Câmera',
+                      icon: Icons.camera_alt,
+                      isSelected: _selectedMethod == 'camera',
+                      onTap: () => _onMethodTap('camera'),
+                    ),
+                  ),
+                ],
               ),
-              textInputAction: TextInputAction.search,
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _MethodButton(
-                    label: 'Teclado',
-                    icon: Icons.keyboard,
-                    isSelected: _selectedMethod == 'keyboard',
-                    onTap: () => _onMethodTap('keyboard'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MethodButton(
-                    label: 'Voz',
-                    icon: Icons.mic,
-                    isSelected: _selectedMethod == 'voice',
-                    onTap: () => _onMethodTap('voice'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _MethodButton(
-                    label: 'Câmera',
-                    icon: Icons.camera_alt,
-                    isSelected: _selectedMethod == 'camera',
-                    onTap: () => _onMethodTap('camera'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
+              const SizedBox(height: 16),
+              _PrimaryCta(
+                label: 'Adicionar parada',
                 onPressed: _onAddStop,
-                child: const Text('Adicionar parada'),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Drag handle pill at the top of the sheet. Static — extracted to a
+/// `const` widget so [_AddStopSheetState.setState] rebuilds skip it.
+class _DragHandle extends StatelessWidget {
+  const _DragHandle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        key: const Key('drag-handle'),
+        width: 40,
+        height: 4,
+        decoration: BoxDecoration(
+          color: AppColors.border,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+}
+
+/// Search input mirroring `prototipo/ui.jsx Input` lines 122-145:
+/// unfocused = `RP.surface` background, transparent border; focused =
+/// white background, `RP.primary` 1.5px border, `AppShadows.inputFocus`
+/// ring.
+class _SearchInput extends StatelessWidget {
+  const _SearchInput({required this.controller, required this.focusNode});
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final isFocused = focusNode.hasFocus;
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: isFocused ? AppShadows.inputFocus : const [],
+        borderRadius: BorderRadius.circular(AppRadii.input),
+      ),
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(
+            Icons.search,
+            size: 20,
+            color: AppColors.textMuted,
+          ),
+          hintText: 'Digite o endereço ou CEP...',
+          filled: true,
+          fillColor: isFocused ? Colors.white : AppColors.surface,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadii.input),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadii.input),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadii.input),
+            borderSide: const BorderSide(
+              color: AppColors.primary,
+              width: 1.5,
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Primary CTA button mirroring `prototipo/ui.jsx PrimaryButton`
+/// lines 68-97: height 52, radius `AppRadii.btn` (24), background
+/// `AppColors.primary`, `AppShadows.primaryButton` glow, white text 16/w600.
+/// Private to this file (Karpathy §3 — no premature shared widget; promote
+/// when a second consumer appears).
+class _PrimaryCta extends StatelessWidget {
+  const _PrimaryCta({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          boxShadow: AppShadows.primaryButton,
+          borderRadius: BorderRadius.circular(AppRadii.btn),
+        ),
+        child: FilledButton(
+          onPressed: onPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.btn),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+            elevation: 0,
+          ),
+          child: Text(label),
         ),
       ),
     );

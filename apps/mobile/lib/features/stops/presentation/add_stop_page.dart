@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'add_stop_sheet.dart';
@@ -13,7 +12,7 @@ import 'add_stop_sheet.dart';
 /// The wrapper is "transparent" — `build()` returns [SizedBox.shrink] so the
 /// only visible UI is the sheet sitting atop whatever was below in the
 /// Navigator stack.
-class AddStopPage extends ConsumerStatefulWidget {
+class AddStopPage extends StatefulWidget {
   const AddStopPage({super.key, this.onSaved});
 
   /// Nullable so widget tests can assert taps without standing up a real
@@ -22,10 +21,10 @@ class AddStopPage extends ConsumerStatefulWidget {
   final void Function(BuildContext context)? onSaved;
 
   @override
-  ConsumerState<AddStopPage> createState() => _AddStopPageState();
+  State<AddStopPage> createState() => _AddStopPageState();
 }
 
-class _AddStopPageState extends ConsumerState<AddStopPage> {
+class _AddStopPageState extends State<AddStopPage> {
   // Risk-2 guard: addPostFrameCallback fires on first build only by design,
   // but hot reload semantics for initState are subtle. Guard prevents a
   // double showModalBottomSheet call on rebuild.
