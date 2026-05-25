@@ -16,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:roteirizador_pro/app.dart';
+import 'package:roteirizador_pro/core/widgets/home_top_bar.dart';
 import 'package:roteirizador_pro/features/auth/data/dto/auth_dtos.dart';
 import 'package:roteirizador_pro/features/auth/state/auth_controller.dart';
 import 'package:roteirizador_pro/features/stops/data/repositories/stops_repository.dart';
@@ -72,24 +73,60 @@ Future<void> _systemBack(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Returns the title text of the AppBar currently on top of the
-/// navigator. Reading the GoRouter URL would require a context inside
-/// the InheritedGoRouter scope; in this StatefulShellRoute layout there
-/// isn't a stable place to grab one from outside the route builders, so
-/// we infer the current screen visually via its AppBar title.
+/// Returns a stable label for the currently-visible screen. Reading the
+/// GoRouter URL would require a context inside the InheritedGoRouter scope;
+/// in this StatefulShellRoute layout there isn't a stable place to grab
+/// one from outside the route builders, so we infer the current screen
+/// visually via known top-bar landmarks.
+///
+/// Resolution order (most specific first; topmost route wins):
+/// 1. Material `AppBar` with a `Text` title → the title's data string.
+///    Tried FIRST because StatefulShellRoute's IndexedStack keeps
+///    inactive branches mounted offstage AND a pushed route (e.g. /voice,
+///    /stops/add) sits ATOP the home branch — so when a screen with an
+///    AppBar is visible, its title should win over any HomeTopBar still
+///    mounted underneath.
+/// 2. `HomeTopBar` (custom Material top bar, NOT an AppBar subclass) →
+///    'Rota de hoje'. Used by HomeList post-MS-14 (commit d1b2c5e swap).
+///    Reached when nothing has been pushed on top of /home AND no other
+///    AppBar-using screen is currently visible.
+/// 3. Fallback → `'<no-appbar-title>'` (kept verbose to surface helper
+///    breakage early instead of silent passes).
 String _currentScreen(WidgetTester tester) {
-  // AppBar exposes its `title` as a child Text widget. Pick the first
-  // visible one — `findsOneWidget` would be too strict because the
-  // IndexedStack keeps inactive branches mounted offstage; we want the
-  // first AppBar in render order, which is the currently-visible route.
+  // 1. Try a real Material AppBar with Text title first. Pushed routes
+  //    (StopDetail, EditStop, VoiceCapture, OcrCapture, etc.) sit atop
+  //    the shell branches, so their AppBar — when one exists — represents
+  //    the topmost visible screen. skipOffstage: false includes branches
+  //    kept mounted in the StatefulShellRoute IndexedStack but we want
+  //    the visible ones first — iterate and pick the first whose render
+  //    object actually reports as currently rendered (size > 0).
   final appBars = find.byType(AppBar);
   for (final element in appBars.evaluate()) {
-    final appBar = element.widget as AppBar;
-    final title = appBar.title;
-    if (title is Text && title.data != null) {
-      return title.data!;
+    final renderBox = element.findRenderObject();
+    if (renderBox is RenderBox &&
+        renderBox.hasSize &&
+        renderBox.size.height > 0) {
+      final appBar = element.widget as AppBar;
+      final title = appBar.title;
+      if (title is Text && title.data != null) {
+        return title.data!;
+      }
     }
   }
+
+  // 2. Fall back to HomeTopBar (HomeList post-MS-14, the home-branch
+  //    landing page that has no AppBar). Same visibility filter — when a
+  //    modal sheet sits over /home, HomeTopBar is still mounted offstage
+  //    but its render box reflects the visible state.
+  final homeBars =
+      find.byType(HomeTopBar, skipOffstage: false).evaluate().toList();
+  if (homeBars.isNotEmpty) {
+    // If any pushed route covers the home branch, the modal sheet's
+    // barrier still allows the home layout below to render — that's OK
+    // here, the home is "currently visible" by spec.
+    return 'Rota de hoje';
+  }
+
   return '<no-appbar-title>';
 }
 
@@ -125,8 +162,9 @@ void main() {
     // If a future slice intentionally wants different UX, it adds its
     // own integration_test for that custom flow.
 
-    testWidgets('Home → FAB push to AddStop → system back returns to /home',
-        (tester) async {
+    testWidgets(
+        'Home → FAB opens AddStop bottom sheet → system back closes sheet '
+        'and returns to /home (MS-15a)', (tester) async {
       await tester.pumpWidget(_scope(stops: [_stop('a')]));
       await tester.pumpAndSettle();
 
@@ -136,12 +174,88 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      // AddStopPage's AppBar is "Adicionar parada".
-      expect(_currentScreen(tester), 'Adicionar parada');
+      // Post-MS-15a: AddStopPage is a transparent route wrapper that
+      // returns SizedBox.shrink() and opens AddStopSheet via
+      // showModalBottomSheet. The sheet hosts the title as a plain Text
+      // widget (NOT an AppBar.title), so _currentScreen returns the
+      // HomeList AppBar that remains in the route stack below the sheet.
+      // The sheet's presence is what we assert.
+      expect(_currentScreen(tester), 'Rota de hoje');
+      expect(find.text('Adicionar parada'), findsWidgets);
+      expect(find.byKey(const Key('drag-handle')), findsOneWidget);
 
       await _systemBack(tester);
 
+      // System back closes the sheet; the wrapper's onSaved-or-pop
+      // callback runs and pops the /stops/add route. Net effect: back on
+      // /home with the sheet gone.
       expect(_currentScreen(tester), 'Rota de hoje');
+      expect(find.byKey(const Key('drag-handle')), findsNothing);
+    });
+
+    testWidgets(
+        'Home → FAB opens sheet → tap Voz → after 200ms navigates to '
+        '/home/stops/voice; system back returns to /home (MS-15a)',
+        (tester) async {
+      await tester.pumpWidget(_scope(stops: [_stop('a')]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('drag-handle')), findsOneWidget);
+
+      // Tap Voz. The sheet's _navTimer fires after 200ms → sheet pops
+      // → context.push('/home/stops/voice'). pumpAndSettle drains the
+      // timer + the route transition.
+      // Tap Voz. The sheet's _navTimer fires after 200ms → sheet pops
+      // with AddStopResult.voice → AddStopPage wrapper inspects the
+      // result and calls context.push('/home/stops/voice'). The double
+      // pump (250 + 500ms) covers the real-time Timer fire on
+      // LiveTestWidgetsFlutterBinding plus the sheet-dismiss animation;
+      // pumpAndSettle drains the subsequent route transition.
+      await tester.tap(find.text('Voz'));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle(const Duration(seconds: 2));
+
+      // VoiceCapturePage's AppBar title is "Falar endereço".
+      expect(_currentScreen(tester), 'Falar endereço');
+
+      await _systemBack(tester);
+
+      // System back from /voice pops to /home (sheet is already closed).
+      expect(_currentScreen(tester), 'Rota de hoje');
+    });
+
+    testWidgets(
+        'Home → FAB opens sheet → swipe-down dismiss returns to /home '
+        'with no nav side-effect (MS-15a Risk-1 device gate)', (tester) async {
+      await tester.pumpWidget(_scope(stops: [_stop('a')]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('drag-handle')), findsOneWidget);
+
+      // Tap Voz to ARM the 200ms Timer, then swipe-down BEFORE it fires.
+      await tester.tap(find.text('Voz'));
+      await tester.pump(); // first frame after tap, Timer is now scheduled
+
+      // Drag the drag-handle pill downward by a large distance to dismiss
+      // the modal sheet (the gesture Flutter associates with sheet close).
+      await tester.drag(
+        find.byKey(const Key('drag-handle')),
+        const Offset(0, 600),
+      );
+      await tester.pumpAndSettle();
+
+      // Wait past the Timer fire window. The cancel-on-dispose mitigation
+      // (Risk-1) must prevent nav to /voice — we stay on /home.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(_currentScreen(tester), 'Rota de hoje');
+      expect(find.byKey(const Key('drag-handle')), findsNothing);
     });
 
     testWidgets('StopDetail → Editar → system back returns to detail',

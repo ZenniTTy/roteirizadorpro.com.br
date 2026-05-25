@@ -2,12 +2,34 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:roteirizador_pro/core/services/id.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/stops/domain/stop.dart';
 import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
+
+/// Result returned by [AddStopSheet] when it closes. The wrapper
+/// ([AddStopPage]) inspects this value to decide what to do next —
+/// navigate to a downstream capture page (voice/camera) or just clean up.
+///
+/// Returning a value (rather than calling `context.push` from inside the
+/// sheet) avoids Flutter issue #155746: showModalBottomSheet's local
+/// Navigator inside a StatefulShellRoute branch causes nested-route push
+/// from inside the modal to fail silently. The parent route owns the
+/// real navigation context, so it does the push after the sheet resolves.
+enum AddStopResult {
+  /// User submitted a manual address; [StopsController.add] was called.
+  /// Wrapper should fire `onSaved` (or default-pop).
+  saved,
+
+  /// User chose the voice-capture shortcut. Wrapper should push
+  /// `/home/stops/voice`.
+  voice,
+
+  /// User chose the camera/OCR-capture shortcut. Wrapper should push
+  /// `/home/stops/ocr`.
+  camera,
+}
 
 /// Bottom-sheet UI for adding a stop. Mirrors
 /// `prototipo/screens-a.jsx ScreenAddStop` (lines 279-364) — drag handle,
@@ -15,14 +37,15 @@ import 'package:roteirizador_pro/features/stops/state/stops_controller.dart';
 /// and a "Adicionar parada" CTA.
 ///
 /// Voice and Câmera tap fires a 200 ms visual-feedback delay then closes the
-/// sheet and navigates to the matching capture route. Keyboard is the inline
-/// default — the user types directly and submits via the CTA.
+/// sheet (returning [AddStopResult.voice] or [AddStopResult.camera]). The
+/// hosting wrapper does the actual route push. Keyboard is the inline
+/// default — the user types directly and submits via the CTA, which
+/// closes the sheet with [AddStopResult.saved] after invoking
+/// [StopsController.add].
 ///
-/// The [onSaved] callback fires after a successful stop submission. When this
-/// sheet is hosted by `AddStopPage` (the production path), the wrapper passes
-/// `onSaved: null` and invokes onSaved itself after the sheet future
-/// resolves — avoiding a double-fire. Direct-pump test paths may still pass
-/// a callback to assert submission behavior in isolation.
+/// The [onSaved] callback is preserved for direct-pump test paths that
+/// host this sheet outside [AddStopPage]. The production wrapper path
+/// passes `onSaved: null` and uses the returned [AddStopResult] instead.
 class AddStopSheet extends ConsumerStatefulWidget {
   const AddStopSheet({super.key, this.onSaved});
 
@@ -48,9 +71,9 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
 
   @override
   void dispose() {
-    // Risk-1 mitigation: cancel any pending nav timer so Navigator.pop /
-    // context.push never run against a defunct context after the sheet
-    // is dismissed (swipe-down, barrier tap, programmatic pop).
+    // Risk-1 mitigation: cancel any pending nav timer so Navigator.pop
+    // never runs against a defunct context after the sheet is dismissed
+    // (swipe-down, barrier tap, programmatic pop).
     _navTimer?.cancel();
     _inputFocus.removeListener(_onFocusChange);
     _inputFocus.dispose();
@@ -72,14 +95,19 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
     _selectMethod(method);
     if (method == 'keyboard') return;
 
+    // Capture the Navigator BEFORE the timer fires. After the sheet
+    // pops, this widget's context is defunct.
+    final navigator = Navigator.of(context);
+    final result =
+        method == 'voice' ? AddStopResult.voice : AddStopResult.camera;
     _navTimer?.cancel();
     _navTimer = Timer(const Duration(milliseconds: 200), () {
       if (!mounted) return;
-      final route = method == 'voice' ? '/stops/add/voice' : '/stops/add/ocr';
-      // maybePop closes the sheet in production (overlay) and is a no-op
-      // in widget tests that mount the sheet directly under the router.
-      Navigator.of(context).maybePop();
-      context.push(route);
+      // Pop the sheet with the intent. The wrapper awaits this future
+      // and pushes the matching capture route based on the result.
+      // This pattern avoids Flutter issue #155746 (nested-branch push
+      // from inside a modal hosted by StatefulShellRoute fails silently).
+      navigator.pop(result);
     });
   }
 
@@ -87,6 +115,8 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
     final label = _textController.text.trim();
     if (label.isEmpty) return;
 
+    // Capture navigator before the async gap that may invalidate context.
+    final navigator = Navigator.of(context);
     final stop = Stop(
       id: newId(),
       lat: 0,
@@ -98,8 +128,11 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
     await ref.read(stopsControllerProvider.notifier).add(stop);
     if (!mounted) return;
 
-    await Navigator.of(context).maybePop();
+    navigator.pop(AddStopResult.saved);
     if (!mounted) return;
+    // onSaved is retained for direct-pump test paths. Production wrapper
+    // (AddStopPage) passes onSaved: null and observes AddStopResult.saved
+    // from the popped future instead.
     widget.onSaved?.call(context);
   }
 

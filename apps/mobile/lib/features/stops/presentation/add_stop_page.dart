@@ -3,15 +3,23 @@ import 'package:go_router/go_router.dart';
 
 import 'add_stop_sheet.dart';
 
-/// Transparent route wrapper for `/stops/add`. On mount, schedules a
-/// post-frame callback that opens [AddStopSheet] as a Material modal bottom
-/// sheet over the current route. When the sheet resolves (any dismissal —
-/// submit, swipe-down, barrier tap), invokes [onSaved] (or pops the route
-/// as the default behavior so deep-links to `/stops/add` clean up properly).
+/// Transparent route wrapper for `/home/stops/add`. On mount, schedules a
+/// post-frame callback that opens [AddStopSheet] as a Material modal
+/// bottom sheet over the current route. When the sheet resolves, inspects
+/// the returned [AddStopResult] and either pushes the matching capture
+/// route (voice/ocr) or invokes [onSaved] (or pops the route as the
+/// default behavior so deep-links to `/home/stops/add` clean up properly).
 ///
-/// The wrapper is "transparent" — `build()` returns [SizedBox.shrink] so the
-/// only visible UI is the sheet sitting atop whatever was below in the
-/// Navigator stack.
+/// The wrapper is "transparent" — `build()` returns [SizedBox.shrink] so
+/// the only visible UI is the sheet sitting atop whatever was below in
+/// the Navigator stack.
+///
+/// Pushing nested-branch routes (`/home/stops/voice`, `/home/stops/ocr`)
+/// happens HERE — not from inside the sheet — because of Flutter issue
+/// #155746: nested-branch push from inside a modal hosted by
+/// StatefulShellRoute fails silently. The sheet returns an intent
+/// ([AddStopResult]); this wrapper owns the navigation context that can
+/// actually push.
 class AddStopPage extends StatefulWidget {
   const AddStopPage({super.key, this.onSaved});
 
@@ -40,21 +48,36 @@ class _AddStopPageState extends State<AddStopPage> {
     if (_sheetOpened) return;
     _sheetOpened = true;
 
-    // AddStopSheet.onSaved is intentionally NOT forwarded here — this
-    // wrapper invokes onSaved exactly once below, after the sheet future
-    // resolves. Forwarding would double-fire on the submit path (sheet
-    // calls onSaved then closes, then this awaiter calls onSaved again).
-    await showModalBottomSheet<void>(
+    // useRootNavigator: true hosts the sheet on the root Navigator
+    // instead of the StatefulShellRoute branch Navigator. Without this,
+    // the sheet's Navigator.pop returns to the branch's stack rather
+    // than the top-level route stack, which complicates pop-then-push
+    // sequencing. AddStopSheet.onSaved is intentionally NOT forwarded —
+    // the sheet returns an AddStopResult via Navigator.pop(result), and
+    // this wrapper does the nav decision after the future resolves.
+    final result = await showModalBottomSheet<AddStopResult>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useRootNavigator: true,
       builder: (_) => const AddStopSheet(),
     );
     if (!mounted) return;
 
-    final cb =
-        widget.onSaved ?? (ctx) => ctx.canPop() ? ctx.pop() : ctx.go('/home');
-    cb(context);
+    switch (result) {
+      case AddStopResult.voice:
+        context.push('/home/stops/voice');
+      case AddStopResult.camera:
+        context.push('/home/stops/ocr');
+      case AddStopResult.saved:
+      case null:
+        // saved → fire onSaved (or default-pop), so HomeList rebuilds.
+        // null  → barrier-tap / swipe-down dismiss; still cleanup the
+        //         /home/stops/add route by popping it.
+        final cb = widget.onSaved ??
+            (ctx) => ctx.canPop() ? ctx.pop() : ctx.go('/home');
+        cb(context);
+    }
   }
 
   @override
