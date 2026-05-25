@@ -20,7 +20,7 @@
       ▼                  ▼                         ▼
 ┌────────────┐   ┌────────────┐         ┌──────────────────┐
 │ PostgreSQL │   │ Redis      │         │ GraphHopper      │
-│ Prisma 7   │   │ Cache, WS  │         │ Sudeste BR       │
+│ Prisma 7   │   │ Cache      │         │ Sudeste BR       │
 └────────────┘   └────────────┘         └──────────────────┘
       │                                          │
       ▼ webhook events
@@ -51,8 +51,8 @@
 - **OCR:** `google_mlkit_text_recognition` (offline, on-device).
 - **Voice input:** `speech_to_text`.
 - **Deep links:** `url_launcher` for Waze (`waze://?ll=...&navigate=yes`) and Google Maps (`google.navigation:q=lat,lng`).
-- **WebSocket:** `web_socket_channel` for real-time subscriber count.
 - **QR code generation:** `qr_flutter` (share screen).
+- **No WebSocket dep** — F11 (subscriber counter) was removed; slice 4 paywall uses polling (5 s) on `GET /subscription/status` instead of WS. If a future feature needs WS, the dep is added then with its own ADR.
 
 ### Backend (Fastify v5 + TypeScript)
 

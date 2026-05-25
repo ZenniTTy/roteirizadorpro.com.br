@@ -9,7 +9,7 @@
 
 ## Context
 
-Client decision on 2026-05-24: migrate Pix gateway from Efí Bank to Stripe and revert from the short-lived "pay-per-route" model (introduced 2026-05-10) back to a recurring access model — implemented as a **30-day access pass renewed via fresh manual Pix payment** (not Stripe Billing subscriptions; Pix Automático is invite-only in Brazil).
+Client decision on 2026-05-24: migrate Pix gateway from Efí Bank to Stripe and replace the short-lived "pay-per-route" model (introduced 2026-05-10) with a **30-day access pass model renewed via fresh manual Pix on each cycle** — not a subscription (no Stripe Billing, no Stripe Subscriptions API, no automatic recurring charge). Pix Automático is invite-only in Brazil; the product explicitly chose the manual-renewal UX for clarity and chargeback prevention.
 
 Two changes folded into one ADR because they were decided together and only make sense as a pair.
 

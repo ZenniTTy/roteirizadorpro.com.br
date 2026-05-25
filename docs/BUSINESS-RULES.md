@@ -105,7 +105,7 @@ Fluxo exato (decisão do cliente):
 9. Backend verifica idempotência (stripeEventId já processado? retorna 200 imediatamente)
 10. Backend executa split: 2 `stripe.transfers.create` para os Connected Accounts
 11. Backend cria `Subscription`: `status='active'`, `expires_at=now+30dias`
-12. Backend notifica app via WebSocket ou polling de 5s
+12. App descobre o `status='active'` via polling de `GET /subscription/status` a cada 5 s (sem WebSocket — ADR-0030 escolheu polling pra simplicidade)
 13. App desbloqueia "Iniciar Navegação"
 
 ---

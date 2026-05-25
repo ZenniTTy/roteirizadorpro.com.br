@@ -286,23 +286,11 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 
 ---
 
-## F11 — Real-Time Active Subscriber Counter
+## F11 — Real-Time Active Subscriber Counter (⛔ REMOVED)
 
-**Milestone:** M2.
+**Status:** removed during M2 scoping; re-confirmed removed at 2026-05-24 (ADR-0030) — the 30-day access pass model has no clean "active subscriber" semantic and the metric would mislead. Admin panel (F13) surfaces DAU + payments-in-period instead, which are the honest metrics for this billing model.
 
-**Description:** A small, discrete badge at the top of the app home screen shows the total number of active subscribers in real time. This is for the partners to quickly gauge growth. It updates automatically without a page refresh.
-
-**Visual spec:**
-- Small square badge at the top of the screen, adjacent to the route end-time badge.
-- Shows only the number (e.g., `[142]`). No label, no user names.
-- Same visual weight as the end-time badge (discrete, not prominent to riders).
-
-**Technical implementation:**
-- Backend maintains `stats:active_subscribers` counter in Redis.
-- Counter increments on subscription activation, decrements on expiration/cancellation.
-- WebSocket endpoint `WS /ws/stats` broadcasts the count on every change.
-- Fallback: if WebSocket is disconnected, app polls `GET /stats/active-subscribers` every 30 seconds.
-- REST endpoint serves the same count from Redis.
+The historical visual + technical spec (badge on home screen, WebSocket-backed Redis counter) was never implemented and is intentionally **not preserved** here — re-introducing the feature would need a new spec anyway, sized to whatever the future metric is.
 
 ---
 

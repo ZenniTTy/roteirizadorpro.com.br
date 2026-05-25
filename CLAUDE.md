@@ -55,7 +55,9 @@ When you start a session in this repo, read in this order:
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
 8. The slice's section in `docs/08-ROADMAP.md` (e.g. "Slice 2 — Telas Core") and the `prototipo/screens-*.jsx` files matching it.
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
-10. **AI harness state** (one-time orientation, then internalized): `docs/decisions/0023-*` through `0029-*` cover the Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, and the `mcp_flutter` rejection. `docs/sprints/2026-05-24-m2-ai-harness.md` holds the historical playbook + retrospective. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below — skim those sections before dispatching the subagents.
+10. **Recent ADRs (post-M1, one-time orientation):**
+    - **0023–0029 (AI harness):** Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, `mcp_flutter` rejection, `GH_DATA_DIR` infra. Playbook + retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
+    - **0030 (Stripe Pix migration, supersedes 0007):** slice 4 uses **Stripe Connect** with 50/50 split via Separate Charges and Transfers; **R$ 25,90 grants 30 days of access**, renewed via fresh manual Pix each cycle (no Stripe Billing, no Stripe Subscriptions API). Operational rules in `docs/BUSINESS-RULES.md`.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
