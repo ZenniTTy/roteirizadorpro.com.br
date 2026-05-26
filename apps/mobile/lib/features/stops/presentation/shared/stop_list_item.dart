@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/stop.dart';
@@ -62,10 +63,17 @@ class StopListItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 8),
-                  trailing!,
-                ],
+                const SizedBox(width: 8),
+                // Default trailing: a Lucide grip-vertical glyph that
+                // signals "drag to reorder" per prototipo/screens-a.jsx:249.
+                // Callers like ReorderPage that need a real drag listener
+                // override this slot with their own widget.
+                trailing ??
+                    const Icon(
+                      LucideIcons.gripVertical,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
               ],
             ),
           ),
