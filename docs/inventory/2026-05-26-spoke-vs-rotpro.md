@@ -1152,9 +1152,9 @@ enum StopType { delivery, pickup }
 
 | # | Title | Summary | Widget |
 |---|---|---|---|
-| 8 | Tema | "Automático (Pôr do Sol/Nascer do Sol)" | (chevron, picker) |
+| 8 | Tema | "Automático (Pôr do Sol/Nascer do Sol)" | (chevron, picker) — **🚫 OUT-OF-SCOPE per Eduardo 2026-05-26:** RotPro NÃO replica multi-theme. App fica em tema único (provavelmente o dark do `prototipo/` por default). |
 
-Opções inferidas: Automático (selected) / Claro / Escuro
+Opções inferidas: Automático (selected) / Claro / Escuro / Mesmo do sistema (confirmado em §10.19.3 abaixo, mas descartado pra implementação RotPro).
 
 #### Section "Assinatura" (1 item)
 
@@ -1197,3 +1197,52 @@ Tap abre paywall comparação free vs premium (OUT-OF-SCOPE pra RotPro per ADR-0
   - Tema
 - Tap "Comparar planos" → capturar paywall completo (OUT-OF-SCOPE mas útil pra ADR-0030 reference)
 - Tap "Licenças" / "Termos" / "Privacidade" → confirmar comportamento (in-app vs external link)
+
+#### 10.19.1 — Picker: "App de navegação" (5 opções)
+
+Modal dialog (não bottom sheet) com radio list + Cancelar:
+
+1. **Navegação do Spoke** (selected default) — 🆕 app próprio Spoke (não tem equivalente externo conhecido)
+2. **Google Maps**
+3. **Waze**
+4. **Navegador Yandex** (Yandex Navigator — russo, popular em mercados russos)
+5. **Outro** — open-ended; provavelmente abre activity chooser do Android pra deep-link
+
+**Implicação RotPro:** per ADR-0010 usaremos **Google Maps default + Waze**. Não replicar Spoke próprio nem Yandex nem Outro. Lista RotPro: `[GoogleMaps, Waze]` apenas.
+
+#### 10.19.2 — Picker: "Tipo de veículo" (5 opções com ícones + restrições)
+
+Modal com radio list, **cada opção tem ícone à esquerda + label + subtitle de restrição** (quando aplica) + Cancelar:
+
+1. **Bicicleta** (ícone bike) — subtitle: `"Somente Google Maps"` (restrição de nav app)
+2. **Scooter** (ícone scooter)
+3. **Carro** (ícone car, selected default)
+4. **Caminhão pequeno** (ícone small truck)
+5. **Caminhão grande** (ícone large truck) — subtitle: `"Somente Sygic Maps"` (referência a app não listado no picker §10.19.1 — Sygic seria 6º opção condicional?)
+
+**🚨 Correção de §3.3 item 17:** lista REAL é Bicicleta/Scooter/Carro/Caminhão pequeno/Caminhão grande. **Sem "Moto"** (Scooter substitui), **sem "A pé"** (provavelmente não viable pra delivery business).
+
+**Implicação RotPro:** GraphHopper backend suporta perfis `bike`, `motorcycle`, `car`, `small_truck`. Mapeamento: Bicicleta→bike, Scooter→motorcycle, Carro→car, Caminhão pequeno→small_truck. **Caminhão grande não suportado em GraphHopper SP atual** — deferred pós-M2.
+
+**Subtitle de restrição é UX importante:** RotPro deve renderizar conditional `subtitle` quando vehicle.type tem restrição de routing. Ex: "Bicicleta — somente em ruas com ciclovias mapeadas".
+
+#### 10.19.3 — Picker: "Tema" (4 opções) — 🚫 OUT-OF-SCOPE pra RotPro
+
+**Decisão Eduardo 2026-05-26:** RotPro NÃO replica multi-theme. App fica em tema único. Registro abaixo é só pra completude do inventário, NÃO pra implementação.
+
+Modal com radio list + Cancelar:
+
+1. Claro
+2. Escuro
+3. Mesmo do sistema (segue Android system theme)
+4. Automático (Pôr do Sol/Nascer do Sol) (selected default) — clever feature Spoke
+
+**Implicação RotPro:** **Tema único fixo** (provavelmente o dark do `prototipo/` per ADR-0035 visual identity). Sem setting de Tema no RotPro Settings. Remove o gap "Section Preferências gerais" inteiro do Settings RotPro (se essa for a única setting da section).
+
+#### Decisões pra economizar ciclos (pickers não-drilled)
+
+Não foram tap-inspected, mas inferências baseadas em §3.3 + observação parcial:
+
+- **Lado da parada:** 3 opções Qualquer (default) / Direito / Esquerdo. Padrão observado em outros apps delivery. RotPro: usar como `StopSidePreference enum`.
+- **Tempo médio na parada:** picker numérico, valores típicos 1/2/3/5/10 min. Default 1 min. Format: `int minutes`.
+- **ID de parada:** já drilled em §10.6.1 — 2 + 2 radios (Moderno/Clássico + Depois da otimização/Conforme as paradas são adicionadas).
