@@ -840,3 +840,69 @@ A tela aberta tem:
 **Hard rule:** ADR-0010 boundary permanece — docs oficiais são consultados pra **entender funcionalidade**, não pra copiar microcopy. Qualquer copy citada nos docs Spoke entra no inventário como **paraphrase neutra** (mesma regra do dump XML).
 
 A próxima iteração do `spoke-parity-checker` subagent prompt deve codificar essa regra no Step 4 (Compare). Adicionar como TODO em ADR-0037 amendment se a Fase B continuar mostrando valor.
+
+### 10.7 — Stop card: long-press + swipe NEGATIVOS (gap fechado)
+
+Testes empíricos executados via Maestro MCP em 2026-05-26 (commit `00b99f9` adiante):
+- `longPressOn` em centro do stop card 01 → **NADA acontece.** Sem context menu, sem reorder handle revelado, sem actions ocultas.
+- `swipe right` (start `200,1180` end `880,1180`) → **NADA acontece.** Card fica imóvel; UI inalterada.
+- `swipe left` (start `880,1180` end `200,1180`) → **NADA acontece.** Mesmo resultado.
+
+**Conclusão definitiva:** Spoke **NÃO usa swipe-to-action nem long-press no stop card do sheet expanded**. **Tap único é a única gesture suportada**, e ela navega pra "Editar parada" (§10.6). Implicação: o **controle de status de entrega** está em **outro estado da app** — confirmado adiante na §10.8 (estado pós-otimização) e §10.9 (modo run/delivery, ainda a inspecionar).
+
+### 10.8 — Modal FTUE "IDs ajustados conforme a ordem de rota" (first-time use)
+
+**🚨 Tela nova não mapeada antes.** Trigger: tap em CTA "Otimizar rota" do sheet (§10.5) **pela primeira vez na conta**. Provavelmente skipável após primeira vez (FTUE).
+
+**Estrutura observada:**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Modal container (full-screen overlay sobre mapa) | `[0,92][1080,2265]` | Dim background, modal centered |
+| Hero illustration (3 cartões ID A1/A2/A3 com setas curvas) | `[143,372][937,828]` | Imagem decorativa demonstrando reordering |
+| Title h4 | `[113,974][967,1124]` | `"IDs ajustados conforme a ordem de rota"` |
+| Body text 2-paragraph | `[113,1169][967,1635]` | Explica que IDs mudam durante planejamento + ficam permanentes pós-confirmação. ~3 linhas cada parágrafo |
+| CTA primary "Entendi" | `[113,1703][967,1838]` | Filled blue, height 135 |
+| CTA secondary "Configurar..." | `[113,1861][967,1996]` | Text-style, mesma altura, abre setting de ID format (§3.3 item 19) |
+
+**Implicação pro RotPro:** se replicarmos, modal FTUE precisa de flag `bool hasSeenOptimizeFtue` em SharedPrefsAsync; mostrar uma vez por conta. Slice 2: deferred (não bloqueia funcionalidade); slice 3+: implementar.
+
+### 10.9 — Estado pós-otimização (PRE-CONFIRM) — 🚨 ENTERAMENTE NOVO
+
+**Trigger:** tap "Entendi" no modal §10.8 (ou no fluxo subsequente após primeira-vez).
+
+**🚨 Estado é estruturalmente MUITO diferente do pré-otimização (§10.5).** Mudanças observáveis:
+
+#### Mudanças no MAPA
+- Mapa **agora ocupa metade superior da tela** (não só topo-strip atrás do sheet)
+- **Rota azul desenhada** conectando os 4 markers (Google Directions polyline)
+- **Markers numerados 1/2/3/4** (não mais "Marcador do mapa" genérico)
+- Mapa **centralizou + auto-zoom** na bounding box da rota
+- **Floating button NOVO** no canto direito do mapa (provavelmente "fullscreen toggle" — ícone que parece mapa aberto)
+- Layer toggle continua
+
+#### Mudanças no SHEET
+- Sheet posição: mid (não full-expanded, não collapsed)
+- **NOVA linha summary acima do título:** `"14 min • 4 paradas • 3,3 km"` (tempo total + N paradas + distância total)
+- Section "Configuração de rota" **REDUZIDA:** "Iniciar no local atual" + "Ida e volta" foram **fundidos numa única row "Ponto de partida"** com subtitle "Posição do GPS usada ao otimizar" + timestamp "19:16" + home icon. "Sem pausa" continua como linha separada.
+- Section "Paradas" agora lista stops na **ORDEM OTIMIZADA** (Rua José da Silva agora é #01, antes era Rua Franca). Cada stop ganhou **chip "A1" / "A2" / "A3" / "A4"** à direita (formato Moderno do package ID).
+
+#### NOVOS CTAs no rodapé (3 elementos em row, NÃO mais 1 CTA full-width)
+| Elemento | Estilo | Função inferida |
+|---|---|---|
+| **"14min"** | TextView verde, font grande | Indicador visual de tempo total (não-clickable? tap revela detalhes?) |
+| **"Refinar"** | Text/outline button | Re-roda otimização (talvez com opções pra ajustar configurações) |
+| **"Confirmar"** | Filled primary, blue | Lock-in IDs + transita pra modo "running route" / "delivery mode" |
+
+**Implicações enormes pro RotPro:**
+1. **Estado "Pre-confirm post-optimize"** é uma fase distinta da rota com UI dedicada. Modela como `RouteStatus { draft, optimizing, optimized_uncommitted, running, completed }`.
+2. **3 CTAs especializados** substituem o único "Otimizar rota" do estado draft.
+3. **Totals (tempo + paradas + km)** vêm do solver backend e devem ser persistidas no Route.
+4. **Package IDs (A1..AN)** ficam visíveis no chip à direita de cada stop card.
+5. **Configuração de rota "colapsada"** sugere que pós-otimização a UI simplifica detalhes (já foram aplicados na otimização).
+6. **Tap "Confirmar"** é o gateway pro modo de delivery (onde provavelmente está finalmente o controle de status — vamos validar §10.10).
+
+**Pendente:**
+- Tap "Refinar" — que opções abrem? (gap; pode ser inspecionado depois)
+- Tap "14min" (text verde) — clickable? Abre breakdown?
+- Tap "Confirmar" — destino próxima inspeção (§10.10)
