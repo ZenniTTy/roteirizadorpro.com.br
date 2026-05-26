@@ -477,9 +477,9 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 ## §8 — Próximos passos
 
 1. **Eduardo revisa §3 + §7 + §9** e marca o que aprova / corta / discute.
-2. Após aprovação: Fase 3 do plano `velvet-yawning-thacker.md` → escrever `docs/08-ROADMAP-v2.md` com slices reorganizados em microsprints (MS-A1, MS-A2, ...) per ADR-0019. **Concluído 2026-05-26** (commit `7692c45`).
+2. Após aprovação: escrever `docs/08-ROADMAP-v2.md` com slices reorganizados. **Concluído 2026-05-26** (commit `7692c45`). **Reset 2026-05-26 pós-pivot:** v2 foi simplificado posteriormente removendo microsprints A/B (Eduardo redirecionou pra abordagem "white-label Spoke sem ceremonial"). Estado atual do roadmap em `docs/08-ROADMAP-v2.md`.
 3. Cada microsprint do v2 ganha `/new-spec` + `/new-plan` no momento de execução.
-4. `docs/08-ROADMAP.md` (v1) foi **arquivado 2026-05-26 em `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`**; o caminho original agora é um stub de redirecionamento para v2.
+4. `docs/08-ROADMAP.md` (v1) foi **arquivado 2026-05-26 em `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`**; o stub de redirecionamento foi deletado no reset 2026-05-26 (v2 é o único agora).
 
 ---
 
