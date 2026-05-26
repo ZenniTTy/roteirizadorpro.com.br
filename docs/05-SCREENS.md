@@ -1,8 +1,14 @@
 # 05 — Screens
 
-The screen catalogue for Roteirizador Pro. **The canonical UI source is the approved Claude Design prototype** at `prototipo/`. This document mirrors the prototype's structure for code reference.
+The screen catalogue for Roteirizador Pro. Two source-of-truth layers per **ADR-0035**:
 
-> Functional UX patterns are inspired by Spoke/Circuit Route Planner; visual identity is 100% original (see `docs/decisions/0010-clone-positioning.md`).
+- **Behavior, gestures, flow, settings inventory** → trace to Spoke (ex-Circuit Route Planner) via `docs/inventory/2026-05-26-spoke-vs-rotpro.md`.
+- **Visual identity** (colors, spacing, radii, shadows, typography, icon family, animations) → trace to `prototipo/` (Claude Design prototype, client-approved 2026-05-07).
+- **Tiebreaker** → cliente Ueslei.
+
+The screen list below is a working catalogue. Entries that match a Spoke screen mark "Spoke-aligned" (functional parity expected); entries that are original to Roteirizador Pro (`ScreenShare`, Pix paywall) mark "RotPro-original" (we own the flow). Visual identity for every screen comes from the prototype regardless.
+
+> Per `docs/decisions/0010-clone-positioning.md`: replicate Spoke's functionality, never its visual assets.
 
 ## Prototype screen map (19 screens)
 

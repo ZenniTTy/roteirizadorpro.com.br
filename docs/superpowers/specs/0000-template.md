@@ -8,13 +8,14 @@
 
 <!--
 Reading order for the AUTHOR before filling this file:
-  1. CLAUDE.md (the operating manual — Karpathy 4 principles, stack lock, Context7 rule, ADR-0013 contract)
-  2. docs/08-ROADMAP.md (canonical scope; the slice's section in particular)
+  1. CLAUDE.md (the operating manual — Karpathy 4 principles, stack lock, Context7 rule, ADR-0013 contract, ADR-0035 source-of-truth hierarchy)
+  2. docs/08-ROADMAP-v2.md (canonical scope post-ADR-0035; the slice's section in particular)
   3. docs/M2-SLICE-CHECKLIST.md (the gates this spec must satisfy)
   4. docs/M2-COST-MODEL.md (the cost ceiling all choices respect)
   5. docs/sessions/0001-INDEX.md (last 5 entries for in-flight context)
-  6. The relevant prototipo/*.jsx files (UI source of truth — match 1:1)
-  7. The two prior specs in docs/superpowers/specs/ — match their depth and tone
+  6. docs/inventory/2026-05-26-spoke-vs-rotpro.md (Spoke functional/UX parity reference per ADR-0035 — the slice-relevant section)
+  7. prototipo/tokens.js + prototipo/ui.jsx (visual identity source per ADR-0035 — colors, spacing, radii, shadows, typography, icon family)
+  8. The two prior specs in docs/superpowers/specs/ — match their depth and tone
 
 REQUIRED PROCESS before authoring §Context onward:
   Run `superpowers:brainstorming` with Eduardo to lock the decisions that go in §Decisions Locked.
@@ -252,10 +253,11 @@ rehydrate context.
 -->
 
 - `CLAUDE.md` — operating manual.
-- `docs/08-ROADMAP.md` — the section this spec elaborates.
+- `docs/08-ROADMAP-v2.md` — the section this spec elaborates (post-ADR-0035; pre-pivot roadmap is at `docs/08-ROADMAP.md` for historical reference).
 - `docs/M2-SLICE-CHECKLIST.md` — the gates this spec respects.
 - `docs/M2-COST-MODEL.md` — the cost ceiling all choices respect.
 - ADR-NNNN — <relevant ADRs>.
-- `prototipo/screens-*.jsx` — canonical UI source for the screens in scope.
+- `docs/inventory/2026-05-26-spoke-vs-rotpro.md` — Spoke functional/UX parity reference per ADR-0035 (consult the slice-relevant section).
+- `prototipo/tokens.js` + `prototipo/ui.jsx` — visual identity source per ADR-0035 (colors, spacing, radii, shadows, typography, icon family).
 - Memory entry `<kebab-name>.md` — relevant prior-session lessons.
 - Context7: `<library-id>` (queried YYYY-MM-DD for <topic>).

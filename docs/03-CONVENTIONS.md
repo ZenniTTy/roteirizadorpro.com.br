@@ -47,7 +47,7 @@ These are the few non-obvious rules. Everything else: trust the linter.
 │   └── landing/       # roteirizadorpro.com.br
 ├── infra/             # docker-compose, server provisioning, GraphHopper
 ├── docs/              # documentation (this folder)
-├── prototipo/         # canonical UI source (Claude Design prototype, client-approved) — referenced, never imported
+├── prototipo/         # canonical for visual identity per ADR-0035 (tokens, colors, icons, animations) — referenced, never imported
 └── scripts/           # repo-level utility scripts
 ```
 

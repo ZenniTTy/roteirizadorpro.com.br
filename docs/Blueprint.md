@@ -231,7 +231,7 @@ Authoritative version: [03-CONVENTIONS.md](03-CONVENTIONS.md). Replicated here f
 │   └── admin/         # M2 only — partner dashboard (Next.js)
 ├── infra/             # docker-compose.yml, GraphHopper config, server provisioning
 ├── docs/              # canonical documentation (10 numbered + decisions/ + sessions/ + briefing/ + superpowers/)
-├── prototipo/         # canonical UI source (Claude Design prototype, client-approved) — referenced, never imported
+├── prototipo/         # canonical for visual identity per ADR-0035 (tokens, colors, icons, animations) — referenced, never imported
 └── scripts/           # repo-level utilities
 ```
 

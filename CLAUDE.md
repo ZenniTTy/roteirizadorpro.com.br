@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-25 (Session 26 Addendum 2 — MS-15a-followup microsprint closed 6 visual fidelity gaps on Samsung M54: ADR-0032 adopted `lucide_icons_flutter` as canonical icon family with opportunistic sweep policy; ADR-0033 dropped `PrimaryButton` neon-green dot (first formal prototype divergence); ADR-0034 simplified `VoiceCapturePage` footer to single "Adicionar parada" CTA (second formal divergence). VoiceCapturePage gained pulse-ring animation + amplitude-reactive scale + red-while-listening + continuous recognition via status-listener auto-restart; `flutter-perf-auditor` flagged setState-on-soundLevel must-fix → remediated by promoting `_soundLevel` to ValueNotifier + RepaintBoundary around `_PulseMic`. Voice multi-address dictation registered as slice 3 follow-up feature. Suite 173/173 green. Previous: Session 24 carry-overs A.1+A.2+A.3 + ADR-0031 hardened `flutter-test-author` refusal discipline. M2-AI harness sprint shipped, ADRs 0023–0031; retrospective + playbook: `docs/sprints/2026-05-24-m2-ai-harness.md`. **ADR-0030** migrated Pix gateway Efí Bank → Stripe + 30-day access pass model — supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
+> **Last updated:** 2026-05-26 (Session 27 — **pivot foundational: ADR-0035 reframes the canonical UI authority**. Spoke (ex-Circuit Route Planner) is now the canonical source for behavior/flows/navigation/settings; `prototipo/` keeps authority only over visual identity (tokens, colors, icons, animations); cliente Ueslei is final tiebreaker. ADRs 0033 + 0034 reclassified from "accepted divergences" to "aligned design decisions." Roadmap `docs/08-ROADMAP.md` marked SUPERSEDED; `docs/08-ROADMAP-v2.md` rewrites slices 2 + 3 based on Spoke-vs-RotPro inventory at `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Slices 1, 4, 5, 6, 7 unaffected. Previous: Session 26 Addendum 2 MS-15a-followup (6 visual fidelity gaps closed; ADRs 0032/0033/0034 filed; Voice page redesign with pulse + amplitude + auto-restart). Earlier: Session 24 carry-overs + ADR-0031 hardened `flutter-test-author`. M2-AI harness sprint shipped, ADRs 0023–0031; retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. **ADR-0030** Stripe Pix + 30-day access pass supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -61,9 +61,15 @@ When you start a session in this repo, read in this order:
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
-## UI Source of Truth
+## Source-of-truth hierarchy (ADR-0035)
 
-The Claude Design prototype at `prototipo/` is the **canonical UI source** — client-approved on 2026-05-07. Visual identity, screens, gestures, and flows must match it 1:1 in implementation. The prototype's `tokens.js` is canonical for design tokens. `docs/05-SCREENS.md` and `docs/06-DESIGN-SYSTEM.md` mirror it; if they disagree with the prototype, the prototype wins.
+Two artifacts, each authoritative only on what it actually governs. When in doubt, ask "is this a behavioral question or a visual question?" and consult the matching source.
+
+1. **Spoke (ex-Circuit Route Planner)** — canonical for **behavior**: which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. The end-user is a delivery rider who already uses Spoke daily; functional parity with Spoke is the contract per ADR-0010 (functional fork). Inspection is via runtime UX observation on Eduardo's licensed install (Samsung M54) — no decompilation, no asset extraction.
+2. **`prototipo/` (Claude Design prototype, client-approved 2026-05-07)** — canonical for **visual identity only**: color tokens (`prototipo/tokens.js`), spacing scale, radii, shadows, typography pairing, icon family (Lucide, per ADR-0032), animation patterns, decorative creativity. The prototype is a creative reference, not a structural specification.
+3. **Cliente Ueslei** — final tiebreaker on any conflict between the two layers above.
+
+When `docs/05-SCREENS.md` or `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (when present) is the canonical Spoke→implementation mapping per slice.
 
 ## Karpathy's Four Principles (canonical)
 

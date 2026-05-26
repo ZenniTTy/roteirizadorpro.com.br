@@ -62,7 +62,7 @@ Detailed plan: `docs/08-ROADMAP.md` is the **single source of truth for M2**: sl
 - **Distribution:** APK direct download. Play Store is out of scope.
 - **Geography:** V1 covers Sudeste Brazil. M1 ships with São Paulo state only on a 1GB droplet (workaround agreed with the client because of his temporary card limitation). Resize to 8GB + reimport of full Sudeste (SP+RJ+MG+ES) is post-M1.
 - **Server titularity:** DigitalOcean account is the client's. Eduardo has admin access.
-- **UI source of truth:** the approved prototype at `prototipo/` is canonical for visual identity, screens, gestures, and flows.
+- **Source-of-truth hierarchy (ADR-0035):** Spoke (ex-Circuit Route Planner) is canonical for behavior, navigation, settings, and feature presence; the approved prototype at `prototipo/` is canonical for visual identity only (tokens, colors, icons, animations); cliente Ueslei is final tiebreaker.
 - **Legal:** Must comply with LGPD (Brazilian data protection law). Must not infringe Circuit's IP.
 
 ## Out of Scope

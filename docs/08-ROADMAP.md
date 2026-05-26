@@ -1,8 +1,10 @@
 # 08 — Roadmap
 
+> ⚠️ **SUPERSEDED 2026-05-26 by `docs/08-ROADMAP-v2.md`** (per **ADR-0035** — Spoke is the canonical functional/UX source; the prototype is the canonical visual-identity source). This file is kept as a historical snapshot of the pre-pivot plan. Slices 1, 4, 5, 6, 7 carry over to v2 essentially unchanged; slices 2 and 3 are rewritten in v2 based on the Spoke-vs-RotPro inventory (`docs/inventory/2026-05-26-spoke-vs-rotpro.md`). Do NOT use this file as the active plan — use `docs/08-ROADMAP-v2.md`. The active-plan declaration below ("single source of truth") applied until 2026-05-26 and now applies to v2.
+
 > **This file is the single source of truth for what we are building, in what order, and what "done" means for each step.** When the answer to "should I do X now?" is ambiguous, this file wins. Conflicts with any other doc are resolved by editing this file *and* the other doc in the same commit.
 
-**Last updated:** 2026-05-24 (session 22f — M2-AI harness sprint shipped on parallel branch; slice 2 status snapshot refreshed).
+**Last updated:** 2026-05-26 (SUPERSEDED banner added — see ADR-0035 pivot). Previous: 2026-05-24 (session 22f — M2-AI harness sprint shipped on parallel branch; slice 2 status snapshot refreshed).
 
 ## Status snapshot
 

@@ -39,7 +39,9 @@ Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 
 
 ### 🟡 Slice 2 — Telas Core (IN PROGRESS — sub 2a Foundation 10/16 tasks done)
 
-**Read first (resume order):** `docs/sessions/2026-05-18-12-m2-slice-2-tasks-1-10.md` → `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` → `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` (start at Task 11) → `docs/M2-SLICE-CHECKLIST.md` → `prototipo/screens-{a,b,d,e}.jsx`. The plan is the per-task source of truth from here on; the ROADMAP is still canonical for slice ordering and acceptance.
+> ⚠️ **Scope redefinida 2026-05-26 — ver ADR-0035 + `docs/08-ROADMAP-v2.md`.** Slice 2 está em transição: o trabalho funcional concluído permanece, mas o restante do escopo será reescrito contra Spoke (via `docs/inventory/2026-05-26-spoke-vs-rotpro.md`) e não mais contra `prototipo/screens-*.jsx`. As "fidelity findings" listadas abaixo são RECATEGORIZADAS: itens **visuais** (cores, tokens, ícones, espaçamentos) permanecem em aberto até o re-skin; itens **estruturais ou de flow** que apenas divergem do prototipo (sem divergir do que Spoke faz) FECHAM como "non-issue per ADR-0035". A inspeção da Spoke no M54 (Fase 2 do pivot) produzirá o roadmap-v2 que define o resto desta slice.
+
+**Read first (resume order):** `docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md` (the pivot foundational) → `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (when present) → `docs/08-ROADMAP-v2.md` slice 2 section (when present) → `docs/sessions/2026-05-18-12-m2-slice-2-tasks-1-10.md` (historical) → `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` (historical) → `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` (historical, do NOT resume from Task 11 — that plan is pre-pivot) → `docs/M2-SLICE-CHECKLIST.md` → `prototipo/tokens.js` + `prototipo/ui.jsx` (visual identity only).
 
 **Branch:** `feat/m2-slice-2-telas-core` — at `f0bb080` (post-session-14 will advance by one more session-end commit), 16+ commits ahead of `origin/develop`. 19/19 flutter tests passing, `flutter analyze` clean, `bun run typecheck` clean. Three of those commits are orthogonal harness work (Wave A); the slice-2 product surface is unchanged from session 13's tip `7437917`.
 
@@ -93,7 +95,9 @@ Refactors (cross-cutting DRY wins from the slice):
 **Pre-slice cleanups:**
 - [x] `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` deleted (was unreachable since Task 14). Empty parent dirs `features/home/presentation/` and `features/home/` also removed.
 
-**Prototype fidelity findings (`prototype-fidelity-checker` subagent run 2026-05-19) — address before slice-2 PR opens (Task 39):**
+**Prototype fidelity findings (`prototype-fidelity-checker` subagent run 2026-05-19):**
+
+> ⚠️ **Re-classified 2026-05-26 per ADR-0035.** The findings below were authored when `prototipo/` was treated as the canonical UI source. Under the new hierarchy: visual-token gaps (color, spacing, radii, shadows, typography, icon family) remain open until the screen is re-skinned; structural / flow / gesture / chrome divergences from `prototipo/screens-*.jsx` that do NOT also diverge from Spoke are **non-issues** and should be closed without remediation when the slice-2 wrap-up sweep reaches them. The Spoke-vs-RotPro inventory (Fase 2 of the pivot) is the authority for what to close vs keep. Until that inventory ships, leave entries as-is and do not act on structural items.
 
 Critical:
 - [x] `HomeEmptyPage` — FAB + secondary `'Como funciona?'` pill added per `prototipo/screens-a.jsx:143–154`. Closed by `50ae78b`.

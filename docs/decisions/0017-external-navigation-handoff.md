@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-05-19 (amended same day — see "Amendment History" below)
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (clone positioning + prototype as canonical UI source), ADR-0015 (M2 plan + library choices), ADR-0016 (map and tile policy), ADR-0014 (Android release signing).
+- **Related ADRs:** ADR-0010 (clone positioning), ADR-0035 (Spoke functional / prototype visual hierarchy), ADR-0015 (M2 plan + library choices), ADR-0016 (map and tile policy), ADR-0014 (Android release signing).
 
 ## Context
 
@@ -30,7 +30,7 @@ Default to Waze because (1) the client-approved prototype shows it, (2) Brazilia
 ### B — Google Maps default, Waze toggle (rejected; was the original draft)
 
 - **Pros:** single tap launches the whole route in one URL (when ≤10 stops).
-- **Cons:** **contradicts the client-approved prototype** (per ADR-0010, prototype wins); also forces a fallback path for any route >10 stops which is exactly the upper end of the spec. **Rejected.**
+- **Cons:** **contradicts the client-approved prototype's choice of default** (the prototype shows Waze as the default — under the legacy "prototype is canonical UI" stance this was a hard block; under ADR-0035 the prototype's visual identity wins but functional/preference defaults trace to Spoke + cliente, so this con is weaker today than at the time of the original decision); also forces a fallback path for any route >10 stops which is exactly the upper end of the spec. **Rejected** (decision stands — Waze default remains the choice via ADR-0017's amendment history, validated by cliente).
 
 ### C — Ask every time
 

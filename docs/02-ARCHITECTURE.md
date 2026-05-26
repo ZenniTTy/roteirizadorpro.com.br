@@ -1,6 +1,6 @@
 # 02 — Architecture
 
-> **UI source of truth:** the approved Claude Design prototype at `prototipo/` is canonical for screens, visual identity, gestures, and flows. `docs/05-SCREENS.md` mirrors the prototype's structure; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js`.
+> **Source-of-truth hierarchy (ADR-0035):** Spoke (ex-Circuit Route Planner) is canonical for behavior — screens, navigation, settings, gestures, flow ordering. The Claude Design prototype at `prototipo/` is canonical for visual identity only — tokens, colors, icon family, animations. Cliente Ueslei is final tiebreaker. `docs/05-SCREENS.md` documents the screen catalogue with both Spoke-functional and prototype-visual lineage; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js` (still the visual canonical).
 > **Current scope:** M1. Sections describing M2 endpoints, payment flow, and webhooks are **reference-only** for post-M1 work.
 
 ## Overview
