@@ -109,6 +109,30 @@ This ADR is verified by:
 - **First real dispatch (MS-A1 D4):** the subagent runs end-to-end on the Route entity flow, produces a punch list, the cliente Ueslei can read the report and validate the comparison was meaningful. If the first real dispatch reveals operational friction (slow, unclear output, false positives), file a follow-up ADR amending the workflow before MS-A2.
 - **Steady state (slice-2 close, post-MS-A8):** retrospective on parity reports across the 8 microsprints; assess whether the gate caught real gaps that the test suite + visual checker would have missed; revisit Option D (automated UIAutomator) if maintenance burden of Option C grows beyond ~30 min average per dispatch.
 
+## Amendment History
+
+### 2026-05-26 (same day, before first MS-A1 dispatch): upfront usage made the default
+
+**Trigger:** during MS-A1 brainstorming, Eduardo asked "não seria mais fácil você já simplesmente extrair o visual da Spoke no meu APP que já está conectado e depois codar ele na Roteirizador?" — pointing out that asking him UI/UX questions Spoke already answers structurally is friction, and that the inspection should be the default behavior rather than something I offer.
+
+**Original framing (rejected as too narrow):** the subagent was scoped only to D4 closing verification. The ROADMAP-v2 mention of "Spoke deep-dive per microsprint before its `/new-spec`" was advisory rather than mandated, and was being executed as an inline ad-hoc step by the controlling agent rather than via the subagent.
+
+**Amendment:** the subagent is now dispatched at **two points** in every Spoke-equivalent microsprint:
+
+1. **UPFRONT during brainstorming** — before the spec is written. Builds a structural baseline so the spec author knows what Spoke does (number of steps, what UI primitives Spoke uses, what state transitions exist) and so UI/UX questions to Eduardo are limited to (a) decisions Spoke doesn't cover, (b) directives that override Spoke, (c) one-line device-readiness confirmation. At the upfront dispatch the RotPro side of the comparison may be empty/stub because no code has been written yet — that is expected; the report focuses on Spoke's structural facts.
+2. **CLOSING at D4** — unchanged from the original ADR. Verifies the implementation matches the upfront baseline.
+
+**Why two dispatches not one:** the upfront baseline informs design choices that can't be re-done at D4 (e.g. data model shape, navigation hierarchy); the D4 dispatch verifies the implementation actually delivered those choices and catches regressions introduced during implementation. The two dispatches are roughly the same cost (~10-20 min adb session each); the upfront cost is recovered by skipping 4-5 UI/UX questions in brainstorming that would have taken 10-15 min of back-and-forth with Eduardo per microsprint.
+
+**Implementation:**
+- `.claude/agents/spoke-parity-checker.md` frontmatter `description` updated to document both dispatch points.
+- `CLAUDE.md` §"Source-of-truth hierarchy" gained a new §§"Spoke deep-dive default behavior" subsection codifying the rule for future controlling agents.
+- `docs/M2-SLICE-CHECKLIST.md` §"Pre-flight" gained a new checkbox for the upfront dispatch (the existing D4 HARD GATE checkbox in §Verification is unchanged).
+
+**Cost re-estimate post-amendment:** ~20 min × 2 dispatches × 17 microsprints = ~11 hours subagent runtime over the v2 roadmap (up from ~6 hours). Still worth the savings on Eduardo's brainstorming time (~10-15 min × 17 = ~3 hours of human time saved) plus the higher-quality specs that result from having Spoke's structural facts on the table before deciding scope.
+
+**Out of scope for this amendment:** slices 4/5/6/7 remain opt-out exactly as the original ADR specifies. The two-dispatch pattern only applies where there's a Spoke flow to compare against.
+
 ## References
 
 - ADR-0035 — Spoke functional / prototype visual hierarchy (this gate's prerequisite).
