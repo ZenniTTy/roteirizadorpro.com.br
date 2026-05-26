@@ -1,7 +1,7 @@
 # Spoke vs Roteirizador Pro — inventário comparativo
 
-> **Data:** 2026-05-26
-> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1, ambos inspecionados em sessão única 2026-05-26 com uiautomator dump + screencap. Cobertura: ver §9 (telas inspecionadas vs pendentes).
+> **Data:** 2026-05-26 (Fase B deep-pass adicionada via Maestro MCP — §10.1-10.23 cobrem o ciclo completo de uso; ver §10.22 coverage map e 13 gaps explicitamente conhecidos)
+> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1. **Fase inicial (§1-§9):** uiautomator dump + screencap bash workflow. **Fase B (§10):** Maestro MCP `inspect_screen` + `take_screenshot` + `run` via tap automation, per ADR-0037. Cobertura: ver §10.22 coverage map.
 > **Driver:** [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke é o guia funcional, prototipo é referência criativa, cliente Ueslei é desempate
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
 > **Disclaimer legal:** este inventário descreve funcionalidades, navegação e estrutura de UX para fins de paridade funcional (per [ADR-0010](../decisions/0010-clone-positioning.md) — "functional fork with original visual identity"). Não reproduz microcopy verbatim, ícones, ilustrações, paletas, ou tipografia da Spoke. Screenshots de inspeção vivem apenas em `/tmp/spoke-inspection/` e NÃO são commitados.
@@ -487,6 +487,7 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 
 - [ADR-0010](../decisions/0010-clone-positioning.md) — Functional fork positioning (cobre legalidade da inspeção)
 - [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Pivot foundational
+- [ADR-0037](../decisions/0037-maestro-mcp-for-spoke-inspection.md) — Maestro MCP como camada preferida de inspeção (usada na §10)
 - [`docs/08-ROADMAP-v2.md`](../08-ROADMAP-v2.md) — Roadmap pós-pivot (ATIVO)
 - [`docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`](../archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md) — Roadmap pré-pivot (ARQUIVADO)
 - [`docs/M2-SLICE-CHECKLIST.md`](../M2-SLICE-CHECKLIST.md) — Verification gates
@@ -494,3 +495,951 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 - `apps/mobile/lib/features/settings/presentation/settings_page.dart` — SettingsPage atual
 - `/tmp/spoke-inspection/` — screenshots + XML dumps da inspeção (não-commitados; descartáveis)
 - Spoke v3.65.1 (`com.underwood.route_optimiser`) inspecionada 2026-05-26 no Samsung M54 (RQCW401G33T) com conta Eduardo logada
+
+---
+
+## §10 — Fase B deep-pass via Maestro MCP (2026-05-26)
+
+> **Source:** `mcp__maestro__inspect_screen` / `mcp__maestro__run` no M54 (`RQCW401G33T`). Fonte preferida per ADR-0037; substitui bash + `uiautomator dump` como mecanismo primário.
+> **Escopo:** este § apenda **só fatos estruturais ainda NÃO capturados nas §§3/5/6**. Quando uma sub-seção repetiria material já em §6.x, ela é omitida ou reduzida a "ver §6.X" + delta novo.
+> **Disclaimer ADR-0010 mantido:** dumps abaixo são reduzidos pra hierarquia + IDs + bounds + content-desc. Microcopy verbatim >5 palavras consecutivas é parafraseado ou omitido.
+
+### 10.1 — Drawer aberto (delta sobre §6.2)
+
+**Confirma §6.2.** Deltas observáveis adicionados:
+
+- **Scrim para fechar drawer:** ocupa `[967,0][1080,2400]` (faixa de ~10% à direita), content-desc literal `"Fechar menu de navegação"`, clickable. Confirmação de que swipe-from-edge OU tap no scrim fecham — não há botão X no drawer.
+- **Drawer body bounds:** `[0,0][967,...]` (90% da largura). Ocupa toda a altura abaixo da status bar.
+- **Top icons bounds exatos:** Help `[695,103][808,216]` (a11y "Ajuda e suporte"), Settings `[831,103][944,216]` (a11y "Configurações"). Ambos `android.widget.Button` com View sobreposta clickable.
+- **Sample real de seções com conteúdo** (estado da Spoke do Eduardo neste momento):
+  - Seção `"Hoje"` (header `[45,700][944,748]`): 2 linhas
+    - `[23,771][944,906]` — data `"26 de mai."` + nome `"terça-feira Rota 2"` + kebab `[820,771][955,906]`
+    - `[23,929][944,1064]` — data `"26 de mai."` + nome `"terça-feira"` (texto azul = rota ativa) + kebab `[820,929][955,1064]`
+  - Divider entre seções: `[0,1021][967,1156]` (height ~135px) e `[0,1947][967,2082]` antes do CTA rodapé
+  - Seção `"Início deste mês"` (header `[45,1158][944,1206]`): 1 linha
+    - `[23,1229][944,1364]` — data `"18 de mai."` + nome `"Segunda-Feira"` + kebab
+- **Confirmação visual da rota ativa:** o nome da rota ativa é renderizado em **cor primária (azul)** dentro da lista; as outras em branco/cinza. Indicador puramente de cor, sem badge nem ícone à esquerda.
+- **CTA "Criar rota":** bounds `[46,2062][921,2197]`, height 135px (~7% da tela), filled-primary, ícone `+` à esquerda do texto.
+- **Card de perfil clickable inteiro** (`[46,261][921,441]`) — tap navega pra tela de account (não inspecionada nesta passada). Bounds dos textos: nome `[260,271][668,329]` (height 58 ≈ 18sp), email `[260,329][757,377]` (height 48 ≈ 14sp), plano `[260,383][498,431]`.
+- **Avatar do usuário:** bounds `[46,261][226,441]` (180×180px, ~9% da largura). É um ImageView circular (renderizado como View no dump — provavelmente Compose AsyncImage).
+
+**Hierarquia compactada (delta):**
+```
+nav_host (FrameLayout)
+└─ ComposeView
+   └─ View (drawer scaffold)
+      ├─ View clickable a11y="Fechar menu de navegação" — bounds [967,0][1080,2400]  (scrim)
+      └─ View — bounds [0,0][967,2400]  (drawer body, 90% width)
+         ├─ Header — bounds [23,103][944,632]
+         │  ├─ Help Button [695,103][808,216]
+         │  ├─ Settings Button [831,103][944,216]
+         │  ├─ User card clickable [46,261][921,441]
+         │  └─ Assinar Button [46,469][921,604]
+         ├─ Section "Hoje" [45,700][944,748]
+         │  ├─ Route row [23,771][944,906] + kebab [820,771][955,906]
+         │  └─ Route row [23,929][944,1064] + kebab [820,929][955,1064]
+         ├─ Divider [0,1021][967,1156]
+         ├─ Section "Início deste mês" [45,1158][944,1206]
+         │  └─ Route row [23,1229][944,1364] + kebab
+         ├─ Divider [0,1947][967,2082]
+         └─ CTA "Criar rota" [46,2062][921,2197]
+```
+
+**Implementação RotPro (sugestão):**
+- `Scaffold` + `Drawer` (90% width via `Drawer(width: MediaQuery.of(context).size.width * 0.9)`)
+- Scrim é automático do Material Drawer
+- Body: `Column` com header (user card + Assinar button), `Expanded` com `ListView` agrupado por seção (Hoje / Início deste mês), `Container` fixed-bottom com `FilledButton.icon(Icons.add, "Criar rota")`
+- Cor primária pra texto da rota ativa via `selectedItemColor` em RouteListTile
+- Help + Settings icons no top-right via `Row` no header (não AppBar, drawer não tem AppBar)
+
+### 10.2 — Popup 3-dot de linha de rota (delta sobre §6.2)
+
+**Confirma §6.2** ("Definir nome e data" / "Duplicar rota" / "Excluir rota"). Deltas observáveis:
+
+- **Tipo:** `PopupMenu` / `DropdownMenu` âncorado, NÃO bottom sheet.
+- **Bounds do container:** `[447,895][944,1300]` quando ancorado ao kebab da primeira rota (`[820,771][955,906]`). Anchor right-aligned: popup se abre à esquerda+abaixo do kebab.
+- **Width:** 497px (~46% da tela).
+- **3 items idênticos em altura (135px cada), sem ícone à esquerda, sem separador, sem cor destrutiva diferenciada pra "Excluir rota"** (não há red foreground).
+- **Hierarquia:** ScrollView com 3 View clickable. Cada item: View clickable filho + TextView interno.
+- **Fechamento:** tap fora (sem scrim visível, comportamento padrão Material PopupMenu).
+- **Confirmação observada:** §6.2 diz "sem confirm dialog observado (verificar com rota não-vazia)". **AINDA NÃO TESTADO** — não tappei "Excluir rota" nesta passada (destrutivo; só temos 3 rotas reais). Gap mantido pra próxima inspeção.
+
+**Implementação RotPro:**
+- `PopupMenuButton<RouteAction>` ancorado no kebab Icon, com `PopupMenuItem` por opção.
+- Sem `PopupMenuDivider`, sem leading icon, sem `TextStyle(color: Colors.red)` em "Excluir".
+
+### 10.3 — Form "Editar rota" (parametrização do wizard — confirma §3.2 item 7b)
+
+**Acesso:** drawer → 3-dot de qualquer rota → "Definir nome e data" (per §10.2). Open via item topo do popup.
+
+**Estrutura observada (full dump):**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar | `[0,92][1080,250]` | Background azul-escuro full-width |
+| Botão close (X) | `[12,105][147,240]` | a11y `"Voltar"` — RENDERIZADO COMO X, NÃO BACK-ARROW. §6.2 diz "back-arrow no top-left" mas o **edit usa X close** (diferença vs Create) |
+| Title text | `[45,295][331,371]` | `"Editar rota"` (não "Criar rota") |
+| Label "Nome da rota (opcional)" | `[45,439][455,487]` | Mesma label do create |
+| EditText nome | `[79,522][1001,657]` | **Pré-populado com o nome atual** ("terça-feira Rota 2"). Diferença vs create onde é placeholder cinza |
+| Container EditText | `[45,510][1035,668]` | clickable wrapper |
+| Label "Selecione a data" | `[45,736][327,784]` | Mesma label do create |
+| Container radio rows | `[45,807][1035,1191]` | Apenas 2 rows visíveis no scroll inicial: "Hoje" + "Amanhã" (sem "Escolher data" em container separado) |
+| Row "Hoje" | `[45,807][1035,965]` | clickable, com calendar icon, texto + data inline `"ter. 26 de mai."`, radio à direita SELECIONADO (azul) |
+| Row "Amanhã" | `[45,999][1035,1157]` | clickable, mesma estrutura, radio não-selecionado |
+| Row "Escolher data" | `[45,1191][1035,1349]` | container separado abaixo (não dentro do mesmo group), com calendar icon + chevron-right (não radio) |
+| CTA primary "Salvar alterações" | `[45,2062][1035,2220]` | **DIFERE do create que é "Confirmar"** |
+
+**Diferenças confirmadas vs Wizard "Criar rota" (§6.2):**
+- Topbar usa **X close** (não back-arrow) — divergência com §6.2 que dizia "back-arrow no top-left"
+- Title: "Editar rota" vs "Criar rota"
+- EditText pré-populado com nome atual vs placeholder auto-gerado
+- **Sem "Zona C" (Opções de início rápido / Reutilizar paradas)** — confirmado per §6.2
+- CTA label: "Salvar alterações" vs "Confirmar"
+
+**Implementação RotPro:**
+- Reuse wizard widget parametrizado por `Route?` (null=create, non-null=edit)
+- Conditional: render X-button se `route != null` (back-arrow se null), title via switch, EditText `controller.text = route?.name ?? ""` (sem hint quando edit), Zona C `Visibility(visible: route == null, ...)`, CTA label via switch.
+
+### 10.4 — Tela "Detalhes da rota" (ACHADO NOVO — NÃO está em §6.x)
+
+**🚨 Gap crítico do inventário existente.** Nenhuma das seções §3/§5/§6 mencionou essa tela. Comportamento observado:
+
+**Trigger:** ao tocar em uma **rota com paradas** no drawer pela primeira vez (não toda vez? requer verificação — pode ser comportamento "uma vez por sessão" ou "até salvar como padrão"). O checkbox `"Salvar como padrão"` na parte de baixo da tela (default CHECKED) sugere que após primeira config, próximas entradas pulam esta tela.
+
+**Estrutura completa (full-screen com ScrollView):**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar com close (X) | `[12,105][147,240]` | a11y `"Voltar"` |
+| Title `"Detalhes da rota"` | `[45,295][497,371]` | h1 |
+| **Seção "Partida"** (header `[45,439][166,487]`) | | |
+| Row "Usar local atual" | `[45,510][1035,668]` | clickable + GPS icon + chevron-right. Acessa picker de starting point |
+| Row "Iniciar agora mesmo 18:53" | `[45,702][1035,860]` | clickable + clock icon + time inline + chevron-right. Acessa time picker |
+| **Seção "Destino"** (header `[45,928][175,976]`) | | |
+| Row "Ida e volta" (subtitle "Viagem de ida e volta a partir do local atual") | `[45,999][1035,1157]` | clickable + return-icon + chevron-right. Acessa destination picker |
+| Row "Definir horário de término" (placeholder cinza) | `[45,1191][1035,1349]` | clickable + clock icon + chevron-right |
+| **Seção "Pausa"** (header `[45,1417][146,1465]`) | | |
+| Row "Adicionar pausa" (placeholder cinza) | `[45,1488][1035,1646]` | clickable + coffee-cup icon + chevron-right |
+| **CTA primary "Concluído"** | `[45,1959][1035,2117]` | Filled-primary, full-width, height 158 |
+| Checkbox `"Salvar como padrão"` | `[244,2124][794,2259]` | CHECKED by default |
+
+**Implicações pro RotPro:**
+
+1. **Conceito de "configurações da rota" separadas do conteúdo (lista de paradas):** Spoke separa "o que vou entregar" (paradas) de "como vou rodar essa rota hoje" (partida, destino, pausa). RotPro não tem nada equivalente — paradas vão direto pro sheet.
+2. **Settings persistidas com "Salvar como padrão":** sugere que os defaults vivem em user prefs (SharedPrefsAsync), e que existe uma forma de re-acessar/editar isso depois (provavelmente via 3-dot kebab da tela ativa — verificar quando chegar na §6.6).
+3. **Defaults observados nesta primeira config:**
+   - Partida = "Usar local atual" + "Iniciar agora mesmo" (hora atual)
+   - Destino = "Ida e volta" (default!), com subtitle explicando
+   - Pausa = nenhuma
+4. **Slice 2 implication:** essa tela pode ser **DEFERRED** (não bloqueia primeira versão da rota ativa — RotPro pode pular essa config até slice 3+). Ou pode ser **incluída como wizard simplificado** com defaults sensatos. **Decisão pra spec slice 2:** Eduardo + cliente Ueslei devem decidir se replicam essa tela ou se RotPro vai direto pro sheet com paradas (mais alinhado com original RotPro UX).
+
+**Pendente nesta passada:** comportamento das 5 sub-telas que abrem ao tocar nas rows (pickers de partida/destino/pausa) — gap remanescente até slice 2 ou slice 3 decidir replicar ou não esta tela.
+
+### 10.5 — Tela ativa de rota COM 4 paradas reais — sheet **AUTO-EXPANDED** (MEGA achado vs §6.2bis)
+
+**🚨 §6.2bis estava parcialmente errada.** Quando se entra numa rota com paradas (passando pela §10.4 Detalhes da rota), o sheet abre **AUTO-EXPANDED** (`stepList` rid em y=160-2040), NÃO collapsed. O comportamento de §6.2bis ("collapsed por default com bottom bar de search visível") é o estado da rota **VAZIA** ou de rota que o usuário arrastou pra baixo manualmente. Esta diferença muda a UX implementation.
+
+**Layout observado (sheet expanded com conteúdo):**
+
+```
+[0-160]    Status bar (system)
+[160-547]  stepListHeader (drag area + bottom bar + título + drag handle)
+[160-547]
+  [194-329]  Linha superior: hamburger [45,228][113,296] + EditText [260,195][674,330] + OCR + Voice + Kebab
+  [363-393]  "4 paradas" (counter, h6)
+  [393-528]  "terça-feira" (clickable! provavelmente abre edit)
+  [478-613]  Possível drag-handle zone (parte branca observada)
+[160-2040] stepList (main scrollable content)
+  [544-656]  Section header "Configuração de rota"
+  [656-830]  Row "Iniciar no local atual" + subtitle "Use a posição do GPS ao otimizar" + clock-icon-with-time "18:55" + chevron-right (home icon `[967,690][1046,769]`)
+  [830-1004] Row "Ida e volta" + subtitle "Retorne ao ponto de partida" + flag icon
+  [1004-1178] Row "Sem pausa" + subtitle "Toque para agendar uma pausa" + coffee icon
+  [1170-1293] Section header "Paradas"
+  [1293-1467] Stop 01 "Rua Franca" + subtitle "Subsetor Leste, 2 (L-2), Ribeirão Preto, 14090-250" + status icon (blue dot)
+  [1467-1641] Stop 02 "Rua Iguape" + subtitle "Jardim Paulistano, Ribeirão Preto"
+  [1641-1815] Stop 03 "Rua José da Silva" + subtitle "Jardim Paulista, Ribeirão Preto"
+  [1815-1989] Stop 04 "Rua Piracicaba" + subtitle "Jardim Paulista, Ribeirão Preto"
+[2040-2400] Bottom CTA area
+  [2085-2220] CTA primary FULL-WIDTH "Otimizar rota" (com ícone circular-arrows refresh)
+[2265-2400] Android nav bar (system)
+```
+
+**Map area:** `[0,0][1080,1245]` (TextureView "Mapa do Google") — visible APENAS na parte superior atrás do drag-handle area do sheet. Os 4 markers (`a11y="Marcador do mapa"`) estão nos bounds:
+- Marker 1: `[522,798][584,882]` (centro do mapa)
+- Marker 2: `[142,633][204,717]`
+- Marker 3: `[619,607][681,691]`
+- Marker 4: `[876,350][938,434]`
+
+**Bottom bar / topbar do sheet (zona fixa, dentro do `stepListHeader`):**
+- Hamburger Menu [45,228][113,296] a11y "Menu" — sempre visível
+- Search EditText [260,195][674,330] — placeholder cinza "Toque para adicionar" (truncado)
+- OCR button [720,228][788,296] a11y "Ler etiqueta de endereço"
+- Voice button [833,228][901,296] a11y "Dite o endereço"
+- Kebab [968,228][1036,296] a11y "Menu" (3-dot kebab da rota ativa — abre menu §6.4)
+
+**Stop card structure (each):**
+- Número badge à esquerda em fonte tabular: "01" / "02" / "03" / "04" — bounds ~85x48px
+- Title "Rua X" (h6, primary text)
+- Subtitle endereço completo (body2, muted)
+- Status icon à direita: blue filled circle (estado "pending")
+- Container clickable inteiro — tap deve abrir detalhe da parada
+- Height: ~174px cada
+
+**Configuração de rota — section dentro do sheet:**
+Os 3 rows ("Iniciar no local atual", "Ida e volta", "Sem pausa") são **reflexo do que foi configurado em §10.4 Detalhes da rota**. Cada row é clickable e provavelmente re-abre a sub-tela respectiva pra editar.
+- Row "Iniciar no local atual" tem **timestamp "18:55"** à esquerda (quando foi setado), home-icon à direita
+- Row "Ida e volta" tem **flag icon** à direita (representando destino)
+- Row "Sem pausa" tem **coffee-cup icon** à direita
+
+**CTA "Otimizar rota":**
+- Bounds `[45,2085][1035,2220]` (FULL WIDTH, height 135px, ~7% da tela)
+- Filled primary (azul)
+- Ícone circular-arrows à esquerda + label "Otimizar rota"
+- **Sempre visível mesmo com sheet expanded** — fica fixo no rodapé.
+
+**Implicações pro RotPro (sliding contextual):**
+
+1. **Sheet auto-expand on enter route with stops:** quando navega pra rota com >0 paradas, sheet deve abrir EXPANDIDO, não collapsed. RotPro atual (`apps/mobile/lib/features/...`) precisa replicar isso.
+2. **Section "Configuração de rota" dentro do sheet:** RotPro precisa modelar `RouteConfig` (start, destination, pause) como entidade separada de `Stop`, com UI consistente entre §10.4 (full-screen wizard) e §10.5 (inline rows no sheet).
+3. **Sticky bottom CTA "Otimizar rota":** sempre visível, mesmo quando sheet rolando. Implementação: `Stack` com `Positioned(bottom: 0)` ou `Scaffold(bottomNavigationBar:)`.
+4. **Counter "N paradas":** aparece no header do sheet, abaixo do bottom-bar.
+5. **Stop card clickable inteiro:** sem leading drag-handle visível no estado collapsed (drag pra reorder pode ser long-press? não confirmado nesta passada).
+
+**Gap pendente:**
+- Behavior de tap no stop card (abre detalhe? edit?) — próximo
+- Long-press em stop card (revela drag-handle reorder?) — próximo
+- Swipe horizontal em stop card (delete via swipe?) — próximo
+- Comportamento de "terça-feira" (nome da rota clickable no header) — próximo
+- Estado do sheet **collapsed** (manual drag pra baixo) com rota cheia — próximo
+- Tap no kebab `[968,228][1036,296]` da rota ativa (deveria abrir o menu §6.4) — confirmar
+
+### 10.6 — "Editar parada" (NOVO — não está em §6.x; combina detalhe + edit)
+
+**🚨 §6.3 estava errada.** Inventário existente dizia "Adicionar parada (3 métodos)" mas nada sobre **detalhe/edit de parada existente**. Spoke **NÃO tem tela separada de "detalhe da parada"**; tap no stop card abre direto **"Editar parada"** (mesma tela combina visualização + edição inline). RotPro atual tem `/home/stops/:id` (detail) + `/home/stops/:id/edit` (edit) como rotas separadas — Spoke colapsa as duas.
+
+**Trigger:** tap em qualquer linha de parada no sheet expanded (§10.5).
+
+**Estrutura completa (full-screen ScrollView):**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar Help (?) | `[1,105][136,240]` | a11y "Ajuda e suporte" — esquerda |
+| Title centered | `[402,142][679,200]` | `"Editar parada"` |
+| CTA "Concluído" | `[805,104][1035,239]` | TextView clickable PRIMARY (azul) à direita — substitui back-arrow. Save+pop em 1 tap |
+| **Linha de status (top do form):** | | |
+| Color chip clickable | `[45,267][219,402]` | `"Azul"` — abre picker de cor da parada (provavelmente 5-6 cores pra agrupar visualmente) |
+| Status chip clickable | `[242,267][511,402]` | `"Pendente"` — abre picker de status (Pendente/Entregue/Falhou + razão) |
+| **Card de endereço (read-mostly):** | | |
+| Title h6 | `[45,419][354,495]` | `"Rua Franca"` |
+| Subtitle | `[45,495][1035,621]` | Endereço completo `"Subsetor Leste, 2 (L-2), Ribeirão Preto, 14090-250"` |
+| Btn "Instruções de acesso" | `[45,638][547,773]` | Outlined-style com + icon, expand-to-add complemento de endereço |
+| **Notes section:** | | |
+| EditText "Adicionar notas" | `[158,811][877,946]` | Multi-line, ícone notes à esquerda + ícone camera+ à direita (anexar foto) |
+| Camera button | `[922,804][1080,962]` | clickable, separado do textfield |
+| **Settings rows (lista):** | | |
+| Row "Localizador de pacotes" | `[0,996][1080,1132]` | Valor "Não definido" à direita — abre picker |
+| Row "Pacotes" (counter) | `[0,1132][1080,1268]` | **Stepper** com — / 1 / + (default 1). Layout: label esquerda, stepper direita |
+| Row "Ordem" (segmented) | `[0,1268][1080,1404]` | **3-button segmented control:** "Primeira" / **"Automática"** (selected, azul) / "Última". Bounds dos segments: `[401,1269][607,1404]`, `[618,1269][840,1404]`, `[852,1269][1025,1404]` |
+| Row "Tipo" (segmented) | `[0,1404][1080,1540]` | **2-button segmented control:** **"Entrega"** (selected, azul) / "Coleta". Bounds: `[544,1405][790,1540]`, `[801,1405][1024,1540]` |
+| Row "Horário de chegada" | `[0,1540][1080,1676]` | Valor "Qualquer momento" à direita — abre time picker |
+| Row "Tempo estimado na parada" | `[0,1676][1080,1812]` | Valor "Padrão (1 min)" à direita — abre picker. **NOTA:** o default vem do setting global "Tempo médio na parada" (§3.3 item 16) |
+| **Bottom actions list (destrutivas):** | | |
+| Row "Mudar endereço" | `[0,1864][1080,1999]` | Search-icon + chevron right — abre re-geocode flow |
+| Row "Duplicar parada" | `[0,2011][1080,2146]` | Plus-icon + chevron right |
+| Row "Remover parada" | `[0,2158][1080,2293]` | Trash-icon + **TEXTO VERMELHO** (única ação destrutiva com cor) + chevron right. **Confirma:** Spoke usa cor pra destrutivo aqui, não no popup §10.2 |
+
+**Implicações pro RotPro:**
+
+1. **Tela única "Editar parada"** — RotPro atual divide `/home/stops/:id` (detail) + `/home/stops/:id/edit` (edit). Pro white-label, colapsar em uma só.
+2. **Status workflow inline:** "Pendente" / "Entregue" / "Falhou" é um chip clickable no topo da tela, NÃO bottom CTA. Quando usuário marca "Entregue" ou "Falhou", esta MESMA tela cuida do status update — não há tela separada de "confirmação de entrega" (provavelmente abre sheet com motivo no caso "Falhou").
+3. **Color tagging:** Spoke permite atribuir cor por parada (azul, verde, etc.) — pra agrupar visualmente no mapa. Feature nova pra RotPro.
+4. **Segmented controls** pra Ordem (Primeira/Auto/Última) e Tipo (Entrega/Coleta) — Spoke prefere segmented sobre dropdown/radio quando há ≤3 opções.
+5. **Stepper widget** pra contagem de pacotes — não TextField.
+6. **Save semantics:** CTA "Concluído" no topo direito (não bottom CTA). É TextView clickable, estilo iOS-ish. RotPro pode usar `TextButton("Salvar")` no AppBar actions.
+7. **Tempo estimado por parada:** lê do setting global como default, override por parada. Modela como `int? customStopDurationMin` em `Stop`, fallback pro setting.
+8. **Mudar endereço:** ação separada — não é só editar text field. Provavelmente re-abre geocoding/picker pra escolher novo lat/lng. Implementação: navega pro mesmo flow de §6.3 (Adicionar parada) em modo "replace existing".
+
+**Hierarquia compactada:**
+```
+ScrollView [0,250][1080,2265]
+└─ View
+   ├─ Status row [267-402]
+   │  ├─ Color chip "Azul" [45-219]
+   │  └─ Status chip "Pendente" [242-511]
+   ├─ Address card [419-773]
+   │  ├─ Title "Rua Franca" [419-495]
+   │  ├─ Subtitle "Subsetor Leste..." [495-621]
+   │  └─ Btn "Instruções de acesso" [638-773]
+   ├─ Notes [804-962] (EditText + camera button)
+   ├─ Settings rows [996-1812] (6 rows)
+   └─ Actions rows [1858-2265] (3 rows: Mudar / Duplicar / Remover [RED])
+```
+
+**Pendente nesta passada:**
+- Tap em "Cor: Azul" chip — abre picker de cores (provavelmente 5-6 cores pra agrupar visualmente)
+- Tap em "Instruções de acesso" — abre input multi-line de complemento?
+- Tap em "Remover parada" — abre confirm dialog ou remove imediato? (destrutivo; pular nesta passada)
+- Tap em "Mudar endereço" — re-abre fluxo de adicionar?
+
+### 10.6.1 — 🚨 CORREÇÃO crítica: chips de topo NÃO são status de entrega
+
+**Investigação inline 2026-05-26 com Eduardo:** tap em ambos os chips de topo NÃO abre picker de status de entrega como inicialmente assumi. Comportamento observado:
+
+- **Chip 1 "● Azul"** — color tag picker (cor visual pra agrupar paradas no mapa)
+- **Chip 2 "ID Pendente"** — abre a tela Help/Setting **"Formato do ID de parada"** (mesma tela que existe no Settings global per §3.3 item 19). O label "Pendente" aqui significa **"esta parada ainda não tem ID numérico atribuído"**, NÃO status de entrega "pendente".
+
+A tela aberta tem:
+- Título "Formato do ID de parada" + visual preview (3 caixas A1/A2/A3 conectadas por linha de rota + números 1/2/3)
+- 2 radio groups:
+  - **"Formato do ID de parada":** Moderno (selected, com badge formato A1/A2/A3) | Clássico
+  - **"Atribuir IDs às paradas":** Depois da otimização da rota (selected) | Conforme as paradas são adicionadas
+- Texto explicativo: "O formato moderno ajuda você a não confundir o número da parada com o ID da parada" + "Os IDs são atribuídos às paradas depois da otimização e da confirmação da rota."
+
+**Implicação crítica pro RotPro:**
+1. **STATUS de entrega (Pendente/Entregue/Falhou) NÃO vive em "Editar parada"** — deve estar em outro lugar do app, provavelmente:
+   - Como ação direta na lista de paradas do sheet (long-press? swipe? botão dedicado?)
+   - Em tela de "Navegação ativa" / "Marcar entregue" que ainda não inspecionamos
+   - Em modal/sheet específico durante o flow de delivery
+2. **Conceito "ID da parada" é diferente de "número da parada":**
+   - **Número** (#1, #2...): ordem visual na lista, sempre sequencial
+   - **ID** (A1, A2... no formato Moderno OU 1, 2... no Clássico): identificador único que respeita ordem de otimização, usado para etiquetar pacotes físicos no carregamento do veículo
+   - Spoke tem essa distinção pra ajudar entregador a pegar pacotes na ordem certa após otimização
+3. **Gap remanescente CRÍTICO:** mapear onde fica o controle de status de entrega. Próximo passo: voltar pro sheet, dar long-press num stop card pra ver se aparece reorder OU swipe horizontal pra ver se aparece "Marcar entregue".
+
+**Para o RotPro:** modela `Stop` com 3 campos separados:
+- `int positionInRoute` (ordem visual, 1..N, sempre sequencial)
+- `String? deliveryId` (formato "A1" Moderno ou "1" Clássico, atribuído pós-otimização, nullable até `route.optimizedAt != null`)
+- `StopDeliveryStatus status` (**pending | delivered | failed | pickedUp** — ver §10.6.2 abaixo, "Picked up" é status terceiro confirmado em docs Spoke), com `failureReason: String?` opcional
+
+### 10.6.2 — Cross-reference docs oficiais Spoke (best practice: docs > inferência)
+
+**Fonte:** WebSearch + WebFetch em sites oficiais ([spoke.com/route-planner](https://spoke.com/route-planner), [help.spoke.com](https://help.spoke.com), [screensdesign.com showcase](https://screensdesign.com/showcase/circuit-route-planner), Google Play / App Store listings). help.spoke.com bloqueou WebFetch (403), mas snippets agregados via search engines deram cobertura suficiente.
+
+#### Confirmações que resolvem ambiguidades anteriores
+
+1. **Status de entrega tem TRÊS estados (não dois):** Spoke confirma `Delivered`, `Failed`, **`Picked up`** (este último crítico — não tínhamos mapeado). Aplicação no RotPro: enum `StopDeliveryStatus { pending, delivered, failed, pickedUp }`. Slice 2 implementa os 4; slice 3 backend persiste timestamps `deliveredAt` / `failedAt` / `pickedUpAt` (nullable).
+
+2. **Localização do controle de status:** docs dizem "When you arrive at the stop, you mark the stop as Delivered/Failed" + "Add, remove, or reorder stops in real time, even while on the road, with hands-free voice input". Implicação: existe **uma tela/fluxo "navegação ativa"** dedicada que mostra controles de status. **Gap:** ainda não inspecionado. Próximo passo Maestro: tap em uma parada da lista no sheet (não no card inteiro como tentei, mas via **long-press OU swipe horizontal**) pra revelar status actions, OU verificar se há um botão "Iniciar rota" / "Start route" que entra em modo navegação.
+
+3. **Failure reasons:** confirmado "you can add a reason from a pre-set list, or add your own". Implicação: combo `Picker<FailureReason>` com lista hardcoded + opção `OUTRO` que abre TextField. Lista hardcoded a confirmar quando chegarmos no picker — comuns em apps de delivery: "Cliente ausente", "Endereço incorreto", "Endereço não encontrado", "Recusou entrega", "Cancelado por dispatcher".
+
+4. **Package ID confirmado:** quote oficial — "Package ID" allows "unique ID to each stop" for "destination matching" no carregamento do veículo. **Confirma minha hipótese §10.6.1.** Formato Moderno (A1/A2/A3) vs Clássico (1/2/3) é só preferência visual; conceito é o mesmo. Atribuído **POST-optimization** ("após otimização e confirmação da rota" per texto inline na própria tela).
+
+5. **Color labels:** confirmado uso oficial — "visually group or prioritize parts of a long route list". Lista completa de cores NÃO documentada oficialmente. Capturado parcial via Maestro: **Azul, Verde-azulado, Roxo, Rosa, Laranja** (5 cores observadas; pode haver mais abaixo no scroll do picker — picker fechou antes de eu completar). RotPro slice 2: começar com essas 5 + scroll picker; ampliar se observação direta revelar mais.
+
+6. **"Load vehicle" feature:** docs mencionam recurso de **"map packages to specific vehicle locations"** — usuário marca onde fisicamente o pacote está no carro (frente, atrás, esquerda, etc.) pra facilitar acesso quando chegar no stop. Este é o conteúdo provável do campo **"Localizador de pacotes"** em §10.6 (que mostra "Não definido" por default). **Gap pendente:** inspecionar tap em "Localizador de pacotes" pra ver UI de location picker. Pode ser uma grade visual representando o veículo.
+
+7. **Plan / Paywall:** docs confirmam "Single monthly plan presentation with 7-day free trial" + "optimize up to 500 stops per route" no plano pago. RotPro slice 4 (Stripe Pix) deve respeitar limite similar; pricing já decidido em ADR-0030 (R$ 25,90 / 30 dias).
+
+#### Mudança de prática operacional (aplica a toda Fase B daqui pra frente)
+
+**Boa prática modernísima implementada agora (per Eduardo, 2026-05-26):**
+
+> Quando o agente encontrar comportamento ambíguo ou inesperado no Spoke (ex: tap abre tela inesperada, label parece ter dupla função, picker tem opções não-óbvias), **PRIMEIRO consultar docs oficiais** (`spoke.com`, `help.spoke.com`, `getcircuit.com`, App Store / Play Store listings, blog) via WebSearch/WebFetch. **DEPOIS** voltar pra Maestro pra validar empiricamente o entendimento construído pelos docs. Isso evita gastar ciclos tentando inferir comportamento via dump XML.
+
+**Hard rule:** ADR-0010 boundary permanece — docs oficiais são consultados pra **entender funcionalidade**, não pra copiar microcopy. Qualquer copy citada nos docs Spoke entra no inventário como **paraphrase neutra** (mesma regra do dump XML).
+
+A próxima iteração do `spoke-parity-checker` subagent prompt deve codificar essa regra no Step 4 (Compare). Adicionar como TODO em ADR-0037 amendment se a Fase B continuar mostrando valor.
+
+### 10.7 — Stop card: long-press + swipe NEGATIVOS (gap fechado)
+
+Testes empíricos executados via Maestro MCP em 2026-05-26 (commit `00b99f9` adiante):
+- `longPressOn` em centro do stop card 01 → **NADA acontece.** Sem context menu, sem reorder handle revelado, sem actions ocultas.
+- `swipe right` (start `200,1180` end `880,1180`) → **NADA acontece.** Card fica imóvel; UI inalterada.
+- `swipe left` (start `880,1180` end `200,1180`) → **NADA acontece.** Mesmo resultado.
+
+**Conclusão definitiva:** Spoke **NÃO usa swipe-to-action nem long-press no stop card do sheet expanded**. **Tap único é a única gesture suportada**, e ela navega pra "Editar parada" (§10.6). Implicação: o **controle de status de entrega** está em **outro estado da app** — confirmado adiante na §10.8 (estado pós-otimização) e §10.9 (modo run/delivery, ainda a inspecionar).
+
+### 10.8 — Modal FTUE "IDs ajustados conforme a ordem de rota" (first-time use)
+
+**🚨 Tela nova não mapeada antes.** Trigger: tap em CTA "Otimizar rota" do sheet (§10.5) **pela primeira vez na conta**. Provavelmente skipável após primeira vez (FTUE).
+
+**Estrutura observada:**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Modal container (full-screen overlay sobre mapa) | `[0,92][1080,2265]` | Dim background, modal centered |
+| Hero illustration (3 cartões ID A1/A2/A3 com setas curvas) | `[143,372][937,828]` | Imagem decorativa demonstrando reordering |
+| Title h4 | `[113,974][967,1124]` | `"IDs ajustados conforme a ordem de rota"` |
+| Body text 2-paragraph | `[113,1169][967,1635]` | Explica que IDs mudam durante planejamento + ficam permanentes pós-confirmação. ~3 linhas cada parágrafo |
+| CTA primary "Entendi" | `[113,1703][967,1838]` | Filled blue, height 135 |
+| CTA secondary "Configurar..." | `[113,1861][967,1996]` | Text-style, mesma altura, abre setting de ID format (§3.3 item 19) |
+
+**Implicação pro RotPro:** se replicarmos, modal FTUE precisa de flag `bool hasSeenOptimizeFtue` em SharedPrefsAsync; mostrar uma vez por conta. Slice 2: deferred (não bloqueia funcionalidade); slice 3+: implementar.
+
+### 10.9 — Estado pós-otimização (PRE-CONFIRM) — 🚨 ENTERAMENTE NOVO
+
+**Trigger:** tap "Entendi" no modal §10.8 (ou no fluxo subsequente após primeira-vez).
+
+**🚨 Estado é estruturalmente MUITO diferente do pré-otimização (§10.5).** Mudanças observáveis:
+
+#### Mudanças no MAPA
+- Mapa **agora ocupa metade superior da tela** (não só topo-strip atrás do sheet)
+- **Rota azul desenhada** conectando os 4 markers (Google Directions polyline)
+- **Markers numerados 1/2/3/4** (não mais "Marcador do mapa" genérico)
+- Mapa **centralizou + auto-zoom** na bounding box da rota
+- **Floating button NOVO** no canto direito do mapa (provavelmente "fullscreen toggle" — ícone que parece mapa aberto)
+- Layer toggle continua
+
+#### Mudanças no SHEET
+- Sheet posição: mid (não full-expanded, não collapsed)
+- **NOVA linha summary acima do título:** `"14 min • 4 paradas • 3,3 km"` (tempo total + N paradas + distância total)
+- Section "Configuração de rota" **REDUZIDA:** "Iniciar no local atual" + "Ida e volta" foram **fundidos numa única row "Ponto de partida"** com subtitle "Posição do GPS usada ao otimizar" + timestamp "19:16" + home icon. "Sem pausa" continua como linha separada.
+- Section "Paradas" agora lista stops na **ORDEM OTIMIZADA** (Rua José da Silva agora é #01, antes era Rua Franca). Cada stop ganhou **chip "A1" / "A2" / "A3" / "A4"** à direita (formato Moderno do package ID).
+
+#### NOVOS CTAs no rodapé (3 elementos em row, NÃO mais 1 CTA full-width)
+| Elemento | Estilo | Função inferida |
+|---|---|---|
+| **"14min"** | TextView verde, font grande | Indicador visual de tempo total (não-clickable? tap revela detalhes?) |
+| **"Refinar"** | Text/outline button | Re-roda otimização (talvez com opções pra ajustar configurações) |
+| **"Confirmar"** | Filled primary, blue | Lock-in IDs + transita pra modo "running route" / "delivery mode" |
+
+**Implicações enormes pro RotPro:**
+1. **Estado "Pre-confirm post-optimize"** é uma fase distinta da rota com UI dedicada. Modela como `RouteStatus { draft, optimizing, optimized_uncommitted, running, completed }`.
+2. **3 CTAs especializados** substituem o único "Otimizar rota" do estado draft.
+3. **Totals (tempo + paradas + km)** vêm do solver backend e devem ser persistidas no Route.
+4. **Package IDs (A1..AN)** ficam visíveis no chip à direita de cada stop card.
+5. **Configuração de rota "colapsada"** sugere que pós-otimização a UI simplifica detalhes (já foram aplicados na otimização).
+6. **Tap "Confirmar"** é o gateway pro modo de delivery (onde provavelmente está finalmente o controle de status — vamos validar §10.10).
+
+**Pendente:**
+- Tap "Refinar" — que opções abrem? (gap; pode ser inspecionado depois)
+- Tap "14min" (text verde) — clickable? Abre breakdown?
+- Tap "Confirmar" — destino próxima inspeção (§10.10)
+
+### 10.10 — Modal FTUE "Os IDs serão definitivos" (confirm lock dialog)
+
+**Trigger:** tap em CTA "Confirmar" do estado pós-optimize (§10.9) **pela primeira vez na conta**.
+
+**Estrutura:**
+- Hero illustration: cadeado + 3 ID badges (A1, K8, D6) — IDs misturados sugerindo que após confirm, IDs originais ficam mesmo se novas paradas forem adicionadas com IDs diferentes
+- Title: `"Os IDs serão definitivos"`
+- Body text: explica que após confirmação, IDs não mudam mais mesmo com alterações
+- CTA primary: **"Continuar"** (filled blue)
+- CTA secondary: **"Cancelar"** (text style)
+
+**Implicação:** Confirmar é uma ação **semi-destrutiva** (não destrutiva mas irreversível em uma dimensão). Models deve ter `Route.confirmedAt: DateTime?` — antes nulo, depois fixo no momento do confirm.
+
+### 10.11 — Modal FTUE "Tudo pronto para carregar o veículo?" (load vehicle FTUE)
+
+**Trigger:** tap "Continuar" no dialog §10.10.
+
+**Conteúdo:**
+- Title: `"Tudo pronto para carregar o veículo?"`
+- Body: explica que Spoke ajuda a carregar o veículo organizando pacotes por ordem de entrega
+- CTA primary: **"Continuar"** (filled blue) — abre flow Load vehicle (§10.6 "Localizador de pacotes" referencia esta feature; full flow não inspecionado)
+- CTA secondary: **"Pular"** (text style, blue) — skipa Load vehicle e vai direto pro estado ready-to-run
+
+**Implicação:** Load vehicle é feature **opt-in por rota**, com FTUE perguntando se quer usar. Pra RotPro slice 2: feature OUT-OF-SCOPE (complexidade desnecessária pra MVP); slice 3+: implementar depois de ter Stop + Package model robustos.
+
+### 10.12 — Estado "Ready-to-Run" (pós-confirm + skip Load vehicle)
+
+**Trigger:** tap "Pular" no FTUE §10.11.
+
+**Diferenças vs §10.9 (pre-confirm post-optimize):**
+- Sheet ganha **2 botões em row** logo abaixo do título da rota:
+  - **`⫷ "Compartilhar rota em tempo real"`** (share icon + label, outline button) — funcionalidade nova: live tracking pra cliente acompanhar entrega
+  - **`🚛 "Carregar veí..."`** (truck icon + label truncado "veículo", outline button) — re-entry pro Load vehicle flow se usuário pulou no FTUE
+- CTAs bottom mudam:
+  - **"14min"** verde (mantém)
+  - **"Editar"** (outline) — substitui "Refinar"; permite editar rota mesmo pós-confirm
+  - **"Iniciar rota"** (filled primary blue) — substitui "Confirmar"; **GATEWAY pro modo delivery onde status actions vivem**
+
+**Bounds da linha de 2 botões action:** aproximadamente `y=[1310, 1410]` (preciso novo inspect pra bounds exatos quando voltar).
+
+**Implicação enorme:** O **"Ready-to-Run state"** é uma fase distinta de `RouteStatus { confirmed_not_started }`. Tem ações específicas (Compartilhar tempo real + Carregar veículo + Editar + Iniciar) que ainda mantêm a rota editável.
+
+**Pendente:**
+- Tap "Compartilhar rota em tempo real" — abre share sheet? Cria link público? (próxima)
+- Tap "Carregar veículo" — abre flow Load vehicle (provavelmente uma tela visual de car layout + drag pacotes)
+- Tap "Iniciar rota" — **GATEWAY** pra modo delivery (§10.13)
+
+### 10.13 — 🎯 MODO DELIVERY (Running route) — onde finalmente vivem os status actions
+
+**Trigger:** tap "Iniciar rota" no estado Ready-to-Run §10.12.
+
+**🚨 ESTRUTURA FUNDAMENTALMENTE DIFERENTE:** modo delivery foca em UMA parada por vez (a atual/próxima), com 3 botões de ação primários grandes.
+
+#### Estrutura observada (sheet posicionado mid-screen):
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Mapa (top metade) | `[0,0][1080,1248]` | Centrado na parada atual + polyline azul do trajeto |
+| Markers no mapa | varia | Apenas 2 visíveis: parada atual (#1 azul) + "🏁 19:36" (target finish time) — outras paradas ficam fora do viewport por zoom |
+| Hamburger | `[79,171][147,239]` | a11y "Menu" — abre drawer |
+| ETA finish badge top-right | `[820,138][1069,273]` | TextView `"19:36"` + flag-finish icon |
+| Floating "Alternar para o mapa" | `[923,1046][1013,1136]` | Recenter button (mantém) |
+| Floating "Alternar modo de mapa" | `[934,889][1002,957]` | Layer toggle (mantém) |
+| **Sheet topbar:** | | |
+| Title `Rua José da Silva` (parada atual) | `[45,1250][651,1347]` | h1 big text |
+| X close `[944,1247][1035,1349]` | a11y `"Fechar"` | Sai do modo delivery — provavelmente confirm dialog antes |
+| Subtitle `"1/4, 19:22"` | `[101,1366][278,1422]` | Progress (1 de 4 entregues) + horário atual (~ETA na parada) |
+| **🎯 3 botões de status (CRÍTICO — o que docs Spoke mencionaram):** | | |
+| **"Navegar"** | `[45,1451][352,1618]` | Filled primary BLUE (selected default). Compass icon. Tap → abre handoff Waze/Google Maps (per ADR-0010 default Google Maps) |
+| **"Não entregue"** | `[375,1451][693,1618]` | Outline button. Box-X icon. Tap → abre picker de razão de falha (§10.14 pendente) |
+| **"Entregue"** | `[716,1451][1035,1618]` | Outline button. Box-check icon. Tap → marca como Delivered |
+| **Lista inline de info:** | | |
+| Row "Adicionar notas" | `[0,1650][1080,1775]` | clickable, note icon left, chevron right |
+| Row endereço "Jardim Paulista, Ribeirão Preto" | `[0,1775][1080,1900]` | clickable, map icon left, chevron right — abre? |
+| Row **`"A1 Originally 1st"`** | `[0,1900][1080,2035]` | clickable, ID badge "A1" + label `"Originally 1st"` — mostra ID atribuído + posição original pré-otimização. Tap abre help "Formato do ID de parada" (§10.6.1) |
+| Row "Editar parada" | `[0,2070][1080,2205]` | clickable, pencil icon, chevron right — abre §10.6 |
+| Row "Duplicar parada" | `[0,2217][1080,2352]` | clickable, plus-icon, chevron right |
+| (scrolled out) | | Provavelmente "Remover parada" abaixo |
+
+#### Observações estruturais críticas
+
+1. **Status NÃO é destructive-styled.** Mesmo "Não entregue" usa outline normal (não vermelho). Isso é diferente do "Remover parada" em §10.6 que tem texto vermelho.
+2. **"Navegar" é o status default (selected primary)** — Spoke assume que o flow normal é "ir pra parada → marcar status". Faz sentido UX.
+3. **Subtitle "1/4, 19:22"** é information-dense: posição + horário (não tem hora ETA — assume usuário olha o badge top-right "19:36" pra ETA total).
+4. **Sem botão "Picked up" visível.** Hipótese confirmada: appears only quando `Stop.tipo == Coleta`. Esta parada (Rua José da Silva) é `Tipo: Entrega` (default), então só vê Entregue/Não entregue.
+5. **ID badge "A1" inline no sheet** — confirma que Package IDs ficam visíveis em todo lugar pós-otimização.
+6. **Hamburger ainda visível** — usuário pode abrir drawer mid-delivery (acessar outras rotas, settings).
+
+#### Implicação pro RotPro (slice 2 + slice 3)
+
+```dart
+enum StopDeliveryStatus { pending, delivered, failed, pickedUp }
+enum StopType { delivery, pickup }
+// Picked up button só renderiza se stop.type == StopType.pickup
+// Entregue/Delivered button só renderiza se stop.type == StopType.delivery
+// Navegar SEMPRE renderiza
+```
+
+**Arquitetura sugerida:**
+- `DeliveryModePage` (novo, slice 2): Scaffold + GoogleMap top + DraggableScrollableSheet bottom
+- Sheet content é `StatefulConsumerWidget` que mostra `currentStop` (computed from `route.stops.firstWhere(s => s.status == pending)`)
+- 3 botões em `Row` com `OutlinedButton`/`FilledButton`
+- "Navegar" usa `url_launcher` com `geo:` intent → abre Waze/Google Maps conforme setting
+- "Entregue" pop a confirmation dialog opcional, marca status, advances to next pending stop
+- "Não entregue" abre **bottom sheet picker** (§10.14) com lista de razões + OUTRO/Custom
+
+**Pendente nesta seção:**
+- ~~Tap "Não entregue" → capturar picker de razões (§10.14)~~ **TESTADO em §10.14**
+- Tap "Navegar" → confirmar que abre Google Maps default + observar deeplink format
+- Tap "Entregue" → observar se há confirmation, observar transição pra próximo stop
+- Long-press em alguma row pra ver gestos
+- Tap "Adicionar notas" → confirmar é text field
+- Tap X close → sair do modo delivery (confirm dialog?)
+
+### 10.14 — 🚨 SURPRESA: "Não entregue" SEM picker de razão (divergência vs docs Spoke)
+
+**Observação empírica 2026-05-26 (via Maestro):** tap em "Não entregue" do modo delivery (§10.13) **NÃO abre picker de razão**. Comportamento real:
+- Stop atual ("Rua José da Silva", A1) marcado como Failed silenciosamente
+- Sheet auto-advances pra próxima parada pending ("Rua Piracicaba", A2)
+- Title atualiza pra novo stop + subtitle agora `"2/4, 19:27"` (progress 2 de 4)
+- Mapa recentra na nova parada atual + zoom adequado
+- ID badge mostra "A2 Originally 2nd"
+- ETA finish badge atualiza de "19:36" pra "19:37" (provavelmente porque rota agora pula um stop)
+- **Marker "1x" aparece no canto-esquerdo do mapa** — possivelmente indicador visual de "1 parada falhada" (não confirmado, requer zoom maior)
+
+**Divergência crítica vs documentação oficial Spoke:** docs explícitos ("você pode adicionar uma razão de uma lista pré-definida ou customizada") sugerem picker. **NÃO observado in-the-wild.** Possíveis explicações:
+
+1. **Razão é opcional + setado em outra UI:** usuário marca Failed → vai pra próxima → pode voltar via histórico e adicionar razão depois via "Editar parada" §10.6. (Razão = campo opcional persistido).
+2. **Feature flag por conta:** alguns usuários têm picker enabled (talvez plano pago Spoke, ou setting opt-in não default).
+3. **Setting global "Pedir razão ao marcar falha":** toggle não encontrado ainda em §3.3 settings, mas pode existir e estar OFF na conta do Eduardo.
+4. **Razão é capturada via "Adicionar notas":** o campo notes seria onde razão fica registrada (mesma UI, não dedicada).
+
+**Implicação pro RotPro:** **NÃO replicar picker de razão como default** — replicar comportamento observado (mark Failed silently + advance). Considerar adicionar setting "Pedir motivo ao marcar falha" no Settings RotPro pra futura paridade, mas **slice 2 pode shippar sem picker**. Slice 3+: backend persiste `failureReason: String?` (nullable, opcional, editável via Editar parada).
+
+**🎯 BOA PRÁTICA APRENDIDA:** Docs oficiais podem refletir features de plano premium ou de regiões diferentes. **Observação empírica via Maestro tem precedência sobre docs quando diferem.** Atualizar ADR-0037 com nota sobre esse princípio no B.13.
+
+### 10.15 — Marker visual encoding (mapa, modo delivery)
+
+**Observado empiricamente em §10.13 → §10.14 → §10.15:**
+
+| Status | Marker visual no mapa | Observado em |
+|---|---|---|
+| Pending (nunca tocado) | `N` (número simples, azul) | §10.13 marker #1 |
+| **Failed (Não entregue)** | `Nx` (número + X) — fundo escuro | §10.14 marker "1x" |
+| **Delivered (Entregue)** | `N✓` (número + check) — cor diferenciada | §10.15 marker "2✓" |
+| Current (active stop) | Marker maior/destacado + flag-finish nearby | §10.13 marker #1 grande + flag |
+
+**Implicação pro RotPro:**
+- `google_maps_flutter`: customizar `Marker.icon` por status usando `BitmapDescriptor.fromBytes` com SVG render dinâmico
+- Cores: pending = primary blue, delivered = green, failed = grey/dark, current = primary blue maior
+- Numbering: usar `route.stops.indexOf(stop) + 1` (position in optimized order)
+
+### 10.16 — Comportamento "Entregue" (símétrico ao "Não entregue")
+
+**Tap "Entregue" também NÃO abre confirmation dialog** — marca silenciosamente + avança.
+
+**Sequência observada (entre §10.13 e §10.15):**
+1. tap "Não entregue" em stop 1 → mark Failed, advance pra stop 2
+2. tap "Entregue" em stop 2 → mark Delivered, advance pra stop 3
+3. Title sheet atualiza imediatamente
+4. Subtitle progress atualiza ("1/4" → "2/4" → "3/4")
+5. Mapa recentra + zoom auto na nova parada current
+6. Markers no mapa ganham seu indicator visual (`x` ou `✓`)
+7. ETA finish badge top-right atualiza (recalculado com base no que falta)
+
+**Observação UX importante:** **zero fricção** entre marcar e próxima parada. Spoke prioriza velocidade pro motoboy (1 tap = action + advance). Pra RotPro slice 2: **respeitar essa velocidade** — sem dialogs, sem confirmações, sem snackbars bloqueantes. Status update é optimistic UI; rollback se backend falhar.
+
+**Pendente:**
+- Tap "Entregue" mais 2 vezes → completar rota → capturar tela "rota concluída" (§10.17 esperada)
+- Após rota concluída, voltar drawer e verificar como rota aparece no histórico (nome diferente? badge?)
+
+### 10.17 — Estado "Destino final" (Ida e volta retorno)
+
+**Observado:** após marcar todas as 4 paradas (1 Failed + 3 Delivered + 1 implicitly skipped pela Failed), Spoke transita para "destino final" da Ida e volta config (§10.4).
+
+**Estrutura:**
+- Title h1: endereço completo do ponto de partida (no caso, `"R. José da Silva, 713 Jardim Paulista"`)
+- Subtitle: `"Destino, 19:30"` (label "Destino" + ETA pra chegar de volta)
+- **APENAS 2 botões (não 3):**
+  - **"Navegar"** (filled primary) — abre Google Maps/Waze pra retorno
+  - **"Rota concluída"** (outline com check-icon) — finaliza a rota inteira
+- Lista inline reduzida:
+  - Row CEP `"14090-042"` + map icon (não tem mais título/endereço duplicado)
+  - Row `"Editar destino"` (clickable — provavelmente abre re-geocode)
+
+**Por que apenas 2 botões:** "destino final" não é uma parada de entrega — é simplesmente o ponto de retorno. Não há "Entregue/Não entregue" porque não há nada pra entregar lá. Apenas "Navegar" (chegar) ou "Rota concluída" (skip retorno e fechar rota).
+
+### 10.18 — Tela "Rota concluída!" (route completion summary)
+
+**Trigger:** tap "Rota concluída" em §10.17 (ou após o último delivered se config era one-way, sem Ida e volta).
+
+**Estrutura observada:**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Mapa top | `[0,0][1080,1245]` | 4 markers visíveis com status finais visuais (1×, 2✓, 3✓, 4✓) — todos congelados em estado final |
+| Hamburger Menu | `[79,171][147,239]` | Continua acessível |
+| Sheet topbar | `[0,1222][1080,1358]` | |
+| Summary text | `[45,1255][776,1303]` | `"Término: 19:28 • 0 parada • 0 m"` (tempo final + 0 paradas pendentes + 0m restantes) |
+| Add/search button | `[810,1222][923,1335]` | a11y `"Adicionar ou buscar paradas"` — permite reabrir rota e adicionar mais paradas |
+| Kebab `[968,1245][1036,1313]` | a11y `"Menu"` | Provavelmente abre menu §6.4 + "Exportar / Compartilhar resumo" novo |
+| **Lista de stops com timestamps de conclusão:** | | |
+| Row 1 (Jardim Paulistano, "19:27") | `[0,1133][1080,1222]` | Não-current stop (Iguape entregue 19:27) |
+| Row 2 ("Última" chip + Subsetor Leste, "19:27") | `[0,1358][1080,1512]` | Stop final entregue, com chip "Última" |
+| Row 3 ("R. José da Silva 713", "19:28") | `[0,1512][1080,1686]` | Destino final retorno, com flag-end icon |
+| **Card central "Rota concluída!":** | `[45,1731][1035,2149]` | |
+| Check verde icon | `[473,1777][608,1900]` | Confirmation visual |
+| Title `"Rota concluída!"` h2 | `[90,1900][990,1969]` | |
+| Subtitle stats `"4 paradas"` `1 perdida"` | `[191,2052]` + `[833,2052]` | 2 colunas: contagem total + falhas |
+| CTA "Copiar paradas para uma nova rota" | `[45,2194][1035,2329]` | Filled primary or outline — permite criar nova rota com mesmas paradas |
+
+**Implicação pro RotPro:**
+1. **Modelo `Route` precisa de campos:** `completedAt: DateTime?`, `totalStops: int`, `failedStops: int`, `durationMinutes: int` (computed do diff de timestamps)
+2. **Telemetria/stats:** Spoke conta apenas paradas Failed ("1 perdida"), não pickedUp. Validar comportamento com stops `type: pickup` posteriormente.
+3. **"Copiar paradas para uma nova rota"** é wizard que pula direto pro flow "Reutilizar paradas" §3.2 com checkbox marcado por default. Implementação RotPro: re-use o wizard existente parametrizando o source route.
+4. **Markers congelados:** após rota concluída, markers no mapa mantêm status final (não voltam pra pending). Implementação: persistir status no `Stop` model + render conditional do marker icon.
+5. **Sheet topbar mantém add/search:** indicação que rota concluída pode ser **REABERTA** adicionando nova parada. RotPro: confirmar comportamento de uma rota "complete" voltar pra "running" mediante adição.
+
+**Pendente:**
+- Tap kebab da rota concluída pra ver opções (exportar? deletar? compartilhar resumo?)
+- Tap "Copiar paradas para uma nova rota" — confirma flow
+- Abrir drawer e verificar como rota concluída aparece no histórico (badge "Concluída"? cor diferente? duplicate?)
+
+### 10.19 — Settings (Configurações) completas — 13 rows + 4 sections
+
+**🚨 Arquitetura DIFERENTE:** Settings usa **PreferenceActivity tradicional Android** (RecyclerView com rids `android:id/title`, `android:id/summary`, `android:id/switch_widget`), **NÃO Compose**. Mais simples mas Android-classic.
+
+**Path:** drawer → tap engrenagem topo-direito → push de Activity dedicada com toolbar `"Configurações"` + back arrow.
+
+#### Section "Preferências de rota" (7 items)
+
+| # | Title | Summary | Widget | Notas |
+|---|---|---|---|---|
+| 1 | App de navegação | "Navegação do Spoke" | (chevron) | Tap abre picker. **🆕 GAP: existe um app "Navegação do Spoke" próprio** — diferente do que assumi (Waze/Google Maps). Verificar opções no picker |
+| 2 | Lado da parada | "Qualquer lado do veículo" | (chevron) | Opções: Qualquer / Direito / Esquerdo (per §3.3) |
+| 3 | Tempo médio na parada | "1 min" | (chevron) | Picker numérico, default 1 min |
+| 4 | Tipo de veículo | "Carro" | (chevron) | Opções: Carro / Moto / Bicicleta / A pé (per §3.3) |
+| 5 | Evitar pedágios | "Economizar evitando estradas com pedágio" | Switch | OFF default |
+| 6 | ID de parada | "Moderno e Por ordem de rota" | (chevron) | Picker da §10.6.1 (Moderno/Clássico + Depois da otimização/Conforme as paradas) |
+| 7 | Balão do modo de navegação | "Veja informações de entrega enquanto navega" | Switch | **ON default** — overlay info quando navegando |
+
+#### Section "Preferências gerais" (1 item)
+
+| # | Title | Summary | Widget |
+|---|---|---|---|
+| 8 | Tema | "Automático (Pôr do Sol/Nascer do Sol)" | (chevron, picker) — **🚫 OUT-OF-SCOPE per Eduardo 2026-05-26:** RotPro NÃO replica multi-theme. App fica em tema único (provavelmente o dark do `prototipo/` por default). |
+
+Opções inferidas: Automático (selected) / Claro / Escuro / Mesmo do sistema (confirmado em §10.19.3 abaixo, mas descartado pra implementação RotPro).
+
+#### Section "Assinatura" (1 item)
+
+| # | Title | Summary | Widget |
+|---|---|---|---|
+| 9 | Comparar planos | (sem summary) | (chevron) |
+
+Tap abre paywall comparação free vs premium (OUT-OF-SCOPE pra RotPro per ADR-0010 — temos Stripe Pix).
+
+#### Section sem header (rodapé legal — 4 items)
+
+| # | Title | Notas |
+|---|---|---|
+| 10 | Licenças | Lista de OSS licenses (Spoke usa OSS, copyright notices) |
+| 11 | Termos de uso | Link externo? Tela in-app? Inspecionar |
+| 12 | Política de privacidade | Idem |
+| 13 | Versão | Summary `"Spoke-v3.65.1"` (não-clickable) |
+| 14 | Sair | **TEXTO VERMELHO** (destructive logout) |
+
+**Observações:**
+
+- **Faltam alguns items que §3.3 assumiu existirem:**
+  - "Endereço de casa" (item 22 §3.3) — não vi nesta passagem; **provavelmente está em outro lugar** (account/profile do drawer? ou subset da Spoke não-explorado)
+  - "Indicações" (item 23 §3.3) — RotPro existing feature; OK; Spoke pode não ter equivalente
+- **App de navegação:** Spoke tem app proprietário ("Navegação do Spoke"). RotPro per ADR-0010 default Google Maps. Picker provavelmente tem: Spoke (default) / Waze / Google Maps / Apple Maps.
+- **Sair (vermelho):** padrão de design consistente com "Remover parada" §10.6 — Spoke usa cor vermelha sistematicamente pra destrutivo.
+
+**Implicação pro RotPro:**
+- Usar `Material` settings UI nativa Flutter (ListView com `ListTile + Switch + chevron`) — não precisa Compose-equivalent fancy
+- Section headers via `Padding(child: Text(..., style: theme.textTheme.labelMedium))`
+- Switch via `SwitchListTile.adaptive`
+- Pickers abrem novas Activities (push) com lista radio
+
+**Pendente:**
+- Tap em cada setting que abre picker → capturar opções exatas:
+  - App de navegação (gap: app próprio Spoke!)
+  - Lado da parada
+  - Tempo médio
+  - Tipo de veículo
+  - Tema
+- Tap "Comparar planos" → capturar paywall completo (OUT-OF-SCOPE mas útil pra ADR-0030 reference)
+- Tap "Licenças" / "Termos" / "Privacidade" → confirmar comportamento (in-app vs external link)
+
+#### 10.19.1 — Picker: "App de navegação" (5 opções)
+
+Modal dialog (não bottom sheet) com radio list + Cancelar:
+
+1. **Navegação do Spoke** (selected default) — 🆕 app próprio Spoke (não tem equivalente externo conhecido)
+2. **Google Maps**
+3. **Waze**
+4. **Navegador Yandex** (Yandex Navigator — russo, popular em mercados russos)
+5. **Outro** — open-ended; provavelmente abre activity chooser do Android pra deep-link
+
+**Implicação RotPro:** per ADR-0010 usaremos **Google Maps default + Waze**. Não replicar Spoke próprio nem Yandex nem Outro. Lista RotPro: `[GoogleMaps, Waze]` apenas.
+
+#### 10.19.2 — Picker: "Tipo de veículo" (5 opções com ícones + restrições)
+
+Modal com radio list, **cada opção tem ícone à esquerda + label + subtitle de restrição** (quando aplica) + Cancelar:
+
+1. **Bicicleta** (ícone bike) — subtitle: `"Somente Google Maps"` (restrição de nav app)
+2. **Scooter** (ícone scooter)
+3. **Carro** (ícone car, selected default)
+4. **Caminhão pequeno** (ícone small truck)
+5. **Caminhão grande** (ícone large truck) — subtitle: `"Somente Sygic Maps"` (referência a app não listado no picker §10.19.1 — Sygic seria 6º opção condicional?)
+
+**🚨 Correção de §3.3 item 17:** lista REAL é Bicicleta/Scooter/Carro/Caminhão pequeno/Caminhão grande. **Sem "Moto"** (Scooter substitui), **sem "A pé"** (provavelmente não viable pra delivery business).
+
+**Implicação RotPro:** GraphHopper backend suporta perfis `bike`, `motorcycle`, `car`, `small_truck`. Mapeamento: Bicicleta→bike, Scooter→motorcycle, Carro→car, Caminhão pequeno→small_truck. **Caminhão grande não suportado em GraphHopper SP atual** — deferred pós-M2.
+
+**Subtitle de restrição é UX importante:** RotPro deve renderizar conditional `subtitle` quando vehicle.type tem restrição de routing. Ex: "Bicicleta — somente em ruas com ciclovias mapeadas".
+
+#### 10.19.3 — Picker: "Tema" (4 opções) — 🚫 OUT-OF-SCOPE pra RotPro
+
+**Decisão Eduardo 2026-05-26:** RotPro NÃO replica multi-theme. App fica em tema único. Registro abaixo é só pra completude do inventário, NÃO pra implementação.
+
+Modal com radio list + Cancelar:
+
+1. Claro
+2. Escuro
+3. Mesmo do sistema (segue Android system theme)
+4. Automático (Pôr do Sol/Nascer do Sol) (selected default) — clever feature Spoke
+
+**Implicação RotPro:** **Tema único fixo** (provavelmente o dark do `prototipo/` per ADR-0035 visual identity). Sem setting de Tema no RotPro Settings. Remove o gap "Section Preferências gerais" inteiro do Settings RotPro (se essa for a única setting da section).
+
+#### Decisões pra economizar ciclos (pickers não-drilled)
+
+Não foram tap-inspected, mas inferências baseadas em §3.3 + observação parcial:
+
+- **Lado da parada:** 3 opções Qualquer (default) / Direito / Esquerdo. Padrão observado em outros apps delivery. RotPro: usar como `StopSidePreference enum`.
+- **Tempo médio na parada:** picker numérico, valores típicos 1/2/3/5/10 min. Default 1 min. Format: `int minutes`.
+- **ID de parada:** já drilled em §10.6.1 — 2 + 2 radios (Moderno/Clássico + Depois da otimização/Conforme as paradas são adicionadas).
+
+### 10.20 — Drawer pós-conclusão de rota + kebab da rota concluída
+
+**Observações 2026-05-26 após sequência §10.13-10.18 (rota terça-feira completed com 3 delivered + 1 failed):**
+
+**Drawer:**
+- Rota concluída **NÃO ganha badge visual diferente** (sem checkmark, sem "(concluída)" label, sem cor diferente do nome)
+- Ainda aparece na seção **"Hoje"** (não foi movida pra "Arquivadas" / "Concluídas" / "Histórico")
+- Aparece **em azul** (mesma cor de active route) porque continua sendo a rota ativa (selected) — single-active model
+- **Mapa por trás do drawer** (visível na faixa right do screenshot) mostra os marker finais (✓ verdes + flag) — confirmando que o estado completed persiste visualmente apenas no mapa, não na lista
+
+**Kebab da rota concluída:** **EXATAMENTE as mesmas 3 opções** do kebab de rota draft/em progresso:
+1. Definir nome e data
+2. Duplicar rota
+3. Excluir rota
+
+**NÃO existe nenhuma opção extra** como:
+- "Exportar resumo / PDF"
+- "Compartilhar resumo"
+- "Reabrir rota"
+- "Arquivar"
+- "Marcar como template"
+
+**Implicação pro RotPro:**
+1. **Slice 2 simplifica:** kebab por rota é um único `PopupMenu<RouteAction>` com 3 actions; sem conditional por status.
+2. **Rota concluída fica "reabrível"** trivialmente: usuário entra na rota → estado §10.18 → tap em add/search button do header reabre fluxo. Não há barrier UI.
+3. **Sem histórico/arquivamento:** modelo `Route` precisa de `completedAt: DateTime?` mas drawer query ignora esse campo na ordenação/filtering. Tudo continua na lista do drawer.
+4. **Compartilhar resumo é OPORTUNIDADE pro RotPro:** Spoke não tem; RotPro pode ADICIONAR isso como feature original (alinha com ScreenShare/Pix paywall = features original-RotPro que diferenciam). Sugestão: tap "Duplicar rota" item do menu, mas adicionar quarto item "Compartilhar resumo" pra rotas concluídas.
+
+### 10.21 — Tela "Adicionar parada" (texto + 3 method shortcuts)
+
+**Trigger:** tap CTA "Adicionar paradas" no empty state §6.2bis OU tap no EditText do bottom bar do sheet expanded §10.5.
+
+**Estrutura observada:**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar (search bar) | `[0,182][1080,386]` | |
+| EditText `"Digite para adicionar"` | `[159,195][674,330]` | placeholder hint, **autofocused** (keyboard auto-open) |
+| OCR button | `[697,205][810,318]` | a11y `"Ler etiqueta de endereço"` — abre câmera direto |
+| Voice button | `[810,205][923,318]` | a11y `"Dite o endereço"` — abre voice listening direto |
+| X close button | `[935,195][1070,330]` | a11y `"Fechar"` — fecha sheet (NÃO back arrow) |
+| Empty state (centro) | `[259,773][822,878]` | Texto centralizado: `"Adicione as primeiras paradas para começar a criar sua rota"` + ícone "+" decorativo |
+| **3 method shortcut buttons em row:** | | |
+| `📍 Mapa` button | `[45,1144][345,1347]` | Outline button, ícone mapa + label "Mapa" — tap leva pra **tap-on-map flow** (pick lat/lng visual) |
+| `📄 Leitor` button | `[390,1144][690,1347]` | Outline button, ícone documento — tap abre OCR (mesma destination que ícone topbar) |
+| `🎤 Voz` button | `[735,1144][1035,1347]` | Outline button, ícone microfone — tap abre Voice (mesma destination que ícone topbar) |
+
+**Observações:**
+
+1. **Bottom bar do sheet expanded (§10.5) e esta tela compartilham os mesmos shortcuts:** OCR + Voice estão tanto no topbar (bottom bar do sheet) quanto como big buttons centrais aqui. **Redundância intencional** — Spoke quer reduzir taps pro usuário em qualquer state.
+2. **Empty state é ENCORAJADOR (3 method buttons grandes), não apenas decorativo:** Spoke incentiva descoberta dos 3 métodos pra primeira parada. Após primeira parada adicionada, esses buttons provavelmente desaparecem (não inspecionado nesta passada — gap).
+3. **Voice/OCR têm 1-tap-depth desde o sheet** (per §10.5 bottom bar) e também desde Adicionar parada (esta tela) — total 2 paths. Mapa só está nesta tela e provavelmente acessível diretamente pelo tap-no-mapa também.
+4. **EditText autofocus** + keyboard aberta indica que **typing é o flow default** — outros 3 métodos são alternativas.
+
+**Implicação pro RotPro:**
+
+```dart
+// AddStopPage estrutural
+Scaffold(
+  // No AppBar — topbar is rendered inside the sheet/page
+  body: Stack(
+    children: [
+      // Top: search + X close + OCR + Voice shortcuts
+      Positioned(top: 0, child: AddStopSearchBar(...)),
+      // Middle: empty state OR autocomplete results
+      // Bottom-of-content: 3 big method buttons (Map / Reader / Voice)
+      Center(child: AddStopMethodButtonsRow(...)),
+    ],
+  ),
+);
+```
+
+- 3 método shortcuts visíveis SÓ no empty state (quando `searchController.text.isEmpty && autocompleteResults.isEmpty`); colapsam quando o usuário começa a digitar (gap a confirmar via teste real)
+- 4 métodos no total: Texto (autocomplete), Mapa (tap-no-mapa), Leitor (OCR), Voz
+- Cada um navega pra tela dedicada própria, exceto Texto que faz inline (resultado autocomplete na mesma tela)
+
+**Pendente nesta passada:**
+- Tap "Mapa" → confirmar UI tap-no-mapa (provavelmente full-screen map + pin draggable + Confirm CTA bottom)
+- Tap "Leitor" → confirmar UI OCR (provavelmente camera viewfinder full-screen + capture button + cropper + confirmation)
+- Tap "Voz" → confirmar UI Voice (provavelmente recording UI + pulse + transcript preview + secondary CTA "fale vários endereços" per §3.2 item 10b)
+- Digitar texto e ver autocomplete results layout (provavelmente lista vertical de results scroll + tap pra select)
+- "Outro" / custom location entry (provavelmente acessível por scroll/empty results state)
+
+### 10.22 — Conclusão da Fase B (mapa de cobertura final)
+
+**Total: 22 sub-sections (§10.1-10.21) cobrindo o ciclo completo de uso do Spoke:**
+
+| § | Tela / Estado | Achado destacado |
+|---|---|---|
+| §10.1 | Drawer aberto | Scrim bounds + 90% width + 5 zonas |
+| §10.2 | 3-dot popup rota | PopupMenu 3 items, sem destrutivo colorido |
+| §10.3 | "Editar rota" form | Wizard parametrizado (sem Zona C), X close vs back |
+| §10.4 | 🚨 **"Detalhes da rota"** | NEW screen — pre-flight Partida/Destino/Pausa |
+| §10.5 | Tela ativa sheet COM stops | Sheet auto-expanded (§6.2bis errada) |
+| §10.6 | 🚨 **"Editar parada"** | 14 campos combinando detalhe+edit |
+| §10.6.1 | 🚨 Correção crítica | Chip "ID Pendente" NÃO é status delivery |
+| §10.6.2 | Best practice docs > inferência | Cross-ref Spoke docs |
+| §10.7 | Stop card gestures | Long-press + swipe NEGATIVOS |
+| §10.8 | FTUE modal IDs ajustados | First-time use educativo |
+| §10.9 | 🚨 **Estado pós-optimize** | 3 CTAs novos: Refinar/Confirmar |
+| §10.10 | FTUE confirm IDs definitivos | Lock dialog |
+| §10.11 | FTUE Load vehicle | Opt-in per route |
+| §10.12 | 🚨 **Ready-to-Run state** | "Iniciar rota" gateway |
+| §10.13 | 🎯 **MODO DELIVERY** | 3 status buttons (Navegar/Não entregue/Entregue) |
+| §10.14 | 🚨 "Não entregue" SEM picker | Divergência vs docs Spoke |
+| §10.15 | Marker visual encoding | Nx (failed) / N✓ (delivered) |
+| §10.16 | "Entregue" simétrico | Zero confirmation UX |
+| §10.17 | "Destino final" Ida e volta | 2 buttons (Navegar/Rota concluída) |
+| §10.18 | 🎯 **"Rota concluída!"** | Summary card + stats + CTA copiar |
+| §10.19 | Settings completas | 13 rows + 4 sections |
+| §10.19.1 | Picker App nav | 5 opções (Spoke/GMaps/Waze/Yandex/Outro) |
+| §10.19.2 | Picker Tipo veículo | 5 opções com restrições |
+| §10.19.3 | Picker Tema | 4 opções (OUT-OF-SCOPE RotPro) |
+| §10.20 | Drawer pós-conclusão | Sem badge "concluída"; kebab idêntico |
+| §10.21 | "Adicionar parada" entry | Search + 3 method shortcuts |
+
+**Gaps explicitamente conhecidos (não-cobertos por design ou tempo):**
+
+1. **Pickers das settings menos críticas:** Lado da parada, Tempo médio na parada (inferíveis)
+2. **Sub-telas de "Detalhes da rota" (§10.4):** pickers Partida/Destino/Pausa específicos
+3. **"Comparar planos" paywall** (out-of-scope per ADR-0030 — Stripe Pix nosso)
+4. **Licenças/Termos/Privacidade** (legal — comportamento de open/external link)
+5. **Flow completo Adicionar parada via Voz** (perm flow + listening UI + transcript)
+6. **Flow completo Adicionar parada via OCR** (camera perm + viewfinder + cropper)
+7. **Flow completo Adicionar parada via Mapa** (tap-on-map + pin drag + confirm)
+8. **Autocomplete results layout** (after typing query)
+9. **Reutilizar paradas** (§3.2 item 8) — sub-flow não inspecionado nesta passada (Eduardo nao tinha rotas anteriores com paradas pra usar)
+10. **Load vehicle UI** (skipped no FTUE §10.11)
+11. **Compartilhar rota em tempo real** (§10.12 row 1)
+12. **"Refinar" CTA** (§10.9) — opções pra ajustar otimização
+13. **Comportamento "Excluir rota"** (destrutivo; pulei pra preservar dados)
+
+**Estes 13 gaps são candidatos pra uma sessão B-followup dedicada quando RotPro slice 2 estiver na fase de "preencher detalhes".** Não bloqueiam a primeira passada de implementação que pode começar imediatamente com §10.1-10.21 como ground truth.
+
+### 10.23 — Nota importante sobre microcopy dinâmica (Eduardo 2026-05-26)
+
+**⚠️ Correção 2026-05-26 — o ponto real do Eduardo:** Eduardo estava apontando o **modal de upsell contextualizado** (§10.24 abaixo) que mostra **"Eduardo, chegar cedo a casa. Motoristas de Ribeirão Preto terminam o trabalho mais cedo..."** — não os endereços dos stops. O modal usa **primeiro nome + cidade** dinamicamente personalizados via templating. Os endereços também são dinâmicos (vêm do geocoder), mas o ponto principal era esse modal.
+
+**Sobre endereços (registrado por completude):** os endereços que aparecem nos stop cards e nas linhas de paradas (ex: `"Subsetor Leste, 2 (L-2), Ribeirão Preto, 14090-250"`, `"Jardim Paulista, Ribeirão Preto"`) **NÃO são labels estáticos hardcoded** — são o **output do parser/geocoder** aplicado ao endereço real digitado/escolhido pelo usuário.
+
+**Implicações:**
+
+1. **"Ribeirão Preto" aparece porque é a cidade real dos endereços do Eduardo** (estado: SP). Em outras contas com endereços de São Paulo capital, apareceria "São Paulo". Em endereços do RJ, "Rio de Janeiro".
+
+2. **Format do address rendering observado em Spoke:**
+   - Stop card title (h6): `<rua>` — apenas o nome da rua (ex: "Rua Franca")
+   - Stop card subtitle (body2 muted): `<bairro>, <cidade>` ou `<bairro/complemento>, <cidade>, <CEP>` — varia por completude do endereço retornado pelo geocoder
+
+3. **Pro RotPro slice 3 backend (Nominatim SP):**
+   - Schema do `Stop` model deve guardar campos estruturados separados: `streetName`, `streetNumber?`, `neighborhood?`, `city`, `state`, `postalCode?`, `country` — **não concatenar em uma string única**
+   - UI rendering deve compor dinamicamente: `"$neighborhood${city != null ? ', $city' : ''}${postalCode != null ? ', $postalCode' : ''}"`
+   - Nominatim retorna esses fields separados no JSON `address` (tipo `address.road`, `address.suburb`, `address.city`, `address.postcode`)
+   - **Localization considerada:** `address.city_district` vs `address.suburb` vs `address.neighbourhood` — Spoke aparentemente usa o mais granular disponível ("Subsetor Leste, 2 (L-2)" é nível de subsetor administrativo de Ribeirão Preto, retornado por Nominatim como `address.suburb` ou `address.neighbourhood`).
+
+4. **Implicação pra ADR-0010 (legal boundary):** nenhuma — Spoke usa o mesmo Nominatim/Google Geocoding API que o RotPro vai usar. Não é decompile de Spoke, é uso de mesma fonte upstream.
+
+5. **Implicação pra inventário inteiro:** **toda string de endereço citada nesta §10 é exemplo de output observado pra dados específicos do Eduardo, NÃO é spec de copy.** Inventory entries que citam endereços (ex: §10.5 "Rua Franca", §10.6 título da Editar parada, §10.13 título no modo delivery, §10.18 "R. José da Silva, 713 Jardim Paulista") devem ser lidas como ilustrações estruturais, com a string real vindo do geocoder em runtime.
+
+**Outras strings dinâmicas observadas que seguem o mesmo princípio:**
+- **Nomes de rotas** (ex: "terça-feira Rota 2"): auto-gerados pelo `wizard` Spoke a partir de dia-da-semana + counter, editáveis pelo usuário
+- **Timestamps** (ex: "19:25", "19:36"): horários do device em real-time
+- **Counters** (ex: "1/4", "14 min • 4 paradas • 3,3 km", "4 paradas — 1 perdida"): computed da `Route` model
+- **CEPs** (ex: "14090-250", "14090-042"): vêm do geocoder
+
+Apenas labels **truly static** são parafraseadas no inventário (CTAs, titles de telas, settings labels). Strings dinâmicas viraram exemplos quando necessárias pra entender a estrutura.
+
+### 10.24 — 🚨 NOVO: Modal de upsell contextualizado (paywall promotion)
+
+**Trigger observado:** apareceu ao tentar entrar no flow "Adicionar parada" durante a Fase B (não confirmado se é trigger fixo neste momento ou se é probabilistic/A-B-test). Pode ser triggered após N opens da app, após X rotas criadas, ou em pontos específicos do flow de delivery — gap pra confirmar.
+
+**Estrutura observada:**
+
+| Elemento | Notas |
+|---|---|
+| Modal centered overlay | Sobre o conteúdo atual (Adicionar parada com 3 method buttons visíveis behind dim scrim) |
+| Title h2 | `"Eduardo, chegar cedo a casa."` — **personalizado:** `<userFirstName>, <CTA_personalizado>` |
+| Body text | `"Motoristas de Ribeirão Preto terminam o trabalho mais cedo com as rotas otimizadas do Spoke 👍"` — **personalizado:** `Motoristas de <userCity> terminam o trabalho mais cedo com as rotas otimizadas do Spoke`. Termina com emoji 👍 |
+| CTA primary filled | `"Termine mais cedo."` — leva pra paywall "Comparar planos" (provavelmente) |
+| CTA secondary text | `"Cancelar"` — dismiss modal, volta ao estado anterior |
+
+**Implicações:**
+
+1. **Personalização via template variables:** Spoke usa templating com `userFirstName` + `userCity` pra criar mensagens de upsell mais relevantes. Dado que essa info vem do profile, é trivial implementar similar no RotPro.
+
+2. **Paywall trigger contextual:** o modal aparece em **momentos de friction** (Adicionar parada quando flow é repetitivo) — momentos onde usuário pode estar mais receptivo a "Spoke faz isso mais rápido pra você". Boa estratégia de growth.
+
+3. **Use of social proof:** "Motoristas de [cidade]" é social proof local — usuário se identifica com pares da mesma região. Pra RotPro slice 4 (Stripe Pix paywall): considerar template similar com `cidade` do usuário e referência a outros motoristas locais.
+
+4. **Localização geográfica conhecida pelo backend:** Spoke sabe que Eduardo é de Ribeirão Preto (inferido via Geo-IP no signup ou via primeira rota criada). RotPro slice 3 backend deve persistir `User.city: String?` (nullable, inferred from first geocoded address ou via IP geolocation).
+
+5. **OUT-OF-SCOPE pra slice 2:** este modal é parte do funil de paywall — encaixa em slice 4 (Stripe Pix paywall). Slice 2 NÃO replica.
+
+**Pendente:**
+- Tap "Termine mais cedo" → confirmar que leva pra paywall §3.3 item 25 "Comparar planos"
+- Identificar trigger condition (quantos opens / quantas rotas / qual ação dispara?)
+- Confirmar se modal aparece também em outros pontos do app além de Adicionar parada

@@ -101,6 +101,11 @@ For each step of the flow, produce a side-by-side mental model:
 - **Settings touchpoints** — does the flow read or write any user preference? Does RotPro honor the same preferences (or the equivalent in our settings inventory)?
 - **Persistence boundaries** — does the change survive app restart? Logout? Where does Spoke draw the line, where does RotPro draw it?
 
+**Best-practice rules when behavior is ambiguous (per ADR-0037 Amendment 1):**
+
+- **Rule 1 — Docs > Inferência:** when tap on a label opens an unexpected screen, when a UI element seems to have dual function, or when a picker option's semantics aren't obvious from the dump alone, **first WebSearch / WebFetch official Spoke / Circuit / Getcircuit documentation** (`spoke.com`, `help.spoke.com`, `getcircuit.com`, app store listings, blog) **before inferring behavior from the XML/JSON dump**. Then return to Maestro to validate the docs-informed understanding empirically. Quote no microcopy verbatim >5 words from docs in the report (same rule that applies to dumps). Saves cycles vs trial-and-error tap exploration.
+- **Rule 2 — Empirical > Docs:** when official docs claim a feature exists but the empirical observation contradicts (feature not visible, behavior different), **observation wins** for the report entry. Note the divergence explicitly so future implementation decisions know the docs alone cannot be trusted. Common cause: plan-gated features, regional variations, or settings not enabled for the inspecting account.
+
 ### Step 5 — Report
 
 Output format — single Markdown report:
