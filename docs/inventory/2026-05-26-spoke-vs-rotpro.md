@@ -634,3 +634,150 @@ nav_host (FrameLayout)
 4. **Slice 2 implication:** essa tela pode ser **DEFERRED** (não bloqueia primeira versão da rota ativa — RotPro pode pular essa config até slice 3+). Ou pode ser **incluída como wizard simplificado** com defaults sensatos. **Decisão pra spec slice 2:** Eduardo + cliente Ueslei devem decidir se replicam essa tela ou se RotPro vai direto pro sheet com paradas (mais alinhado com original RotPro UX).
 
 **Pendente nesta passada:** comportamento das 5 sub-telas que abrem ao tocar nas rows (pickers de partida/destino/pausa) — gap remanescente até slice 2 ou slice 3 decidir replicar ou não esta tela.
+
+### 10.5 — Tela ativa de rota COM 4 paradas reais — sheet **AUTO-EXPANDED** (MEGA achado vs §6.2bis)
+
+**🚨 §6.2bis estava parcialmente errada.** Quando se entra numa rota com paradas (passando pela §10.4 Detalhes da rota), o sheet abre **AUTO-EXPANDED** (`stepList` rid em y=160-2040), NÃO collapsed. O comportamento de §6.2bis ("collapsed por default com bottom bar de search visível") é o estado da rota **VAZIA** ou de rota que o usuário arrastou pra baixo manualmente. Esta diferença muda a UX implementation.
+
+**Layout observado (sheet expanded com conteúdo):**
+
+```
+[0-160]    Status bar (system)
+[160-547]  stepListHeader (drag area + bottom bar + título + drag handle)
+[160-547]
+  [194-329]  Linha superior: hamburger [45,228][113,296] + EditText [260,195][674,330] + OCR + Voice + Kebab
+  [363-393]  "4 paradas" (counter, h6)
+  [393-528]  "terça-feira" (clickable! provavelmente abre edit)
+  [478-613]  Possível drag-handle zone (parte branca observada)
+[160-2040] stepList (main scrollable content)
+  [544-656]  Section header "Configuração de rota"
+  [656-830]  Row "Iniciar no local atual" + subtitle "Use a posição do GPS ao otimizar" + clock-icon-with-time "18:55" + chevron-right (home icon `[967,690][1046,769]`)
+  [830-1004] Row "Ida e volta" + subtitle "Retorne ao ponto de partida" + flag icon
+  [1004-1178] Row "Sem pausa" + subtitle "Toque para agendar uma pausa" + coffee icon
+  [1170-1293] Section header "Paradas"
+  [1293-1467] Stop 01 "Rua Franca" + subtitle "Subsetor Leste, 2 (L-2), Ribeirão Preto, 14090-250" + status icon (blue dot)
+  [1467-1641] Stop 02 "Rua Iguape" + subtitle "Jardim Paulistano, Ribeirão Preto"
+  [1641-1815] Stop 03 "Rua José da Silva" + subtitle "Jardim Paulista, Ribeirão Preto"
+  [1815-1989] Stop 04 "Rua Piracicaba" + subtitle "Jardim Paulista, Ribeirão Preto"
+[2040-2400] Bottom CTA area
+  [2085-2220] CTA primary FULL-WIDTH "Otimizar rota" (com ícone circular-arrows refresh)
+[2265-2400] Android nav bar (system)
+```
+
+**Map area:** `[0,0][1080,1245]` (TextureView "Mapa do Google") — visible APENAS na parte superior atrás do drag-handle area do sheet. Os 4 markers (`a11y="Marcador do mapa"`) estão nos bounds:
+- Marker 1: `[522,798][584,882]` (centro do mapa)
+- Marker 2: `[142,633][204,717]`
+- Marker 3: `[619,607][681,691]`
+- Marker 4: `[876,350][938,434]`
+
+**Bottom bar / topbar do sheet (zona fixa, dentro do `stepListHeader`):**
+- Hamburger Menu [45,228][113,296] a11y "Menu" — sempre visível
+- Search EditText [260,195][674,330] — placeholder cinza "Toque para adicionar" (truncado)
+- OCR button [720,228][788,296] a11y "Ler etiqueta de endereço"
+- Voice button [833,228][901,296] a11y "Dite o endereço"
+- Kebab [968,228][1036,296] a11y "Menu" (3-dot kebab da rota ativa — abre menu §6.4)
+
+**Stop card structure (each):**
+- Número badge à esquerda em fonte tabular: "01" / "02" / "03" / "04" — bounds ~85x48px
+- Title "Rua X" (h6, primary text)
+- Subtitle endereço completo (body2, muted)
+- Status icon à direita: blue filled circle (estado "pending")
+- Container clickable inteiro — tap deve abrir detalhe da parada
+- Height: ~174px cada
+
+**Configuração de rota — section dentro do sheet:**
+Os 3 rows ("Iniciar no local atual", "Ida e volta", "Sem pausa") são **reflexo do que foi configurado em §10.4 Detalhes da rota**. Cada row é clickable e provavelmente re-abre a sub-tela respectiva pra editar.
+- Row "Iniciar no local atual" tem **timestamp "18:55"** à esquerda (quando foi setado), home-icon à direita
+- Row "Ida e volta" tem **flag icon** à direita (representando destino)
+- Row "Sem pausa" tem **coffee-cup icon** à direita
+
+**CTA "Otimizar rota":**
+- Bounds `[45,2085][1035,2220]` (FULL WIDTH, height 135px, ~7% da tela)
+- Filled primary (azul)
+- Ícone circular-arrows à esquerda + label "Otimizar rota"
+- **Sempre visível mesmo com sheet expanded** — fica fixo no rodapé.
+
+**Implicações pro RotPro (sliding contextual):**
+
+1. **Sheet auto-expand on enter route with stops:** quando navega pra rota com >0 paradas, sheet deve abrir EXPANDIDO, não collapsed. RotPro atual (`apps/mobile/lib/features/...`) precisa replicar isso.
+2. **Section "Configuração de rota" dentro do sheet:** RotPro precisa modelar `RouteConfig` (start, destination, pause) como entidade separada de `Stop`, com UI consistente entre §10.4 (full-screen wizard) e §10.5 (inline rows no sheet).
+3. **Sticky bottom CTA "Otimizar rota":** sempre visível, mesmo quando sheet rolando. Implementação: `Stack` com `Positioned(bottom: 0)` ou `Scaffold(bottomNavigationBar:)`.
+4. **Counter "N paradas":** aparece no header do sheet, abaixo do bottom-bar.
+5. **Stop card clickable inteiro:** sem leading drag-handle visível no estado collapsed (drag pra reorder pode ser long-press? não confirmado nesta passada).
+
+**Gap pendente:**
+- Behavior de tap no stop card (abre detalhe? edit?) — próximo
+- Long-press em stop card (revela drag-handle reorder?) — próximo
+- Swipe horizontal em stop card (delete via swipe?) — próximo
+- Comportamento de "terça-feira" (nome da rota clickable no header) — próximo
+- Estado do sheet **collapsed** (manual drag pra baixo) com rota cheia — próximo
+- Tap no kebab `[968,228][1036,296]` da rota ativa (deveria abrir o menu §6.4) — confirmar
+
+### 10.6 — "Editar parada" (NOVO — não está em §6.x; combina detalhe + edit)
+
+**🚨 §6.3 estava errada.** Inventário existente dizia "Adicionar parada (3 métodos)" mas nada sobre **detalhe/edit de parada existente**. Spoke **NÃO tem tela separada de "detalhe da parada"**; tap no stop card abre direto **"Editar parada"** (mesma tela combina visualização + edição inline). RotPro atual tem `/home/stops/:id` (detail) + `/home/stops/:id/edit` (edit) como rotas separadas — Spoke colapsa as duas.
+
+**Trigger:** tap em qualquer linha de parada no sheet expanded (§10.5).
+
+**Estrutura completa (full-screen ScrollView):**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar Help (?) | `[1,105][136,240]` | a11y "Ajuda e suporte" — esquerda |
+| Title centered | `[402,142][679,200]` | `"Editar parada"` |
+| CTA "Concluído" | `[805,104][1035,239]` | TextView clickable PRIMARY (azul) à direita — substitui back-arrow. Save+pop em 1 tap |
+| **Linha de status (top do form):** | | |
+| Color chip clickable | `[45,267][219,402]` | `"Azul"` — abre picker de cor da parada (provavelmente 5-6 cores pra agrupar visualmente) |
+| Status chip clickable | `[242,267][511,402]` | `"Pendente"` — abre picker de status (Pendente/Entregue/Falhou + razão) |
+| **Card de endereço (read-mostly):** | | |
+| Title h6 | `[45,419][354,495]` | `"Rua Franca"` |
+| Subtitle | `[45,495][1035,621]` | Endereço completo `"Subsetor Leste, 2 (L-2), Ribeirão Preto, 14090-250"` |
+| Btn "Instruções de acesso" | `[45,638][547,773]` | Outlined-style com + icon, expand-to-add complemento de endereço |
+| **Notes section:** | | |
+| EditText "Adicionar notas" | `[158,811][877,946]` | Multi-line, ícone notes à esquerda + ícone camera+ à direita (anexar foto) |
+| Camera button | `[922,804][1080,962]` | clickable, separado do textfield |
+| **Settings rows (lista):** | | |
+| Row "Localizador de pacotes" | `[0,996][1080,1132]` | Valor "Não definido" à direita — abre picker |
+| Row "Pacotes" (counter) | `[0,1132][1080,1268]` | **Stepper** com — / 1 / + (default 1). Layout: label esquerda, stepper direita |
+| Row "Ordem" (segmented) | `[0,1268][1080,1404]` | **3-button segmented control:** "Primeira" / **"Automática"** (selected, azul) / "Última". Bounds dos segments: `[401,1269][607,1404]`, `[618,1269][840,1404]`, `[852,1269][1025,1404]` |
+| Row "Tipo" (segmented) | `[0,1404][1080,1540]` | **2-button segmented control:** **"Entrega"** (selected, azul) / "Coleta". Bounds: `[544,1405][790,1540]`, `[801,1405][1024,1540]` |
+| Row "Horário de chegada" | `[0,1540][1080,1676]` | Valor "Qualquer momento" à direita — abre time picker |
+| Row "Tempo estimado na parada" | `[0,1676][1080,1812]` | Valor "Padrão (1 min)" à direita — abre picker. **NOTA:** o default vem do setting global "Tempo médio na parada" (§3.3 item 16) |
+| **Bottom actions list (destrutivas):** | | |
+| Row "Mudar endereço" | `[0,1864][1080,1999]` | Search-icon + chevron right — abre re-geocode flow |
+| Row "Duplicar parada" | `[0,2011][1080,2146]` | Plus-icon + chevron right |
+| Row "Remover parada" | `[0,2158][1080,2293]` | Trash-icon + **TEXTO VERMELHO** (única ação destrutiva com cor) + chevron right. **Confirma:** Spoke usa cor pra destrutivo aqui, não no popup §10.2 |
+
+**Implicações pro RotPro:**
+
+1. **Tela única "Editar parada"** — RotPro atual divide `/home/stops/:id` (detail) + `/home/stops/:id/edit` (edit). Pro white-label, colapsar em uma só.
+2. **Status workflow inline:** "Pendente" / "Entregue" / "Falhou" é um chip clickable no topo da tela, NÃO bottom CTA. Quando usuário marca "Entregue" ou "Falhou", esta MESMA tela cuida do status update — não há tela separada de "confirmação de entrega" (provavelmente abre sheet com motivo no caso "Falhou").
+3. **Color tagging:** Spoke permite atribuir cor por parada (azul, verde, etc.) — pra agrupar visualmente no mapa. Feature nova pra RotPro.
+4. **Segmented controls** pra Ordem (Primeira/Auto/Última) e Tipo (Entrega/Coleta) — Spoke prefere segmented sobre dropdown/radio quando há ≤3 opções.
+5. **Stepper widget** pra contagem de pacotes — não TextField.
+6. **Save semantics:** CTA "Concluído" no topo direito (não bottom CTA). É TextView clickable, estilo iOS-ish. RotPro pode usar `TextButton("Salvar")` no AppBar actions.
+7. **Tempo estimado por parada:** lê do setting global como default, override por parada. Modela como `int? customStopDurationMin` em `Stop`, fallback pro setting.
+8. **Mudar endereço:** ação separada — não é só editar text field. Provavelmente re-abre geocoding/picker pra escolher novo lat/lng. Implementação: navega pro mesmo flow de §6.3 (Adicionar parada) em modo "replace existing".
+
+**Hierarquia compactada:**
+```
+ScrollView [0,250][1080,2265]
+└─ View
+   ├─ Status row [267-402]
+   │  ├─ Color chip "Azul" [45-219]
+   │  └─ Status chip "Pendente" [242-511]
+   ├─ Address card [419-773]
+   │  ├─ Title "Rua Franca" [419-495]
+   │  ├─ Subtitle "Subsetor Leste..." [495-621]
+   │  └─ Btn "Instruções de acesso" [638-773]
+   ├─ Notes [804-962] (EditText + camera button)
+   ├─ Settings rows [996-1812] (6 rows)
+   └─ Actions rows [1858-2265] (3 rows: Mudar / Duplicar / Remover [RED])
+```
+
+**Pendente nesta passada:**
+- Tap em "Status: Pendente" chip — abre picker com Pendente / Entregue / Falhou (razões: Cliente ausente, Endereço incorreto, etc.?)
+- Tap em "Cor: Azul" chip — abre picker de cores
+- Tap em "Instruções de acesso" — abre input multi-line de complemento?
+- Tap em "Remover parada" — abre confirm dialog ou remove imediato? (destrutivo; pular nesta passada)
+- Tap em "Mudar endereço" — re-abre fluxo de adicionar?
