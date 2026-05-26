@@ -1,6 +1,6 @@
 # 02 — Architecture
 
-> **Source-of-truth hierarchy (ADR-0035):** Spoke (ex-Circuit Route Planner) is canonical for behavior — screens, navigation, settings, gestures, flow ordering. The Claude Design prototype at `prototipo/` is canonical for visual identity only — tokens, colors, icon family, animations. Cliente Ueslei is final tiebreaker. `docs/05-SCREENS.md` documents the screen catalogue with both Spoke-functional and prototype-visual lineage; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js` (still the visual canonical).
+> **Source-of-truth hierarchy (ADR-0035):** Spoke (ex-Circuit Route Planner) is canonical for behavior — screens, navigation, settings, gestures, flow ordering. The Claude Design prototype at `prototipo/` is canonical for visual identity only — tokens, colors, icon family, animations. Cliente Ueslei is final tiebreaker. The canonical Spoke↔RotPro screen catalogue lives in `docs/inventory/2026-05-26-spoke-vs-rotpro.md`; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js` (still the visual canonical).
 > **Current scope:** M1. Sections describing M2 endpoints, payment flow, and webhooks are **reference-only** for post-M1 work.
 
 ## Overview
@@ -203,7 +203,7 @@
     ↓
 11. App's poll picks up status='active' on next tick (default 5 s)
     ↓
-12. App navigates to external nav handoff (Waze / Google Maps per ADR-0017). Button stays unlocked for 30 days.
+12. App navigates to external nav handoff (Waze / Google Maps). Button stays unlocked for 30 days.
 ```
 
 Polling instead of WebSocket: Stripe webhooks land within 1–3 s of payment in practice; a 5 s client poll keeps the slice 4 implementation simpler and the mobile network footprint smaller. Move to SSE if user friction becomes visible.
@@ -266,7 +266,7 @@ Renewal: when `expires_at` passes (checked by daily cron at 03:00 BRT and at eve
 3. url_launcher dispatches to the OS, the rider's preferred nav app opens.
 ```
 
-In-app turn-by-turn (Mapbox Navigation SDK or equivalent) is **post-M2** — too expensive both in licensing and in mobile-team effort relative to the value (~95 % of motoboys already have Google Maps or Waze installed). Captured in ADR-0017 (filed when slice 2 starts the navigation shell).
+In-app turn-by-turn (Mapbox Navigation SDK or equivalent) is **post-M2** — too expensive both in licensing and in mobile-team effort relative to the value (~95 % of motoboys already have Google Maps or Waze installed). External nav handoff via `url_launcher` (Waze deeplink + Google Maps fallback) é a abordagem confirmada.
 
 ## Data Model (initial — evolves with implementation)
 
@@ -363,7 +363,7 @@ The stack has three places where data shape is defined: the database (Prisma), t
 
 1. **Prisma types stay backend-internal.** A handler that returns `prisma.user.findUnique(...)` directly is a bug — `password_hash`, internal columns, and future migrations must not leak. Always whitelist via a TypeBox response schema.
 2. **TypeBox schemas are the API contract.** Every request body, query string, params, and every response status code is declared with a TypeBox schema. Schemas live in `apps/backend/src/<feature>/schemas.ts`, separate from route handlers, so they can be imported by tests and (post-M1) by an OpenAPI exporter. Handler types come from `Static<typeof Schema>`.
-3. **Mobile DTOs mirror TypeBox 1:1.** Each DTO file carries `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) as its L1 header. ASCII `->` only, no backticks (ADR-0020). Field names and types match exactly — no renaming. `fromJson` / `toJson` are explicit.
+3. **Mobile DTOs mirror TypeBox 1:1.** Each DTO file carries `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) as its L1 header. ASCII `->` only, no backticks. Field names and types match exactly — no renaming. `fromJson` / `toJson` are explicit.
 4. **One PR changes both sides.** A change to a TypeBox schema and the change to its Dart mirror travel in the same commit. Code review enforces this until codegen lands.
 
 ### Example

@@ -29,7 +29,7 @@ Two artifacts, each canonical only for what it is authoritative on:
 
 Per [ADR-0010](./docs/decisions/0010-clone-positioning.md) (functional fork positioning) and [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (this hierarchy): replicate Spoke's *functionality*; never replicate its *visual assets*.
 
-Documentation: [`docs/05-SCREENS.md`](./docs/05-SCREENS.md), [`docs/06-DESIGN-SYSTEM.md`](./docs/06-DESIGN-SYSTEM.md).
+Documentation: [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md) (canonical Spoke↔RotPro catalogue), [`docs/06-DESIGN-SYSTEM.md`](./docs/06-DESIGN-SYSTEM.md).
 
 ## Tech Stack
 
@@ -60,17 +60,15 @@ Locked versions and rationale: [`docs/decisions/`](./docs/decisions/).
 │   ├── landing/             # Next.js landing page
 │   └── mobile/              # Flutter app (auth screens for M1)
 ├── infra/                   # docker-compose, server provisioning
-├── prototipo/               # Canonical UI source (Claude Design)
+├── prototipo/               # Visual identity source (Claude Design — tokens, ícones Lucide, paleta)
 ├── docs/
 │   ├── 01-PROJECT.md
 │   ├── 02-ARCHITECTURE.md
 │   ├── 03-CONVENTIONS.md
 │   ├── 04-FEATURES.md
-│   ├── 05-SCREENS.md
 │   ├── 06-DESIGN-SYSTEM.md
 │   ├── 07-INFRA.md
-│   ├── 08-ROADMAP-v2.md         # active M2 plan (v1 archived to docs/archive/, see ADR-0035)
-│   ├── 08-ROADMAP.md            # redirect stub → 08-ROADMAP-v2.md
+│   ├── 08-ROADMAP-v2.md         # active M2 plan (simplified post-reset 2026-05-26)
 │   ├── 09-DISASTER-RECOVERY.md
 │   ├── 10-CHANGELOG.md
 │   ├── decisions/           # ADRs

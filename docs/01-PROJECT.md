@@ -24,7 +24,7 @@ Independent Brazilian delivery riders need a fast, reliable route planner that r
 - Effective gateway fee: ~1,5% + R$ 0,40 per transaction (Stripe Pix pricing). Net per charge ≈ R$ 25,11; partner share ≈ R$ 12,56 each. Full unit economics in `docs/M2-COST-MODEL.md`.
 - Revenue is automatically split 50/50 between the two partners via **Stripe Connect** (Separate Charges and Transfers — two `stripe.transfers.create` calls fire from the webhook handler).
 - Distribution: APK direct download from the project's domain. **No Google Play Store** in V1 (the client explicitly chose to bypass Play Store bureaucracy and distribute the APK directly). Future Play Store path is documented in `docs/BUSINESS-RULES.md` §14 (Stripe Pix would not be allowed inside the app; the workaround is a browser redirect to `roteirizadorpro.com.br/assinar`).
-- Full operational rules — paywall UX, "what does NOT exist", LGPD touchpoints — in `docs/BUSINESS-RULES.md`. Gateway architecture decision in [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) (supersedes ADR-0007 Efí Bank).
+- Full operational rules — paywall UX, "what does NOT exist", LGPD touchpoints — in `docs/BUSINESS-RULES.md`. Gateway architecture decision in [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) (Stripe Pix; supersedes prior Efí Bank decision deleted in 2026-05-26 reset).
 
 ## Positioning Statement
 

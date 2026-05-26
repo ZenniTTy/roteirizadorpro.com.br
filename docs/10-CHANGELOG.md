@@ -2,6 +2,38 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-05-26 — M2 reset to baseline (white-label Spoke restart)
+
+Após 30 dias de slice-2 acumular entropia (16 microsprints + 43 session logs + 37 ADRs + 12 specs/plans + 522 LOC TODO), Eduardo redirecionou: **estratégia M2 = white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Branch `chore/m2-reset-to-zero` executou limpeza completa:
+
+**Código apagado (apps/mobile/lib/):**
+- `features/{stops,settings,share}/` — 31 files
+- `core/services/external_nav.{dart,g.dart}` — único consumer era stops/
+- `apps/mobile/test/{features,_support,core}/` + `integration_test/` — 37 test files
+- `apps/mobile/lib/app.dart` reescrita minimal: rotas /login, /register, /home placeholder
+
+**Mantido (intocado):**
+- `features/auth/` (Login + Register)
+- `core/{theme,widgets,env,network,providers,services/id,permissions}/` (design system reaproveitável)
+- `apps/backend/src/` inteiro
+- `prototipo/` inteiro
+
+**Docs apagados:**
+- 12 ADRs slice-2-específicas (0007, 0017, 0019, 0020, 0021, 0027, 0028, 0029, 0031, 0032, 0033, 0034) — keepers: 25 ADRs (foundational + harness + 0030 Stripe + 0035 pivot + 0036 parity gate)
+- 10 specs/plans em `docs/superpowers/` (mantém só `0000-template.md` em cada)
+- `docs/08-ROADMAP.md` (stub redirect — obsoleto), `docs/05-SCREENS.md` (inventory é canônico)
+
+**Docs reescritos:**
+- `TODO.md`: 522 → 26 linhas
+- `docs/08-ROADMAP-v2.md`: 267 → 101 linhas (sem microsprints A/B; checklist de telas Spoke a replicar)
+- `docs/M2-SLICE-CHECKLIST.md`: 137 → 64 linhas (sem ADR por slice, sem session log por commit)
+- `docs/sessions/0001-INDEX.md`: zerado com nota apontando pro archive
+
+**Arquivado:**
+- 36 session logs (2026-05-*) → `docs/archive/sessions-pre-cleanup-2026-05-26/`
+
+Plano detalhado da limpeza preservado em `~/.claude/plans/velvet-yawning-thacker.md`.
+
 ## 2026-05-24 — Pix gateway migration: Efí Bank → Stripe + 30-day access pass model (ADR-0030)
 
 Client decision late on 2026-05-24, after slice-2 fidelity work resumed: migrate the slice-4 Pix gateway from **Efí Bank** to **Stripe** and revert the brief 2026-05-10 "pay-per-route" model to a **30-day access pass** charged manually (R$ 25,90 grants 30 days; no Stripe Subscriptions, no automatic renewal — Pix Automático is invite-only in BR).

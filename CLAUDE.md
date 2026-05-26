@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-26 (Session 27 — **pivot foundational: ADR-0035 reframes the canonical UI authority**. Spoke (ex-Circuit Route Planner) is now the canonical source for behavior/flows/navigation/settings; `prototipo/` keeps authority only over visual identity (tokens, colors, icons, animations); cliente Ueslei is final tiebreaker. ADRs 0033 + 0034 reclassified from "accepted divergences" to "aligned design decisions." Roadmap `docs/08-ROADMAP.md` marked SUPERSEDED; `docs/08-ROADMAP-v2.md` rewrites slices 2 + 3 based on Spoke-vs-RotPro inventory at `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Slices 1, 4, 5, 6, 7 unaffected. Previous: Session 26 Addendum 2 MS-15a-followup (6 visual fidelity gaps closed; ADRs 0032/0033/0034 filed; Voice page redesign with pulse + amplitude + auto-restart). Earlier: Session 24 carry-overs + ADR-0031 hardened `flutter-test-author`. M2-AI harness sprint shipped, ADRs 0023–0031; retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. **ADR-0030** Stripe Pix + 30-day access pass supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
+> **Last updated:** 2026-05-26 (M2 reset — limpeza completa de slice-2 microsprint bloat + 12 ADRs específicas + 10 specs/plans + 36 sessions arquivadas. Branch `chore/m2-reset-to-zero` reduz `apps/mobile/lib/` a só `core/` + `features/auth/`; reescreve `app.dart` minimal. ROADMAP-v2 simplificado: sem microsprints A/B, só lista de telas Spoke a replicar. Estratégia M2 firme: **white-label do Spoke** (100% funcional/estrutural com nossa stack; polish visual no final). Plano detalhado em `~/.claude/plans/velvet-yawning-thacker.md`. Previous: ADR-0035 pivot foundational + ADR-0036 parity gate.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -20,7 +20,6 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
 | `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). ADR-0023. |
 | `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected after a session restart following Phase 1 of the M2-AI sprint. |
-| `cd apps/mobile && flutter test --tags golden` | Run only the alchemist golden tests (ADR-0029). Add `--update-goldens` to regenerate baselines after an intentional visual change; review the PNG diff in the PR. |
 
 ## What This Project Is
 
@@ -28,19 +27,19 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M2 (slice 2 — Telas Core, IN PROGRESS)
+## Current Focus: M2 (slice 2 — Telas Core, RESET 2026-05-26)
 
-M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress.** The locked order is:
+M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 reset 2026-05-26**: branch `chore/m2-reset-to-zero` apagou todo o código slice-2 (29 stops + 1 settings + 1 share) + 37 tests + 12 ADRs específicas + 10 specs/plans + 36 sessions. Estratégia agora firme: **white-label do Spoke** — replicar 100% funcional/estrutural com nossa stack; polish visual no final. Locked order:
 
 1. ✅ APK distribuível (`v1.0.0`).
-2. 🟡 **Telas Core — IN PROGRESS** (13/16 fidelity microsprints done as of 2026-05-23 / MS-14; 7 Criticals remain — MS-15 AddStop, MS-16 Voice, Navigate C-1 ADR-0017-scoped). On parallel branch `feat/m2-ai-harness` the **M2-AI Harness sprint shipped (2026-05-24) — ADRs 0023–0029**; PR #8 against `feat/m2-slice-2-telas-core` ready to merge before slice 2's own microsprints resume.
-3. ⏳ VRP real (in-process Node TS solver + GraphHopper matrix).
-4. ⏳ Stripe Pix paywall (Stripe Connect 50/50 split, R$ 25,90 grants 30 days of access; renewal is a fresh manual Pix payment, not Stripe Billing — ADR-0030 + `docs/BUSINESS-RULES.md`).
-5. ⏳ Sentido casa.
-6. ⏳ LGPD.
-7. ⏳ Painel admin.
+2. 🟡 **Slice 2 — Telas Core Spoke-aligned** (em progresso pós-reset; lista de telas a replicar em [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md))
+3. ⏳ Slice 3 — Backend real (solver in-process Node TS + Nominatim SP + status persistido + FCM + reset senha + Google Sign-In backend)
+4. ⏳ Slice 4 — Stripe Pix paywall (Connect 50/50 split, R$ 25,90 grants 30 days; renewal is fresh manual Pix — ADR-0030 + `docs/BUSINESS-RULES.md`)
+5. ⏳ Slice 5 — Sentido casa
+6. ⏳ Slice 6 — LGPD
+7. ⏳ Slice 7 — Painel admin
 
-**The single source of truth for M2 is [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md)** (v1 was archived 2026-05-26 to `docs/archive/` per ADR-0035). When any other doc contradicts it, the roadmap wins and you fix the contradiction in the same PR. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta).
+**The single source of truth for M2 is [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md)** (simplificado pós-reset). Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta). Catálogo autoritativo de paridade Spoke↔RotPro: `docs/inventory/2026-05-26-spoke-vs-rotpro.md`.
 
 ## Onboarding Ritual
 
@@ -66,10 +65,10 @@ Skipping this ritual is not an option, even if the human seems eager to jump to 
 Two artifacts, each authoritative only on what it actually governs. When in doubt, ask "is this a behavioral question or a visual question?" and consult the matching source.
 
 1. **Spoke (ex-Circuit Route Planner)** — canonical for **behavior**: which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. The end-user is a delivery rider who already uses Spoke daily; functional parity with Spoke is the contract per ADR-0010 (functional fork). Inspection is via runtime UX observation on Eduardo's licensed install (Samsung M54) — no decompilation, no asset extraction.
-2. **`prototipo/` (Claude Design prototype, client-approved 2026-05-07)** — canonical for **visual identity only**: color tokens (`prototipo/tokens.js`), spacing scale, radii, shadows, typography pairing, icon family (Lucide, per ADR-0032), animation patterns, decorative creativity. The prototype is a creative reference, not a structural specification.
+2. **`prototipo/` (Claude Design prototype, client-approved 2026-05-07)** — canonical for **visual identity only**: color tokens (`prototipo/tokens.js`), spacing scale, radii, shadows, typography pairing, icon family (Lucide), animation patterns, decorative creativity. The prototype is a creative reference, not a structural specification.
 3. **Cliente Ueslei** — final tiebreaker on any conflict between the two layers above.
 
-When `docs/05-SCREENS.md` or `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (when present) is the canonical Spoke→implementation mapping per slice.
+When `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` is the canonical Spoke→implementation mapping per slice.
 
 ### Spoke deep-dive default behavior (per ADR-0036, amended 2026-05-26)
 
@@ -143,7 +142,7 @@ The stack has three places where data shape can be defined; only one is canonica
 Rules (full text in `docs/03-CONVENTIONS.md` §8 and `docs/02-ARCHITECTURE.md` "API Contracts & Type Safety"):
 
 1. Never return `@prisma/client` rows from a handler. Always whitelist via a TypeBox response schema.
-2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) and matches the TypeBox shape 1:1 (no renaming, no field skips). ASCII `->` only, no backticks. See ADR-0020 for the normative grammar.
+2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) and matches the TypeBox shape 1:1 (no renaming, no field skips). ASCII `->` only, no backticks.
 3. A change to a TypeBox schema and its Dart mirror travel in the same commit.
 
 Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Post-M1 plan: replace the manual mirror with OpenAPI export (`@fastify/swagger`) + Dart codegen. See ADR-0013.
@@ -169,7 +168,7 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - If you can't verify it, don't ship it.
 - Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
 - **For mobile TDD, dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
-- **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit. Now part of `M2-SLICE-CHECKLIST.md` §Verification. See ADR-0027.
+- **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit.
 
 ### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
 
@@ -187,19 +186,9 @@ Four hooks run automatically around every assistant edit/turn — non-blocking, 
 
 These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; PostToolUse extension rationale in ADR-0024; layered boundary in ADR-0012.
 
-### Spec-Driven Workflow (ADR-0019)
+### Spec-Driven Workflow (opt-in pós-reset 2026-05-26)
 
-Every new slice or large feature starts from the canonical templates extracted from the slice-2 artifacts:
-
-- `docs/superpowers/specs/0000-template.md` — the 13 H2 sections (Context, Decisions Locked, Goals, Architecture, Data flow, Sub-slice plan, Libraries, ADRs filed, Risks, Accessibility, Test strategy, Verification gates, References).
-- `docs/superpowers/plans/0000-template.md` — the Phase / Task / Step hierarchy with TDD pattern, Self-Review checklist, and Execution Handoff.
-
-Two skills enforce the brainstorming-first discipline:
-
-- `/new-spec <slug>` — scaffolds the spec header and stops; the human invokes `superpowers:brainstorming` to lock the Q1/Q2/Q3-style decisions before authoring §Context onward.
-- `/new-plan <slug>` — scaffolds the plan header + back-reference to the matching spec and stops; the human invokes `superpowers:writing-plans` to decompose tasks.
-
-Skipping these and copying a previous spec/plan invariably introduces drift. Use the skills.
+Post-reset, specs/plans formais são **opcionais**. Templates ficam em `docs/superpowers/specs/0000-template.md` e `docs/superpowers/plans/0000-template.md` pra quem quiser usar — mas o caminho default agora é mais leve: brainstorm mental → implementa → commit. Use specs/plans formais só pra trabalho substancial onde a decisão arquitetural NÃO é óbvia do Spoke (slice 4 Stripe paywall, slice 7 admin panel — esses sim merecem spec). Slice 2 telas Spoke-aligned não merece spec por tela — Spoke é o spec.
 
 ### Flutter Hot-Reload Discipline
 
@@ -256,7 +245,7 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 - Architecture, flows, schemas, contracts → `docs/02-ARCHITECTURE.md`
 - Naming, code style, directory layout → `docs/03-CONVENTIONS.md`
 - Features (canonical business rules) → `docs/04-FEATURES.md`
-- Screens (prototype catalogue) → `docs/05-SCREENS.md`
+- Screens (Spoke catalogue) → `docs/inventory/2026-05-26-spoke-vs-rotpro.md`
 - Design system → `docs/06-DESIGN-SYSTEM.md`
 - Infrastructure → `docs/07-INFRA.md`
 - M2 roadmap → `docs/08-ROADMAP-v2.md` (v1 archived at `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`)

@@ -230,7 +230,7 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 
 **Behavior:**
 - Free forever: registration, all stop-management features, route optimization, route view, sharing, map, sentido casa.
-- Paid: one Pix payment of **R$ 25,90** grants **30 days** of access — "Iniciar Navegação" stays unlocked for the period and triggers the external nav handoff (Waze / Google Maps per ADR-0017).
+- Paid: one Pix payment of **R$ 25,90** grants **30 days** of access — "Iniciar Navegação" stays unlocked for the period and triggers the external nav handoff (Waze default, Google Maps fallback).
 - When a user with no active pass taps "Iniciar Navegação": paywall modal appears.
 - After payment confirmation via Stripe webhook: the modal closes and external nav fires within ~5 s (poll interval).
 - When the 30-day period expires: the button locks again. The user pays again to renew — a fresh manual Pix payment, not a recurring charge.

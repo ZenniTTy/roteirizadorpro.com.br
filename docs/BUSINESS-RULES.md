@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Última atualização:** 2026-05-24
-- **Decisão arquitetural:** [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) (Stripe Pix + 30-day access pass; supersedes ADR-0007)
+- **Decisão arquitetural:** [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) (Stripe Pix + 30-day access pass; ADR-0007 Efí Bank foi deletada no reset 2026-05-26 pós-substituição)
 
 > Fonte de verdade para regras de negócio do produto. Leia antes de implementar qualquer funcionalidade de pagamento, paywall ou assinatura. Para a decisão técnica e options-considered, ver ADR-0030.
 
