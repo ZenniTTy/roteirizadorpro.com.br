@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:roteirizador_pro/core/services/id.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
@@ -178,7 +179,7 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
                   Expanded(
                     child: _MethodButton(
                       label: 'Teclado',
-                      icon: Icons.keyboard,
+                      icon: LucideIcons.keyboard,
                       isSelected: _selectedMethod == 'keyboard',
                       onTap: () => _onMethodTap('keyboard'),
                     ),
@@ -187,7 +188,7 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
                   Expanded(
                     child: _MethodButton(
                       label: 'Voz',
-                      icon: Icons.mic,
+                      icon: LucideIcons.mic,
                       isSelected: _selectedMethod == 'voice',
                       onTap: () => _onMethodTap('voice'),
                     ),
@@ -196,7 +197,7 @@ class _AddStopSheetState extends ConsumerState<AddStopSheet> {
                   Expanded(
                     child: _MethodButton(
                       label: 'Câmera',
-                      icon: Icons.camera_alt,
+                      icon: LucideIcons.camera,
                       isSelected: _selectedMethod == 'camera',
                       onTap: () => _onMethodTap('camera'),
                     ),
@@ -261,7 +262,7 @@ class _SearchInput extends StatelessWidget {
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
           prefixIcon: const Icon(
-            Icons.search,
+            LucideIcons.search,
             size: 20,
             color: AppColors.textMuted,
           ),
