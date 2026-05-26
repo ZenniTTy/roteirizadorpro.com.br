@@ -4,6 +4,14 @@
       "type": "stdio",
       "command": "dart",
       "args": ["mcp-server"]
+    },
+    "maestro": {
+      "type": "stdio",
+      "command": "maestro",
+      "args": ["mcp"],
+      "env": {
+        "MAESTRO_CLI_NO_ANALYTICS": "1"
+      }
     }
   }
 }
