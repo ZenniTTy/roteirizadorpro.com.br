@@ -12,6 +12,7 @@
 - [ ] **Confirm there are no in-progress PRs** that conflict: `gh pr list --state open`. If there are, decide whether to merge them first or coordinate.
 - [ ] **`git status` on `develop` is clean** and you are aligned with `origin/develop`. If not, fix the divergence before branching.
 - [ ] **Brainstorm.** Even when the slice section in the ROADMAP looks complete, run `superpowers:brainstorming` with the user before opening files. Surfaces hidden requirements early.
+- [ ] **Spoke deep-dive upfront (ADR-0036, amended 2026-05-26).** For any slice-2 or slice-3 microsprint whose flow has a Spoke equivalent (default for the Telas Core / backend slices), dispatch `spoke-parity-checker` subagent BEFORE the spec is written. This builds the structural baseline that informs the spec and removes UI/UX questions Spoke already answers. The same subagent is dispatched again at D4 closing (see §Verification HARD GATE below). Slices 4 (Stripe), 5 (sentido casa), 6 (LGPD), 7 (admin) are out of scope — those have no Spoke equivalent. Prereq: M54 connected (`adb devices` shows `RQCW401G33T device`) and Eduardo logged in to Spoke.
 
 ## Branch and naming
 

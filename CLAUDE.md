@@ -71,6 +71,17 @@ Two artifacts, each authoritative only on what it actually governs. When in doub
 
 When `docs/05-SCREENS.md` or `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (when present) is the canonical Spoke→implementation mapping per slice.
 
+### Spoke deep-dive default behavior (per ADR-0036, amended 2026-05-26)
+
+For any **slice-2 (Telas Core) or slice-3 (Real backend) microsprint** whose flow has a Spoke equivalent, the `spoke-parity-checker` subagent is dispatched **proactively and upfront during brainstorming** — BEFORE asking Eduardo UI/UX questions that Spoke already answers structurally. This is the default; do not offer alternatives ("inspect Spoke first or just ask the user?"). The inspection produces a structural baseline that informs the spec, and the same subagent is dispatched again at D4 closing for verification (the gate documented in ADR-0036 and `docs/M2-SLICE-CHECKLIST.md` §Verification).
+
+Ask Eduardo only for:
+- **(a)** Decisions Spoke doesn't cover (data migration paths, original RotPro features like ScreenShare/Pix paywall, scope cuts per `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §7).
+- **(b)** Directives that override Spoke (cliente preference per the 7 locked directives in inventory §7.1, e.g. no Apple/Facebook auth, no iOS).
+- **(c)** A one-line confirmation that the device is connected (`adb devices` shows `RQCW401G33T device`) and Spoke is logged-in before dispatch.
+
+Out of scope for this rule: slices 4 (Stripe paywall — original RotPro), 5 (sentido casa — original RotPro), 6 (LGPD — legal-only), 7 (admin panel — original RotPro). Those have no Spoke equivalent to inspect.
+
 ## Karpathy's Four Principles (canonical)
 
 These four principles are the canonical guidance for LLM coding behavior, originally compiled at [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) from Andrej Karpathy's observations. They apply to every action you take in this repo.
