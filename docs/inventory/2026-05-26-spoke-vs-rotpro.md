@@ -906,3 +906,50 @@ Testes empíricos executados via Maestro MCP em 2026-05-26 (commit `00b99f9` adi
 - Tap "Refinar" — que opções abrem? (gap; pode ser inspecionado depois)
 - Tap "14min" (text verde) — clickable? Abre breakdown?
 - Tap "Confirmar" — destino próxima inspeção (§10.10)
+
+### 10.10 — Modal FTUE "Os IDs serão definitivos" (confirm lock dialog)
+
+**Trigger:** tap em CTA "Confirmar" do estado pós-optimize (§10.9) **pela primeira vez na conta**.
+
+**Estrutura:**
+- Hero illustration: cadeado + 3 ID badges (A1, K8, D6) — IDs misturados sugerindo que após confirm, IDs originais ficam mesmo se novas paradas forem adicionadas com IDs diferentes
+- Title: `"Os IDs serão definitivos"`
+- Body text: explica que após confirmação, IDs não mudam mais mesmo com alterações
+- CTA primary: **"Continuar"** (filled blue)
+- CTA secondary: **"Cancelar"** (text style)
+
+**Implicação:** Confirmar é uma ação **semi-destrutiva** (não destrutiva mas irreversível em uma dimensão). Models deve ter `Route.confirmedAt: DateTime?` — antes nulo, depois fixo no momento do confirm.
+
+### 10.11 — Modal FTUE "Tudo pronto para carregar o veículo?" (load vehicle FTUE)
+
+**Trigger:** tap "Continuar" no dialog §10.10.
+
+**Conteúdo:**
+- Title: `"Tudo pronto para carregar o veículo?"`
+- Body: explica que Spoke ajuda a carregar o veículo organizando pacotes por ordem de entrega
+- CTA primary: **"Continuar"** (filled blue) — abre flow Load vehicle (§10.6 "Localizador de pacotes" referencia esta feature; full flow não inspecionado)
+- CTA secondary: **"Pular"** (text style, blue) — skipa Load vehicle e vai direto pro estado ready-to-run
+
+**Implicação:** Load vehicle é feature **opt-in por rota**, com FTUE perguntando se quer usar. Pra RotPro slice 2: feature OUT-OF-SCOPE (complexidade desnecessária pra MVP); slice 3+: implementar depois de ter Stop + Package model robustos.
+
+### 10.12 — Estado "Ready-to-Run" (pós-confirm + skip Load vehicle)
+
+**Trigger:** tap "Pular" no FTUE §10.11.
+
+**Diferenças vs §10.9 (pre-confirm post-optimize):**
+- Sheet ganha **2 botões em row** logo abaixo do título da rota:
+  - **`⫷ "Compartilhar rota em tempo real"`** (share icon + label, outline button) — funcionalidade nova: live tracking pra cliente acompanhar entrega
+  - **`🚛 "Carregar veí..."`** (truck icon + label truncado "veículo", outline button) — re-entry pro Load vehicle flow se usuário pulou no FTUE
+- CTAs bottom mudam:
+  - **"14min"** verde (mantém)
+  - **"Editar"** (outline) — substitui "Refinar"; permite editar rota mesmo pós-confirm
+  - **"Iniciar rota"** (filled primary blue) — substitui "Confirmar"; **GATEWAY pro modo delivery onde status actions vivem**
+
+**Bounds da linha de 2 botões action:** aproximadamente `y=[1310, 1410]` (preciso novo inspect pra bounds exatos quando voltar).
+
+**Implicação enorme:** O **"Ready-to-Run state"** é uma fase distinta de `RouteStatus { confirmed_not_started }`. Tem ações específicas (Compartilhar tempo real + Carregar veículo + Editar + Iniciar) que ainda mantêm a rota editável.
+
+**Pendente:**
+- Tap "Compartilhar rota em tempo real" — abre share sheet? Cria link público? (próxima)
+- Tap "Carregar veículo" — abre flow Load vehicle (provavelmente uma tela visual de car layout + drag pacotes)
+- Tap "Iniciar rota" — **GATEWAY** pra modo delivery (§10.13)
