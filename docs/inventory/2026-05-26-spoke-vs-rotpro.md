@@ -487,6 +487,7 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 
 - [ADR-0010](../decisions/0010-clone-positioning.md) — Functional fork positioning (cobre legalidade da inspeção)
 - [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Pivot foundational
+- [ADR-0037](../decisions/0037-maestro-mcp-for-spoke-inspection.md) — Maestro MCP como camada preferida de inspeção (usada na §10)
 - [`docs/08-ROADMAP-v2.md`](../08-ROADMAP-v2.md) — Roadmap pós-pivot (ATIVO)
 - [`docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`](../archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md) — Roadmap pré-pivot (ARQUIVADO)
 - [`docs/M2-SLICE-CHECKLIST.md`](../M2-SLICE-CHECKLIST.md) — Verification gates
@@ -494,3 +495,142 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 - `apps/mobile/lib/features/settings/presentation/settings_page.dart` — SettingsPage atual
 - `/tmp/spoke-inspection/` — screenshots + XML dumps da inspeção (não-commitados; descartáveis)
 - Spoke v3.65.1 (`com.underwood.route_optimiser`) inspecionada 2026-05-26 no Samsung M54 (RQCW401G33T) com conta Eduardo logada
+
+---
+
+## §10 — Fase B deep-pass via Maestro MCP (2026-05-26)
+
+> **Source:** `mcp__maestro__inspect_screen` / `mcp__maestro__run` no M54 (`RQCW401G33T`). Fonte preferida per ADR-0037; substitui bash + `uiautomator dump` como mecanismo primário.
+> **Escopo:** este § apenda **só fatos estruturais ainda NÃO capturados nas §§3/5/6**. Quando uma sub-seção repetiria material já em §6.x, ela é omitida ou reduzida a "ver §6.X" + delta novo.
+> **Disclaimer ADR-0010 mantido:** dumps abaixo são reduzidos pra hierarquia + IDs + bounds + content-desc. Microcopy verbatim >5 palavras consecutivas é parafraseado ou omitido.
+
+### 10.1 — Drawer aberto (delta sobre §6.2)
+
+**Confirma §6.2.** Deltas observáveis adicionados:
+
+- **Scrim para fechar drawer:** ocupa `[967,0][1080,2400]` (faixa de ~10% à direita), content-desc literal `"Fechar menu de navegação"`, clickable. Confirmação de que swipe-from-edge OU tap no scrim fecham — não há botão X no drawer.
+- **Drawer body bounds:** `[0,0][967,...]` (90% da largura). Ocupa toda a altura abaixo da status bar.
+- **Top icons bounds exatos:** Help `[695,103][808,216]` (a11y "Ajuda e suporte"), Settings `[831,103][944,216]` (a11y "Configurações"). Ambos `android.widget.Button` com View sobreposta clickable.
+- **Sample real de seções com conteúdo** (estado da Spoke do Eduardo neste momento):
+  - Seção `"Hoje"` (header `[45,700][944,748]`): 2 linhas
+    - `[23,771][944,906]` — data `"26 de mai."` + nome `"terça-feira Rota 2"` + kebab `[820,771][955,906]`
+    - `[23,929][944,1064]` — data `"26 de mai."` + nome `"terça-feira"` (texto azul = rota ativa) + kebab `[820,929][955,1064]`
+  - Divider entre seções: `[0,1021][967,1156]` (height ~135px) e `[0,1947][967,2082]` antes do CTA rodapé
+  - Seção `"Início deste mês"` (header `[45,1158][944,1206]`): 1 linha
+    - `[23,1229][944,1364]` — data `"18 de mai."` + nome `"Segunda-Feira"` + kebab
+- **Confirmação visual da rota ativa:** o nome da rota ativa é renderizado em **cor primária (azul)** dentro da lista; as outras em branco/cinza. Indicador puramente de cor, sem badge nem ícone à esquerda.
+- **CTA "Criar rota":** bounds `[46,2062][921,2197]`, height 135px (~7% da tela), filled-primary, ícone `+` à esquerda do texto.
+- **Card de perfil clickable inteiro** (`[46,261][921,441]`) — tap navega pra tela de account (não inspecionada nesta passada). Bounds dos textos: nome `[260,271][668,329]` (height 58 ≈ 18sp), email `[260,329][757,377]` (height 48 ≈ 14sp), plano `[260,383][498,431]`.
+- **Avatar do usuário:** bounds `[46,261][226,441]` (180×180px, ~9% da largura). É um ImageView circular (renderizado como View no dump — provavelmente Compose AsyncImage).
+
+**Hierarquia compactada (delta):**
+```
+nav_host (FrameLayout)
+└─ ComposeView
+   └─ View (drawer scaffold)
+      ├─ View clickable a11y="Fechar menu de navegação" — bounds [967,0][1080,2400]  (scrim)
+      └─ View — bounds [0,0][967,2400]  (drawer body, 90% width)
+         ├─ Header — bounds [23,103][944,632]
+         │  ├─ Help Button [695,103][808,216]
+         │  ├─ Settings Button [831,103][944,216]
+         │  ├─ User card clickable [46,261][921,441]
+         │  └─ Assinar Button [46,469][921,604]
+         ├─ Section "Hoje" [45,700][944,748]
+         │  ├─ Route row [23,771][944,906] + kebab [820,771][955,906]
+         │  └─ Route row [23,929][944,1064] + kebab [820,929][955,1064]
+         ├─ Divider [0,1021][967,1156]
+         ├─ Section "Início deste mês" [45,1158][944,1206]
+         │  └─ Route row [23,1229][944,1364] + kebab
+         ├─ Divider [0,1947][967,2082]
+         └─ CTA "Criar rota" [46,2062][921,2197]
+```
+
+**Implementação RotPro (sugestão):**
+- `Scaffold` + `Drawer` (90% width via `Drawer(width: MediaQuery.of(context).size.width * 0.9)`)
+- Scrim é automático do Material Drawer
+- Body: `Column` com header (user card + Assinar button), `Expanded` com `ListView` agrupado por seção (Hoje / Início deste mês), `Container` fixed-bottom com `FilledButton.icon(Icons.add, "Criar rota")`
+- Cor primária pra texto da rota ativa via `selectedItemColor` em RouteListTile
+- Help + Settings icons no top-right via `Row` no header (não AppBar, drawer não tem AppBar)
+
+### 10.2 — Popup 3-dot de linha de rota (delta sobre §6.2)
+
+**Confirma §6.2** ("Definir nome e data" / "Duplicar rota" / "Excluir rota"). Deltas observáveis:
+
+- **Tipo:** `PopupMenu` / `DropdownMenu` âncorado, NÃO bottom sheet.
+- **Bounds do container:** `[447,895][944,1300]` quando ancorado ao kebab da primeira rota (`[820,771][955,906]`). Anchor right-aligned: popup se abre à esquerda+abaixo do kebab.
+- **Width:** 497px (~46% da tela).
+- **3 items idênticos em altura (135px cada), sem ícone à esquerda, sem separador, sem cor destrutiva diferenciada pra "Excluir rota"** (não há red foreground).
+- **Hierarquia:** ScrollView com 3 View clickable. Cada item: View clickable filho + TextView interno.
+- **Fechamento:** tap fora (sem scrim visível, comportamento padrão Material PopupMenu).
+- **Confirmação observada:** §6.2 diz "sem confirm dialog observado (verificar com rota não-vazia)". **AINDA NÃO TESTADO** — não tappei "Excluir rota" nesta passada (destrutivo; só temos 3 rotas reais). Gap mantido pra próxima inspeção.
+
+**Implementação RotPro:**
+- `PopupMenuButton<RouteAction>` ancorado no kebab Icon, com `PopupMenuItem` por opção.
+- Sem `PopupMenuDivider`, sem leading icon, sem `TextStyle(color: Colors.red)` em "Excluir".
+
+### 10.3 — Form "Editar rota" (parametrização do wizard — confirma §3.2 item 7b)
+
+**Acesso:** drawer → 3-dot de qualquer rota → "Definir nome e data" (per §10.2). Open via item topo do popup.
+
+**Estrutura observada (full dump):**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar | `[0,92][1080,250]` | Background azul-escuro full-width |
+| Botão close (X) | `[12,105][147,240]` | a11y `"Voltar"` — RENDERIZADO COMO X, NÃO BACK-ARROW. §6.2 diz "back-arrow no top-left" mas o **edit usa X close** (diferença vs Create) |
+| Title text | `[45,295][331,371]` | `"Editar rota"` (não "Criar rota") |
+| Label "Nome da rota (opcional)" | `[45,439][455,487]` | Mesma label do create |
+| EditText nome | `[79,522][1001,657]` | **Pré-populado com o nome atual** ("terça-feira Rota 2"). Diferença vs create onde é placeholder cinza |
+| Container EditText | `[45,510][1035,668]` | clickable wrapper |
+| Label "Selecione a data" | `[45,736][327,784]` | Mesma label do create |
+| Container radio rows | `[45,807][1035,1191]` | Apenas 2 rows visíveis no scroll inicial: "Hoje" + "Amanhã" (sem "Escolher data" em container separado) |
+| Row "Hoje" | `[45,807][1035,965]` | clickable, com calendar icon, texto + data inline `"ter. 26 de mai."`, radio à direita SELECIONADO (azul) |
+| Row "Amanhã" | `[45,999][1035,1157]` | clickable, mesma estrutura, radio não-selecionado |
+| Row "Escolher data" | `[45,1191][1035,1349]` | container separado abaixo (não dentro do mesmo group), com calendar icon + chevron-right (não radio) |
+| CTA primary "Salvar alterações" | `[45,2062][1035,2220]` | **DIFERE do create que é "Confirmar"** |
+
+**Diferenças confirmadas vs Wizard "Criar rota" (§6.2):**
+- Topbar usa **X close** (não back-arrow) — divergência com §6.2 que dizia "back-arrow no top-left"
+- Title: "Editar rota" vs "Criar rota"
+- EditText pré-populado com nome atual vs placeholder auto-gerado
+- **Sem "Zona C" (Opções de início rápido / Reutilizar paradas)** — confirmado per §6.2
+- CTA label: "Salvar alterações" vs "Confirmar"
+
+**Implementação RotPro:**
+- Reuse wizard widget parametrizado por `Route?` (null=create, non-null=edit)
+- Conditional: render X-button se `route != null` (back-arrow se null), title via switch, EditText `controller.text = route?.name ?? ""` (sem hint quando edit), Zona C `Visibility(visible: route == null, ...)`, CTA label via switch.
+
+### 10.4 — Tela "Detalhes da rota" (ACHADO NOVO — NÃO está em §6.x)
+
+**🚨 Gap crítico do inventário existente.** Nenhuma das seções §3/§5/§6 mencionou essa tela. Comportamento observado:
+
+**Trigger:** ao tocar em uma **rota com paradas** no drawer pela primeira vez (não toda vez? requer verificação — pode ser comportamento "uma vez por sessão" ou "até salvar como padrão"). O checkbox `"Salvar como padrão"` na parte de baixo da tela (default CHECKED) sugere que após primeira config, próximas entradas pulam esta tela.
+
+**Estrutura completa (full-screen com ScrollView):**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Topbar com close (X) | `[12,105][147,240]` | a11y `"Voltar"` |
+| Title `"Detalhes da rota"` | `[45,295][497,371]` | h1 |
+| **Seção "Partida"** (header `[45,439][166,487]`) | | |
+| Row "Usar local atual" | `[45,510][1035,668]` | clickable + GPS icon + chevron-right. Acessa picker de starting point |
+| Row "Iniciar agora mesmo 18:53" | `[45,702][1035,860]` | clickable + clock icon + time inline + chevron-right. Acessa time picker |
+| **Seção "Destino"** (header `[45,928][175,976]`) | | |
+| Row "Ida e volta" (subtitle "Viagem de ida e volta a partir do local atual") | `[45,999][1035,1157]` | clickable + return-icon + chevron-right. Acessa destination picker |
+| Row "Definir horário de término" (placeholder cinza) | `[45,1191][1035,1349]` | clickable + clock icon + chevron-right |
+| **Seção "Pausa"** (header `[45,1417][146,1465]`) | | |
+| Row "Adicionar pausa" (placeholder cinza) | `[45,1488][1035,1646]` | clickable + coffee-cup icon + chevron-right |
+| **CTA primary "Concluído"** | `[45,1959][1035,2117]` | Filled-primary, full-width, height 158 |
+| Checkbox `"Salvar como padrão"` | `[244,2124][794,2259]` | CHECKED by default |
+
+**Implicações pro RotPro:**
+
+1. **Conceito de "configurações da rota" separadas do conteúdo (lista de paradas):** Spoke separa "o que vou entregar" (paradas) de "como vou rodar essa rota hoje" (partida, destino, pausa). RotPro não tem nada equivalente — paradas vão direto pro sheet.
+2. **Settings persistidas com "Salvar como padrão":** sugere que os defaults vivem em user prefs (SharedPrefsAsync), e que existe uma forma de re-acessar/editar isso depois (provavelmente via 3-dot kebab da tela ativa — verificar quando chegar na §6.6).
+3. **Defaults observados nesta primeira config:**
+   - Partida = "Usar local atual" + "Iniciar agora mesmo" (hora atual)
+   - Destino = "Ida e volta" (default!), com subtitle explicando
+   - Pausa = nenhuma
+4. **Slice 2 implication:** essa tela pode ser **DEFERRED** (não bloqueia primeira versão da rota ativa — RotPro pode pular essa config até slice 3+). Ou pode ser **incluída como wizard simplificado** com defaults sensatos. **Decisão pra spec slice 2:** Eduardo + cliente Ueslei devem decidir se replicam essa tela ou se RotPro vai direto pro sheet com paradas (mais alinhado com original RotPro UX).
+
+**Pendente nesta passada:** comportamento das 5 sub-telas que abrem ao tocar nas rows (pickers de partida/destino/pausa) — gap remanescente até slice 2 ou slice 3 decidir replicar ou não esta tela.
