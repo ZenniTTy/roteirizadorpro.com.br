@@ -1,9 +1,10 @@
 # ADR-0034: VoiceCapturePage uses a single "Adicionar parada" CTA (deviation from prototype)
 
 - **Status:** Accepted
+- **Reframed by:** [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) on 2026-05-26 — this decision is no longer framed as a "deviation from the prototype." The prototype's two-button footer was always a sketch (acknowledged in this ADR's own §Context); under the new hierarchy the functional footer design follows Spoke + cliente preference, and a single confirm CTA is in line with both. No code change.
 - **Date:** 2026-05-25
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
-- **Related ADRs:** ADR-0010 (clone positioning), ADR-0021 (slice-2 fidelity remediation parent), ADR-0033 (PrimaryButton neon-dot removal — sibling visual deviation pattern)
+- **Related ADRs:** ADR-0010 (clone positioning), ADR-0021 (slice-2 fidelity remediation parent), ADR-0033 (PrimaryButton accent removal — sibling visual design decision), ADR-0035 (Spoke functional / prototype visual hierarchy)
 
 ## Context
 

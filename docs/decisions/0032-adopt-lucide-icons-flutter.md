@@ -1,9 +1,10 @@
 # ADR-0032: Adopt `lucide_icons_flutter` as the canonical icon set
 
 - **Status:** Accepted
+- **Reframed by:** [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) on 2026-05-26 — Lucide adoption stands; the rationale shifts from "match the prototype's icon family" to "the icon family that constitutes our original visual identity per the prototype, as the visual canonical." No code change.
 - **Date:** 2026-05-25
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0006 (Flutter + Riverpod stack lock), ADR-0014 (APK distribution), ADR-0021 (slice-2 fidelity remediation parent)
+- **Related ADRs:** ADR-0006 (Flutter + Riverpod stack lock), ADR-0014 (APK distribution), ADR-0021 (slice-2 fidelity remediation parent), ADR-0035 (Spoke functional / prototype visual hierarchy)
 
 ## Context
 

@@ -1,10 +1,11 @@
 # ADR-0021: Slice 2 fidelity remediation — retroactive audit + microsprint correction loop
 
 - **Status:** Accepted
+- **Reframed by:** [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) on 2026-05-26 — the "fidelity" this ADR remediates is now measured against Spoke's behavior + the prototype's visual identity (two layers), not against the prototype's structure as a single canonical UI source. The microsprint correction loop documented here remains valid as a workflow pattern; the *target* of the corrections shifted.
 - **Date:** 2026-05-19
 - **Deciders:** Eduardo
 - **Supersedes:** none
-- **Related ADRs:** ADR-0010 (prototype canonical), ADR-0015 (M2 plan), ADR-0018 (harness auto-validation), ADR-0019 (spec-driven templates)
+- **Related ADRs:** ADR-0010 (functional fork positioning), ADR-0015 (M2 plan), ADR-0018 (harness auto-validation), ADR-0019 (spec-driven templates), ADR-0035 (Spoke functional / prototype visual hierarchy)
 
 ## Context
 

@@ -1,7 +1,7 @@
 # Spoke vs Roteirizador Pro — inventário comparativo
 
 > **Data:** 2026-05-26
-> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) + leitura do código atual em `apps/mobile/lib/`
+> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1, ambos inspecionados em sessão única 2026-05-26 com uiautomator dump + screencap. Cobertura: ver §9 (telas inspecionadas vs pendentes).
 > **Driver:** [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke é o guia funcional, prototipo é referência criativa, cliente Ueslei é desempate
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
 > **Disclaimer legal:** este inventário descreve funcionalidades, navegação e estrutura de UX para fins de paridade funcional (per [ADR-0010](../decisions/0010-clone-positioning.md) — "functional fork with original visual identity"). Não reproduz microcopy verbatim, ícones, ilustrações, paletas, ou tipografia da Spoke. Screenshots de inspeção vivem apenas em `/tmp/spoke-inspection/` e NÃO são commitados.
@@ -87,6 +87,8 @@ Cada item: descrição funcional Spoke → estado RotPro → decisão proposta (
 | 8 | Reutilizar paradas de rota anterior (one-tap) | Não temos | **Replicar** — alto valor; motoboy refaz rotas semelhantes diariamente | Slice 3 backend |
 | 9 | Importar manifesto de rotas (compartilhar planilha/CSV ao app) | Não temos | **Postergar** — exige parsing CSV/Excel + UI de mapeamento de colunas | Pós-M2 (slice 8?) |
 | 10 | "Ler manifesto de rotas" (OCR multi-stop em uma foto de lista impressa) | Temos OCR single-stop | **Replicar (Slice 3 follow-up)** — já registrado como "Voice multi-address dictation" no roadmap atual; estender para OCR multi-stop é natural | Slice 3 follow-up |
+| 10b | **Multi-address dictation nativa** (Spoke tem CTA secundário "fale vários endereços" dentro do flow de voz, confirmando que é feature first-class, não follow-up) | Temos single-stop voice | **Promover prioridade** — não é mais "Slice 3 follow-up", deveria ser parte da slice 3 core | Slice 3 backend |
+| 10c | Seletor de idioma no flow de voz (Spoke mostra dropdown com idioma de reconhecimento) | Hardcoded `pt_BR` no `speech_to_text.listen()` | **Postergar** — único uso BR confirmado; voltar pós-M2 se houver demanda multi-idioma | Pós-M2 |
 | 11 | Transferir paradas (entre rotas? entre usuários?) | Não temos | **Postergar** — feature complexa, baixo uso provável | Pós-M2 |
 | 12 | Copiar paradas para clipboard | Não temos | **Replicar** — feature de baixo custo (text export); útil pra debug e backup do motoboy | Slice 2 Spoke-align |
 | 13 | Compartilhar cópia da rota (sair do app) | Temos `ShareSheet` próprio (WhatsApp + link + QR) | **Manter o nosso** — é feature original RotPro e Eduardo confirmou que fica | — |
@@ -315,9 +317,60 @@ Resumo executivo para Eduardo aprovar antes de Fase 3 (ROADMAP-v2).
 
 ---
 
+## §9 — Cobertura da inspeção (telas inspecionadas vs pendentes)
+
+Inspeção realizada 2026-05-26 via adb shell uiautomator dump + screencap. Captura sistemática mas não exaustiva — algumas telas exigem dados/estados específicos que não foram acessados nesta sessão.
+
+### Spoke — inspecionado
+- ✅ Home (lista de rotas históricas + CTA criar rota)
+- ✅ Settings (rolagem completa: Preferências de rota, Preferências gerais, Conta, rodapé)
+- ✅ Wizard "Criar rota" (nome + data + reutilizar paradas)
+- ✅ Rota vazia (mapa + barra busca/voz/OCR/menu)
+- ✅ Menu kebab de rota (5 opções)
+- ✅ Voice flow entry (botão + seletor de idioma + CTA "fale vários endereços")
+
+### Spoke — NÃO inspecionado (gaps de cobertura)
+- ❌ Tela de login/cadastro completa (Eduardo já estava logado; sair e refazer login arriscaria perder estado)
+- ❌ Tela de busca de endereço com autocomplete (texto)
+- ❌ Tela completa de OCR (foto de etiqueta) e UI de confirmação
+- ❌ Tela completa de Voice em modo "ouvindo" (não cheguei a granted-permission state)
+- ❌ Flow de otimização de rota (lista com paradas reais + tap "Otimizar" + tela de loading + lista otimizada)
+- ❌ Tela de navegação ativa (turn-by-turn, marcação Entregue/Falhou + motivo)
+- ❌ Foto de entrega (POD) UI
+- ❌ Histórico de rotas completas + métricas
+- ❌ Paywall completo / "Comparar planos" / tela de assinatura
+- ❌ Importar manifesto (UI do CSV picker + mapeamento de colunas)
+- ❌ Transferir paradas (UI de target picker)
+
+**Mitigação:** os gaps acima foram inferidos no §3 a partir de observação parcial e estrutura típica de apps de delivery. A Fase 3 (ROADMAP-v2) deve marcar microsprints sobre esses flows como "spec gate exige re-inspeção" antes de codar, pra não chutar UX. Alternativa: Eduardo navega comigo nos flows pendentes em uma sessão dedicada antes da slice 2 Spoke-align começar.
+
+### Roteirizador Pro — inspecionado
+- ✅ Home com paradas (TopBar, cards com grip handle, FAB Lucide, "Otimizar rota" sem neon dot, BottomNav)
+- ✅ Settings (5 categorias confirmadas: nav app Waze/Google Maps, casa stub, indicações, pagamentos stub, sair)
+- ✅ AddStop sheet (3 method buttons: Teclado/Voz/Câmera + scrim)
+
+### Roteirizador Pro — NÃO inspecionado (sessão única; cobertura suficiente pra inventário inicial)
+- ❌ Login/Register (já logado)
+- ❌ Voice page (tentei tocar pelo sheet, tap não pegou)
+- ❌ OCR page
+- ❌ MapStops, AddStopsMap, Reorder
+- ❌ Optimize loading + OptimizeRoute
+- ❌ Navigate
+- ❌ RouteComplete
+- ❌ StopDetail + EditStop
+- ❌ ShareSheet (já temos cobertura forte via MS-12 sessão 2026-05-23)
+
+**Mitigação:** as telas RotPro pendentes são bem documentadas em código (`app.dart:47-160`, cada page em `apps/mobile/lib/features/*/presentation/`) e em sessions anteriores. O inventário §2 lista todas elas com path + page widget + estado, derivadas do código. Inspeção visual seria útil pra validar fidelidade visual no slice gate, não pra mapear estrutura.
+
+### Implicação pra Fase 3
+
+A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint que toca um flow não inspecionado nesta sessão. Custo estimado: ~30 min por microsprint pra inspeção dedicada + screenshots + atualização inline do inventário antes do `/new-spec`.
+
+---
+
 ## §8 — Próximos passos
 
-1. **Eduardo revisa §3 + §7** e marca o que aprova / corta / discute.
+1. **Eduardo revisa §3 + §7 + §9** e marca o que aprova / corta / discute.
 2. Após aprovação: Fase 3 do plano `velvet-yawning-thacker.md` → escrever `docs/08-ROADMAP-v2.md` com slices reorganizados em microsprints (MS-A1, MS-A2, ...) per ADR-0019.
 3. Cada microsprint do v2 ganha `/new-spec` + `/new-plan` no momento de execução.
 4. `docs/08-ROADMAP.md` atual continua marcado SUPERSEDED como histórico.

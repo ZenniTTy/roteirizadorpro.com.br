@@ -1,9 +1,10 @@
 # ADR-0033: Drop the neon-green dot from `PrimaryButton` (deviation from prototype)
 
 - **Status:** Accepted
+- **Reframed by:** [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) on 2026-05-26 — this decision is no longer a "deviation from the prototype." Under the new hierarchy, the prototype is canonical only for visual identity tokens (color, spacing, radii, etc.), not for decorative accents like the neon dot. The decision now reads as a normal design choice aligned with cliente preference; no exceptional framing required.
 - **Date:** 2026-05-25
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
-- **Related ADRs:** ADR-0010 (clone positioning), ADR-0021 (slice-2 fidelity remediation parent), ADR-0032 (Lucide adoption)
+- **Related ADRs:** ADR-0010 (clone positioning), ADR-0021 (slice-2 fidelity remediation parent), ADR-0032 (Lucide adoption), ADR-0035 (Spoke functional / prototype visual hierarchy)
 
 ## Context
 
