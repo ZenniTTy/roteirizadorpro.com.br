@@ -83,8 +83,10 @@ Cada item: descrição funcional Spoke → estado RotPro → decisão proposta (
 | # | Spoke | RotPro hoje | Decisão proposta | Prioridade |
 |---|---|---|---|---|
 | 6 | Tela inicial: **lista de rotas históricas** ("Início deste mês" + entradas datadas) | Lista de paradas avulsa (sem conceito de "rotas separadas por dia") | **Replicar** — fundamental para UX motoboy; cada dia = uma rota distinta | Slice 2 Spoke-align (alto impacto) |
-| 7 | Wizard "Criar rota": nomeie + escolha data (Hoje/Amanhã/Outra) + opção "reutilizar paradas anteriores" | Cria paradas diretamente, sem ato de "abrir nova rota" | **Replicar** — abre a porta pra (a) histórico, (b) sentido casa por rota, (c) métricas/admin | Slice 2 Spoke-align |
-| 8 | Reutilizar paradas de rota anterior (one-tap) | Não temos | **Replicar** — alto valor; motoboy refaz rotas semelhantes diariamente | Slice 3 backend |
+| 7 | **Tela cheia (não modal/sheet) "Criar rota"** (deep-inspecionado 2026-05-26 — MS-A1 upfront): (a) campo nome opcional com auto-sugestão como placeholder — placeholder é salvo se não editado (Spoke usa pattern "[dia-da-semana] Rota [N]"); (b) seletor de data em 3 radio-rows — "Hoje" pré-selecionado com data inline, "Amanhã" com data inline, "Escolher data" → `DatePickerDialog` nativo Android (NÃO chips); (c) seção "Opções de início rápido" com checkbox "Reutilizar paradas anteriores" — quando marcado, CTA muda de rótulo e navega para tela dedicada de seleção de paradas a copiar (não é parte da tela de criação) | Cria paradas diretamente, sem ato de "abrir nova rota" | **Replicar** — abre a porta pra (a) histórico, (b) sentido casa por rota, (c) métricas/admin | Slice 2 Spoke-align |
+| 7b | **Editar nome/data de rota existente:** acessível via 3-dot em qualquer linha de rota no drawer. Abre tela estruturalmente idêntica ao wizard mas: título "Editar rota", campo nome pré-populado com valor atual (não placeholder), sem seção "Opções de início rápido", CTA "Salvar alterações" | Não temos rota como entidade, então não temos edit | **Replicar** — reuso da mesma tela do wizard parametrizada por Route? (null=create, non-null=edit) | Slice 2 Spoke-align (MS-A1) |
+| 7c | **Duplicar rota:** acessível via 3-dot em qualquer linha de rota no drawer. Cria nova rota com cópia das paradas. UI: apenas menu item, sem tela intermediária observada | Não temos | **Replicar** | Slice 3 backend (depende de copy-stops endpoint) |
+| 8 | Reutilizar paradas de rota anterior (via wizard checkbox → tela dedicada com 3 categorias de filtro: stops-not-completed / stops-skipped / stops-done + dropdown de rota fonte + ícone busca) | Não temos | **Replicar** — alto valor; motoboy refaz rotas semelhantes diariamente | Slice 3 backend |
 | 9 | Importar manifesto de rotas (compartilhar planilha/CSV ao app) | Não temos | **Postergar** — exige parsing CSV/Excel + UI de mapeamento de colunas | Pós-M2 (slice 8?) |
 | 10 | "Ler manifesto de rotas" (OCR multi-stop em uma foto de lista impressa) | Temos OCR single-stop | **Replicar (Slice 3 follow-up)** — já registrado como "Voice multi-address dictation" no roadmap atual; estender para OCR multi-stop é natural | Slice 3 follow-up |
 | 10b | **Multi-address dictation nativa** (Spoke tem CTA secundário "fale vários endereços" dentro do flow de voz, confirmando que é feature first-class, não follow-up) | Temos single-stop voice | **Promover prioridade** — não é mais "Slice 3 follow-up", deveria ser parte da slice 3 core | Slice 3 backend |
@@ -123,7 +125,7 @@ A inspeção da Spoke Settings revelou 2 seções: "Preferências de rota" e "Pr
 
 | # | Spoke | RotPro hoje | Decisão proposta | Prioridade |
 |---|---|---|---|---|
-| 31 | Status por parada (Pendente / Entregue / Falhou + motivo) | Não temos (Stop tem só `source`) | **Replicar** — fundamental para o app servir ao motoboy; afeta modelo `Stop` | Slice 2 Spoke-align (modelo) + Slice 3 backend |
+| 31 | Status por parada (Pendente / Entregue / Falhou + motivo) — visualmente confirmado via §6.2bis: status aparece como pin colorido no mapa + ícone de status na row do stop dentro do expanded sheet | Não temos (Stop tem só `source`) | **Replicar** — fundamental para o app servir ao motoboy; afeta modelo `Stop` | Slice 2 Spoke-align (modelo) + Slice 3 backend |
 | 32 | Notas por parada | Não temos | **Replicar** — esperado | Slice 2 Spoke-align |
 | 33 | Foto de entrega (POD — proof of delivery) | Não temos | **Replicar** — Spoke certamente faz; é commodity em apps de delivery | Slice 3 backend (storage de imagem) |
 | 34 | Assinatura digital do destinatário | Não temos | **Postergar** — feature avançada | Pós-M2 |
@@ -207,13 +209,65 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 2. Login bem-sucedido → home (lista de rotas)
 3. Não-logado → tela de signup similar
 
-### 6.2 — Criar nova rota
-1. Home (lista) → tap CTA "Criar rota"
-2. Modal/tela "Criar rota": campo nome opcional, seletor de data (Hoje/Amanhã/Outra), toggle "reutilizar paradas anteriores"
-3. Confirmar → tela "rota vazia" com mapa de fundo + barra de busca/voz/OCR/menu na parte inferior
-4. Adicionar paradas via texto / voz / OCR / tap-no-mapa
-5. Cada parada vira card; lista cresce
-6. Quando ≥1 parada existe → CTAs adicionais aparecem (otimizar, iniciar, compartilhar)
+### 6.2 — Criar nova rota (deep-inspecionado 2026-05-26 via spoke-parity-checker, MS-A1 upfront)
+
+**Estrutura geral:** rotas vivem em um **drawer lateral** (hamburger no canto sup. esquerdo da rota ativa). Spoke **não tem BottomNav**. O drawer tem: card de perfil no topo (avatar + nome + email + badge de plano + CTA assinar), section header "Hoje" com rotas de hoje listadas, section header "Início deste mês" com rotas anteriores, botão full-width "Criar rota" pinned no rodapé do drawer, ícones Help + Settings no canto sup. direito do drawer.
+
+**Cada linha de rota:** data abreviada à esquerda ("26 de mai."), nome à direita ("terça-feira" ou nome custom), 3-dot overflow na extrema direita.
+
+**3-dot overflow de qualquer linha de rota:** (a) "Definir nome e data" (abre form de edição estrutura idêntica ao wizard mas sem zona C), (b) "Duplicar rota", (c) "Excluir rota" — sem confirm dialog observado (verificar com rota não-vazia).
+
+**Wizard "Criar rota" (tela cheia, NÃO bottom sheet):**
+1. Tap em "Criar rota" no rodapé do drawer → push de tela cheia com back-arrow no top-left (não X close)
+2. **Zona A** — "Nome da rota (opcional)" + EditText. Placeholder = nome auto-gerado, pattern "[dia-da-semana] Rota [N]" onde N incrementa por rota do mesmo dia. Se o usuário não editar, o placeholder vira o nome salvo.
+3. **Zona B** — "Selecione a data" + 3 radio-rows:
+   - "Hoje" + data abreviada inline ("ter., 26 de mai."), pré-selecionado
+   - "Amanhã" + data abreviada inline
+   - "Escolher data" + chevron-right → abre `DatePickerDialog` nativo Android (grid de mês + ícone lápis pra modo text-input + ações CANCELAR/OK)
+4. **Zona C** — "Opções de início rápido" + checkbox "Reutilizar paradas anteriores" (uncheck por default). Quando marcado, CTA muda label para algo como "continuar pra copiar paradas".
+5. **CTA** full-width primary "Confirmar" no rodapé. Tap → cria rota, navega imediatamente pra mapa da nova rota vazia. **Sem modal de sucesso, sem banner.**
+
+**Sub-flow "Reutilizar paradas" (se checkbox marcado):** tela cheia separada com (a) back-arrow + ícone busca no top-bar, (b) dropdown "De: [data + nome]" com chevron pra trocar rota fonte, (c) 3 seções colapsáveis com checkboxes por categoria (stops não-completas, stops puladas, stops feitas) cada uma com ícone próprio e empty-state quando categoria vazia, (d) CTA secundário text-style "pular cópia e criar rota vazia" no rodapé.
+
+**Coexistência de rotas (CRÍTICO pra data model):**
+- **N rotas por dia** confirmado por observação ("terça-feira" e "terça-feira Rota 2" ambas sob "Hoje" simultaneamente). Data NÃO é unique key — rotas têm `id` separado.
+- **Switching:** tap em qualquer linha do drawer → rota tapped vira a view principal. Sem long-press, sem gesto especial, sem "set active" explícito.
+- **Empty route lifecycle:** rotas vazias **persistem indefinidamente**. Spoke NÃO auto-deleta. Deleção é exclusivamente manual via 3-dot "Excluir rota".
+- **Section grouping:** "Hoje" agrupa rotas com data == hoje; "Início deste mês" agrupa rotas mais antigas. Grouping é por períodos relativos legíveis, não por strings de data crua.
+
+**Pós-criação:** navega imediatamente pra **tela ativa de rota** — ver §6.2bis.
+
+### 6.2bis — Tela ativa de rota (mapa + sheet) — deep-inspecionada 2026-05-26 via spoke-parity-checker
+
+**Arquitetura confirmada:** Spoke usa **Google Maps SDK** (TextureView + fragment_container) como **base layer full-screen**; toda UI é overlay Compose por cima. Sem Activity transitions dentro da rota.
+
+**Estrutura geral do sheet (CRÍTICO):** os IDs `stepListHeader` (collapsed) e `stepList` (expanded) são a mesma view com Y diferente — equivalente a um `DraggableScrollableSheet`. **Exatamente 2 snap points confirmados:**
+- **Collapsed:** y=[2013, 2265], ~14% da altura da tela. Só uma barra (bottom bar) visível; mapa ocupa o resto.
+- **Expanded:** y=[160, 2400], full-screen abaixo da status bar. Cobre o mapa inteiro (mapa continua renderizado por baixo mas invisível).
+- **Sem snap point intermediário.** Swipe de collapsed vai direto pra expanded.
+- **Drag handle:** ~y=1985, centered, horizontal pill curto.
+
+**Elementos da bottom bar collapsed (esquerda → direita):**
+| Elemento | Bounds | Content-desc | Função |
+|---|---|---|---|
+| Ícone área (search/add indicator) | [0,2048][96,2183] | — | Decoração |
+| `EditText` input endereço | [159,2048][674,2183] | — | Tap → abre busca autocomplete (texto) |
+| OCR `IconButton` | [720,2081][788,2149] | "Ler etiqueta de endereço" | Tap → camera viewfinder (1 tap depth, não 3) |
+| Voice `IconButton` | [833,2081][901,2149] | "Dite o endereço" | Tap → voice capture (1 tap depth) |
+| 3-dot kebab `IconButton` | [968,2081][1036,2149] | "Menu" | Tap → bottom-sheet modal com 5 opções |
+
+**Floating map controls (lado direito, visíveis só com sheet collapsed):**
+- Map layer toggle [934,1699][1002,1767] — content-desc "Alternar modo de mapa" — tap troca padrão↔satélite; long-click pode expor mais opções.
+- Map recenter button [934,1867][1002,1935] — content-desc "Alternar para o mapa" — recentra na GPS location.
+
+**Hamburger:** floating button [46,138][181,273] content-desc "Menu" — abre o drawer lateral (§6.2).
+
+**Empty-state da rota (expanded sheet com 0 stops):**
+1. Ilustração + texto-prompt centralizado (microcopy paraphraseada: "Adicione as primeiras paradas para começar a criar sua rota")
+2. **CTA primário:** full-width filled button "Adicionar paradas" em y~[1967, 2023]
+3. **CTA secundário:** text-style link "Copiar paradas de uma rota anterior" em y~[2125, 2181] — navega pro sub-flow Reutilizar paradas (§3.2 item 8)
+
+**Sem BottomNavigationBar em lugar nenhum da view ativa.** Settings se acessa via drawer header.
 
 ### 6.3 — Adicionar parada (3 métodos)
 - **Texto:** tap na barra inferior → tela de busca com autocomplete (não inspecionado a fundo — depende de geocoding real)
@@ -221,13 +275,18 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 - **OCR (foto de etiqueta):** tap no ícone de leitura → câmera viewfinder → captura → confirma extração
 - **Mapa:** tap no mapa em ponto específico → mint Stop com lat/lng tap (RotPro já faz isso)
 
-### 6.4 — Menu kebab de rota ativa (não inspecionado a fundo)
-Opções observadas:
-- Compartilhar cópia da rota (export para outro app)
-- Copiar paradas (clipboard)
-- Importar manifesto (planilha)
-- Ler manifesto (OCR de lista impressa)
-- Transferir paradas (entre rotas?)
+### 6.4 — Menu kebab de rota ativa (deep-inspecionado 2026-05-26 via spoke-parity-checker)
+
+**Apresentação:** bottom-sheet modal (meia-tela) ao tap no 3-dot da bottom bar.
+
+**5 opções confirmadas por live dump (em ordem de aparição):**
+1. Compartilhar cópia da rota — export pra outro app (Share Intent Android)
+2. Transferir paradas — mover paradas pra outra rota (ou outro usuário?) — verificar em run dedicado
+3. Copiar paradas... — text export pra clipboard (formato a confirmar)
+4. Ler manifesto de rotas — OCR multi-stop de lista impressa
+5. Importar manifesto de rotas — file picker pra CSV/planilha
+
+**Nenhuma opção destrutiva neste menu.** "Excluir rota" fica no 3-dot do drawer (por linha de rota, ver §6.2).
 
 ### 6.5 — Otimizar + Iniciar navegação (não inspecionado)
 Inferido:
@@ -261,6 +320,8 @@ Eduardo locked the scope on 2026-05-26 with 7 directives + 3 answers. Strategy: 
 9. **FCM push notifications** entram no escopo (gratuito até 1M/mês)
 10. **Intercom, Bugsnag/Sentry, Android Auto** — fora (MVP enxuto, infra cara descartada)
 11. **Estimativa real documentada, sem maquiar** — Eduardo decide se renegocia com Workana
+12. **Quando houver qualquer dúvida estrutural/funcional, validar inspecionando o Spoke e seguir a estrutura observada** (com nossa identidade visual). Codificada via ADR-0036 amendment 2026-05-26 (dispatch upfront do `spoke-parity-checker` durante brainstorming). Aplica-se a slices 2 + 3; slices 4/5/6/7 ficam fora porque não têm equivalente Spoke. Adicionada 2026-05-26 durante MS-A1 brainstorming Q10, depois que Eduardo redirecionou "se tiver qualquer dúvida, valide usando o SPOKE, e siga como está lá".
+13. **Objetivo M2 = white-label da Spoke com nossa stack — 100% idêntico funcionalmente AGORA, ajuste de UI fica pro final**. Não inventar arquitetura, não inventar UX, não criar opções. Tudo o que existe na Spoke (flow, tela, gesto, settings, comportamento) deve existir igual na RotPro, adequado à stack Flutter+Riverpod+GoRouter+SharedPrefsAsync. Adicionada 2026-05-26 durante MS-A1 design review, depois que Eduardo redirecionou "tudo está ficando tão complexo. Meu objetivo simplesmente é esse: trazer tudo igual, depois eu ajusto UI." **Implicação prática:** brainstorming agora só pergunta sobre (a) decisões que Spoke não cobre (migração de dados, features RotPro originais), (b) microcopy PT-BR (per legal boundary não copiamos Spoke), (c) confirmação de inspeção (M54 conectado, Spoke logado). NÃO perguntar mais "Opção A/B/C arquitetural" — Spoke decide; se Spoke ambíguo, dispatch o subagent.
 
 ### 7.2 — Replicar (em escopo M2)
 
@@ -369,9 +430,9 @@ Inspeção realizada 2026-05-26 via adb shell uiautomator dump + screencap. Capt
 ### Spoke — inspecionado
 - ✅ Home (lista de rotas históricas + CTA criar rota)
 - ✅ Settings (rolagem completa: Preferências de rota, Preferências gerais, Conta, rodapé)
-- ✅ Wizard "Criar rota" (nome + data + reutilizar paradas)
-- ✅ Rota vazia (mapa + barra busca/voz/OCR/menu)
-- ✅ Menu kebab de rota (5 opções)
+- ✅ Wizard "Criar rota" (nome + data + reutilizar paradas) — **deep-inspecionado 2026-05-26** via spoke-parity-checker MS-A1 upfront run #1: estrutura completa do drawer + 3-dot menu por rota + zonas A/B/C do wizard + coexistência multi-rotas + switching + empty-route lifecycle + sub-flow Reutilizar paradas + form de edição. Resultado registrado em §6.2 + §3.2 itens 7/7b/7c/8.
+- ✅ **Tela ativa de rota — mapa + sheet (estados: collapsed, expanded, empty, kebab)** — **deep-inspecionado 2026-05-26** via spoke-parity-checker MS-A1 upfront run #2: DraggableScrollableSheet equivalent com 2 snap points confirmados; bottom bar collapsed elementos com bounds + content-desc; floating map controls; empty-state expanded com CTAs primário + secundário. Resultado registrado em §6.2bis. Gap remanescente: expanded sheet COM stops reais (rota inspecionada estava vazia).
+- ✅ Menu kebab de rota (5 opções confirmadas via live dump §6.4)
 - ✅ Voice flow entry (botão + seletor de idioma + CTA "fale vários endereços")
 
 ### Spoke — NÃO inspecionado (gaps de cobertura)
