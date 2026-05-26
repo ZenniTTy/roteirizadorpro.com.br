@@ -1129,3 +1129,71 @@ enum StopType { delivery, pickup }
 - Tap kebab da rota concluída pra ver opções (exportar? deletar? compartilhar resumo?)
 - Tap "Copiar paradas para uma nova rota" — confirma flow
 - Abrir drawer e verificar como rota concluída aparece no histórico (badge "Concluída"? cor diferente? duplicate?)
+
+### 10.19 — Settings (Configurações) completas — 13 rows + 4 sections
+
+**🚨 Arquitetura DIFERENTE:** Settings usa **PreferenceActivity tradicional Android** (RecyclerView com rids `android:id/title`, `android:id/summary`, `android:id/switch_widget`), **NÃO Compose**. Mais simples mas Android-classic.
+
+**Path:** drawer → tap engrenagem topo-direito → push de Activity dedicada com toolbar `"Configurações"` + back arrow.
+
+#### Section "Preferências de rota" (7 items)
+
+| # | Title | Summary | Widget | Notas |
+|---|---|---|---|---|
+| 1 | App de navegação | "Navegação do Spoke" | (chevron) | Tap abre picker. **🆕 GAP: existe um app "Navegação do Spoke" próprio** — diferente do que assumi (Waze/Google Maps). Verificar opções no picker |
+| 2 | Lado da parada | "Qualquer lado do veículo" | (chevron) | Opções: Qualquer / Direito / Esquerdo (per §3.3) |
+| 3 | Tempo médio na parada | "1 min" | (chevron) | Picker numérico, default 1 min |
+| 4 | Tipo de veículo | "Carro" | (chevron) | Opções: Carro / Moto / Bicicleta / A pé (per §3.3) |
+| 5 | Evitar pedágios | "Economizar evitando estradas com pedágio" | Switch | OFF default |
+| 6 | ID de parada | "Moderno e Por ordem de rota" | (chevron) | Picker da §10.6.1 (Moderno/Clássico + Depois da otimização/Conforme as paradas) |
+| 7 | Balão do modo de navegação | "Veja informações de entrega enquanto navega" | Switch | **ON default** — overlay info quando navegando |
+
+#### Section "Preferências gerais" (1 item)
+
+| # | Title | Summary | Widget |
+|---|---|---|---|
+| 8 | Tema | "Automático (Pôr do Sol/Nascer do Sol)" | (chevron, picker) |
+
+Opções inferidas: Automático (selected) / Claro / Escuro
+
+#### Section "Assinatura" (1 item)
+
+| # | Title | Summary | Widget |
+|---|---|---|---|
+| 9 | Comparar planos | (sem summary) | (chevron) |
+
+Tap abre paywall comparação free vs premium (OUT-OF-SCOPE pra RotPro per ADR-0010 — temos Stripe Pix).
+
+#### Section sem header (rodapé legal — 4 items)
+
+| # | Title | Notas |
+|---|---|---|
+| 10 | Licenças | Lista de OSS licenses (Spoke usa OSS, copyright notices) |
+| 11 | Termos de uso | Link externo? Tela in-app? Inspecionar |
+| 12 | Política de privacidade | Idem |
+| 13 | Versão | Summary `"Spoke-v3.65.1"` (não-clickable) |
+| 14 | Sair | **TEXTO VERMELHO** (destructive logout) |
+
+**Observações:**
+
+- **Faltam alguns items que §3.3 assumiu existirem:**
+  - "Endereço de casa" (item 22 §3.3) — não vi nesta passagem; **provavelmente está em outro lugar** (account/profile do drawer? ou subset da Spoke não-explorado)
+  - "Indicações" (item 23 §3.3) — RotPro existing feature; OK; Spoke pode não ter equivalente
+- **App de navegação:** Spoke tem app proprietário ("Navegação do Spoke"). RotPro per ADR-0010 default Google Maps. Picker provavelmente tem: Spoke (default) / Waze / Google Maps / Apple Maps.
+- **Sair (vermelho):** padrão de design consistente com "Remover parada" §10.6 — Spoke usa cor vermelha sistematicamente pra destrutivo.
+
+**Implicação pro RotPro:**
+- Usar `Material` settings UI nativa Flutter (ListView com `ListTile + Switch + chevron`) — não precisa Compose-equivalent fancy
+- Section headers via `Padding(child: Text(..., style: theme.textTheme.labelMedium))`
+- Switch via `SwitchListTile.adaptive`
+- Pickers abrem novas Activities (push) com lista radio
+
+**Pendente:**
+- Tap em cada setting que abre picker → capturar opções exatas:
+  - App de navegação (gap: app próprio Spoke!)
+  - Lado da parada
+  - Tempo médio
+  - Tipo de veículo
+  - Tema
+- Tap "Comparar planos" → capturar paywall completo (OUT-OF-SCOPE mas útil pra ADR-0030 reference)
+- Tap "Licenças" / "Termos" / "Privacidade" → confirmar comportamento (in-app vs external link)
