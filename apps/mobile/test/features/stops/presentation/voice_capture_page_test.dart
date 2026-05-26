@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'package:roteirizador_pro/core/services/permissions.dart';
 import 'package:roteirizador_pro/features/stops/presentation/voice_capture_page.dart';
@@ -21,11 +22,13 @@ void main() {
         child: const MaterialApp(home: VoiceCapturePage()),
       ),
     );
-    await tester.pumpAndSettle();
+    // The pulse-ring animation runs forever (repeat()), so pumpAndSettle
+    // would time out. A single pump is enough to lay out the tree.
+    await tester.pump();
 
     expect(find.text('Falar endereço'), findsOneWidget);
     expect(find.text('Toque para falar o endereço'), findsOneWidget);
-    expect(find.byIcon(Icons.mic), findsOneWidget);
+    expect(find.byIcon(LucideIcons.mic), findsOneWidget);
   });
 
   testWidgets(
@@ -42,7 +45,8 @@ void main() {
         child: const MaterialApp(home: VoiceCapturePage()),
       ),
     );
-    await tester.pumpAndSettle();
+    // Single pump (animation is infinite — see sibling test).
+    await tester.pump();
 
     await tester.tap(find.byKey(const Key('voice-mic-button')));
     await tester.pump();

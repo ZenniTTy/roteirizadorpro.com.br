@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/app_theme.dart';
 
@@ -47,7 +48,7 @@ class RpButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (locked) ...[
-            const Icon(Icons.lock_outline, size: 18, color: Colors.white),
+            const Icon(LucideIcons.lock, size: 18, color: Colors.white),
             const SizedBox(width: 8),
           ],
           if (icon != null) ...[

@@ -235,3 +235,78 @@ Nada visível pro usuário — porque a versão pré-auditoria estava **broken**
 A versão "MS-15a closed" do início da sessão era ilusão. Seu pedido de auditoria honesta forçou a re-validação no device real, e o device pegou: (1) bug latente no helper de teste (esquecido desde MS-14, 5 sessões atrás), (2) rotas erradas no código de produção (silent no-op), (3) bug do Flutter #155746 (modal + roteamento aninhado). Tudo corrigido, validado 5/5 no M54, pushed, 3 lições salvas em memória pra proteger sessões futuras. **MS-15a agora é genuinamente closed**, não só "passou os widget tests".
 
 Custo: ~2h extras nessa segunda metade. Ganho: produção real funciona, e o projeto tem 4 lições permanentes que valem várias sessões de tempo poupado no futuro.
+
+---
+
+## Addendum 2 — MS-15a-followup: 6 visual fidelity gaps + Voice page real-time UX (2026-05-25 late)
+
+**Trigger:** Eduardo terminou Addendum 1 com sucesso e rodou manual smoke completo no M54. 6 gaps visuais flagrados.
+
+### Gaps catalogados
+
+| # | Tela | Gap | Decisão |
+|---|---|---|---|
+| 1 | VoiceCapturePage | `IconButton.filled` pelado em vez de 200×200 pulse stack + gradient mic + amplitude reactive + footer correto | **Full redesign** — ver §"Voice page" abaixo |
+| 2 | Wrapper /home/stops/add | Tela preta ao voltar de /voice ou /ocr (wrapper transparente ficava no stack) | **FIXED commit `6b449b5`** — pop wrapper ANTES de push voice/ocr |
+| 3 | HomeListPage FAB | Material `FloatingActionButton(Icons.add)` em vez de `RpFab` com gradient + glow + Lucide `plus`; também sobrepondo botão "Otimizar rota" | **FIXED commit `b350e6b`** — swap pra RpFab + Padding(bottom:72) + ícone Lucide |
+| 3b | RpButton neon dot | Bolinha verde-neon no botão "Otimizar rota" (8×8 com glow) — flagged como distraindo na tela do device | **DROPPED commit `b350e6b`** + protótipo atualizado + **ADR-0033** |
+| 4 | HomeBottomNav | Ícones Material `alt_route_outlined` / `settings_outlined` em vez de Lucide | **FIXED commit `ab6d4c7`** — swap pra `LucideIcons.route` / `LucideIcons.settings` |
+| 5 | StopListItem | Sem grip handle visual no trailing | **FIXED commit `2c294a8`** — default `LucideIcons.gripVertical` quando caller não passa trailing custom |
+| 6 | AddStopSheet | Ícones Material `keyboard` / `mic` / `camera_alt` / `search` em vez de Lucide | **FIXED commit `a9783d1`** — swap pros 4 Lucide equivalentes |
+
+### Lucide adoption (ADR-0032)
+
+Antes de Gap #6 ser implementável, faltava a infra de ícones. Decisão registrada em **ADR-0032**: adotar `lucide_icons_flutter ^3.1.14` como família canônica de ícones, com sweep oportunístico (Karpathy §3 — re-skin só quando o arquivo for tocado, sem one-shot massivo). Avaliados e rejeitados: `lucide_icons` (pub score 45/160), `flutter_lucide` (menor comunidade), `amicons` (bloat de 10K ícones). Commit `b6ad48a` instalou a dep + ADR + `flutter pub get`.
+
+### Voice page redesign (gap #1)
+
+Sequência iterativa, cada iteração validada no M54 antes de prosseguir:
+
+1. **Estrutura visual** — 200×200 stack com 2 pulse rings animados (`AnimatedBuilder` rebuildando `_Ring` widgets a 60fps via `AnimationController.repeat()`) + disco estático 120×120 `primaryLight` + círculo mic 100×100 gradient `accent→primary` 135° com sombra forte. Tudo embrulhado em `_PulseMic` private widget. Footer inicial: `RpGhostButton "Parar"` + `TextButton.icon "Tentar/Adicionar"`.
+
+2. **Amplitude reactive** (pedido do Eduardo) — usei `onSoundLevelChange` callback do `speech_to_text` (validado via Dart MCP `resolve_workspace_symbol`, conforme ADR-0023 precedência). Range Android é indocumentado mas empiricamente ~0–10; clamp + normalize pra [0,1] e mapeio pra `AnimatedScale(scale: 1 + 0.3 * soundLevel, duration: 120ms)` no disco interno + mic. Resultado: mic "respira" com a voz.
+
+3. **Cor vermelha while listening** (pedido do Eduardo) — `AnimatedContainer` 200ms na decoration do mic; troca de gradient `accent→primary` (roxo) pra `0xFFFF6B6B→AppColors.error` (vermelho) quando `listening=true`. Ícone também muda `mic` → `square`.
+
+4. **Real-time partial results** (pedido do Eduardo — "demora um pouco pra aparecer as palavras") — diagnóstico via Context7 `/csdcorp/speech_to_text`: confirmei que `partialResults: true` é default mas v7 recomenda passar via `SpeechListenOptions`. Latência da primeira palavra também caiu movendo `_speech.initialize()` do `_toggleListen` (chamado a cada toggle) pro `initState` (chamado uma vez no mount), economizando ~500ms.
+
+5. **Pause + resume continuous** (pedido do Eduardo — "quando eu paro de falar e retorno apos pausa, nao funciona mais") — issue confirmada pela doc: "Continuous speech recognition... is not yet well-supported by the underlying Android or iOS capabilities." Solução comunidade: `statusListener` + auto-restart no `done`/`notListening`. Implementei modelo de dois buffers: `_committed` (texto finalizado de sessions anteriores) + `_partial` (live da session atual). No `done`, promovo partial→committed e re-chamo `listen()` se `_userWantsToListen` ainda é true. Resultado: rider pode pausar 5s no meio da fala e continuar; transcript acumula em vez de zerar.
+
+6. **Footer simplificado** (pedido do Eduardo — "remover botões Parar e Tentar novamente") — substituí pelo único `RpButton "Adicionar parada"` com `LucideIcons.check`. Mic tap agora faz duplo trabalho (start E stop, controlado por `_userWantsToListen`). Documentado em **ADR-0034** como divergência aceita do protótipo (protótipo é sketch, não vinculante).
+
+### Hot reload workflow estabelecido
+
+Eduardo perguntou "Existe alguma forma de nao ter que ficar buildando e subindo a apk toda hora?". Resposta: sim, `flutter run` debug mode + hot reload via SIGUSR1 ao PID. Workflow validado: ele roda `flutter run -d RQCW401G33T --dart-define=API_BASE_URL=https://api.roteirizadorpro.com.br --dart-define=APP_ENV=production` em terminal dele (sem `--release`); eu acho o PID via `ps aux | grep "flutter.*run.*RQCW"`; disparo `kill -SIGUSR1 <pid>` após cada edit; ele valida no device em ~1s. Iteramos 8 ciclos assim só na Voice page.
+
+### Feature backlog adicionada
+
+**Voice multi-address dictation** — Eduardo pediu pra registrar como feature futura: dictar vários endereços de uma só vez ("Rua A, Avenida B, Rua C") e criar múltiplos `Stop` rows. Depende de Nominatim real (slice 3 prereq) então fica em slice 3 follow-up. Registrado em:
+- `TODO.md` slice 3 section
+- `docs/08-ROADMAP.md` slice 3 section (após bloco "Why not Directions API")
+
+### Decisões registradas
+
+| ADR | Decisão | Driver |
+|---|---|---|
+| **0032** | Adotar `lucide_icons_flutter` como família canônica de ícones | Necessidade pra fechar gaps #3, #4, #5, #6 + ADR-0010 Spoke-parity |
+| **0033** | Remover neon-green dot de `PrimaryButton` (primeira divergência formal do protótipo) | Feedback Eduardo M54 smoke — "remover a bolinha verde" |
+| **0034** | Voice page usa CTA único "Adicionar parada", não dual-button do protótipo | Feedback Eduardo M54 smoke — "remover Parar e Tentar novamente" |
+
+### Lições novas salvas em memória (`~/.claude/projects/<project>/memory/`)
+
+A registrar após esta sessão fechar:
+- `lesson_speech_to_text_init_once_in_initstate.md` — `initialize()` em `_toggleListen` paga ~500ms cada toggle; mover pro `initState` deixa primeira palavra aparecer instantaneamente.
+- `lesson_speech_to_text_continuous_via_status_restart.md` — pause+resume requer `statusListener` + auto-restart on `done`/`notListening` com modelo de dois buffers (committed + partial); doc oficial diz continuous não é suportado pelo OS mas esse padrão funciona.
+- `lesson_flutter_hot_reload_via_sigusr1.md` — `kill -SIGUSR1 <flutter-run-pid>` dispara hot reload sem precisar de stdin attached; mais robusto que VM Service REST (que dá Kernel errors).
+
+### Estado final pós-Addendum 2
+
+- `flutter analyze --no-pub` (global, repo inteiro): clean ✅
+- `flutter test` (mobile suite completa): 173/173 green ✅
+- Manual smoke M54: todos os 6 gaps fechados, Voice page com 6 melhorias entregues e validadas
+- Commits locais a empurrar: `6b449b5` + `b6ad48a` + `a9783d1` + `b350e6b` + `ab6d4c7` + `2c294a8` + 1 commit final (fix(voice) + ADR-0034 + docs)
+- Subagentes despachados: `prototype-fidelity-checker` (sweep dos 6 arquivos editados) + `flutter-perf-auditor` (foco em VoiceCapturePage por causa do `AnimationController.repeat()` + setState de alta frequência no `onSoundLevelChange`)
+
+### Plain-language wrap-up (Addendum 2)
+
+A sessão começou com MS-15a "fechado" e virou um sprint de polimento visual completo dirigido por feedback do M54. Cada gap virou um commit cirúrgico com validação no device antes de prosseguir — exatamente o ciclo "valida tudo antes de prosseguir" que você pediu. A Voice page sozinha foi 6 iterações pequenas, todas validadas. ADRs novos (0032, 0033, 0034) documentam as decisões — duas das quais são divergências formais do protótipo, o que normalmente seria red flag, mas como o protótipo é um sketch e o cliente Ueslei é a fonte canônica final per ADR-0010, registrei e segui.

@@ -165,6 +165,8 @@ apps/backend/src/routes/
 
 **Why not the paid GraphHopper Directions API:** ~€199/month minimum and we're trying to keep total infra under BRL 200/month.
 
+**Slice 3 follow-up feature — Voice multi-address dictation (requested 2026-05-25 by Eduardo, MS-15a-followup smoke):** `VoiceCapturePage` today captures ONE address per session. The rider should be able to dictate multiple addresses in one mic session ("Rua A, Avenida B, Rua C") and create multiple `Stop` rows at once. Depends on real geocoding (Nominatim — this slice's prereq), so it lands AFTER the rest of slice 3 is functional. Requires a segmentation strategy (pause-based vs LLM-based — ADR at implementation time) plus a confirmation UI per geocoded segment. Estimated +1 day on top of slice 3.
+
 **Test plan:** synthetic SP-area test set of 5, 10, 20 stops; assert p95 latency < 2 s; assert improvement ≥ 20% vs input-order baseline on randomized inputs.
 
 **New ADR:** ADR-0019 (route-optimization architecture).

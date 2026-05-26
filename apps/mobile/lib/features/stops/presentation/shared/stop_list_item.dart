@@ -72,7 +72,9 @@ class StopListItem extends StatelessWidget {
                     const Icon(
                       LucideIcons.gripVertical,
                       size: 18,
-                      color: AppColors.textMuted,
+                      // Subtle lavender from prototipo/screens-a.jsx:249.
+                      // Not a named token — sits between border and textMuted.
+                      color: Color(0xFFC8C5D6),
                     ),
               ],
             ),

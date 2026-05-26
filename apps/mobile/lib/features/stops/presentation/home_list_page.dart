@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/home_top_bar.dart';
 import '../../../core/widgets/rp_button.dart';
@@ -80,7 +82,7 @@ class HomeListPage extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   child: RpButton(
                     label: 'Otimizar rota',
-                    icon: const Icon(Icons.auto_awesome),
+                    icon: const Icon(LucideIcons.sparkle),
                     neon: true,
                     onPressed: stops.length < 2
                         ? null
@@ -177,7 +179,7 @@ class _StopRow extends StatelessWidget {
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Icon(Icons.delete_outline, color: Colors.white),
+            Icon(LucideIcons.trash, color: Colors.white, size: 18),
             SizedBox(width: 6),
             Text(
               'Excluir',
