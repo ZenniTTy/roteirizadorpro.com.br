@@ -776,8 +776,67 @@ ScrollView [0,250][1080,2265]
 ```
 
 **Pendente nesta passada:**
-- Tap em "Status: Pendente" chip — abre picker com Pendente / Entregue / Falhou (razões: Cliente ausente, Endereço incorreto, etc.?)
-- Tap em "Cor: Azul" chip — abre picker de cores
+- Tap em "Cor: Azul" chip — abre picker de cores (provavelmente 5-6 cores pra agrupar visualmente)
 - Tap em "Instruções de acesso" — abre input multi-line de complemento?
 - Tap em "Remover parada" — abre confirm dialog ou remove imediato? (destrutivo; pular nesta passada)
 - Tap em "Mudar endereço" — re-abre fluxo de adicionar?
+
+### 10.6.1 — 🚨 CORREÇÃO crítica: chips de topo NÃO são status de entrega
+
+**Investigação inline 2026-05-26 com Eduardo:** tap em ambos os chips de topo NÃO abre picker de status de entrega como inicialmente assumi. Comportamento observado:
+
+- **Chip 1 "● Azul"** — color tag picker (cor visual pra agrupar paradas no mapa)
+- **Chip 2 "ID Pendente"** — abre a tela Help/Setting **"Formato do ID de parada"** (mesma tela que existe no Settings global per §3.3 item 19). O label "Pendente" aqui significa **"esta parada ainda não tem ID numérico atribuído"**, NÃO status de entrega "pendente".
+
+A tela aberta tem:
+- Título "Formato do ID de parada" + visual preview (3 caixas A1/A2/A3 conectadas por linha de rota + números 1/2/3)
+- 2 radio groups:
+  - **"Formato do ID de parada":** Moderno (selected, com badge formato A1/A2/A3) | Clássico
+  - **"Atribuir IDs às paradas":** Depois da otimização da rota (selected) | Conforme as paradas são adicionadas
+- Texto explicativo: "O formato moderno ajuda você a não confundir o número da parada com o ID da parada" + "Os IDs são atribuídos às paradas depois da otimização e da confirmação da rota."
+
+**Implicação crítica pro RotPro:**
+1. **STATUS de entrega (Pendente/Entregue/Falhou) NÃO vive em "Editar parada"** — deve estar em outro lugar do app, provavelmente:
+   - Como ação direta na lista de paradas do sheet (long-press? swipe? botão dedicado?)
+   - Em tela de "Navegação ativa" / "Marcar entregue" que ainda não inspecionamos
+   - Em modal/sheet específico durante o flow de delivery
+2. **Conceito "ID da parada" é diferente de "número da parada":**
+   - **Número** (#1, #2...): ordem visual na lista, sempre sequencial
+   - **ID** (A1, A2... no formato Moderno OU 1, 2... no Clássico): identificador único que respeita ordem de otimização, usado para etiquetar pacotes físicos no carregamento do veículo
+   - Spoke tem essa distinção pra ajudar entregador a pegar pacotes na ordem certa após otimização
+3. **Gap remanescente CRÍTICO:** mapear onde fica o controle de status de entrega. Próximo passo: voltar pro sheet, dar long-press num stop card pra ver se aparece reorder OU swipe horizontal pra ver se aparece "Marcar entregue".
+
+**Para o RotPro:** modela `Stop` com 3 campos separados:
+- `int positionInRoute` (ordem visual, 1..N, sempre sequencial)
+- `String? deliveryId` (formato "A1" Moderno ou "1" Clássico, atribuído pós-otimização, nullable até `route.optimizedAt != null`)
+- `StopDeliveryStatus status` (**pending | delivered | failed | pickedUp** — ver §10.6.2 abaixo, "Picked up" é status terceiro confirmado em docs Spoke), com `failureReason: String?` opcional
+
+### 10.6.2 — Cross-reference docs oficiais Spoke (best practice: docs > inferência)
+
+**Fonte:** WebSearch + WebFetch em sites oficiais ([spoke.com/route-planner](https://spoke.com/route-planner), [help.spoke.com](https://help.spoke.com), [screensdesign.com showcase](https://screensdesign.com/showcase/circuit-route-planner), Google Play / App Store listings). help.spoke.com bloqueou WebFetch (403), mas snippets agregados via search engines deram cobertura suficiente.
+
+#### Confirmações que resolvem ambiguidades anteriores
+
+1. **Status de entrega tem TRÊS estados (não dois):** Spoke confirma `Delivered`, `Failed`, **`Picked up`** (este último crítico — não tínhamos mapeado). Aplicação no RotPro: enum `StopDeliveryStatus { pending, delivered, failed, pickedUp }`. Slice 2 implementa os 4; slice 3 backend persiste timestamps `deliveredAt` / `failedAt` / `pickedUpAt` (nullable).
+
+2. **Localização do controle de status:** docs dizem "When you arrive at the stop, you mark the stop as Delivered/Failed" + "Add, remove, or reorder stops in real time, even while on the road, with hands-free voice input". Implicação: existe **uma tela/fluxo "navegação ativa"** dedicada que mostra controles de status. **Gap:** ainda não inspecionado. Próximo passo Maestro: tap em uma parada da lista no sheet (não no card inteiro como tentei, mas via **long-press OU swipe horizontal**) pra revelar status actions, OU verificar se há um botão "Iniciar rota" / "Start route" que entra em modo navegação.
+
+3. **Failure reasons:** confirmado "you can add a reason from a pre-set list, or add your own". Implicação: combo `Picker<FailureReason>` com lista hardcoded + opção `OUTRO` que abre TextField. Lista hardcoded a confirmar quando chegarmos no picker — comuns em apps de delivery: "Cliente ausente", "Endereço incorreto", "Endereço não encontrado", "Recusou entrega", "Cancelado por dispatcher".
+
+4. **Package ID confirmado:** quote oficial — "Package ID" allows "unique ID to each stop" for "destination matching" no carregamento do veículo. **Confirma minha hipótese §10.6.1.** Formato Moderno (A1/A2/A3) vs Clássico (1/2/3) é só preferência visual; conceito é o mesmo. Atribuído **POST-optimization** ("após otimização e confirmação da rota" per texto inline na própria tela).
+
+5. **Color labels:** confirmado uso oficial — "visually group or prioritize parts of a long route list". Lista completa de cores NÃO documentada oficialmente. Capturado parcial via Maestro: **Azul, Verde-azulado, Roxo, Rosa, Laranja** (5 cores observadas; pode haver mais abaixo no scroll do picker — picker fechou antes de eu completar). RotPro slice 2: começar com essas 5 + scroll picker; ampliar se observação direta revelar mais.
+
+6. **"Load vehicle" feature:** docs mencionam recurso de **"map packages to specific vehicle locations"** — usuário marca onde fisicamente o pacote está no carro (frente, atrás, esquerda, etc.) pra facilitar acesso quando chegar no stop. Este é o conteúdo provável do campo **"Localizador de pacotes"** em §10.6 (que mostra "Não definido" por default). **Gap pendente:** inspecionar tap em "Localizador de pacotes" pra ver UI de location picker. Pode ser uma grade visual representando o veículo.
+
+7. **Plan / Paywall:** docs confirmam "Single monthly plan presentation with 7-day free trial" + "optimize up to 500 stops per route" no plano pago. RotPro slice 4 (Stripe Pix) deve respeitar limite similar; pricing já decidido em ADR-0030 (R$ 25,90 / 30 dias).
+
+#### Mudança de prática operacional (aplica a toda Fase B daqui pra frente)
+
+**Boa prática modernísima implementada agora (per Eduardo, 2026-05-26):**
+
+> Quando o agente encontrar comportamento ambíguo ou inesperado no Spoke (ex: tap abre tela inesperada, label parece ter dupla função, picker tem opções não-óbvias), **PRIMEIRO consultar docs oficiais** (`spoke.com`, `help.spoke.com`, `getcircuit.com`, App Store / Play Store listings, blog) via WebSearch/WebFetch. **DEPOIS** voltar pra Maestro pra validar empiricamente o entendimento construído pelos docs. Isso evita gastar ciclos tentando inferir comportamento via dump XML.
+
+**Hard rule:** ADR-0010 boundary permanece — docs oficiais são consultados pra **entender funcionalidade**, não pra copiar microcopy. Qualquer copy citada nos docs Spoke entra no inventário como **paraphrase neutra** (mesma regra do dump XML).
+
+A próxima iteração do `spoke-parity-checker` subagent prompt deve codificar essa regra no Step 4 (Compare). Adicionar como TODO em ADR-0037 amendment se a Fase B continuar mostrando valor.
