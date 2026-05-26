@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -60,13 +61,13 @@ class HomeBottomNav extends StatelessWidget {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.alt_route_outlined),
-            selectedIcon: Icon(Icons.alt_route, color: AppColors.primary),
+            icon: Icon(LucideIcons.route),
+            selectedIcon: Icon(LucideIcons.route, color: AppColors.primary),
             label: 'Rota',
           ),
           NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings, color: AppColors.primary),
+            icon: Icon(LucideIcons.settings),
+            selectedIcon: Icon(LucideIcons.settings, color: AppColors.primary),
             label: 'Configurações',
           ),
         ],
