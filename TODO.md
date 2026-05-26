@@ -37,11 +37,28 @@ All 7 phases delivered on `feat/m2-ai-harness`. **Full retrospective + per-phase
 
 Live at `https://roteirizadorpro.com.br/roteirizador-pro-v1.0.0.apk` (HTTP 200, 34.3 MB, `Content-Type: application/vnd.android.package-archive`, signed v2 + cert SHA-256 `D9:C9:61:D6:…:14:31`). Validated end-to-end on a Samsung Galaxy A06 against production API. ADR-0014 + session logs 09/10 + memory entry `flutter-android-release-internet-permission.md` capture the design, the diagnosis ladder, and the INTERNET-permission gotcha.
 
-### 🟡 Slice 2 — Telas Core (IN PROGRESS — sub 2a Foundation 10/16 tasks done)
+### 🟡 Slice 2 — Spoke-aligned Telas Core (REORG 2026-05-26 — see ROADMAP-v2)
 
-> ⚠️ **Scope redefinida 2026-05-26 — ver ADR-0035 + `docs/08-ROADMAP-v2.md`.** Slice 2 está em transição: o trabalho funcional concluído permanece, mas o restante do escopo será reescrito contra Spoke (via `docs/inventory/2026-05-26-spoke-vs-rotpro.md`) e não mais contra `prototipo/screens-*.jsx`. As "fidelity findings" listadas abaixo são RECATEGORIZADAS: itens **visuais** (cores, tokens, ícones, espaçamentos) permanecem em aberto até o re-skin; itens **estruturais ou de flow** que apenas divergem do prototipo (sem divergir do que Spoke faz) FECHAM como "non-issue per ADR-0035". A inspeção da Spoke no M54 (Fase 2 do pivot) produzirá o roadmap-v2 que define o resto desta slice.
+> ✅ **Scope LOCKED 2026-05-26 — ver `docs/08-ROADMAP-v2.md` slice 2 section.** Eduardo deu 7 diretivas (replica tudo funcionalmente da Spoke, ajusta visual depois; cortar Apple/Facebook auth; identidade visual mantida; Stripe Pix mantido; ScreenShare mantida; sem menção a "Spoke" na UI; só Android; Login/Register mantidos; FCM entra) + 3 respostas (Intercom/Bugsnag/Auto fora; iOS só ajustar texto sem ADR nova; estimativa real documentada). Slice 2 agora vira "Spoke-aligned Telas Core" decomposta em 8 microsprints **MS-A1..MS-A8** (12-16 dias). Sub 2a/2b/2c entregues (todas as 173 tests verdes em commit `5c104c7`) viram base; novo trabalho começa em MS-A1 (conceito de "Rota" como entidade).
+>
+> **Active source:** `docs/08-ROADMAP-v2.md` §"Slice 2" (microsprints + dependencies + Spoke deep-dive gates).
+> **Historical sources (NÃO use como plano ativo):** specs/plans entregues de 2026-05-13 + fidelity findings de 2026-05-19 (recategorized abaixo).
 
-**Read first (resume order):** `docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md` (the pivot foundational) → `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (when present) → `docs/08-ROADMAP-v2.md` slice 2 section (when present) → `docs/sessions/2026-05-18-12-m2-slice-2-tasks-1-10.md` (historical) → `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` (historical) → `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` (historical, do NOT resume from Task 11 — that plan is pre-pivot) → `docs/M2-SLICE-CHECKLIST.md` → `prototipo/tokens.js` + `prototipo/ui.jsx` (visual identity only).
+**Read first (resume order):** `docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md` → `docs/08-ROADMAP-v2.md` (active) → `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (§3 + §7 + §9) → `docs/M2-SLICE-CHECKLIST.md` → `prototipo/tokens.js` + `prototipo/ui.jsx` (visual identity only). Specs/plans de 2026-05-13 ficam como histórico — NÃO retomar Task 11 do plano antigo.
+
+**Microsprints v2 (ROADMAP-v2 §"Slice 2"):**
+- [ ] **MS-A1** — Conceito de "Rota" como entidade (`Route` model + `RoutesController` + `RoutesListPage` + `CreateRouteWizard`); migration "rota de hoje" automática. **3-4 d.** ADR-0036 (Route entity).
+- [ ] **MS-A2** — Google Sign-In + recuperação de senha UI (cortado Apple+Facebook per diretiva #2). Login + Register screens ganham 3º botão "Continuar com Google". **1-2 d.** ADR-0037 (Google Sign-In). Spoke deep-dive gate: login screen Spoke não inspecionada (§9 invent.).
+- [ ] **MS-A3** — Stop model expansion: `status` (pending/delivered/failed+failureReason) + `notes` + `podPhotoPath` (local até MS-B5) + `complement`. `StopDetailPage` expandida com Entregue/Falhou/Próxima + notes + photo picker shell. **2-3 d.**
+- [ ] **MS-A4** — Settings completas Spoke-aligned: Lado da parada, Tempo médio, Tipo de veículo, Evitar pedágios, Tema (Auto/Claro/Escuro), ID de parada, Balão de navegação, Versão exibida. Restructured em 3 seções (Preferências de rota / Preferências gerais / Conta). **2-3 d.** ADR-0038 (theme toggle).
+- [ ] **MS-A5** — Copiar paradas (clipboard) + menu kebab da rota (Compartilhar / Copiar / Importar manifesto stub / Ler manifesto stub / Transferir stub). **1 d.** Spoke deep-dive gate: kebab inspecionado parcialmente.
+- [ ] **MS-A6** — Tela "Comparar planos" (pricing) — pré-req do slice 4. Plano Gratuito vs Pago R$ 25,90/30d com bullets. CTA "Assinar" placeholder. **1-2 d.** Spoke deep-dive gate: paywall não inspecionado.
+- [ ] **MS-A7** — Tela "Preferências de notificação" (pré-req FCM em MS-B8): toggles "Lembrete início rota", "Atualização status", "Promoções". SharedPrefs persistence até MS-B8. **1 d.**
+- [ ] **MS-A8** — Slice 2 release: rebuild APK `v1.1.0`, sweep visual final, dispatch `prototype-fidelity-checker` (visual-only) + `flutter-perf-auditor`, E2E M54, PR `develop` → tag `v1.1.0`. **2 d.**
+
+**Trabalho já entregue (sub 2a/2b/2c v1 — base do v2):**
+- [x] Tasks 1-25 da v1 (foundation, captura, manipulação). 173/173 tests green @ `5c104c7`.
+- [x] MS-15a AddStopSheet + MS-15a-followup 6 gaps visuais closed (ADRs 0032/0033/0034).
 
 **Branch:** `feat/m2-slice-2-telas-core` — at `f0bb080` (post-session-14 will advance by one more session-end commit), 16+ commits ahead of `origin/develop`. 19/19 flutter tests passing, `flutter analyze` clean, `bun run typecheck` clean. Three of those commits are orthogonal harness work (Wave A); the slice-2 product surface is unchanged from session 13's tip `7437917`.
 
@@ -193,33 +210,40 @@ Post-merge:
 - Backend has no test framework today (`apps/backend/package.json` has only `tsx`/`typescript`/`prisma`). Slice 2 uses curl smoke in the PR body; revisit installing `bun test` (zero-install) or `vitest` post-slice-3 when the real solver makes formal tests high-leverage.
 - Commitlint subject-case rule rejects camelCase identifiers (e.g. `StopDto`, `OptimizeResponseSchema`, `SharedPreferencesAsync`). Pattern: lowercase those tokens in the subject line; body keeps canonical case. Captured as a feedback memory entry.
 
-### ⏳ Slice 3 — VRP real (after slice 2)
+### ⏳ Slice 3 — Real backend for Spoke parity (after slice 2)
 
-Replaces the `POST /routes/optimize` mock with a real solver. Approach in `docs/08-ROADMAP.md` slice 3 section: distance matrix from individual GraphHopper route calls (n² parallel) + nearest-neighbor + 2-opt in Node TS. New endpoint `POST /geocode` backed by Nominatim with the OSMF policy in mind. ADRs to file: ADR-0018 (geocoding policy + migration trigger), ADR-0019 (solver design). Estimated 3-5 days.
+> **Active source:** `docs/08-ROADMAP-v2.md` §"Slice 3". Expanded por diretiva Eduardo "replica tudo": agora cobre solver + Nominatim + persistência de Rotas + status/notas/POD + reutilizar paradas + recuperação senha + OCR multi-stop + multi-address dictation + FCM push + importer + transferir paradas + histórico. **10-14 dias.**
 
-**Slice 3 follow-up feature — Voice multi-address dictation (requested 2026-05-25 by Eduardo during MS-15a-followup manual smoke):** today `VoiceCapturePage` captures ONE address per session and pushes it as a single `Stop`. Feature request is to let the rider dictate multiple addresses sequentially in one mic session (e.g. "Rua A número cem, Avenida B número duzentos, Rua C número trezentos") and create multiple `Stop` rows. Requires (a) a delimiter heuristic — pause-based segmentation or LLM split on commas/"e"; (b) Nominatim geocoding per segment with confirmation UI; (c) batch insert into `stopsController`. Deferred to slice 3 because it depends on real geocoding (slice 3 prereq) — stub geocoding would create confusion. ADR likely needed at implementation time to lock the segmentation strategy. Estimated +1 day on top of slice 3.
-
-**Slice 3 entry tech debt — GraphHopper image pinning (carried from session 2026-05-24-21):** `infra/docker-compose.yml` still uses `image: israelhikingmap/graphhopper:latest` (currently `12.0-SNAPSHOT` per `docker run --entrypoint sh ... ls /graphhopper/*.jar`). Tried pinning to `:8.0@sha256:b7178b…` per Docker best practice; reverted because `config.yml` declares `car_access` (introduced in GH 9+) and `:8.0` crash-loops with `IllegalArgumentException: DefaultEncodedValueFactory cannot find EncodedValue car_access`. Slice 3 entry checklist must (a) file an ADR-0008 amendment choosing a stable tag (likely `:9.1`), (b) re-validate `config.yml` `graph.encoded_values` against that tag, (c) rebuild graph-cache with the pinned image, (d) verify `benchmark.sh` p95 < 200ms still holds. Inline `TODO(ADR)` comment in the compose file marks the spot.
+**Microsprints v2:**
+- [ ] **MS-B1** — GraphHopper pin tag estável (`:9.1` provável) + amendment ADR-0008 + rebuild graph-cache + benchmark p95 < 200ms. Tech debt carried de session 2026-05-24-21. **1 d.**
+- [ ] **MS-B2** — Backend auth: Google Sign-In token verification + password reset flow. Plumb MS-A2 UI. **2 d.**
+- [ ] **MS-B3** — Solver (nearest-neighbor + 2-opt, ~150 LOC TS) + Nominatim self-hosted SP-Capital (~R$ 120/mês, droplet 4GB) + Redis matrix cache. ADRs 0039 + 0040. Replace 501 → real `POST /routes/optimize`. **3-4 d.**
+- [ ] **MS-B4** — Routes persistence (Prisma migration `routes` + `route_stops`); CRUD endpoints; mobile swap `SharedPrefsRoutesRepository` → `ApiRoutesRepository`. **2 d.**
+- [ ] **MS-B5** — Stop status + notes + POD: Prisma migration; POD upload endpoint (S3-compatible / DO Spaces); mobile photo picker + thumbnail. Reutilizar paradas endpoint. **2-3 d.**
+- [ ] **MS-B6** — OCR multi-stop ("ler manifesto") + multi-address dictation no Voice flow (segmentação por pauseFor + pontuação). Spoke deep-dive gate: Voice/OCR full não inspecionado. **2-3 d.**
+- [ ] **MS-B7** — Importar manifesto CSV/XLSX (file picker + parser + UI de mapeamento + batch geocoding) + transferir paradas (source/target rota seletor). **2-3 d.**
+- [ ] **MS-B8** — FCM push: Firebase setup (free tier 1M/msg) + `firebase-admin` SDK backend + `firebase_messaging` mobile + cron triggers lembrete início de rota. Plumb MS-A7 prefs. ADR-0041 possível. **2 d.**
+- [ ] **MS-B9** — Histórico de rotas + métricas básicas (paradas/entregues/falhas/km/tempo) endpoint + tela `RoutesHistoryPage`. Spoke deep-dive gate: histórico não inspecionado. **1-2 d.**
 
 ### ⏳ Slice 4 — Stripe Pix paywall, 30-day access pass (after slice 3)
 
-Per `02-ARCHITECTURE.md` Flow 3 + `08-ROADMAP.md` §"Slice 4" + `BUSINESS-RULES.md` (operational). **Prereqs from Eduardo before this slice starts:** verify Stripe Pix payment method still approved in the platform account dashboard (invite-only in BR — client confirmed approved 2026-05-24 but reconfirm at slice start); both Connected Account IDs (`acct_…`) captured into env vars; webhook endpoint configured in Stripe dashboard pointing at `https://api.roteirizadorpro.com.br/webhooks/stripe` with `STRIPE_WEBHOOK_SECRET` captured. ADR-0030 already covers the architecture decision; this slice files no new ADR unless we deviate. Estimated 4-6 days.
+> **Active source:** `docs/08-ROADMAP-v2.md` §"Slice 4". **Unchanged from v1.** Per `02-ARCHITECTURE.md` Flow 3 + ADR-0030 + `BUSINESS-RULES.md`. **Prereqs from Eduardo:** reconfirm Stripe Pix approval; capture 2 Connected Account IDs em env; configurar webhook endpoint + `STRIPE_WEBHOOK_SECRET`; capture `STRIPE_SECRET_KEY` (live + test). MS-A6 (Comparar Planos UI) já é dependência satisfeita pelo slice 2 v2. **4-6 dias.**
 
 ### ⏳ Slice 5 — Sentido casa (after slice 4)
 
-One toggle in Settings + a column on `users` + a branch in the slice 3 solver. Estimated 1 day.
+> **Active source:** `docs/08-ROADMAP-v2.md` §"Slice 5". **Unchanged from v1.** Toggle em Settings + 2 colunas no `users` + branch no solver (MS-B3). MS-A4 (settings restructure) já é dependência satisfeita pelo slice 2 v2. **1 dia.**
 
-### ⏳ Slice 6 — LGPD (after slice 5)
+### ⏳ Slice 6 — LGPD + Licenças OSS (after slice 5)
 
-`GET /me/export`, `DELETE /me`, plus `/termos` and `/privacidade` static pages on the landing. ADR-0020 captures the export format and delete semantics. Estimated 2-3 days.
+> **Active source:** `docs/08-ROADMAP-v2.md` §"Slice 6". Adição vs v1: tela "Licenças OSS" em Settings (gap §3.3#26 do inventário) usando `flutter_oss_licenses` ou similar. Resto unchanged: `GET /me/export` + `DELETE /me` + `/termos` + `/privacidade` static. ADR-0020. **2-3 dias.**
 
 ### ⏳ Slice 7 — Painel admin (after slice 6)
 
-`apps/landing/src/app/(admin)/` with three pages (Users, Payments, Metrics) + admin role + protected backend endpoints. ADR-0021 captures the authorization model. Estimated 3-5 days.
+> **Active source:** `docs/08-ROADMAP-v2.md` §"Slice 7". **Unchanged from v1.** `apps/landing/src/app/(admin)/` com 3 páginas (Users/Payments/Metrics) + admin role + protected backend endpoints. ADR-0021. **3-5 dias.**
 
-### Total remaining
+### Total remaining (v2)
 
-Approximately 17-25 working days of focused work — about 4-5 weeks of calendar time on a typical solo-dev schedule. Tracked slice-by-slice; don't compress.
+Aproximadamente **32-45 dias úteis** focados — cerca de **6-9 semanas calendário** em ritmo solo-dev. ~80-90% maior que a estimativa v1 (17-25 dias) por causa da diretiva #1 do Eduardo (replicate everything). Eduardo aceitou explicitamente "documentar e seguir" sem cortes adicionais; decisão de renegociar prazo Workana ou aceitar overrun fica em conversa separada com cliente Ueslei.
 
 ---
 

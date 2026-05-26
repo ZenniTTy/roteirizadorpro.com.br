@@ -244,76 +244,121 @@ Existência confirmada: botão "Assinar" no header da home, link "Comparar plano
 
 ---
 
-## §7 — Decisões de design propostas (revisão Eduardo)
+## §7 — Decisões finais Eduardo (LOCKED 2026-05-26)
 
-Resumo executivo para Eduardo aprovar antes de Fase 3 (ROADMAP-v2).
+Eduardo locked the scope on 2026-05-26 with 7 directives + 3 answers. Strategy: **replicate everything functional from the Spoke inspection, then iterate on visual divergence afterwards** (fewer judgment calls now). The categorical buckets below are now locked, not proposals.
 
-### 7.1 — Manter sem mudança
-- Slice 1 (APK) ✅ já entregue
+### 7.1 — Diretivas Eduardo (verbatim, traduzidas estruturalmente)
+
+1. **Replicar tudo funcionalmente primeiro**, depois ajustar design pra não ficar idêntico
+2. **Cortar Apple e Facebook auth** — manter email/senha + Google
+3. **Identidade visual mantida** (tokens, paleta, ícones Lucide, tipografia, animações)
+4. **Stripe Pix paywall mantida** (slice 4 + tudo que o cliente solicitou pro APK)
+5. **ScreenShare original mantida** (QR + link + WhatsApp pra divulgação)
+6. **Sem qualquer menção a "Spoke" na UI** — copy em PT-BR, original
+7. **iOS descartado** — só Android M2
+8. **Login + Register telas atuais mantidas** — sem refazer
+9. **FCM push notifications** entram no escopo (gratuito até 1M/mês)
+10. **Intercom, Bugsnag/Sentry, Android Auto** — fora (MVP enxuto, infra cara descartada)
+11. **Estimativa real documentada, sem maquiar** — Eduardo decide se renegocia com Workana
+
+### 7.2 — Replicar (em escopo M2)
+
+Todos os 43 itens §3 que NÃO entram explicitamente em §7.3/§7.4 são **REPLICAR**, organizados em ROADMAP-v2 por slice.
+
+**Auth (Slice 2 Spoke-align):**
+- Google Sign-In (única opção social — Apple+Facebook cortados)
+- Recuperação de senha via email (Slice 3 backend)
+
+**Conceito de "Rota" como entidade (Slice 2 Spoke-align + Slice 3 backend):**
+- Lista de rotas históricas separadas por dia
+- Wizard "Criar rota" (nome opcional + data Hoje/Amanhã/Outra)
+- Reutilizar paradas de rota anterior (Slice 3 backend)
+- Histórico de rotas concluídas + métricas básicas (km, tempo, paradas, entregues, falhas)
+
+**Stop model expandido (Slice 2 Spoke-align modelo + Slice 3 backend):**
+- Status por parada (Pendente / Entregue / Falhou + motivo)
+- Notas por parada
+- Foto de entrega — POD (Slice 3 backend, storage de imagem)
+- Copiar paradas para clipboard (Slice 2 Spoke-align)
+
+**Settings completas (Slice 2 Spoke-align + alguns Slice 3 backend):**
+- Lado da parada (qualquer / direito / esquerdo)
+- Tempo médio na parada (default 1 min)
+- Tipo de veículo (Carro / Moto / Bicicleta / A pé) — afeta perfil GraphHopper
+- Evitar pedágios (toggle) — param GraphHopper
+- Tema (Automático / Claro / Escuro)
+- Comparar planos (página de pricing) — pré-req paywall
+- Licenças (OSS licenses) — Slice 6 LGPD
+- Versão do app exibida
+- ID de parada (estilo de display) — também replicado (era postergado antes, agora replicar tudo)
+- Balão do modo de navegação (toggle) — também replicado
+
+**Otimização e navegação:**
+- OCR multi-stop ("ler manifesto") — Slice 3 follow-up (extensão do OCR single-stop)
+- Multi-address dictation (gap §3.2#10b) — Slice 3 core (Spoke trata como first-class)
+- Otimização real (solver nearest-neighbor + 2-opt) — Slice 3 backend (já planejado)
+- Re-otimização após "Falhou" — Slice 3 follow-up (depende de status por parada)
+- Janela de horário por parada (Slice 3 follow-up)
+- Importar manifesto (CSV/Excel) — Slice 3 follow-up (parser + UI de mapeamento)
+- Transferir paradas (Slice 3 follow-up)
+
+**Push notifications (NOVO):**
+- FCM setup + endpoint backend + tela de preferências de notificação — Slice 3 backend
+
+**Mantém sem mudança:**
+- Slice 1 (APK distribuível) ✅ já entregue
 - Slice 4 (Stripe Pix R$ 25,90 / 30 dias, ADR-0030)
 - Slice 5 (Sentido casa)
 - Slice 6 (LGPD: export, delete, termos, privacidade)
 - Slice 7 (Painel admin)
 - `ScreenShare` original RotPro (WhatsApp + link + QR)
+- Login + Register telas atuais
 - ADR-0017 (Waze default + Google Maps toggle)
-- ADRs 0033 (sem neon dot) e 0034 (Voice single CTA) — agora reframed como Spoke-aligned
-
-### 7.2 — Adicionar ao escopo (alto valor, baixo custo, Spoke-aligned)
-| Feature | Slice sugerida | Justificativa |
-|---|---|---|
-| Google Sign-In | Slice 2 Spoke-align | Padrão Android, baixo esforço, melhora conversão |
-| Recuperação de senha | Slice 3 backend | Esperado; baixo esforço backend |
-| **Conceito de "Rota" como entidade** (lista de rotas históricas separadas por dia) | Slice 2 Spoke-align | Fundamental — destrava §3.2#6, #7, #8, #35 |
-| Reutilizar paradas de rota anterior | Slice 3 backend | Alto valor pro motoboy diário |
-| Copiar paradas (clipboard) | Slice 2 Spoke-align | Útil pra debug/backup; baixo custo |
-| Settings: Lado da parada | Slice 2 Spoke-align | Profissionalismo; 1 enum |
-| Settings: Tempo médio na parada | Slice 2 Spoke-align | Afeta ETA; 1 number input |
-| Settings: Tipo de veículo | Slice 3 backend | Afeta perfil GraphHopper |
-| Settings: Evitar pedágios | Slice 3 backend | Param `avoid=toll` no GH |
-| Settings: Tema (Auto/Claro/Escuro) | Slice 2 Spoke-align | Esperado; complementa identidade visual |
-| Settings: Comparar planos (pricing) | Slice 4 dep | Pré-req do paywall |
-| Settings: Licenças (OSS) | Slice 6 LGPD | Exigência legal |
-| Settings: Versão do app exibida | Slice 2 Spoke-align | 1 linha |
-| Status por parada (Pendente / Entregue / Falhou) | Slice 2 Spoke-align (modelo) + Slice 3 backend | Fundamental — destrava §3.4#31, #35 |
-| Notas por parada | Slice 2 Spoke-align | Esperado |
-| Foto de entrega (POD) | Slice 3 backend | Commodity em delivery |
-| Histórico de rotas + métricas | Slice 3 backend | Depende de status + persistência |
-| OCR multi-stop (manifesto de rota) | Slice 3 follow-up | Extensão natural do OCR single-stop atual |
-| Otimização real (solver) | Slice 3 backend | Já planejado |
+- ADRs 0033 (sem neon dot) e 0034 (Voice single CTA) — reframed como Spoke-aligned
 
 ### 7.3 — Postergar para pós-M2
+
 | Feature | Razão |
 |---|---|
-| Apple Sign-In | Custo conta dev Apple, não-prioridade BR |
-| Push notifications (FCM) | Setup infra; valor moderado pra MVP |
-| Verificação de email obrigatória | Overhead pra MVP |
-| Importar manifesto (CSV/Excel) | Complexidade parser + UI de mapeamento |
-| Transferir paradas | Baixo uso esperado |
-| Assinatura digital do destinatário | Feature avançada |
-| Janela de horário por parada | VRP complexo |
-| Re-otimização após "Falhou" | Solver iterativo |
-| Android Auto | Complexidade alta; escopo fora |
-| Chat suporte (Intercom) | Custo alto; usar email/WhatsApp |
-| Crash reporting (Sentry) | Já tech debt pós-M2 |
-| ID de parada / Balão de navegação (settings decorativos) | Preferências secundárias |
+| Apple Sign-In | Cortado por diretiva Eduardo (#2) |
+| Verificação de email obrigatória | Overhead pra MVP; voltar pós-M2 se houver problema de fake accounts |
+| Assinatura digital do destinatário | Feature avançada; POD com foto cobre o caso essencial |
+| Seletor de idioma no Voice flow | Single locale BR confirmado; voltar se houver demanda |
+| Crash reporting (Sentry) | Cortado por diretiva Eduardo (MVP enxuto, infra cara fora) |
+| Chat suporte in-app (Intercom) | Cortado por diretiva Eduardo (suporte via WhatsApp/email) |
+| Android Auto | Cortado por diretiva Eduardo (complexidade vs benefício) |
 
-### 7.4 — Descartar
+### 7.4 — Descartar definitivamente
+
 | Feature | Razão |
 |---|---|
-| Facebook Sign-In | Em queda; baixo valor BR |
-| Android Auto | Fora de escopo M2 (complexidade vs benefício) |
+| Facebook Sign-In | Diretiva Eduardo (#2) — em queda, baixo valor BR |
+| Apple Sign-In | Diretiva Eduardo (#2) — sem iOS, sem motivo |
+| iOS support | Diretiva Eduardo (#7) — só Android no M2; ADR-0014 já cobre formalmente |
+| Mentioning "Spoke" / "Circuit" anywhere in UI copy | Diretiva Eduardo (#6) — toda microcopy original PT-BR Roteirizador Pro |
 
-### 7.5 — Impacto estimado no roadmap
+### 7.5 — Estimativa real (sem maquiar, per diretiva #11)
 
-**Roadmap original (pré-pivot):** Slice 2 ≈ 5-7d + Slice 3 ≈ 4-6d + Slice 4 ≈ 4-6d + Slice 5 ≈ 1d + Slice 6 ≈ 2-3d + Slice 7 ≈ 3-5d = **17-25 dias úteis**
+**Roadmap original (pré-pivot):** Slice 2 ≈ 5-7d + Slice 3 ≈ 4-6d + Slice 4 ≈ 4-6d + Slice 5 ≈ 1d + Slice 6 ≈ 2-3d + Slice 7 ≈ 3-5d = **17-25 dias úteis**.
 
-**Roadmap-v2 (pós-pivot, com §7.2 incluído):**
-- Slice 2 Spoke-align: **8-12 dias** (expandido: conceito de Rota como entidade + auth Google + 5 settings novos + status por parada + notas + tema + copiar paradas + versão exibida)
-- Slice 3 backend: **6-9 dias** (expandido: solver real + Nominatim + reutilizar paradas + histórico + POD + tipo veículo + evitar pedágios + recuperação senha + OCR multi-stop)
-- Slices 4/5/6/7 mantidos: **10-15 dias**
-- **Total v2:** ~24-36 dias úteis (≈40-50% maior que original)
+**Roadmap-v2 (replica tudo per diretiva #1):**
 
-**Trigger de cliente:** Se ≥30% sobre o orçamento Workana original, Eduardo decide entre (a) negociar prazo extra, (b) cortar §7.2 features de prioridade média, ou (c) shippar v1 com escopo reduzido e v2 incremental.
+| Slice | Conteúdo expandido | Estimativa |
+|---|---|---|
+| 2 Spoke-align (UI/UX) | Conceito de Rota como entidade + Google Sign-In + 8+ settings novos + status/notas/POD por parada (modelo) + tema + copiar paradas + versão exibida + Stop model expansion + tela de preferências de notificação UI + página Comparar Planos UI | **12-16 dias** |
+| 3 backend (Spoke parity) | Solver real (nearest-neighbor + 2-opt) + Nominatim self-hosted SP + reutilizar paradas + histórico + POD storage + tipo veículo + evitar pedágios + recuperação senha + OCR multi-stop + multi-address dictation + FCM setup + push endpoint + re-otimização após Falhou + janela de horário + importar manifesto + transferir paradas | **10-14 dias** |
+| 4 Stripe Pix paywall | Sem mudança vs original (ADR-0030 + página Comparar Planos é dep do Slice 2) | **4-6 dias** |
+| 5 Sentido casa | Sem mudança vs original | **1 dia** |
+| 6 LGPD | Sem mudança vs original + Licenças OSS movida pra cá | **2-3 dias** |
+| 7 Painel admin | Sem mudança vs original | **3-5 dias** |
+| **Total v2** | | **32-45 dias úteis** (~80-90% maior que original) |
+
+**Trigger orçamentário ativado:** estimativa v2 excede materialmente o original. Eduardo já decidiu **"Documentar e seguir"** — eu escrevo o ROADMAP-v2 com a estimativa real; ele decide se renegocia Workana, corta escopo em conversa separada, ou aceita o overrun. Sem cortes adicionais por mim.
+
+### 7.6 — Cobertura de inspeção pendente (gate Spoke deep-dive por microsprint)
+
+Per §9, vários flows Spoke críticos não foram inspecionados nesta sessão (login completo, autocomplete de busca, OCR full, Voice em modo ouvindo, navigate ativa, paywall completo, importar manifesto UI). Como agora **replicamos tudo**, cada microsprint que tocar esses flows DEVE rodar uma sessão dedicada de Spoke deep-dive (~30 min adb + screenshots) ANTES do `/new-spec` correspondente. O ROADMAP-v2 marca esse gate explicitamente em cada microsprint relevante.
 
 ---
 
