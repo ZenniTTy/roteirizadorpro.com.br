@@ -953,3 +953,179 @@ Testes empíricos executados via Maestro MCP em 2026-05-26 (commit `00b99f9` adi
 - Tap "Compartilhar rota em tempo real" — abre share sheet? Cria link público? (próxima)
 - Tap "Carregar veículo" — abre flow Load vehicle (provavelmente uma tela visual de car layout + drag pacotes)
 - Tap "Iniciar rota" — **GATEWAY** pra modo delivery (§10.13)
+
+### 10.13 — 🎯 MODO DELIVERY (Running route) — onde finalmente vivem os status actions
+
+**Trigger:** tap "Iniciar rota" no estado Ready-to-Run §10.12.
+
+**🚨 ESTRUTURA FUNDAMENTALMENTE DIFERENTE:** modo delivery foca em UMA parada por vez (a atual/próxima), com 3 botões de ação primários grandes.
+
+#### Estrutura observada (sheet posicionado mid-screen):
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Mapa (top metade) | `[0,0][1080,1248]` | Centrado na parada atual + polyline azul do trajeto |
+| Markers no mapa | varia | Apenas 2 visíveis: parada atual (#1 azul) + "🏁 19:36" (target finish time) — outras paradas ficam fora do viewport por zoom |
+| Hamburger | `[79,171][147,239]` | a11y "Menu" — abre drawer |
+| ETA finish badge top-right | `[820,138][1069,273]` | TextView `"19:36"` + flag-finish icon |
+| Floating "Alternar para o mapa" | `[923,1046][1013,1136]` | Recenter button (mantém) |
+| Floating "Alternar modo de mapa" | `[934,889][1002,957]` | Layer toggle (mantém) |
+| **Sheet topbar:** | | |
+| Title `Rua José da Silva` (parada atual) | `[45,1250][651,1347]` | h1 big text |
+| X close `[944,1247][1035,1349]` | a11y `"Fechar"` | Sai do modo delivery — provavelmente confirm dialog antes |
+| Subtitle `"1/4, 19:22"` | `[101,1366][278,1422]` | Progress (1 de 4 entregues) + horário atual (~ETA na parada) |
+| **🎯 3 botões de status (CRÍTICO — o que docs Spoke mencionaram):** | | |
+| **"Navegar"** | `[45,1451][352,1618]` | Filled primary BLUE (selected default). Compass icon. Tap → abre handoff Waze/Google Maps (per ADR-0010 default Google Maps) |
+| **"Não entregue"** | `[375,1451][693,1618]` | Outline button. Box-X icon. Tap → abre picker de razão de falha (§10.14 pendente) |
+| **"Entregue"** | `[716,1451][1035,1618]` | Outline button. Box-check icon. Tap → marca como Delivered |
+| **Lista inline de info:** | | |
+| Row "Adicionar notas" | `[0,1650][1080,1775]` | clickable, note icon left, chevron right |
+| Row endereço "Jardim Paulista, Ribeirão Preto" | `[0,1775][1080,1900]` | clickable, map icon left, chevron right — abre? |
+| Row **`"A1 Originally 1st"`** | `[0,1900][1080,2035]` | clickable, ID badge "A1" + label `"Originally 1st"` — mostra ID atribuído + posição original pré-otimização. Tap abre help "Formato do ID de parada" (§10.6.1) |
+| Row "Editar parada" | `[0,2070][1080,2205]` | clickable, pencil icon, chevron right — abre §10.6 |
+| Row "Duplicar parada" | `[0,2217][1080,2352]` | clickable, plus-icon, chevron right |
+| (scrolled out) | | Provavelmente "Remover parada" abaixo |
+
+#### Observações estruturais críticas
+
+1. **Status NÃO é destructive-styled.** Mesmo "Não entregue" usa outline normal (não vermelho). Isso é diferente do "Remover parada" em §10.6 que tem texto vermelho.
+2. **"Navegar" é o status default (selected primary)** — Spoke assume que o flow normal é "ir pra parada → marcar status". Faz sentido UX.
+3. **Subtitle "1/4, 19:22"** é information-dense: posição + horário (não tem hora ETA — assume usuário olha o badge top-right "19:36" pra ETA total).
+4. **Sem botão "Picked up" visível.** Hipótese confirmada: appears only quando `Stop.tipo == Coleta`. Esta parada (Rua José da Silva) é `Tipo: Entrega` (default), então só vê Entregue/Não entregue.
+5. **ID badge "A1" inline no sheet** — confirma que Package IDs ficam visíveis em todo lugar pós-otimização.
+6. **Hamburger ainda visível** — usuário pode abrir drawer mid-delivery (acessar outras rotas, settings).
+
+#### Implicação pro RotPro (slice 2 + slice 3)
+
+```dart
+enum StopDeliveryStatus { pending, delivered, failed, pickedUp }
+enum StopType { delivery, pickup }
+// Picked up button só renderiza se stop.type == StopType.pickup
+// Entregue/Delivered button só renderiza se stop.type == StopType.delivery
+// Navegar SEMPRE renderiza
+```
+
+**Arquitetura sugerida:**
+- `DeliveryModePage` (novo, slice 2): Scaffold + GoogleMap top + DraggableScrollableSheet bottom
+- Sheet content é `StatefulConsumerWidget` que mostra `currentStop` (computed from `route.stops.firstWhere(s => s.status == pending)`)
+- 3 botões em `Row` com `OutlinedButton`/`FilledButton`
+- "Navegar" usa `url_launcher` com `geo:` intent → abre Waze/Google Maps conforme setting
+- "Entregue" pop a confirmation dialog opcional, marca status, advances to next pending stop
+- "Não entregue" abre **bottom sheet picker** (§10.14) com lista de razões + OUTRO/Custom
+
+**Pendente nesta seção:**
+- ~~Tap "Não entregue" → capturar picker de razões (§10.14)~~ **TESTADO em §10.14**
+- Tap "Navegar" → confirmar que abre Google Maps default + observar deeplink format
+- Tap "Entregue" → observar se há confirmation, observar transição pra próximo stop
+- Long-press em alguma row pra ver gestos
+- Tap "Adicionar notas" → confirmar é text field
+- Tap X close → sair do modo delivery (confirm dialog?)
+
+### 10.14 — 🚨 SURPRESA: "Não entregue" SEM picker de razão (divergência vs docs Spoke)
+
+**Observação empírica 2026-05-26 (via Maestro):** tap em "Não entregue" do modo delivery (§10.13) **NÃO abre picker de razão**. Comportamento real:
+- Stop atual ("Rua José da Silva", A1) marcado como Failed silenciosamente
+- Sheet auto-advances pra próxima parada pending ("Rua Piracicaba", A2)
+- Title atualiza pra novo stop + subtitle agora `"2/4, 19:27"` (progress 2 de 4)
+- Mapa recentra na nova parada atual + zoom adequado
+- ID badge mostra "A2 Originally 2nd"
+- ETA finish badge atualiza de "19:36" pra "19:37" (provavelmente porque rota agora pula um stop)
+- **Marker "1x" aparece no canto-esquerdo do mapa** — possivelmente indicador visual de "1 parada falhada" (não confirmado, requer zoom maior)
+
+**Divergência crítica vs documentação oficial Spoke:** docs explícitos ("você pode adicionar uma razão de uma lista pré-definida ou customizada") sugerem picker. **NÃO observado in-the-wild.** Possíveis explicações:
+
+1. **Razão é opcional + setado em outra UI:** usuário marca Failed → vai pra próxima → pode voltar via histórico e adicionar razão depois via "Editar parada" §10.6. (Razão = campo opcional persistido).
+2. **Feature flag por conta:** alguns usuários têm picker enabled (talvez plano pago Spoke, ou setting opt-in não default).
+3. **Setting global "Pedir razão ao marcar falha":** toggle não encontrado ainda em §3.3 settings, mas pode existir e estar OFF na conta do Eduardo.
+4. **Razão é capturada via "Adicionar notas":** o campo notes seria onde razão fica registrada (mesma UI, não dedicada).
+
+**Implicação pro RotPro:** **NÃO replicar picker de razão como default** — replicar comportamento observado (mark Failed silently + advance). Considerar adicionar setting "Pedir motivo ao marcar falha" no Settings RotPro pra futura paridade, mas **slice 2 pode shippar sem picker**. Slice 3+: backend persiste `failureReason: String?` (nullable, opcional, editável via Editar parada).
+
+**🎯 BOA PRÁTICA APRENDIDA:** Docs oficiais podem refletir features de plano premium ou de regiões diferentes. **Observação empírica via Maestro tem precedência sobre docs quando diferem.** Atualizar ADR-0037 com nota sobre esse princípio no B.13.
+
+### 10.15 — Marker visual encoding (mapa, modo delivery)
+
+**Observado empiricamente em §10.13 → §10.14 → §10.15:**
+
+| Status | Marker visual no mapa | Observado em |
+|---|---|---|
+| Pending (nunca tocado) | `N` (número simples, azul) | §10.13 marker #1 |
+| **Failed (Não entregue)** | `Nx` (número + X) — fundo escuro | §10.14 marker "1x" |
+| **Delivered (Entregue)** | `N✓` (número + check) — cor diferenciada | §10.15 marker "2✓" |
+| Current (active stop) | Marker maior/destacado + flag-finish nearby | §10.13 marker #1 grande + flag |
+
+**Implicação pro RotPro:**
+- `google_maps_flutter`: customizar `Marker.icon` por status usando `BitmapDescriptor.fromBytes` com SVG render dinâmico
+- Cores: pending = primary blue, delivered = green, failed = grey/dark, current = primary blue maior
+- Numbering: usar `route.stops.indexOf(stop) + 1` (position in optimized order)
+
+### 10.16 — Comportamento "Entregue" (símétrico ao "Não entregue")
+
+**Tap "Entregue" também NÃO abre confirmation dialog** — marca silenciosamente + avança.
+
+**Sequência observada (entre §10.13 e §10.15):**
+1. tap "Não entregue" em stop 1 → mark Failed, advance pra stop 2
+2. tap "Entregue" em stop 2 → mark Delivered, advance pra stop 3
+3. Title sheet atualiza imediatamente
+4. Subtitle progress atualiza ("1/4" → "2/4" → "3/4")
+5. Mapa recentra + zoom auto na nova parada current
+6. Markers no mapa ganham seu indicator visual (`x` ou `✓`)
+7. ETA finish badge top-right atualiza (recalculado com base no que falta)
+
+**Observação UX importante:** **zero fricção** entre marcar e próxima parada. Spoke prioriza velocidade pro motoboy (1 tap = action + advance). Pra RotPro slice 2: **respeitar essa velocidade** — sem dialogs, sem confirmações, sem snackbars bloqueantes. Status update é optimistic UI; rollback se backend falhar.
+
+**Pendente:**
+- Tap "Entregue" mais 2 vezes → completar rota → capturar tela "rota concluída" (§10.17 esperada)
+- Após rota concluída, voltar drawer e verificar como rota aparece no histórico (nome diferente? badge?)
+
+### 10.17 — Estado "Destino final" (Ida e volta retorno)
+
+**Observado:** após marcar todas as 4 paradas (1 Failed + 3 Delivered + 1 implicitly skipped pela Failed), Spoke transita para "destino final" da Ida e volta config (§10.4).
+
+**Estrutura:**
+- Title h1: endereço completo do ponto de partida (no caso, `"R. José da Silva, 713 Jardim Paulista"`)
+- Subtitle: `"Destino, 19:30"` (label "Destino" + ETA pra chegar de volta)
+- **APENAS 2 botões (não 3):**
+  - **"Navegar"** (filled primary) — abre Google Maps/Waze pra retorno
+  - **"Rota concluída"** (outline com check-icon) — finaliza a rota inteira
+- Lista inline reduzida:
+  - Row CEP `"14090-042"` + map icon (não tem mais título/endereço duplicado)
+  - Row `"Editar destino"` (clickable — provavelmente abre re-geocode)
+
+**Por que apenas 2 botões:** "destino final" não é uma parada de entrega — é simplesmente o ponto de retorno. Não há "Entregue/Não entregue" porque não há nada pra entregar lá. Apenas "Navegar" (chegar) ou "Rota concluída" (skip retorno e fechar rota).
+
+### 10.18 — Tela "Rota concluída!" (route completion summary)
+
+**Trigger:** tap "Rota concluída" em §10.17 (ou após o último delivered se config era one-way, sem Ida e volta).
+
+**Estrutura observada:**
+
+| Elemento | Bounds | Notas |
+|---|---|---|
+| Mapa top | `[0,0][1080,1245]` | 4 markers visíveis com status finais visuais (1×, 2✓, 3✓, 4✓) — todos congelados em estado final |
+| Hamburger Menu | `[79,171][147,239]` | Continua acessível |
+| Sheet topbar | `[0,1222][1080,1358]` | |
+| Summary text | `[45,1255][776,1303]` | `"Término: 19:28 • 0 parada • 0 m"` (tempo final + 0 paradas pendentes + 0m restantes) |
+| Add/search button | `[810,1222][923,1335]` | a11y `"Adicionar ou buscar paradas"` — permite reabrir rota e adicionar mais paradas |
+| Kebab `[968,1245][1036,1313]` | a11y `"Menu"` | Provavelmente abre menu §6.4 + "Exportar / Compartilhar resumo" novo |
+| **Lista de stops com timestamps de conclusão:** | | |
+| Row 1 (Jardim Paulistano, "19:27") | `[0,1133][1080,1222]` | Não-current stop (Iguape entregue 19:27) |
+| Row 2 ("Última" chip + Subsetor Leste, "19:27") | `[0,1358][1080,1512]` | Stop final entregue, com chip "Última" |
+| Row 3 ("R. José da Silva 713", "19:28") | `[0,1512][1080,1686]` | Destino final retorno, com flag-end icon |
+| **Card central "Rota concluída!":** | `[45,1731][1035,2149]` | |
+| Check verde icon | `[473,1777][608,1900]` | Confirmation visual |
+| Title `"Rota concluída!"` h2 | `[90,1900][990,1969]` | |
+| Subtitle stats `"4 paradas"` `1 perdida"` | `[191,2052]` + `[833,2052]` | 2 colunas: contagem total + falhas |
+| CTA "Copiar paradas para uma nova rota" | `[45,2194][1035,2329]` | Filled primary or outline — permite criar nova rota com mesmas paradas |
+
+**Implicação pro RotPro:**
+1. **Modelo `Route` precisa de campos:** `completedAt: DateTime?`, `totalStops: int`, `failedStops: int`, `durationMinutes: int` (computed do diff de timestamps)
+2. **Telemetria/stats:** Spoke conta apenas paradas Failed ("1 perdida"), não pickedUp. Validar comportamento com stops `type: pickup` posteriormente.
+3. **"Copiar paradas para uma nova rota"** é wizard que pula direto pro flow "Reutilizar paradas" §3.2 com checkbox marcado por default. Implementação RotPro: re-use o wizard existente parametrizando o source route.
+4. **Markers congelados:** após rota concluída, markers no mapa mantêm status final (não voltam pra pending). Implementação: persistir status no `Stop` model + render conditional do marker icon.
+5. **Sheet topbar mantém add/search:** indicação que rota concluída pode ser **REABERTA** adicionando nova parada. RotPro: confirmar comportamento de uma rota "complete" voltar pra "running" mediante adição.
+
+**Pendente:**
+- Tap kebab da rota concluída pra ver opções (exportar? deletar? compartilhar resumo?)
+- Tap "Copiar paradas para uma nova rota" — confirma flow
+- Abrir drawer e verificar como rota concluída aparece no histórico (badge "Concluída"? cor diferente? duplicate?)
