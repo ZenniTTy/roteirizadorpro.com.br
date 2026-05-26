@@ -6,7 +6,7 @@
 
 ## Pre-flight — before writing any code
 
-- [ ] **Read** `CLAUDE.md`, `docs/08-ROADMAP.md` (the slice's section), `docs/M2-COST-MODEL.md`, `TODO.md`, the last 5 entries in `docs/sessions/0001-INDEX.md`. If you skip this you will re-derive decisions and contradict prior ADRs.
+- [ ] **Read** `CLAUDE.md`, `docs/08-ROADMAP-v2.md` (the slice's section — v1 is archived to `docs/archive/`), `docs/M2-COST-MODEL.md`, `TODO.md`, the last 5 entries in `docs/sessions/0001-INDEX.md`. If you skip this you will re-derive decisions and contradict prior ADRs.
 - [ ] **Consult both source-of-truth layers per ADR-0035:** (a) Spoke (ex-Circuit) for behavior, navigation, settings, feature presence — via `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (the slice-relevant section) or direct M54 inspection if the inventory does not yet cover the flow; (b) `prototipo/screens-*.jsx` for visual identity — color, tokens, spacing, icon family, animations. Cliente Ueslei is final tiebreaker.
 - [ ] **Validate every external library** the slice introduces against Context7 (`resolve-library-id` → `query-docs`). Mandatory for any package within the cutoff window. Capture the version pin you intend to use.
 - [ ] **Confirm there are no in-progress PRs** that conflict: `gh pr list --state open`. If there are, decide whether to merge them first or coordinate.
@@ -85,7 +85,7 @@
   <if any — e.g. 1Password backup for slice 1>
 
   ## Related
-  - Slice N section of docs/08-ROADMAP.md
+  - Slice N section of docs/08-ROADMAP-v2.md
   - ADR-XXXX (new in this PR)
   - Session log docs/sessions/YYYY-MM-DD-NN-<topic>.md
   ```
@@ -101,7 +101,7 @@
 - [ ] **Capture a screenshot** of the production state and attach to the merged PR.
 - [ ] **Session-end protocol** (`docs/sessions/0000-template.md` → `docs/sessions/YYYY-MM-DD-NN-<topic>.md`). Update `docs/sessions/0001-INDEX.md` and `TODO.md` in the same commit. Use the `/session-end` slash command.
 - [ ] **Update `docs/10-CHANGELOG.md`** with one entry for the slice.
-- [ ] **Mark the slice's section in `docs/08-ROADMAP.md` as ✅ shipped** with the tag and date.
+- [ ] **Mark the slice's section in `docs/08-ROADMAP-v2.md` as ✅ shipped** with the tag and date.
 
 ## When something goes wrong
 
@@ -126,7 +126,7 @@ If the project crosses meaningful user thresholds (50 paying users; 500 paying u
 
 - **`prototipo/`** — canonical for **visual identity only** (ADR-0035): color tokens (`prototipo/tokens.js`), spacing, radii, shadows, typography, icon family. NOT canonical for screens, gestures, or flows — those trace to Spoke via the inventory document.
 - **`docs/inventory/2026-05-26-spoke-vs-rotpro.md`** — canonical for **behavior**: which screens exist, what gestures map to what actions, how navigation flows, what settings are present. Driven by ADR-0035; sourced from Spoke runtime inspection.
-- **`docs/08-ROADMAP.md`** — what we're building, in what order, what "done" means.
+- **`docs/08-ROADMAP-v2.md`** — what we're building, in what order, what "done" means (v1 archived 2026-05-26 to `docs/archive/` per ADR-0035).
 - **`docs/M2-COST-MODEL.md`** — cost ceilings.
 - **`docs/decisions/`** — every stack-affecting decision lives here. New libraries → new ADR.
 - **`docs/04-FEATURES.md`** — the feature catalogue. Loose contract with the client; update if a slice changes how a feature works.

@@ -12,7 +12,7 @@ M2 is contracted at BRL 2,000 with the same client who funded M1, with the same 
 This ADR codifies:
 
 1. The locked **execution order** of the remaining six slices.
-2. The **single source of truth** that future sessions follow (`docs/08-ROADMAP.md`, supported by `M2-SLICE-CHECKLIST.md` and `M2-COST-MODEL.md`).
+2. The **single source of truth** that future sessions follow (`docs/08-ROADMAP-v2.md` post-ADR-0035; was `docs/08-ROADMAP.md` until 2026-05-26 — now archived to `docs/archive/`), supported by `M2-SLICE-CHECKLIST.md` and `M2-COST-MODEL.md`.
 3. The **library choices** for slice 2 — the next slice — validated against Context7 on the day of this ADR.
 
 The library validation matters because the LLM agent's training cutoff is January 2026 (per the current Claude Code agent), and the M2 work spans libraries that have moved since then. Without Context7 each library risks shipping with a stale version pin or a missing migration step.
@@ -104,7 +104,7 @@ Build all six slices on parallel feature branches, merge in one PR.
 
 1. **Slice order locked** as Option A: APK (✅ shipped) → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
 
-2. **The single source of truth for M2 is `docs/08-ROADMAP.md`.** All M2 docs cross-reference back to it. When any doc disagrees with `08-ROADMAP.md`, the roadmap wins and the contradiction is a bug to fix in the same PR.
+2. **The single source of truth for M2 is `docs/08-ROADMAP-v2.md`** (was `docs/08-ROADMAP.md` until 2026-05-26 ADR-0035 pivot — v1 archived to `docs/archive/`). All M2 docs cross-reference back to it. When any doc disagrees with the active roadmap, the roadmap wins and the contradiction is a bug to fix in the same PR.
 
 3. **Slice 2 libraries** (validated via Context7 on 2026-05-13):
 
@@ -145,7 +145,7 @@ Build all six slices on parallel feature branches, merge in one PR.
 
 ## Consequences
 
-- **Positive:** clear order; clear cost ceiling; libraries are mature and free; no surprise infrastructure-cost surprises mid-slice; future agents have a single canonical entry point (`08-ROADMAP.md`).
+- **Positive:** clear order; clear cost ceiling; libraries are mature and free; no surprise infrastructure-cost surprises mid-slice; future agents have a single canonical entry point (`08-ROADMAP-v2.md` post-ADR-0035).
 - **Negative:** running on the OSM public tile policy is a soft constraint; if we ever ship to ≥ 500 paying users on the current stack we will likely need to self-host tiles (planned in ADR-0016).
 - **Neutral:** ADRs 0016-0021 will land one-per-slice as the slices ship, capturing the local design decisions.
 
@@ -175,6 +175,6 @@ The decision rule for whether a slice needs its own ADR: **any new dependency, a
 - Context7: `/fleaflet/flutter_map` (queried 2026-05-13 — TileLayer + OSM usage, attribution patterns).
 - Context7: `/csdcorp/speech_to_text` (queried 2026-05-13).
 - Context7: `/websites/pub_dev_google_mlkit_text_recognition` (queried 2026-05-13).
-- `docs/08-ROADMAP.md` — the file this ADR locks in.
+- `docs/08-ROADMAP-v2.md` — the active file this ADR locks in (v1 archived 2026-05-26 to `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md` per ADR-0035).
 - `docs/M2-COST-MODEL.md` — the cost ceiling enforced by this ADR's choices.
 - `docs/M2-SLICE-CHECKLIST.md` — the per-slice execution discipline.

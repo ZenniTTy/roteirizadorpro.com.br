@@ -11,7 +11,7 @@ Android route-planning app for delivery riders, distributed as APK from `roteiri
 | **M1** (BRL 2,000 / 30 days, deadline 2026-05-26) | Server (DO 1GB), landing page, backend auth API + healthchecks, GraphHopper SP graph, Login + Register Flutter screens | In progress |
 | **M2** (BRL 2,000) | Post-M1 — scope to be reconfirmed with client. Original brief: Android APK, OCR/voice/optimization, Pix Split, paywall, admin panel | Not started |
 
-Detailed roadmap: [`docs/08-ROADMAP.md`](./docs/08-ROADMAP.md).
+Detailed roadmap: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (v1 archived 2026-05-26 to `docs/archive/` per [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md)).
 
 ## Architecture (one-liner)
 
@@ -69,7 +69,8 @@ Locked versions and rationale: [`docs/decisions/`](./docs/decisions/).
 │   ├── 05-SCREENS.md
 │   ├── 06-DESIGN-SYSTEM.md
 │   ├── 07-INFRA.md
-│   ├── 08-ROADMAP.md
+│   ├── 08-ROADMAP-v2.md         # active M2 plan (v1 archived to docs/archive/, see ADR-0035)
+│   ├── 08-ROADMAP.md            # redirect stub → 08-ROADMAP-v2.md
 │   ├── 09-DISASTER-RECOVERY.md
 │   ├── 10-CHANGELOG.md
 │   ├── decisions/           # ADRs

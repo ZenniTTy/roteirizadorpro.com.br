@@ -100,9 +100,21 @@ Naming: commits in this remediation use scopes from `commitlint.config.cjs`:
 
 A `docs(sessions): 2026-05-19-17-slice-2-fidelity-audit.md` log will close the loop in the standard session-end commit.
 
+## Post-ADR-0035 reading (added 2026-05-26)
+
+Read this ADR today as a record of a **workflow pattern** (audit → microsprint correction loop → device-E2E gate), not as a record of what gets corrected. The four Criticals it triggered against were authored when the prototype was the sole canonical UI source — under [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) the same gaps would be re-evaluated against two layers:
+
+- Items #1, #2 (full-page vs sheet, missing 3-method chips) — under ADR-0035 these are **structural/functional** concerns and would need to be confirmed against Spoke + the [Spoke-vs-RotPro inventory](../inventory/2026-05-26-spoke-vs-rotpro.md) §3 before being flagged as gaps. The prototype's mockup is no longer canonical for structure. (As it happens, Spoke also presents AddStop as a sheet with multiple input methods, so both items still hold — but the chain of reasoning differs.)
+- Item #3 (autocomplete suggestions) — same pattern; Spoke shows live autocomplete, so the gap is real, but the canonical source is Spoke, not the prototype.
+- Item #4 (Android back-button) — pure navigation behavior, never a prototype concern; this would have been caught the same way under either hierarchy.
+
+The **workflow contribution** of this ADR (device-E2E as a hard gate, microsprint serial correction loop, paralleled audit subagent) is preserved and reused: it now lives in [`docs/M2-SLICE-CHECKLIST.md`](../M2-SLICE-CHECKLIST.md) §Verification as one of three HARD GATES (alongside `spoke-parity-checker` and `prototype-fidelity-checker`). The Phase 1 "single agent loads `prototipo/` once and sweeps" pattern still works, but the agent it dispatches to (`prototype-fidelity-checker`) is now visual-only per ADR-0035.
+
 ## References
 
-- ADR-0010 — Clone positioning + prototype canonical.
+- ADR-0010 — Clone positioning (functional fork).
+- ADR-0035 — Spoke functional / prototype visual hierarchy (reframes the target of "fidelity" remediation).
+- ADR-0036 — `spoke-parity-checker` functional gate (the structural/behavioral equivalent of the visual checker invoked here).
 - ADR-0015 — M2 plan, library choices, slice-2 acceptance criterion (referenced via §35 of the slice-2 spec).
 - ADR-0018 — Harness auto-validation; documents that Stop hooks are signal-only and do not gate.
 - ADR-0019 — Spec-driven templates; this remediation's spec + plan files follow them.

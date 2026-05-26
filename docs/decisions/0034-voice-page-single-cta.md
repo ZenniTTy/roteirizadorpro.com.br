@@ -62,6 +62,12 @@ Total revert cost: ~5 min.
 - Full mobile suite: 173/173 green.
 - Manual smoke on Samsung M54 (RQCW401G33T) via `flutter run` debug hot-reload: single CTA renders correctly; disabled state when transcript empty; enables (gradient purple) once words appear; tapping confirms and routes back to Home with the new Stop visible in the list.
 
+## Post-ADR-0035 reading (added 2026-05-26)
+
+Read this ADR today as a **functional footer design aligned with cliente preference**, not as a flagged divergence. [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) reassigns the prototype's authority: it is canonical for visual identity tokens, not for structural choices like "two buttons vs one" in a screen footer. As this ADR's own §Context already noted, the prototype's two-button footer for `ScreenVoice` was always a UI sketch — there was no real confirm flow because the prototype is not a working speech recognizer.
+
+Under the new hierarchy, the binding sources for "what buttons should the Voice footer have" are: (1) Spoke's actual Voice flow (per the [Spoke-vs-RotPro inventory](../inventory/2026-05-26-spoke-vs-rotpro.md) §3 / §6 when that flow is inspected), and (2) cliente directive. Both align with the single-CTA design shipped here — Spoke's Voice screen also consolidates start/stop into the mic itself, and the cliente explicitly requested the simplified footer on M54 smoke. The decision is unchanged; the framing of "deviation #2" in §Consequences is outdated and the rollback procedure is still correct.
+
 ## References
 
 - `apps/mobile/lib/features/stops/presentation/voice_capture_page.dart` — current implementation.

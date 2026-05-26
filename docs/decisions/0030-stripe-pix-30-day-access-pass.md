@@ -5,7 +5,7 @@
 - **Deciders:** Eduardo, client
 - **Supersedes:** ADR-0007 (Use Efí Bank for Pix Payments with Native Split)
 - **Related ADRs:** ADR-0003 (Fastify backend — webhook endpoint moves), ADR-0015 (M2 plan — slice 4 scope shifts)
-- **Sources of truth:** `docs/BUSINESS-RULES.md` (full operational rules), `docs/08-ROADMAP.md` §"Slice 4"
+- **Sources of truth:** `docs/BUSINESS-RULES.md` (full operational rules), `docs/08-ROADMAP-v2.md` §"Slice 4"
 
 ## Context
 
@@ -32,7 +32,7 @@ Two changes folded into one ADR because they were decided together and only make
 
 ## Implementation summary
 
-Detail lives in `docs/BUSINESS-RULES.md` (operational) + `docs/08-ROADMAP.md` §"Slice 4" (per-slice tasks). High-level:
+Detail lives in `docs/BUSINESS-RULES.md` (operational) + `docs/08-ROADMAP-v2.md` §"Slice 4" (per-slice tasks). High-level:
 
 - **Backend:** new `apps/backend/src/payments/` module — Stripe client, `PaymentIntent` creation, webhook handler at `POST /webhooks/stripe` (replaces `/webhooks/efi/pix`). Webhook validates `stripe.webhooks.constructEvent` signature, dedupes by `stripeEventId` in a `webhook_events` table (Prisma migration), executes split via two `stripe.transfers.create` calls to the two Connected Account IDs.
 - **Mobile:** `PaywallController` reads `GET /subscription/status` from backend; UI shows price + QR code + copy-and-paste code from `payment_intent.next_action.pix_display_qr_code`. Polls `/subscription/status` every 5 s until active or modal closed.
@@ -75,4 +75,4 @@ If Stripe Pix becomes unworkable (invite revoked, fees change unfavorably, Conne
 - `docs/BUSINESS-RULES.md` — complete operational rules, paywall UX, "what does NOT exist" list, Play Store strategy.
 - ADR-0007 — superseded by this ADR; kept for historical context on why Efí was the original choice.
 - Stripe Pix docs (fetched 2026-05-24): `docs.stripe.com/payments/pix` — confirms Brazil availability, invite-only on Pix Automático, Connect split support via Separate Charges and Transfers.
-- `docs/08-ROADMAP.md` §"Slice 4 — Stripe Pix 30-day access pass" — per-task plan (rewritten in this same PR).
+- `docs/08-ROADMAP-v2.md` §"Slice 4 — Stripe Pix 30-day access pass" — per-task plan (rewritten in this same PR).

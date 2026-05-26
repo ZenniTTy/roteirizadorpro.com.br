@@ -112,9 +112,20 @@ Refactors (cross-cutting DRY wins from the slice):
 **Pre-slice cleanups:**
 - [x] `apps/mobile/lib/features/home/presentation/home_placeholder_page.dart` deleted (was unreachable since Task 14). Empty parent dirs `features/home/presentation/` and `features/home/` also removed.
 
-**Prototype fidelity findings (`prototype-fidelity-checker` subagent run 2026-05-19):**
+**Prototype fidelity findings (`prototype-fidelity-checker` subagent run 2026-05-19) — FROZEN HISTORY**
 
-> ⚠️ **Re-classified 2026-05-26 per ADR-0035.** The findings below were authored when `prototipo/` was treated as the canonical UI source. Under the new hierarchy: visual-token gaps (color, spacing, radii, shadows, typography, icon family) remain open until the screen is re-skinned; structural / flow / gesture / chrome divergences from `prototipo/screens-*.jsx` that do NOT also diverge from Spoke are **non-issues** and should be closed without remediation when the slice-2 wrap-up sweep reaches them. The Spoke-vs-RotPro inventory (Fase 2 of the pivot) is the authority for what to close vs keep. Until that inventory ships, leave entries as-is and do not act on structural items.
+> 🛑 **SUPERSEDED 2026-05-26 by ADR-0035 pivot + Spoke-vs-RotPro inventory at `docs/inventory/2026-05-26-spoke-vs-rotpro.md`.**
+>
+> **How to read the list below:** it is a historical snapshot of what the pre-pivot `prototype-fidelity-checker` flagged on 2026-05-19, BEFORE the canonical-UI-source role was reassigned (prototype = visual-only; Spoke = behavior/structure). DO NOT use these items as a Slice-2 punch list — they were written against the wrong baseline.
+>
+> **What replaces it for Slice 2 work going forward:**
+> 1. **Functional/structural divergences from the prototype** (e.g. "presentation is full-page vs sheet", "this screen lacks tabs the prototype shows", "missing chip/banner/section X") — **closed as non-issues** unless the inventory's §3 + §7 ALSO flags them as Spoke-functional gaps. The prototype's screen-by-screen mockup is no longer canonical for structure.
+> 2. **Visual-token divergences** (color/spacing/radii/shadow/typography/icon-family) — remain open and will be re-detected by the rescoped `prototype-fidelity-checker` subagent at the D4 gate of each MS-Ax microsprint. No need to track them here twice.
+> 3. **Spoke-functional gaps NOT visible in the prototype** (settings rows, gestures, flow ordering) — detected by the new `spoke-parity-checker` subagent (ADR-0036) at the D4 gate of each MS-Ax/MS-Bx microsprint. Tracked in the inventory's §3 gap list, NOT here.
+>
+> **What still applies from the list below:** items already marked `[x]` are factual history of work that shipped — leave them. Items still `[ ]` are NOT to be picked up under their pre-pivot framing; if the underlying concern is still real, it will be re-surfaced by the appropriate D4 subagent (visual-only by `prototype-fidelity-checker`, functional by `spoke-parity-checker`) and become a finding inside the corresponding MS-Ax/MS-Bx microsprint's spec/plan.
+>
+> **Concrete decision rule for any open `[ ]` item below:** before acting on it, check (a) is the underlying concern a token-level visual gap? if yes, defer to the next D4 visual sweep; (b) is it a behavioral/structural gap that matters? if yes, look in inventory §3 to confirm Spoke does the thing — if Spoke doesn't, close as non-issue; (c) if it's an internal code-quality item (e.g. typography tokenization, magic literal, dedup), keep it open and address inside the microsprint that touches the file.
 
 Critical:
 - [x] `HomeEmptyPage` — FAB + secondary `'Como funciona?'` pill added per `prototipo/screens-a.jsx:143–154`. Closed by `50ae78b`.

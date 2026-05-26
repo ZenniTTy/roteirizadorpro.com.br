@@ -53,6 +53,12 @@ Total revert cost: ~5 min.
 - `flutter test`: 173/173 green (no test depended on `_NeonDot`).
 - Manual smoke on Samsung M54 (RQCW401G33T) via `flutter run` hot-reload: dot removed, gradient intact, no visual regression on other `RpButton` usages (HomeListPage "Otimizar rota", HomeEmptyPage CTA, ReorderPage CTA).
 
+## Post-ADR-0035 reading (added 2026-05-26)
+
+Read this ADR today as a **normal design decision aligned with cliente preference**, not as a flagged "deviation from the prototype." [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) reframes the prototype's authority: it is canonical for visual identity *tokens* (color, spacing, radii, shadows, typography pairings, icon family — see `prototipo/tokens.js`), not for every decorative element rendered in `prototipo/ui.jsx`. The neon dot was a decorative accent on `PrimaryButton`, not a token; dropping it is not divergence from the canonical source under the new hierarchy.
+
+The "deviation" framing in the title and §Consequences ("first formal acknowledged deviation from `prototipo/`") was load-bearing under the pre-pivot rule that any prototype divergence required formal acknowledgement. Post-ADR-0035 that ceremony is unnecessary for decorative accents — but the ADR itself stays as historical traceability of why the dot was removed (cliente request on M54 smoke, locked explicitly rather than swept silently). The rollback procedure is still correct as-is.
+
 ## References
 
 - `prototipo/ui.jsx:68-90` (post-edit) — `PrimaryButton` without dot.

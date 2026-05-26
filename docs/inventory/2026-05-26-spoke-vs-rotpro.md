@@ -416,9 +416,9 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 ## §8 — Próximos passos
 
 1. **Eduardo revisa §3 + §7 + §9** e marca o que aprova / corta / discute.
-2. Após aprovação: Fase 3 do plano `velvet-yawning-thacker.md` → escrever `docs/08-ROADMAP-v2.md` com slices reorganizados em microsprints (MS-A1, MS-A2, ...) per ADR-0019.
+2. Após aprovação: Fase 3 do plano `velvet-yawning-thacker.md` → escrever `docs/08-ROADMAP-v2.md` com slices reorganizados em microsprints (MS-A1, MS-A2, ...) per ADR-0019. **Concluído 2026-05-26** (commit `7692c45`).
 3. Cada microsprint do v2 ganha `/new-spec` + `/new-plan` no momento de execução.
-4. `docs/08-ROADMAP.md` atual continua marcado SUPERSEDED como histórico.
+4. `docs/08-ROADMAP.md` (v1) foi **arquivado 2026-05-26 em `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`**; o caminho original agora é um stub de redirecionamento para v2.
 
 ---
 
@@ -426,7 +426,8 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 
 - [ADR-0010](../decisions/0010-clone-positioning.md) — Functional fork positioning (cobre legalidade da inspeção)
 - [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Pivot foundational
-- [`docs/08-ROADMAP.md`](../08-ROADMAP.md) — Roadmap pré-pivot (SUPERSEDED)
+- [`docs/08-ROADMAP-v2.md`](../08-ROADMAP-v2.md) — Roadmap pós-pivot (ATIVO)
+- [`docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`](../archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md) — Roadmap pré-pivot (ARQUIVADO)
 - [`docs/M2-SLICE-CHECKLIST.md`](../M2-SLICE-CHECKLIST.md) — Verification gates
 - `apps/mobile/lib/app.dart:47-160` — GoRouter atual do RotPro
 - `apps/mobile/lib/features/settings/presentation/settings_page.dart` — SettingsPage atual

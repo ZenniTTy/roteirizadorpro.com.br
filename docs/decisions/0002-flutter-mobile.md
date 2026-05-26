@@ -36,7 +36,7 @@ The deciding factors are (1) APK build simplicity for direct distribution — ex
 
 - Stable channel only.
 - Build APK with `flutter build apk --release --split-per-abi` to reduce per-device download size.
-- Signing keystore is created once and backed up by the client (see M2 deliverables in `docs/08-ROADMAP.md (post-M1 section)`).
+- Signing keystore is created once and backed up by the client (see M2 deliverables in `docs/08-ROADMAP-v2.md`; v1 archived 2026-05-26).
 
 ## References
 

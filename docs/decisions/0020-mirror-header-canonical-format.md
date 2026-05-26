@@ -19,7 +19,7 @@ When `check-dto-mirror.sh` shipped under ADR-0018 (Wave A), this looseness produ
 | `docs/03-CONVENTIONS.md` L38 | `→` |
 | `docs/02-ARCHITECTURE.md` L341, L362 | `→` |
 | `docs/M2-SLICE-CHECKLIST.md` L25 | `→` |
-| `docs/08-ROADMAP.md` L90 | `→` |
+| `docs/08-ROADMAP.md` L90 (archived 2026-05-26 to `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`; active equivalent is `docs/08-ROADMAP-v2.md`) | `→` |
 | `_template.dart` L8 (the cited reference) | `->` (ASCII) |
 | `stop_dto.dart` L1 (real DTO, ships in production) | `->` |
 | `auth_dtos.dart` L1 (real DTO, ships in production) | `` `apps/backend/src/auth/schemas.ts` `` (backticks, no arrow, no `<SchemaName>` on L1) |
@@ -177,7 +177,7 @@ The brace list contains the TypeBox export names verbatim. Dart class names MAY 
 | `docs/03-CONVENTIONS.md` L38 | Replace `→` with `->`. |
 | `docs/02-ARCHITECTURE.md` L341, L362 | Replace `→` with `->`. |
 | `docs/M2-SLICE-CHECKLIST.md` L25 | Replace `→` with `->`. |
-| `docs/08-ROADMAP.md` L90 | Replace `→` with `->` (mirror file map comment). |
+| `docs/08-ROADMAP.md` L90 (archived 2026-05-26; same fix carried forward to `docs/08-ROADMAP-v2.md` and the redirect stub at `docs/08-ROADMAP.md`) | Replace `→` with `->` (mirror file map comment). |
 | `docs/decisions/0013-api-contract-source-of-truth.md` L71, L117, L157 | Replace `→` with `->` AND add a `> **Note (2026-05-19):**` line at the head of the ADR pointing to ADR-0020 for the normative grammar. |
 | `.claude/hooks/check-dto-mirror.sh` | Tighten grep to the regex above (`grep -lE`) instead of substring match. |
 | `docs/superpowers/plans/0000-template.md` Plan Execution Rules §7 | Quote the L1 header grammar verbatim and reference ADR-0020. |

@@ -43,7 +43,7 @@ Full reasoning in `docs/decisions/0010-clone-positioning.md`.
 | **M1** | Server (DigitalOcean 1GB workaround), GraphHopper SP-only, landing page, backend auth API + healthchecks, Login + Register screens in Flutter | BRL 2,000 | ✅ delivered 2026-05-09 (deadline was 2026-05-26) |
 | **M2** | Distributable APK + 15 remaining Flutter screens + real route optimization + Pix Split paywall (pay-per-route, BRL 25.90) + sentido casa + LGPD + admin panel | BRL 2,000 | 🟡 in progress. Slice 1 (APK) shipped 2026-05-13 as `v1.0.0`. Six slices remaining. |
 
-Detailed plan: `docs/08-ROADMAP.md` is the **single source of truth for M2**: slice order, scope per slice, library choices, acceptance criteria, cost ceiling. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost target in `docs/M2-COST-MODEL.md`.
+Detailed plan: `docs/08-ROADMAP-v2.md` is the **single source of truth for M2** (v1 archived 2026-05-26 to `docs/archive/` per ADR-0035 pivot): slice order, scope per slice, library choices, acceptance criteria, cost ceiling. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost target in `docs/M2-COST-MODEL.md`.
 
 ## Stakeholders
 

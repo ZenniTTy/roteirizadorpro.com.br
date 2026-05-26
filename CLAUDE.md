@@ -40,7 +40,7 @@ M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-0
 6. ⏳ LGPD.
 7. ⏳ Painel admin.
 
-**The single source of truth for M2 is `docs/08-ROADMAP.md`.** When any other doc contradicts it, the roadmap wins and you fix the contradiction in the same PR. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta).
+**The single source of truth for M2 is [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md)** (v1 was archived 2026-05-26 to `docs/archive/` per ADR-0035). When any other doc contradicts it, the roadmap wins and you fix the contradiction in the same PR. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta).
 
 ## Onboarding Ritual
 
@@ -48,12 +48,12 @@ When you start a session in this repo, read in this order:
 
 1. `README.md` — what the project is.
 2. This file (`CLAUDE.md`) — how to operate.
-3. `docs/08-ROADMAP.md` — **the canonical M2 plan; this is the file you act from**.
+3. `docs/08-ROADMAP-v2.md` — **the canonical M2 plan; this is the file you act from** (v1 is archived at `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`).
 4. `docs/M2-SLICE-CHECKLIST.md` — the per-slice execution checklist (verification steps, post-merge ritual).
 5. `docs/M2-COST-MODEL.md` — the cost ceiling every architectural choice must respect.
 6. `TODO.md` — current slice-by-slice state.
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
-8. The slice's section in `docs/08-ROADMAP.md` (e.g. "Slice 2 — Telas Core") and the `prototipo/screens-*.jsx` files matching it.
+8. The slice's section in `docs/08-ROADMAP-v2.md` (e.g. "Slice 2 — Spoke-aligned Telas Core"), the matching `prototipo/screens-*.jsx` files (for visual identity only), and the matching section of `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (for functional/behavioral parity baseline).
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
 10. **Recent ADRs (post-M1, one-time orientation):**
     - **0023–0029 (AI harness):** Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, `mcp_flutter` rejection, `GH_DATA_DIR` infra. Playbook + retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
@@ -248,7 +248,7 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 - Screens (prototype catalogue) → `docs/05-SCREENS.md`
 - Design system → `docs/06-DESIGN-SYSTEM.md`
 - Infrastructure → `docs/07-INFRA.md`
-- M1 roadmap → `docs/08-ROADMAP.md`
+- M2 roadmap → `docs/08-ROADMAP-v2.md` (v1 archived at `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`)
 - Disaster recovery → `docs/09-DISASTER-RECOVERY.md`
 - Documentation changelog → `docs/10-CHANGELOG.md`
 - All decisions and their rationale → `docs/decisions/`

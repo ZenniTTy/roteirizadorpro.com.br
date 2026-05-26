@@ -6,7 +6,7 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 
 > **Status legend.** ✅ shipped to production. 🟡 in flight (current slice). ⏳ planned for an upcoming slice. ⛔ explicitly out of scope for M2.
 >
-> **M2 slice mapping** ties each feature to the slice that owns it. See `docs/08-ROADMAP.md` for the slice order, dependencies, and acceptance criteria.
+> **M2 slice mapping** ties each feature to the slice that owns it. See `docs/08-ROADMAP-v2.md` for the slice order, dependencies, and acceptance criteria (v1 archived 2026-05-26 to `docs/archive/` per ADR-0035 pivot).
 
 | ID | Feature | Milestone | Status | Slice |
 |---|---|---|---|---|
@@ -29,7 +29,7 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 | F13 | Partner admin panel | M2 | ⏳ | slice 7 |
 | F11 | Real-time subscriber counter | M2 | ⛔ removed | The metric does not map cleanly to the current 30-day-access-pass model (re-confirmed 2026-05-24, ADR-0030). The admin panel (F13) surfaces DAU + payments-in-period instead. |
 
-> The single source of truth for **execution order, deadlines, and slice-level acceptance** is `docs/08-ROADMAP.md`. This document is the source of truth for **what each feature is supposed to do.** Changes to a feature's intent edit this file; changes to the order of work edit the roadmap.
+> The single source of truth for **execution order, deadlines, and slice-level acceptance** is `docs/08-ROADMAP-v2.md`. This document is the source of truth for **what each feature is supposed to do.** Changes to a feature's intent edit this file; changes to the order of work edit the roadmap.
 
 ---
 

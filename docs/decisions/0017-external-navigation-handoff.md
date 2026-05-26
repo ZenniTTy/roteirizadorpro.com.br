@@ -95,9 +95,16 @@ The provider preference is read from `SharedPreferencesAsync` (`settings.nav_pro
 - **2026-05-19 (intermediate, superseded same day):** corrected to Waze default after validation pass discovered the prototype/ADR drift and the Google Maps URL cap. Cap was recorded as 11 stops (1 origin + 9 waypoints + 1 destination) on the assumption that the rider was always physically at the first stop.
 - **2026-05-19 (this version):** during Task 28 implementation, the cap was re-derived from the actual rider flow ("Iniciar navegação" fires from depot or anywhere mid-route, not always at the first stop). The implementation omits `origin` so the Google Maps app uses the device's current location; that drops the per-URI cap from 11 to 10 (9 waypoints + 1 destination). Decision §3 now reflects 10 instead of 11. The Decision section above is the version that ships.
 
+## Post-ADR-0035 reading (added 2026-05-26)
+
+Read this ADR today under the [ADR-0035](./0035-spoke-functional-clone-prototype-creative-reference.md) hierarchy: the choice of Waze as default and Google Maps as toggle is a **functional/preference defaulting decision**, which under the new model traces to Spoke + cliente (not to the prototype as a canonical UI source). The cliente has confirmed Waze as the default; Spoke's own settings carry the same choice on Brazilian installs. The original draft's reasoning quoted the prototype as the binding source for "Waze default" — today that same conclusion is reached by checking Spoke parity + cliente directive, not by quoting `prototipo/screens-b.jsx:361`. The technical content (URI shapes, 10-stop chunking, `<queries>` block, fallback flow) is independent of which canonical-source layer drove the default, so the decision is unchanged.
+
+The Option-B "Rejected" rationale already carries an inline note acknowledging this reframing — the rejection still stands, but the strength of the "contradicts the canonical UI" objection is weaker post-ADR-0035; the load-bearing reasons today are rider preference + the 10-stop cap mismatch with the spec's 20-stop ceiling.
+
 ## References
 
-- ADR-0010 — Clone positioning + prototype as canonical UI source.
+- ADR-0010 — Clone positioning (functional fork).
+- ADR-0035 — Spoke functional / prototype visual hierarchy (reframes the binding source for default-provider choice).
 - ADR-0015 — M2 plan and library choices.
 - ADR-0016 — Map and tile policy.
 - Spec: `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` §External navigation.
