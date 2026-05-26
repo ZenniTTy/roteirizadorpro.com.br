@@ -30,23 +30,23 @@ When M2 sustains ≥ 50 paying users (~BRL 1.3k MRR), revisit each item in this 
 | Map tiles | `tile.openstreetmap.org` public tiles | OSMF acceptable-use policy | **0** | Crossing OSMF heavy-usage threshold (commonly cited at > ~10k tile requests per second sustained, but the practical guideline is "a few thousand tiles per device per day"). Detection: monitor request rate from app analytics. Action: self-host `openmaptiles` + Nginx on the same droplet (adds ~1 GB disk, no significant CPU). Captured in ADR-0016. |
 | Geocoder | `nominatim.openstreetmap.org` public API | OSMF acceptable-use: max 1 req/sec, must set `User-Agent` | **0** | Crossing the per-second rate or hitting > 100k requests/month → migrate to self-hosted Nominatim (heavier, ~30 GB disk for SP), or LocationIQ (USD 50/month for 1M requests). |
 | Routing engine | Self-hosted GraphHopper Community Edition on droplet | — | **0** | Crossing graph memory budget (currently capital SP at -Xmx800m). Trigger: when slice 3's matrix-eval forces queue depth >10 on the droplet, bump droplet to 2 GB (also lifts to 4 GB for full Sudeste graph, which adds ~3 GB RAM). |
-| Pix transactions | Efí Bank | 1.19% + BRL 0.31 per Pix charge | **per-transaction** (not infra) | Each successful BRL 25.90 charge costs ~BRL 0.62. Effective rate ~2.4%. |
-| Certificate management | mTLS `.p12` from Efí + Let's Encrypt | Free | **0** | Both rotate manually; cron-friendly. |
+| Pix transactions | Stripe (ADR-0030) | ~1,5% + R$ 0,40 per Pix charge | **per-transaction** (not infra) | Each successful R$ 25,90 charge costs ~R$ 0,79. Effective rate ~3,05%. |
+| Certificate management | Let's Encrypt (TLS for the API domain) | Free | **0** | Auto-renewed by Certbot cron. Stripe uses API key + webhook secret — no mTLS, no `.p12`. |
 | **Subtotal (M2 beta)** | | | **~35-100 BRL/month** | comfortably under the 200 BRL ceiling |
 
 ## Per-transaction unit economics (slice 4 onward)
 
-For each successful route navigation:
+For each successful 30-day access pass purchase (one Pix charge — every renewal is a fresh charge per ADR-0030):
 
-| Item | BRL |
+| Item | R$ |
 |---|---|
-| Gross revenue (1 Pix charge) | **+ 25.90** |
-| Efí fixed fee | − 0.31 |
-| Efí percentage (1.19% of 25.90) | − 0.31 |
-| **Net per transaction** | **+ 25.28** |
-| Partner share (50% each) | **+ 12.64 each** |
+| Gross revenue (1 Pix charge) | **+ 25,90** |
+| Stripe fixed fee | − 0,40 |
+| Stripe percentage (~1,5% of 25,90) | − 0,39 |
+| **Net per transaction** | **+ 25,11** |
+| Partner share (50% each via Stripe Connect transfers) | **+ 12,56 each** |
 
-Break-even on the droplet (at 32 BRL/month) is roughly 2 paid routes per month total — trivially crossed even at low scale.
+Break-even on the droplet (at R$ 32/month) is roughly 2 paid passes per month total — trivially crossed even at low scale.
 
 ## What we explicitly chose NOT to use, and why
 
@@ -70,7 +70,7 @@ These are decisions worth re-evaluating only if M2 grows past beta. Each is a "w
 
 - The **droplet bill** is on the client's DO account; Eduardo has admin access. Check monthly.
 - The **Vercel bill** stays at 0 unless the Hobby-plan limits are crossed. Vercel emails when 80% of bandwidth is used.
-- The **Efí fees** appear inline on each Pix charge response; the slice 7 admin metrics page surfaces the running total.
+- The **Stripe fees** appear in the Stripe Dashboard (Payments → Reports) and inline on each `PaymentIntent` object's `application_fee_amount` + balance transaction. The slice 7 admin metrics page surfaces the running total.
 - **Domain renewal** is yearly — schedule a reminder for ~2026-04-01 (one month before the typical 1-year tick).
 
 ## Decision rule for adding a paid service mid-M2

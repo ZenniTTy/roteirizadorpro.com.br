@@ -85,13 +85,6 @@ function PrimaryButton({ children, icon, onClick, disabled, locked, full = true,
       {locked && <I.Lock size={18}/>}
       {icon}
       {children}
-      {neon && (
-        <span style={{
-          position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-          width: 8, height: 8, borderRadius: '50%', background: RP.neon,
-          boxShadow: '0 0 8px rgba(198,255,61,0.9)',
-        }}/>
-      )}
     </button>
   );
 }

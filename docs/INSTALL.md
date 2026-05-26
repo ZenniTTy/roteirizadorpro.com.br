@@ -275,7 +275,7 @@ Notify the client in Workana with a Loom video covering all four criteria.
 │       └── graph-cache/        ← rsync'd from laptop
 ├── backups/                    ← pg_dump cron output
 ├── logs/                       ← journald complements this; pg_dump logs land here
-└── certs/                      ← reserved for M2 (Efí .p12)
+└── certs/                      ← Let's Encrypt for the API domain (Certbot). Stripe needs no cert (API key + webhook secret only per ADR-0030).
 ```
 
 ## Quick reference — services on the droplet

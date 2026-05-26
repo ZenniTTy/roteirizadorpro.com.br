@@ -105,3 +105,11 @@ infra/graphhopper/data/graph-cache/
 .claude/scheduled_tasks.lock
 .cursor/
 .ai-cache/
+
+### spoke-parity-checker working caches (per ADR-0036) ###
+# The subagent writes screenshots + XML dumps to /tmp/ during D4 runs.
+# These paths catch any defensive in-repo copy that scripts might create
+# accidentally. The real working dir is /tmp/ which is OS-level and never tracked.
+**/spoke-inspection/
+**/rotpro-inspection/
+apps/mobile/integration_test/.spoke-cache/

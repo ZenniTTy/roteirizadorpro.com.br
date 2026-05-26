@@ -1,6 +1,6 @@
 # ADR-0007: Use Efí Bank for Pix Payments with Native Split
 
-- **Status:** Accepted
+- **Status:** ⚠️ **Superseded by [ADR-0030](./0030-stripe-pix-30-day-access-pass.md) on 2026-05-24** (gateway migrated to Stripe; charge model is now 30-day access pass, not monthly subscription). This document is preserved for historical context only — do NOT implement against it.
 - **Date:** 2026-05-05
 - **Deciders:** Eduardo, client
 - **Supersedes:** Implicit Mercado Pago choice in original Workana proposal; also Primepag (which was rejected by client for poor support)

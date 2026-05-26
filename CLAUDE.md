@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-18 (harness upgrade — allowed-tools, SessionStart hook, executable commands)
+> **Last updated:** 2026-05-26 (Session 27 — **pivot foundational: ADR-0035 reframes the canonical UI authority**. Spoke (ex-Circuit Route Planner) is now the canonical source for behavior/flows/navigation/settings; `prototipo/` keeps authority only over visual identity (tokens, colors, icons, animations); cliente Ueslei is final tiebreaker. ADRs 0033 + 0034 reclassified from "accepted divergences" to "aligned design decisions." Roadmap `docs/08-ROADMAP.md` marked SUPERSEDED; `docs/08-ROADMAP-v2.md` rewrites slices 2 + 3 based on Spoke-vs-RotPro inventory at `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Slices 1, 4, 5, 6, 7 unaffected. Previous: Session 26 Addendum 2 MS-15a-followup (6 visual fidelity gaps closed; ADRs 0032/0033/0034 filed; Voice page redesign with pulse + amplitude + auto-restart). Earlier: Session 24 carry-overs + ADR-0031 hardened `flutter-test-author`. M2-AI harness sprint shipped, ADRs 0023–0031; retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. **ADR-0030** Stripe Pix + 30-day access pass supersedes ADR-0007. Operational rules in `docs/BUSINESS-RULES.md`.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -18,6 +18,9 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `cd apps/landing && bun run lint` | Before every landing commit. Lefthook enforces. |
 | `bash apps/mobile/scripts/build-release-apk.sh` | Cuts a signed release APK. ADR-0014. |
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
+| `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). ADR-0023. |
+| `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected after a session restart following Phase 1 of the M2-AI sprint. |
+| `cd apps/mobile && flutter test --tags golden` | Run only the alchemist golden tests (ADR-0029). Add `--update-goldens` to regenerate baselines after an intentional visual change; review the PNG diff in the PR. |
 
 ## What This Project Is
 
@@ -25,19 +28,19 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M2 (slice 2 — Telas Core is next)
+## Current Focus: M2 (slice 2 — Telas Core, IN PROGRESS)
 
-M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress; six slices remain.** The locked order is:
+M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 is in progress.** The locked order is:
 
 1. ✅ APK distribuível (`v1.0.0`).
-2. ⏳ Telas Core — 15 prototype screens + map (`flutter_map` + OSM) + voice/OCR shells.
+2. 🟡 **Telas Core — IN PROGRESS** (13/16 fidelity microsprints done as of 2026-05-23 / MS-14; 7 Criticals remain — MS-15 AddStop, MS-16 Voice, Navigate C-1 ADR-0017-scoped). On parallel branch `feat/m2-ai-harness` the **M2-AI Harness sprint shipped (2026-05-24) — ADRs 0023–0029**; PR #8 against `feat/m2-slice-2-telas-core` ready to merge before slice 2's own microsprints resume.
 3. ⏳ VRP real (in-process Node TS solver + GraphHopper matrix).
-4. ⏳ Pix Split paywall (Efí Bank, pay-per-route BRL 25.90).
+4. ⏳ Stripe Pix paywall (Stripe Connect 50/50 split, R$ 25,90 grants 30 days of access; renewal is a fresh manual Pix payment, not Stripe Billing — ADR-0030 + `docs/BUSINESS-RULES.md`).
 5. ⏳ Sentido casa.
 6. ⏳ LGPD.
 7. ⏳ Painel admin.
 
-**The single source of truth for M2 is `docs/08-ROADMAP.md`.** When any other doc contradicts it, the roadmap wins and you fix the contradiction in the same PR. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta).
+**The single source of truth for M2 is [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md)** (v1 was archived 2026-05-26 to `docs/archive/` per ADR-0035). When any other doc contradicts it, the roadmap wins and you fix the contradiction in the same PR. Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta).
 
 ## Onboarding Ritual
 
@@ -45,19 +48,28 @@ When you start a session in this repo, read in this order:
 
 1. `README.md` — what the project is.
 2. This file (`CLAUDE.md`) — how to operate.
-3. `docs/08-ROADMAP.md` — **the canonical M2 plan; this is the file you act from**.
+3. `docs/08-ROADMAP-v2.md` — **the canonical M2 plan; this is the file you act from** (v1 is archived at `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`).
 4. `docs/M2-SLICE-CHECKLIST.md` — the per-slice execution checklist (verification steps, post-merge ritual).
 5. `docs/M2-COST-MODEL.md` — the cost ceiling every architectural choice must respect.
 6. `TODO.md` — current slice-by-slice state.
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
-8. The slice's section in `docs/08-ROADMAP.md` (e.g. "Slice 2 — Telas Core") and the `prototipo/screens-*.jsx` files matching it.
+8. The slice's section in `docs/08-ROADMAP-v2.md` (e.g. "Slice 2 — Spoke-aligned Telas Core"), the matching `prototipo/screens-*.jsx` files (for visual identity only), and the matching section of `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (for functional/behavioral parity baseline).
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
+10. **Recent ADRs (post-M1, one-time orientation):**
+    - **0023–0029 (AI harness):** Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, `mcp_flutter` rejection, `GH_DATA_DIR` infra. Playbook + retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
+    - **0030 (Stripe Pix migration, supersedes 0007):** slice 4 uses **Stripe Connect** with 50/50 split via Separate Charges and Transfers; **R$ 25,90 grants 30 days of access**, renewed via fresh manual Pix each cycle (no Stripe Billing, no Stripe Subscriptions API). Operational rules in `docs/BUSINESS-RULES.md`.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
-## UI Source of Truth
+## Source-of-truth hierarchy (ADR-0035)
 
-The Claude Design prototype at `prototipo/` is the **canonical UI source** — client-approved on 2026-05-07. Visual identity, screens, gestures, and flows must match it 1:1 in implementation. The prototype's `tokens.js` is canonical for design tokens. `docs/05-SCREENS.md` and `docs/06-DESIGN-SYSTEM.md` mirror it; if they disagree with the prototype, the prototype wins.
+Two artifacts, each authoritative only on what it actually governs. When in doubt, ask "is this a behavioral question or a visual question?" and consult the matching source.
+
+1. **Spoke (ex-Circuit Route Planner)** — canonical for **behavior**: which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. The end-user is a delivery rider who already uses Spoke daily; functional parity with Spoke is the contract per ADR-0010 (functional fork). Inspection is via runtime UX observation on Eduardo's licensed install (Samsung M54) — no decompilation, no asset extraction.
+2. **`prototipo/` (Claude Design prototype, client-approved 2026-05-07)** — canonical for **visual identity only**: color tokens (`prototipo/tokens.js`), spacing scale, radii, shadows, typography pairing, icon family (Lucide, per ADR-0032), animation patterns, decorative creativity. The prototype is a creative reference, not a structural specification.
+3. **Cliente Ueslei** — final tiebreaker on any conflict between the two layers above.
+
+When `docs/05-SCREENS.md` or `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (when present) is the canonical Spoke→implementation mapping per slice.
 
 ## Karpathy's Four Principles (canonical)
 
@@ -120,7 +132,7 @@ The stack has three places where data shape can be defined; only one is canonica
 Rules (full text in `docs/03-CONVENTIONS.md` §8 and `docs/02-ARCHITECTURE.md` "API Contracts & Type Safety"):
 
 1. Never return `@prisma/client` rows from a handler. Always whitelist via a TypeBox response schema.
-2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>` and matches the TypeBox shape 1:1 (no renaming, no field skips).
+2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) and matches the TypeBox shape 1:1 (no renaming, no field skips). ASCII `->` only, no backticks. See ADR-0020 for the normative grammar.
 3. A change to a TypeBox schema and its Dart mirror travel in the same commit.
 
 Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Post-M1 plan: replace the manual mirror with OpenAPI export (`@fastify/swagger`) + Dart codegen. See ADR-0013.
@@ -129,6 +141,14 @@ Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Pos
 
 Before proposing OR installing any external library/framework, query Context7 (`resolve-library-id` then `query-docs`). Training-data knowledge has a cutoff; Context7 has current docs. **No exceptions for libraries within reach of the cutoff date.** Stdlib and well-established APIs (HTTP, SQL) are exempt.
 
+**Precedence after ADR-0023 (Dart & Flutter MCP server adopted):**
+
+1. **Dart MCP first** — for any symbol, class, or method from a Dart/Flutter package **already installed** in `apps/mobile/pubspec.yaml` (i.e. resolvable from local `.pub-cache/`), use the Dart MCP tools (`resolve_symbol`, `analyze`, etc.) instead of `Read`ing pub-cache files or hitting Context7. The MCP returns the real signature from the local analyzer — zero hallucination, zero token spent on file traversal.
+2. **Context7 second** — for any library not yet installed, or to confirm the current pub.dev version before adding a dependency, or for any non-Dart library (Fastify, Prisma, TypeBox, Next.js, etc.). Context7 stays mandatory there.
+3. **Training-data answers third (rarely)** — only for stdlib and stable APIs (HTTP verbs, SQL syntax) where the answer hasn't changed in years.
+
+If the Dart MCP is unavailable (process crash, Dart < 3.9, `dart` not in `/mcp` list), fall back to Context7 + `Read` — but say so explicitly in the turn so the human can re-establish the MCP.
+
 ### Verify Your Work
 
 Per Anthropic's official guidance, this is the single highest-leverage thing you can do.
@@ -136,6 +156,39 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - Provide tests, scripts, or screenshots that let you check yourself.
 - Address root causes, not symptoms.
 - If you can't verify it, don't ship it.
+- Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
+- **For mobile TDD, dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
+- **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit. Now part of `M2-SLICE-CHECKLIST.md` §Verification. See ADR-0027.
+
+### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
+
+Four hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
+
+**Stop hooks** (fire once at end of turn, batched across all edits):
+
+- `analyze-changed-dart.sh` — `flutter analyze --no-pub` over `.dart` files edited in `apps/mobile/lib/` this turn.
+- `check-dto-mirror.sh` — warns when an `apps/backend/src/<feature>/schemas.ts` edit lacks its paired Dart DTO update (ADR-0013 contract).
+- `warn-adr-drift.sh` — warns when `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` was edited this turn but no ADR was added/modified.
+
+**PostToolUse hook** (fires per Edit/Write/MultiEdit, debounced):
+
+- `run-riverpod-codegen.sh` (ADR-0024) — when a `@riverpod`-annotated Dart file or any `part '*.g.dart'` host is edited, regenerates `.g.dart` via `dart run build_runner build --delete-conflicting-outputs`. Lock-file debounce (90s window) coalesces burst-edits so multiple provider edits in one turn run codegen only once. Sits next to the pre-existing `format-dart.sh` in the same matcher entry.
+
+These are the agent-turn equivalent of Lefthook (which fires at `git commit`). They don't replace `adr-guardian` or the slice checklist — they surface drift earlier, while context is still hot. Full design in ADR-0018; PostToolUse extension rationale in ADR-0024; layered boundary in ADR-0012.
+
+### Spec-Driven Workflow (ADR-0019)
+
+Every new slice or large feature starts from the canonical templates extracted from the slice-2 artifacts:
+
+- `docs/superpowers/specs/0000-template.md` — the 13 H2 sections (Context, Decisions Locked, Goals, Architecture, Data flow, Sub-slice plan, Libraries, ADRs filed, Risks, Accessibility, Test strategy, Verification gates, References).
+- `docs/superpowers/plans/0000-template.md` — the Phase / Task / Step hierarchy with TDD pattern, Self-Review checklist, and Execution Handoff.
+
+Two skills enforce the brainstorming-first discipline:
+
+- `/new-spec <slug>` — scaffolds the spec header and stops; the human invokes `superpowers:brainstorming` to lock the Q1/Q2/Q3-style decisions before authoring §Context onward.
+- `/new-plan <slug>` — scaffolds the plan header + back-reference to the matching spec and stops; the human invokes `superpowers:writing-plans` to decompose tasks.
+
+Skipping these and copying a previous spec/plan invariably introduces drift. Use the skills.
 
 ### Flutter Hot-Reload Discipline
 
@@ -195,7 +248,7 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 - Screens (prototype catalogue) → `docs/05-SCREENS.md`
 - Design system → `docs/06-DESIGN-SYSTEM.md`
 - Infrastructure → `docs/07-INFRA.md`
-- M1 roadmap → `docs/08-ROADMAP.md`
+- M2 roadmap → `docs/08-ROADMAP-v2.md` (v1 archived at `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`)
 - Disaster recovery → `docs/09-DISASTER-RECOVERY.md`
 - Documentation changelog → `docs/10-CHANGELOG.md`
 - All decisions and their rationale → `docs/decisions/`

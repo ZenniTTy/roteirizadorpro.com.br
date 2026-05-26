@@ -9,7 +9,7 @@ The full operating manual lives in [CLAUDE.md](./CLAUDE.md) — read it in full 
 ## Tool-agnostic quick facts
 
 - **Project:** Roteirizador Pro — Android route-planner APK for Brazilian delivery riders.
-- **Repo:** `https://github.com/ZenniTTy/-APP---Entrega-Smart`
+- **Repo:** `https://github.com/ZenniTTy/roteirizadorpro.com.br`
 - **Status:** M1 delivered 2026-05-09. M2 in progress — slice 1 (APK) shipped 2026-05-13 as `v1.0.0`. Six slices remain.
 - **Single source of truth for M2:** [`docs/08-ROADMAP.md`](./docs/08-ROADMAP.md). When any other doc contradicts it, the roadmap wins.
 - **UI source of truth:** [`prototipo/`](./prototipo/) (client-approved Claude Design prototype).

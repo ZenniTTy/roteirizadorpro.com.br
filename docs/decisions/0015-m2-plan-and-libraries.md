@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-05-13
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0002 (Flutter mobile), ADR-0007 (Efí Bank Pix), ADR-0008 (GraphHopper routing), ADR-0014 (Android release signing). Subsequent slice-specific ADRs (0016, 0017, 0018, 0019, 0020, 0021) elaborate individual slices.
+- **Related ADRs:** ADR-0002 (Flutter mobile), ADR-0007 (Efí Bank Pix — **superseded by ADR-0030**), ADR-0008 (GraphHopper routing), ADR-0014 (Android release signing). Subsequent slice-specific ADRs (0016, 0017, 0018, 0019, 0020, 0021) elaborate individual slices.
 
 ## Context
 
@@ -12,7 +12,7 @@ M2 is contracted at BRL 2,000 with the same client who funded M1, with the same 
 This ADR codifies:
 
 1. The locked **execution order** of the remaining six slices.
-2. The **single source of truth** that future sessions follow (`docs/08-ROADMAP.md`, supported by `M2-SLICE-CHECKLIST.md` and `M2-COST-MODEL.md`).
+2. The **single source of truth** that future sessions follow (`docs/08-ROADMAP-v2.md` post-ADR-0035; was `docs/08-ROADMAP.md` until 2026-05-26 — now archived to `docs/archive/`), supported by `M2-SLICE-CHECKLIST.md` and `M2-COST-MODEL.md`.
 3. The **library choices** for slice 2 — the next slice — validated against Context7 on the day of this ADR.
 
 The library validation matters because the LLM agent's training cutoff is January 2026 (per the current Claude Code agent), and the M2 work spans libraries that have moved since then. Without Context7 each library risks shipping with a stale version pin or a missing migration step.
@@ -104,18 +104,34 @@ Build all six slices on parallel feature branches, merge in one PR.
 
 1. **Slice order locked** as Option A: APK (✅ shipped) → Telas Core → VRP → Pix → Sentido casa → LGPD → Admin.
 
-2. **The single source of truth for M2 is `docs/08-ROADMAP.md`.** All M2 docs cross-reference back to it. When any doc disagrees with `08-ROADMAP.md`, the roadmap wins and the contradiction is a bug to fix in the same PR.
+2. **The single source of truth for M2 is `docs/08-ROADMAP-v2.md`** (was `docs/08-ROADMAP.md` until 2026-05-26 ADR-0035 pivot — v1 archived to `docs/archive/`). All M2 docs cross-reference back to it. When any doc disagrees with the active roadmap, the roadmap wins and the contradiction is a bug to fix in the same PR.
 
 3. **Slice 2 libraries** (validated via Context7 on 2026-05-13):
 
    | Purpose | Package | Version target | Cost | Context7 ID |
    |---|---|---|---|---|
-   | Map widget | `flutter_map` | 8.x | 0 | `/fleaflet/flutter_map` |
-   | Map coords | `latlong2` | latest | 0 | transitively required by `flutter_map` |
-   | User location | `geolocator` | 14.x | 0 | latest 2025 |
-   | Speech-to-text | `speech_to_text` | 7.x | 0 (on-device) | `/csdcorp/speech_to_text` |
-   | OCR | `google_mlkit_text_recognition` | 0.x | 0 (on-device) | `/websites/pub_dev_google_mlkit_text_recognition` |
-   | Native share sheet | `share_plus` | 11.x | 0 | well-established |
+   | Map widget | `flutter_map` | ^8.3.0 | 0 | `/fleaflet/flutter_map` |
+   | Map coords | `latlong2` | ^0.9.1 | 0 | transitively required by `flutter_map` |
+   | User location | `geolocator` | ^14.0.2 | 0 | latest 2025 |
+   | Speech-to-text | `speech_to_text` | ^7.3.0 | 0 (on-device) | `/csdcorp/speech_to_text` |
+   | OCR | `google_mlkit_text_recognition` | ^0.15.1 | 0 (on-device) | `/websites/pub_dev_google_mlkit_text_recognition` |
+   | Native share sheet | `share_plus` | ^12.0.2 | 0 | well-established |
+   | Stable IDs | `uuid` | ^4.5.3 | 0 | well-established |
+   | Local persistence | `shared_preferences` | ^2.5.5 | 0 | well-established |
+   | External app hand-off | `url_launcher` | ^6.3.2 | 0 | well-established |
+   | Runtime permissions | `permission_handler` | ^12.0.1 | 0 | well-established |
+   | Photo capture / gallery | `image_picker` | ^1.2.2 | 0 | well-established |
+   | Brand icon set (WhatsApp) | `font_awesome_flutter` | ^10.12.0 | 0 | `fluttercommunity` (FA 7.2.0 free; 2000+ icons; WhatsApp brand glyph) |
+   | QR-code generator | `qr_flutter` | ^4.1.0 | 0 | `/theyakka/qr.flutter` (null-safe; on-device; auto version detection) |
+
+   **Update 2026-05-18 (slice 2 sub-2a):** versions resolved by `flutter pub add` and recorded in `apps/mobile/pubspec.lock`. Five new libs (`uuid`, `shared_preferences`, `url_launcher`, `permission_handler`, `image_picker`) joined the original six listed above; the full list is reflected in the table.
+
+   **Update 2026-05-20 (slice 2 sub-2e / MS-12):** two new direct deps added for the named-channel ShareSheet rebuild (Reorder catalog row 18 / C-1):
+
+   - `font_awesome_flutter: ^10.12.0` — `FaIcon(FontAwesomeIcons.whatsapp)` gives the canonical WhatsApp brand glyph (`prototipo/screens-b.jsx:406` shows the green-circle WhatsApp icon). Material Icons has no WhatsApp brand glyph; the alternative was bundling a custom SVG asset, which Context7 confirmed is heavier and harder to color-tint than `FaIcon`. Cost: 0 (font asset, no network).
+   - `qr_flutter: ^4.1.0` — `QrImageView(data: 'https://roteirizadorpro.com.br/download', version: QrVersions.auto, size: 180)` per Context7 `/theyakka/qr.flutter`. Renders an on-device QR pointing at the APK download URL; the prototype's expanded QR card at `screens-b.jsx:438-447` mandates this. Alternative was a static PNG asset bundled in `assets/` — rejected because the URL may change before launch. Cost: 0 (pure-Dart canvas painter, no network).
+
+   Both deps are on the cost ceiling (free, on-device, no per-request cost). Validated via Context7 + WebSearch May 2026 before adding.
 
 4. **OSM tile policy** must be honored:
 
@@ -129,7 +145,7 @@ Build all six slices on parallel feature branches, merge in one PR.
 
 ## Consequences
 
-- **Positive:** clear order; clear cost ceiling; libraries are mature and free; no surprise infrastructure-cost surprises mid-slice; future agents have a single canonical entry point (`08-ROADMAP.md`).
+- **Positive:** clear order; clear cost ceiling; libraries are mature and free; no surprise infrastructure-cost surprises mid-slice; future agents have a single canonical entry point (`08-ROADMAP-v2.md` post-ADR-0035).
 - **Negative:** running on the OSM public tile policy is a soft constraint; if we ever ship to ≥ 500 paying users on the current stack we will likely need to self-host tiles (planned in ADR-0016).
 - **Neutral:** ADRs 0016-0021 will land one-per-slice as the slices ship, capturing the local design decisions.
 
@@ -150,11 +166,15 @@ This ADR governs the **plan**. Each slice's local design lives in its own ADR, f
 
 The decision rule for whether a slice needs its own ADR: **any new dependency, any new external service, any pattern future agents would need to understand → ADR.** Pure feature work within an existing pattern → no ADR, just the slice's session log.
 
+### Slice-2 schema shape promotion (note, 2026-05-19)
+
+`OptimizeResponseSchema` was promoted from the M1 placeholder (`{ status: 'not_implemented', message: String }`) to the wire-final shape (`{ optimizedOrder: int[], totalDistanceM: number, totalDurationS: number }`) inside slice 2 (commits `c45f742` + `7437c1a`), even though the real solver is slice 3 work per item 6 above. The slice-2 handler returns the input order with `totalDistanceM=0` and `totalDurationS=0` as a 200 mock; slice 3 will swap the handler implementation only — the schema does not change. This is intentional: shipping the final response shape early lets the mobile DTO (`OptimizeResult` in `optimize_controller.dart`) and the consumer screens (`OptimizeRoutePage`, `RouteCompletePage`) bind against the canonical contract from day one and avoid a second mobile-side migration when slice 3 lands. The ADR-0013 mirror contract is satisfied: the TypeBox schema change and its Dart consumer ship in the same commit set.
+
 ## References
 
 - Context7: `/fleaflet/flutter_map` (queried 2026-05-13 — TileLayer + OSM usage, attribution patterns).
 - Context7: `/csdcorp/speech_to_text` (queried 2026-05-13).
 - Context7: `/websites/pub_dev_google_mlkit_text_recognition` (queried 2026-05-13).
-- `docs/08-ROADMAP.md` — the file this ADR locks in.
+- `docs/08-ROADMAP-v2.md` — the active file this ADR locks in (v1 archived 2026-05-26 to `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md` per ADR-0035).
 - `docs/M2-COST-MODEL.md` — the cost ceiling enforced by this ADR's choices.
 - `docs/M2-SLICE-CHECKLIST.md` — the per-slice execution discipline.

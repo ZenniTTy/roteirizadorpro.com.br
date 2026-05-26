@@ -1,6 +1,6 @@
 # 02 — Architecture
 
-> **UI source of truth:** the approved Claude Design prototype at `prototipo/` is canonical for screens, visual identity, gestures, and flows. `docs/05-SCREENS.md` mirrors the prototype's structure; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js`.
+> **Source-of-truth hierarchy (ADR-0035):** Spoke (ex-Circuit Route Planner) is canonical for behavior — screens, navigation, settings, gestures, flow ordering. The Claude Design prototype at `prototipo/` is canonical for visual identity only — tokens, colors, icon family, animations. Cliente Ueslei is final tiebreaker. `docs/05-SCREENS.md` documents the screen catalogue with both Spoke-functional and prototype-visual lineage; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js` (still the visual canonical).
 > **Current scope:** M1. Sections describing M2 endpoints, payment flow, and webhooks are **reference-only** for post-M1 work.
 
 ## Overview
@@ -20,13 +20,14 @@
       ▼                  ▼                         ▼
 ┌────────────┐   ┌────────────┐         ┌──────────────────┐
 │ PostgreSQL │   │ Redis      │         │ GraphHopper      │
-│ Prisma 7   │   │ Cache, WS  │         │ Sudeste BR       │
+│ Prisma 7   │   │ Cache      │         │ Sudeste BR       │
 └────────────┘   └────────────┘         └──────────────────┘
       │                                          │
       ▼ webhook events
 ┌──────────────────┐                  ┌──────────────────┐
-│ Efí Bank Pix     │                  │ Waze / Maps      │
-│ Split + webhook  │                  │ Deep link (M2)   │
+│ Stripe Pix       │                  │ Waze / Maps      │
+│ Connect 50/50    │                  │ Deep link (M2)   │
+│ + webhook (M2)   │                  │                  │
 └──────────────────┘                  └──────────────────┘
                                ▲
                                │
@@ -50,8 +51,8 @@
 - **OCR:** `google_mlkit_text_recognition` (offline, on-device).
 - **Voice input:** `speech_to_text`.
 - **Deep links:** `url_launcher` for Waze (`waze://?ll=...&navigate=yes`) and Google Maps (`google.navigation:q=lat,lng`).
-- **WebSocket:** `web_socket_channel` for real-time subscriber count.
 - **QR code generation:** `qr_flutter` (share screen).
+- **No WebSocket dep** — F11 (subscriber counter) was removed; slice 4 paywall uses polling (5 s) on `GET /subscription/status` instead of WS. If a future feature needs WS, the dep is added then with its own ADR.
 
 ### Backend (Fastify v5 + TypeScript)
 
@@ -89,13 +90,16 @@
 - Memory: ~4-6GB allocated to JVM heap (within 8GB droplet).
 - Bound to `127.0.0.1:8989` — backend proxies it.
 
-### Payment (Efí Bank Pix Split — M2)
+### Payment (Stripe Pix + Connect 50/50 split — M2)
 
-- API: REST v2 with mTLS authentication via `.p12` certificate.
-- **No official Node.js SDK** — direct HTTPS calls via `undici` or `axios` configured with the certificate.
-- Split configuration: one-time `POST /v2/gn/split/config` setting 50/50 between the two partner accounts.
-- Subscription cobrança: `PUT /v2/cob/:txid` for BRL 25.90, then `PUT /v2/gn/split/cob/:txid/vinculo/:splitConfigId` to attach the split.
-- Webhook: `POST /webhooks/efi/pix` receives confirmation. HMAC signature is validated. Backend activates subscription on success.
+> Gateway migration: ADR-0007 (Efí Bank) was superseded by **ADR-0030 (Stripe)** on 2026-05-24. Operational rules + paywall UX live in `docs/BUSINESS-RULES.md`.
+
+- Authentication: Stripe API key (`STRIPE_SECRET_KEY`) + webhook signing secret (`STRIPE_WEBHOOK_SECRET`). **No mTLS, no `.p12` certificate.**
+- SDK: official Stripe Node SDK (`stripe` npm package).
+- Split model: **Stripe Connect — Separate Charges and Transfers**. Platform creates the `PaymentIntent`; on `payment_intent.succeeded` webhook the backend fires two `stripe.transfers.create` calls (one per Connected Account) for 50/50 split.
+- Charge: single `PaymentIntent` with `amount=2590` (BRL cents), `currency=brl`, `payment_method_types=['pix']`, `metadata={userId}`. The `next_action.pix_display_qr_code` returns the QR + copy-and-paste code the mobile UI renders.
+- Webhook: `POST /webhooks/stripe` validates the signature via `stripe.webhooks.constructEvent(payload, sig, secret)`, dedupes by `stripeEventId` in a `webhook_events` table (Prisma migration in slice 4), grants 30 days of access (`subscription.status='active'`, `expires_at=now+30d`).
+- Renewal: each new payment is a fresh manual `PaymentIntent`. **No Stripe Billing, no Stripe Subscriptions API, no recurring schedule** — Pix Automático is invite-only in Brazil, and the product explicitly chose the manual-renewal UX. Daily cron at 03:00 BRT flips expired rows to `inactive`.
 
 ### Landing page (Next.js on Vercel)
 
@@ -160,9 +164,9 @@
 6. App displays route + estimated end time at top
 ```
 
-### Flow 3 — Pay-per-route paywall via Pix Split (M2 / slice 4)
+### Flow 3 — Stripe Pix paywall, 30-day access pass (M2 / slice 4)
 
-> **Important — pricing model change.** The original M2 brief assumed a monthly BRL 25.90 subscription. The client revised the model during M2 scoping on 2026-05-10 to **pay-per-route**: optimization is free, viewing the optimized route is free, the paywall fires on "Iniciar navegação," a single Pix charge unlocks turn-by-turn for *that one route*. No subscriptions, no trials. The Pix amount per charge is `BRL 25.90` (subject to revision before slice 4 ships). The 50/50 split per ADR-0007 is unchanged.
+> **Pricing model — current state.** Adding stops, optimizing the route, viewing the result, sharing, map view, and "sentido casa" are **free forever**. The paywall fires on "Iniciar Navegação": one Pix charge of **R$ 25,90** grants **30 days** of access (the button stays unlocked for that period; external nav to Waze/Google Maps fires immediately). When 30 days expire, the user pays again — a fresh manual Pix payment, not a recurring charge. 50/50 split via Stripe Connect (Separate Charges and Transfers). Full rules in `docs/BUSINESS-RULES.md`. ADR-0030 supersedes ADR-0007 (Efí Bank).
 
 ```
  1. User finishes adding stops and taps "Otimizar rota"
@@ -171,28 +175,40 @@
     ↓
  3. App renders ScreenOptimizeRoute. User reviews the result. Free.
     ↓
- 4. User taps "Iniciar navegação"
+ 4. User taps "Iniciar Navegação"
     ↓
- 5. App calls POST /payments/route-charge { route_id }
+ 5. App calls GET /subscription/status (server-authoritative — never trust local cache)
     ↓
- 6. Backend creates a Pix cobrança via Efí (PUT /v2/cob/:txid for BRL 25.90)
-    + attaches Split (PUT /v2/gn/split/cob/:txid/vinculo/:splitConfigId)
-    + returns the BR Code (text) + the QR image data URI + the txid.
+    ├── status='active' → step 11 (skip paywall)
+    └── status='inactive' → step 6
     ↓
- 7. App renders ScreenPaywall: QR + "Copiar código Pix" button + status poll.
+ 6. App calls POST /payments/pix-intent { userId }
     ↓
- 8. User pays in their bank app.
+ 7. Backend creates Stripe PaymentIntent (amount=2590, currency=brl,
+    payment_method_types=['pix'], metadata={userId})
+    + saves Payment row with status='pending'
+    + returns next_action.pix_display_qr_code (QR image data URI + copy-and-paste code)
     ↓
- 9. Efí webhooks POST /webhooks/efi/pix.
+ 8. App renders ScreenPaywall: QR + "Copiar código Pix" + polling GET /subscription/status every 5 s
     ↓
-10. Backend validates HMAC, deduplicates by e2e_id, marks route_payment.status = 'CONFIRMED'.
+ 9. User pays in their bank app.
     ↓
-11. App's status poll picks up CONFIRMED on next tick (default 2 s).
+10. Stripe webhooks POST /webhooks/stripe (event: payment_intent.succeeded)
     ↓
-12. App navigates to ScreenNavigate. Turn-by-turn unlocked for this route.
+    a. Backend validates signature via stripe.webhooks.constructEvent(payload, sig, secret)
+    b. Dedupes by stripeEventId in webhook_events table (return 200 if already processed)
+    c. Fires two stripe.transfers.create — one per Connected Account, 50/50
+    d. Creates/updates subscription row: status='active', expires_at=now+30d
+    e. Returns 200 (never 4xx/5xx — Stripe retries indefinitely)
+    ↓
+11. App's poll picks up status='active' on next tick (default 5 s)
+    ↓
+12. App navigates to external nav handoff (Waze / Google Maps per ADR-0017). Button stays unlocked for 30 days.
 ```
 
-Polling instead of WebSocket: the Efí webhook lands within 1-3 s of payment in practice; a 2 s client poll keeps the slice 4 implementation simpler and the mobile network footprint smaller. Move to SSE if user friction becomes visible.
+Polling instead of WebSocket: Stripe webhooks land within 1–3 s of payment in practice; a 5 s client poll keeps the slice 4 implementation simpler and the mobile network footprint smaller. Move to SSE if user friction becomes visible.
+
+Renewal: when `expires_at` passes (checked by daily cron at 03:00 BRT and at every `GET /subscription/status` call), the row flips to `status='inactive'`. The next tap on "Iniciar Navegação" re-enters this flow at step 6. There is **no cancel endpoint, no refund endpoint, no Stripe Subscriptions API call anywhere in the codebase** — `BUSINESS-RULES.md` §8 lists these as inviolable.
 
 ### Flow 4 — Map screens, tile fetching, and OSM compliance (M2 / slice 2)
 
@@ -273,26 +289,35 @@ refresh_tokens
 ├── revoked_at      timestamptz
 └── created_at      timestamptz
 
-subscriptions (M2)
+subscriptions (M2)             # Naming kept for continuity; semantically a "30-day access pass" per ADR-0030.
 ├── id              uuid PK
 ├── user_id         uuid FK → users.id (CASCADE)
-├── status          text             # active | inactive | canceled
+├── status          text             # active | inactive  (no canceled — see BUSINESS-RULES.md §8)
 ├── activated_at    timestamptz
-├── expires_at      timestamptz
-└── efi_split_config_id text
+├── expires_at      timestamptz      # activated_at + 30 days
+└── stripe_subscription_metadata jsonb  # nullable; reserved for future audit trail
 
 payments (M2)
-├── id              uuid PK
-├── user_id         uuid FK → users.id
-├── subscription_id uuid FK → subscriptions.id
-├── efi_txid        text UNIQUE
-├── efi_e2e_id      text
-├── amount_cents    int              # 2590
-├── status          text             # pending | paid | expired | refunded
-├── qr_code_url     text
-├── pix_copia_cola  text
-├── paid_at         timestamptz
-└── created_at      timestamptz
+├── id                       uuid PK
+├── user_id                  uuid FK → users.id
+├── subscription_id          uuid FK → subscriptions.id
+├── stripe_payment_intent_id text UNIQUE
+├── stripe_event_id          text             # the payment_intent.succeeded event id (idempotency key)
+├── amount_cents             int              # 2590
+├── currency                 text             # 'brl'
+├── status                   text             # pending | paid | failed | expired  (no refunded — see BUSINESS-RULES.md §8)
+├── qr_code_url              text             # next_action.pix_display_qr_code.image_url_png
+├── pix_copia_cola           text             # next_action.pix_display_qr_code.data
+├── paid_at                  timestamptz
+└── created_at               timestamptz
+
+webhook_events (M2)            # Idempotency table for Stripe webhook (ADR-0030)
+├── id                uuid PK
+├── stripe_event_id  text UNIQUE     # dedupe key
+├── event_type       text             # 'payment_intent.succeeded', etc.
+├── processed        boolean
+├── payload          jsonb            # full event for audit / debugging
+└── received_at      timestamptz
 
 routes (M2)
 ├── id              uuid PK
@@ -338,7 +363,7 @@ The stack has three places where data shape is defined: the database (Prisma), t
 
 1. **Prisma types stay backend-internal.** A handler that returns `prisma.user.findUnique(...)` directly is a bug — `password_hash`, internal columns, and future migrations must not leak. Always whitelist via a TypeBox response schema.
 2. **TypeBox schemas are the API contract.** Every request body, query string, params, and every response status code is declared with a TypeBox schema. Schemas live in `apps/backend/src/<feature>/schemas.ts`, separate from route handlers, so they can be imported by tests and (post-M1) by an OpenAPI exporter. Handler types come from `Static<typeof Schema>`.
-3. **Mobile DTOs mirror TypeBox 1:1.** Each DTO file carries `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>` as its header. Field names and types match exactly — no renaming. `fromJson` / `toJson` are explicit.
+3. **Mobile DTOs mirror TypeBox 1:1.** Each DTO file carries `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) as its L1 header. ASCII `->` only, no backticks (ADR-0020). Field names and types match exactly — no renaming. `fromJson` / `toJson` are explicit.
 4. **One PR changes both sides.** A change to a TypeBox schema and the change to its Dart mirror travel in the same commit. Code review enforces this until codegen lands.
 
 ### Example
@@ -359,7 +384,7 @@ export type User = Static<typeof UserSchema>
 
 ```dart
 // apps/mobile/lib/features/auth/data/dto/auth_user_dto.dart
-// Mirror of: apps/backend/src/auth/schemas.ts → UserSchema
+// Mirror of: apps/backend/src/auth/schemas.ts -> UserSchema
 class AuthUserDto {
   const AuthUserDto({
     required this.id, required this.email, required this.name,
@@ -410,10 +435,10 @@ GET    /routes/:id                                                     → { rou
 DELETE /routes/:id
 PATCH  /stops/:id/delivered
 GET    /subscription/status                                            → { active, expires_at }
-POST   /subscription/checkout                                          → { qr_code, pix_copia_cola, txid }
-POST   /webhooks/efi/pix           (HMAC-validated)
-GET    /stats/active-subscribers                                       → { count }
-WS     /ws/stats                   (broadcast subscriber count)
+POST   /payments/pix-intent                                            → { qr_code, pix_copia_cola, payment_intent_id }
+POST   /webhooks/stripe            (Stripe-signature-validated)
+# F11 (subscriber counter) removed — see docs/04-FEATURES.md F11.
+# Admin metrics (DAU, payments in period) live under F13 in slice 7.
 GET    /admin/dashboard            (partner-only)                      → { mrr, active_users, transactions }
 GET    /user/me/export             (LGPD Art. 18)                      → { full user payload as JSON }
 DELETE /user/me                    (LGPD Art. 18 right to deletion)
@@ -451,7 +476,7 @@ Per IP and per authenticated user:
 - CORS restricted to the app and admin panel origins.
 - JWT keys (RS256) stored as files, paths in `.env`.
 - Bcrypt cost factor 12 for password hashing.
-- Webhook signatures validated (Efí HMAC).
+- Webhook signatures validated (`stripe.webhooks.constructEvent` — ADR-0030).
 - Secrets never in Git. `.env` files in `.gitignore`. Rotate immediately if leaked.
 - `fail2ban` and `ufw` on the server.
 

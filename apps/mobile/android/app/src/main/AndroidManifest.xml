@@ -6,11 +6,20 @@
          declare it explicitly. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Slice 2 permissions: location for ScreenAddStopsMap (geolocator),
+         microphone for ScreenVoice (speech_to_text), camera for ScreenOCR
+         (image_picker + google_mlkit_text_recognition). Declared in src/main
+         so release builds carry them — slice 1 lesson. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
     <application
         android:label="Roteirizador Pro"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -48,6 +57,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+
+        <!-- Slice 2: ExternalNav.canLaunch* checks via url_launcher need to
+             see installed nav apps on Android 11+; the https VIEW intent is
+             the browser-fallback path when neither app is installed. -->
+        <package android:name="com.google.android.apps.maps" />
+        <package android:name="com.waze" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 </manifest>

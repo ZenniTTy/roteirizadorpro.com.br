@@ -6,8 +6,8 @@
 
 ## Pre-flight — before writing any code
 
-- [ ] **Read** `CLAUDE.md`, `docs/08-ROADMAP.md` (the slice's section), `docs/M2-COST-MODEL.md`, `TODO.md`, the last 5 entries in `docs/sessions/0001-INDEX.md`. If you skip this you will re-derive decisions and contradict prior ADRs.
-- [ ] **Re-read the prototype files** matching the slice (e.g. for slice 2, `prototipo/screens-a.jsx` through `screens-e.jsx`). The prototype is the canonical UI source per `docs/decisions/0010-clone-positioning.md`.
+- [ ] **Read** `CLAUDE.md`, `docs/08-ROADMAP-v2.md` (the slice's section — v1 is archived to `docs/archive/`), `docs/M2-COST-MODEL.md`, `TODO.md`, the last 5 entries in `docs/sessions/0001-INDEX.md`. If you skip this you will re-derive decisions and contradict prior ADRs.
+- [ ] **Consult both source-of-truth layers per ADR-0035:** (a) Spoke (ex-Circuit) for behavior, navigation, settings, feature presence — via `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (the slice-relevant section) or direct M54 inspection if the inventory does not yet cover the flow; (b) `prototipo/screens-*.jsx` for visual identity — color, tokens, spacing, icon family, animations. Cliente Ueslei is final tiebreaker.
 - [ ] **Validate every external library** the slice introduces against Context7 (`resolve-library-id` → `query-docs`). Mandatory for any package within the cutoff window. Capture the version pin you intend to use.
 - [ ] **Confirm there are no in-progress PRs** that conflict: `gh pr list --state open`. If there are, decide whether to merge them first or coordinate.
 - [ ] **`git status` on `develop` is clean** and you are aligned with `origin/develop`. If not, fix the divergence before branching.
@@ -22,7 +22,7 @@
 ## Scope and contracts (schema source-of-truth, ADR-0013)
 
 - [ ] **TypeBox schema first.** Every new HTTP endpoint declares its request/response in `apps/backend/src/<feature>/schemas.ts`. Even if the slice is mobile-only, define the schema for the endpoints you'll consume from the mobile.
-- [ ] **Dart DTO mirror.** Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>`. Fields and types match 1:1; no renames.
+- [ ] **Dart DTO mirror.** Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO), ASCII `->` only, no backticks (ADR-0020). Fields and types match 1:1; no renames.
 - [ ] **Prisma migration only when the slice changes persistent storage.** Never expose `@prisma/client` rows from a handler — always whitelist via a TypeBox response schema.
 - [ ] **ADR for any new library, new external service, or non-trivial new pattern.** Format follows `docs/decisions/0000-template.md`. The adr-guardian agent should report `clear to commit` on the slice's diff.
 
@@ -38,11 +38,17 @@
 
 - [ ] `flutter analyze` clean.
 - [ ] `flutter test` passes (widget tests at minimum for new screens).
+- [ ] **Dispatch `flutter-perf-auditor` (ADR-0027)** against the slice's touched mobile files. Resolve every `must-fix` before merge; document any deliberately-skipped `should-fix` in the slice doc with a one-line rationale. Nits are advisory. The auditor is read-only — its output is a punch list, not a code change.
+- [ ] **Goldens (ADR-0029)** — if the slice touches UI on a screen that already has a baseline under `apps/mobile/test/**/goldens/ci/`, run `flutter test --tags golden`; for intentional visual changes, regenerate with `flutter test --update-goldens --tags golden` and review the PNG diff in the PR. Optional: add a baseline for a newly-stabilized screen.
 - [ ] `bun run typecheck` clean in the modified apps (`apps/backend/`, `apps/landing/`).
 - [ ] `bun run lint` clean in the landing.
 - [ ] **`aapt2 dump permissions <built APK>`** if Android permissions changed — verify the expected `android.permission.*` entries are all present. **This is the slice 1 lesson.** Path: `~/Library/Android/sdk/build-tools/<latest>/aapt2`.
 - [ ] **`apksigner verify --verbose --print-certs <built APK>`** confirms v2 signature scheme and the cert SHA-256 matches the keystore (`D9:C9:61:D6:A3:2A:0C:45:B6:11:E0:E1:2D:86:FA:7E:52:1C:D3:3C:88:83:3C:7C:5D:5A:B9:91:9F:E9:14:31`).
-- [ ] **Manual end-to-end** on a real Android device (Samsung Galaxy A06 currently); install via `adb install -r <apk>`, exercise the slice's golden path, capture a screenshot for the PR body.
+- [ ] **Manual end-to-end** on a real Android device (Samsung Galaxy M54 / SM M546B currently — device-id `RQCW401G33T`, Android 16 API 36; the A06 reference was stale per session 26 sweep); install via `adb install -r <apk>` OR `flutter run -d <device-id> --release --dart-define=API_BASE_URL=https://api.roteirizadorpro.com.br --dart-define=APP_ENV=production` (the `--dart-define` flags are MANDATORY for device installs — without them the app defaults to `http://10.0.2.2:3000` emulator-loopback which fails silently on physical devices; the canonical script `apps/mobile/scripts/build-release-apk.sh` already wires these), exercise the slice's golden path, capture a screenshot for the PR body.
+- [ ] **HARD GATE — Spoke functional parity (ADR-0036).** For any slice-2 (Spoke-aligned Telas Core) or slice-3 (Real backend) microsprint, dispatch `spoke-parity-checker` subagent at D4 review before opening the PR. The subagent inspects the reference Spoke instance on the M54 + the equivalent Roteirizador Pro flow live via adb, produces a categorized punch list (must-fix / should-fix / nit) + a side-by-side "Steps mapped" table. Resolve every `must-fix` before merge; document any deliberately-skipped `should-fix` in the slice doc with a one-line rationale. The subagent inherits the ADR-0010 legal boundary (no Spoke microcopy/asset reproduction). Prerequisites it verifies: M54 connected, both apps installed, Eduardo logged in to Spoke. Slices 4/5/6/7 are OUT of this gate's scope (no Spoke equivalent to compare against — they are original RotPro / legal-only / admin).
+- [ ] **HARD GATE — Visual identity tokens (ADR-0035).** Dispatch `prototype-fidelity-checker` subagent against the slice's touched Dart files. Post-ADR-0035 this subagent is visual-only — it checks color/spacing/radii/shadows/typography/icon-family against `prototipo/tokens.js` + `prototipo/ui.jsx`. It does NOT check screen structure or flows (that's `spoke-parity-checker`'s job above). Any visual Critical blocks the tag.
+- [ ] **HARD GATE — device E2E on Samsung M54 (`RQCW401G33T`).** Before PR open, every screen exercised in the slice must launch on the device against the prod API (`--dart-define=API_BASE_URL=https://api.roteirizadorpro.com.br --dart-define=APP_ENV=production`). Capture a screenshot per E2E step under `docs/sessions/<slice-session>/screenshots/` for the slice handoff. Any device-only regression blocks the tag.
+- [ ] **HARD GATE — `flutter test integration_test/` must pass on a connected Android device** for any slice that touches `apps/mobile/lib/app.dart` or modifies a navigation expression (`context.go`, `context.push`, `context.pop`, `goBranch`, etc.). This gate exists because the slice-2 MS-01 regression passed widget tests + analyze + fidelity-checker + code-reviewer and still shipped a back-navigation bug on the device — see ADR-0022.
 - [ ] **Curl evidence** for any new backend endpoint. Paste the `curl -i` output into the PR body. No "trust me, it works."
 
 ## Version bumping
@@ -71,7 +77,7 @@
   - [x] flutter analyze / test
   - [x] aapt2 dump permissions
   - [x] apksigner verify
-  - [x] adb install + golden-path manual test on Galaxy A06 (screenshot attached)
+  - [x] adb install + golden-path manual test on Galaxy M54 (screenshot attached)
   - [x] backend curl evidence
   - [ ] Vercel preview deploy (URL auto-comment by Vercel bot)
 
@@ -79,7 +85,7 @@
   <if any — e.g. 1Password backup for slice 1>
 
   ## Related
-  - Slice N section of docs/08-ROADMAP.md
+  - Slice N section of docs/08-ROADMAP-v2.md
   - ADR-XXXX (new in this PR)
   - Session log docs/sessions/YYYY-MM-DD-NN-<topic>.md
   ```
@@ -95,7 +101,7 @@
 - [ ] **Capture a screenshot** of the production state and attach to the merged PR.
 - [ ] **Session-end protocol** (`docs/sessions/0000-template.md` → `docs/sessions/YYYY-MM-DD-NN-<topic>.md`). Update `docs/sessions/0001-INDEX.md` and `TODO.md` in the same commit. Use the `/session-end` slash command.
 - [ ] **Update `docs/10-CHANGELOG.md`** with one entry for the slice.
-- [ ] **Mark the slice's section in `docs/08-ROADMAP.md` as ✅ shipped** with the tag and date.
+- [ ] **Mark the slice's section in `docs/08-ROADMAP-v2.md` as ✅ shipped** with the tag and date.
 
 ## When something goes wrong
 
@@ -118,8 +124,9 @@ If the project crosses meaningful user thresholds (50 paying users; 500 paying u
 
 ## Glossary of slice-affecting docs
 
-- **`prototipo/`** — canonical UI. Visual identity, screens, gestures, flows must match 1:1. Tokens in `prototipo/tokens.js` are canonical.
-- **`docs/08-ROADMAP.md`** — what we're building, in what order, what "done" means.
+- **`prototipo/`** — canonical for **visual identity only** (ADR-0035): color tokens (`prototipo/tokens.js`), spacing, radii, shadows, typography, icon family. NOT canonical for screens, gestures, or flows — those trace to Spoke via the inventory document.
+- **`docs/inventory/2026-05-26-spoke-vs-rotpro.md`** — canonical for **behavior**: which screens exist, what gestures map to what actions, how navigation flows, what settings are present. Driven by ADR-0035; sourced from Spoke runtime inspection.
+- **`docs/08-ROADMAP-v2.md`** — what we're building, in what order, what "done" means (v1 archived 2026-05-26 to `docs/archive/` per ADR-0035).
 - **`docs/M2-COST-MODEL.md`** — cost ceilings.
 - **`docs/decisions/`** — every stack-affecting decision lives here. New libraries → new ADR.
 - **`docs/04-FEATURES.md`** — the feature catalogue. Loose contract with the client; update if a slice changes how a feature works.

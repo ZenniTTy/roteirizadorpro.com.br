@@ -11,17 +11,23 @@ Android route-planning app for delivery riders, distributed as APK from `roteiri
 | **M1** (BRL 2,000 / 30 days, deadline 2026-05-26) | Server (DO 1GB), landing page, backend auth API + healthchecks, GraphHopper SP graph, Login + Register Flutter screens | In progress |
 | **M2** (BRL 2,000) | Post-M1 — scope to be reconfirmed with client. Original brief: Android APK, OCR/voice/optimization, Pix Split, paywall, admin panel | Not started |
 
-Detailed roadmap: [`docs/08-ROADMAP.md`](./docs/08-ROADMAP.md).
+Detailed roadmap: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (v1 archived 2026-05-26 to `docs/archive/` per [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md)).
 
 ## Architecture (one-liner)
 
-Flutter app → Fastify API on DigitalOcean → GraphHopper (self-hosted) + PostgreSQL + Redis → Efí Bank Pix for subscriptions (M2).
+Flutter app → Fastify API on DigitalOcean → GraphHopper (self-hosted) + PostgreSQL + Redis → Stripe Pix + Connect 50/50 split for the 30-day access pass (M2).
 
 Detail: [`docs/02-ARCHITECTURE.md`](./docs/02-ARCHITECTURE.md).
 
-## UI source of truth
+## Source-of-truth hierarchy (ADR-0035)
 
-The Claude Design prototype at [`prototipo/`](./prototipo/) is the **canonical UI source** — client-approved 2026-05-07. Visual identity, screens, gestures, and flows must match it 1:1.
+Two artifacts, each canonical only for what it is authoritative on:
+
+- **Spoke (ex-Circuit Route Planner)** — canonical for **behavior**: screens, navigation, settings, feature presence, gestures, flow ordering. The end-user is a delivery rider who already uses Spoke daily; functional parity is the contract.
+- **[`prototipo/`](./prototipo/) (Claude Design prototype)** — canonical for **visual identity only**: color tokens (`tokens.js`), spacing scale, radii, shadows, typography, icon family (Lucide), animations.
+- **Cliente Ueslei** — final tiebreaker. Per [ADR-0010](./docs/decisions/0010-clone-positioning.md), the cliente is the contracting authority.
+
+Per [ADR-0010](./docs/decisions/0010-clone-positioning.md) (functional fork positioning) and [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (this hierarchy): replicate Spoke's *functionality*; never replicate its *visual assets*.
 
 Documentation: [`docs/05-SCREENS.md`](./docs/05-SCREENS.md), [`docs/06-DESIGN-SYSTEM.md`](./docs/06-DESIGN-SYSTEM.md).
 
@@ -34,7 +40,7 @@ Documentation: [`docs/05-SCREENS.md`](./docs/05-SCREENS.md), [`docs/06-DESIGN-SY
 | ORM / DB | Prisma 7 + PostgreSQL 16 |
 | Cache | Redis 7 |
 | Routing engine | GraphHopper (self-hosted, motorcycle profile) |
-| Payments (M2) | Efí Bank API Pix v2 (mTLS, Split) |
+| Payments (M2) | Stripe Pix + Stripe Connect 50/50 split (ADR-0030) |
 | Landing | Next.js 14 on Vercel |
 | Server | Ubuntu 24.04 on DigitalOcean (client's account) |
 
@@ -63,7 +69,8 @@ Locked versions and rationale: [`docs/decisions/`](./docs/decisions/).
 │   ├── 05-SCREENS.md
 │   ├── 06-DESIGN-SYSTEM.md
 │   ├── 07-INFRA.md
-│   ├── 08-ROADMAP.md
+│   ├── 08-ROADMAP-v2.md         # active M2 plan (v1 archived to docs/archive/, see ADR-0035)
+│   ├── 08-ROADMAP.md            # redirect stub → 08-ROADMAP-v2.md
 │   ├── 09-DISASTER-RECOVERY.md
 │   ├── 10-CHANGELOG.md
 │   ├── decisions/           # ADRs

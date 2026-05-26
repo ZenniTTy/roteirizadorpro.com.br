@@ -20,7 +20,7 @@ Code style, naming, and structural conventions for this repository.
 | Dart private members | leading underscore | `_internalCache` |
 | Database tables | snake_case plural | `users`, `webhook_events` |
 | Database columns | snake_case | `created_at`, `home_address` |
-| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `EFI_CLIENT_ID` |
+| Environment variables | SCREAMING_SNAKE_CASE | `DATABASE_URL`, `STRIPE_SECRET_KEY` |
 | Git branches | kebab-case | `feat/jwt-auth`, `docs/architecture-update` |
 | Conventional Commit scopes | flat lowercase (enforced) | `feat(mobile):`, `chore(tooling):` — see `commitlint.config.cjs` `scope-enum` |
 
@@ -35,7 +35,7 @@ These are the few non-obvious rules. Everything else: trust the linter.
 5. **No barrel files (`index.ts` re-exporting everything).** They hurt tree-shaking and create circular import risks. Import from the source file.
 6. **Imports are absolute when project paths exist** (e.g. `@/auth/jwt` over `../../auth/jwt`). Configure tsconfig path aliases.
 7. **One default export per file is allowed but not required.** Named exports preferred for refactor-friendliness.
-8. **One source of truth per data layer (ADR-0013).** Prisma describes the **database**; TypeBox describes the **HTTP API**; Dart DTOs **mirror** TypeBox. Never return `@prisma/client` rows from a handler — always go through a TypeBox response schema. Every Dart DTO file in `apps/mobile/lib/features/<feature>/data/dto/` starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts → <SchemaName>` and matches the TypeBox shape 1:1 (no renaming, no field skips). When a TypeBox schema changes, its Dart mirror changes in the same commit. See `docs/02-ARCHITECTURE.md` (API Contracts & Type Safety) and the reference at `apps/mobile/lib/features/auth/data/dto/_template.dart`.
+8. **One source of truth per data layer (ADR-0013).** Prisma describes the **database**; TypeBox describes the **HTTP API**; Dart DTOs **mirror** TypeBox. Never return `@prisma/client` rows from a handler — always go through a TypeBox response schema. Every Dart DTO file in `apps/mobile/lib/features/<feature>/data/dto/` starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO), ASCII `->` only, no backticks (ADR-0020), and matches the TypeBox shape 1:1 (no renaming, no field skips). When a TypeBox schema changes, its Dart mirror changes in the same commit. See `docs/02-ARCHITECTURE.md` (API Contracts & Type Safety) and the reference at `apps/mobile/lib/features/auth/data/dto/_template.dart`.
 
 ## Directory Layout (high level)
 
@@ -47,7 +47,7 @@ These are the few non-obvious rules. Everything else: trust the linter.
 │   └── landing/       # roteirizadorpro.com.br
 ├── infra/             # docker-compose, server provisioning, GraphHopper
 ├── docs/              # documentation (this folder)
-├── prototipo/         # canonical UI source (Claude Design prototype, client-approved) — referenced, never imported
+├── prototipo/         # canonical for visual identity per ADR-0035 (tokens, colors, icons, animations) — referenced, never imported
 └── scripts/           # repo-level utility scripts
 ```
 
@@ -60,6 +60,8 @@ This structure materializes incrementally as we build. We don't pre-create empty
 - E2E tests for the API live in `apps/backend/test/e2e/`.
 - The bar: **tests where it hurts** (payment, route optimization, paywall, OCR, auth). Not on getters.
 - A bug fix without a regression test is incomplete.
+- **Mobile TDD path (ADR-0025):** dispatch the `flutter-test-author` subagent BEFORE implementing a new widget/provider/service — it writes the failing test first, refuses to write production code. Mock library is `mocktail ^1.0.5`; manual fakes under `test/<feature>/_helpers/` remain the default.
+- **Golden tests (ADR-0029):** `alchemist ^0.14.0` in CI mode (Ahem font, platform-agnostic). One baseline per stable screen, added at slice close. Tag is `golden` — run with `flutter test --tags golden`; regenerate with `flutter test --update-goldens --tags golden`. NOT a hook — intentional-change moment.
 
 ## Commit Conventions
 

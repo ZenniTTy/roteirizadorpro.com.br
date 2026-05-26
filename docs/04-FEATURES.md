@@ -6,7 +6,7 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 
 > **Status legend.** ✅ shipped to production. 🟡 in flight (current slice). ⏳ planned for an upcoming slice. ⛔ explicitly out of scope for M2.
 >
-> **M2 slice mapping** ties each feature to the slice that owns it. See `docs/08-ROADMAP.md` for the slice order, dependencies, and acceptance criteria.
+> **M2 slice mapping** ties each feature to the slice that owns it. See `docs/08-ROADMAP-v2.md` for the slice order, dependencies, and acceptance criteria (v1 archived 2026-05-26 to `docs/archive/` per ADR-0035 pivot).
 
 | ID | Feature | Milestone | Status | Slice |
 |---|---|---|---|---|
@@ -22,14 +22,14 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 | F08 | External navigation hand-off (Google Maps / Waze deep link) | M2 | ⏳ | slice 2 |
 | F07 | Route optimization (real solver) | M2 | ⏳ | slice 3 |
 | F17 | Geocoding (Nominatim, on-domain rate-limited) | M2 | ⏳ | slice 3 |
-| F09 | Pay-per-route paywall on "Iniciar navegação" | M2 | ⏳ | slice 4 |
-| F10 | Pix payment with 50/50 auto-split (Efí Bank) | M2 | ⏳ | slice 4 |
+| F09 | Paywall on "Iniciar Navegação" — 30-day access pass | M2 | ⏳ | slice 4 |
+| F10 | Stripe Pix payment with 50/50 auto-split (Stripe Connect) | M2 | ⏳ | slice 4 |
 | F06 | Home point ("sentido casa") | M2 | ⏳ | slice 5 |
 | F18 | LGPD export / delete endpoints + ToS + privacy pages | M2 | ⏳ | slice 6 |
 | F13 | Partner admin panel | M2 | ⏳ | slice 7 |
-| F11 | Real-time subscriber counter | M2 | ⛔ removed | the contracted "subscriber counter" assumed a monthly subscription. The model changed to pay-per-route during M2 scoping; the counter no longer maps to anything meaningful. The admin panel (F13) surfaces DAU/MRR/paradas-dia instead. |
+| F11 | Real-time subscriber counter | M2 | ⛔ removed | The metric does not map cleanly to the current 30-day-access-pass model (re-confirmed 2026-05-24, ADR-0030). The admin panel (F13) surfaces DAU + payments-in-period instead. |
 
-> The single source of truth for **execution order, deadlines, and slice-level acceptance** is `docs/08-ROADMAP.md`. This document is the source of truth for **what each feature is supposed to do.** Changes to a feature's intent edit this file; changes to the order of work edit the roadmap.
+> The single source of truth for **execution order, deadlines, and slice-level acceptance** is `docs/08-ROADMAP-v2.md`. This document is the source of truth for **what each feature is supposed to do.** Changes to a feature's intent edit this file; changes to the order of work edit the roadmap.
 
 ---
 
@@ -222,86 +222,75 @@ Complete specification of every feature in Roteirizador Pro. This is the authori
 
 ---
 
-## F09 — Subscription Paywall
+## F09 — Paywall on "Iniciar Navegação" (30-day access pass)
 
-**Milestone:** M2.
+**Milestone:** M2 (slice 4). **Decision:** ADR-0030. **Operational rules:** `docs/BUSINESS-RULES.md`.
 
-**Description:** The "Iniciar Navegação" button is locked behind an active subscription. Users can add stops, view the optimized route, and manage their list for free. Only navigation is gated.
+**Description:** The "Iniciar Navegação" button is locked behind an active access pass. Adding stops, optimizing, viewing the route, sharing, map view, and "sentido casa" stay free forever. Only this one button is gated.
 
 **Behavior:**
-- Free tier: registration, adding stops, optimizing routes, viewing the route — all free.
-- Paid tier (BRL 25.90/month): unlocks "Iniciar Navegação".
-- When a free user taps "Iniciar Navegação": the paywall modal appears.
-- After payment confirmation via webhook: the button unlocks within seconds via WebSocket push.
-- When the 30-day period expires: "Iniciar Navegação" is automatically locked again. User must pay again to renew.
+- Free forever: registration, all stop-management features, route optimization, route view, sharing, map, sentido casa.
+- Paid: one Pix payment of **R$ 25,90** grants **30 days** of access — "Iniciar Navegação" stays unlocked for the period and triggers the external nav handoff (Waze / Google Maps per ADR-0017).
+- When a user with no active pass taps "Iniciar Navegação": paywall modal appears.
+- After payment confirmation via Stripe webhook: the modal closes and external nav fires within ~5 s (poll interval).
+- When the 30-day period expires: the button locks again. The user pays again to renew — a fresh manual Pix payment, not a recurring charge.
 
-**Subscription lifecycle:**
-- Activation: backend receives Efi webhook → sets `subscription.status = 'active'`, `expires_at = now + 30 days`.
-- Expiration: daily cron at 03:00 checks for expired subscriptions → sets `status = 'inactive'` automatically.
-- Re-subscription: user taps "Iniciar Navegação" again → paywall modal appears → pays again → same flow.
+**Access pass lifecycle:**
+- Activation: backend receives `payment_intent.succeeded` from `POST /webhooks/stripe` → `subscription.status='active'`, `expires_at=now+30d`.
+- Expiration: daily cron at 03:00 BRT flips rows with `expires_at<now()` to `status='inactive'`. Also checked at every `GET /subscription/status` call (so the next tap on "Iniciar Navegação" after expiry sees the paywall, even before the cron runs).
+- Renewal: user taps "Iniciar Navegação" → paywall modal → new `PaymentIntent` → same flow.
 
-**Rules:**
-- Subscription state is checked server-side on every "Iniciar Navegação" tap (`GET /subscription/status`).
-- The local cached state (from WebSocket/polling) is for UX only — the server is the authority.
-- No trial period in V1.
-- **No cancellation option anywhere in the app.** There is no "cancel subscription" button. The subscription simply expires after 30 days and the user decides whether to renew by paying again. This is a deliberate product decision by the client to prevent chargebacks.
-- **No refund flow.** Efi Bank Pix Split does not support refunds on split cobranças. This must be disclosed in the Terms of Service on the landing page.
-- The Settings screen shows subscription status and expiry date — read only, no action button.
+**Rules (full list in `docs/BUSINESS-RULES.md` §§7–10):**
+- State is checked **server-side** on every "Iniciar Navegação" tap (`GET /subscription/status`). Local cache is UX-only — the server is the authority.
+- **No trial period.**
+- **No cancellation flow anywhere.** No cancel button, no `DELETE /subscription`, no `POST /subscription/cancel`. The only way to "cancel" is to not renew when 30 days expire. Deliberate product decision to prevent chargeback abuse.
+- **No refund flow.** No `POST /payments/:id/refund` exists. Disclosed in the Terms of Service.
+- The Settings screen shows access-pass status + expiry date — **read-only, no action button**.
 
 ---
 
-## F10 — Pix Payment with 50/50 Auto-Split (Efi Bank)
+## F10 — Stripe Pix Payment with 50/50 Auto-Split (Stripe Connect)
 
-**Milestone:** M2.
+**Milestone:** M2 (slice 4). **Decision:** ADR-0030. **Operational rules:** `docs/BUSINESS-RULES.md`.
 
-**Description:** User pays BRL 25.90 via Pix. The amount is automatically split 50/50 between the two business partners at the moment of payment, using Efi Bank's native Pix Split feature.
+**Description:** User pays R$ 25,90 via Pix. The amount is split 50/50 between the two business partners using **Stripe Connect — Separate Charges and Transfers** (platform creates the `PaymentIntent`; the webhook handler fires two `stripe.transfers.create` calls to the Connected Account IDs of partner A and partner B).
 
 **Payment flow:**
-1. User taps "Pay with Pix" in the subscription modal.
-2. Backend calls Efi API: `PUT /v2/cob/:txid` creating a Pix cobrança for BRL 25.90.
-3. Backend attaches the split: `PUT /v2/gn/split/cob/:txid/vinculo/:splitConfigId`.
-4. Backend returns QR code image URL + copy-paste Pix code.
-5. App displays QR + "Copy Pix code" button.
+1. User taps "Pagar com Pix" in the paywall modal.
+2. Backend calls Stripe: `stripe.paymentIntents.create({ amount: 2590, currency: 'brl', payment_method_types: ['pix'], metadata: { userId } })`.
+3. Backend saves `Payment` row with `status='pending'`, `stripePaymentIntentId`.
+4. Backend returns `next_action.pix_display_qr_code` (QR image data URI + copy-and-paste code).
+5. App displays QR + "Copiar código Pix" button.
 6. User pays in their bank app.
-7. Efi fires webhook to `POST /webhooks/efi/pix`.
-8. Backend validates HMAC, marks subscription active, pushes WebSocket event.
-9. App receives WebSocket event, unlocks "Iniciar Navegação".
+7. Stripe fires `payment_intent.succeeded` webhook to `POST /webhooks/stripe`.
+8. Backend validates signature via `stripe.webhooks.constructEvent(payload, sig, secret)`, dedupes by `stripeEventId` in `webhook_events` (returns 200 if already processed), fires the two split transfers, sets `subscription.status='active'`, `expires_at=now+30d`.
+9. App's `GET /subscription/status` poll (every 5 s) picks up `active` and unlocks "Iniciar Navegação".
 
-**Split configuration (one-time setup):**
-- `POST /v2/gn/split/config` with `tipo: "porcentagem"`, partner A 50%, partner B 50%.
-- `splitConfigId` stored in environment variables and reused for every cobrança.
-- Both partners must have active Efi accounts (already confirmed by client).
+**Connected Accounts (one-time setup):**
+- Platform Stripe account (client) connects two Connected Accounts (partner A, partner B) via Stripe's Connect onboarding flow.
+- `STRIPE_CONNECTED_ACCOUNT_SOCIO_1` and `STRIPE_CONNECTED_ACCOUNT_SOCIO_2` stored as env vars. **Never committed.**
+- Stripe Pix is **invite-only in Brazil** — confirm Pix payment method is approved in the platform account dashboard before slice 4 ships (client confirmed already approved 2026-05-24, but verify at slice start).
 
 **Rules:**
-- Efi mTLS: `.p12` certificate on server, never in Git.
-- Webhook HMAC validation is mandatory on every event.
-- Webhook events stored in `webhook_events` table for idempotency (duplicate `e2e_id` is ignored).
-- If Efi is down: show "Payment service temporarily unavailable. Try again later." Do not store payment intents.
-- Refunds: Efi Pix Split does not support refunds on split cobranças. Disclosed in Terms of Service.
+- Auth: API key (`STRIPE_SECRET_KEY`) — no mTLS, no `.p12` certificate.
+- Webhook signing secret (`STRIPE_WEBHOOK_SECRET`) mandatory on every event.
+- Webhook events stored in `webhook_events` for idempotency (duplicate `stripeEventId` is ignored, returns 200).
+- Never return 4xx/5xx to Stripe — causes retry storm. Validation errors are still logged but return 200 with `processed=false` flag for ops investigation.
+- If Stripe is down: show "Serviço de pagamento temporariamente indisponível. Tente novamente." Do not pre-create local payment rows speculatively.
+- **No refund flow exists** — disclosed in Terms of Service.
+- **No Stripe Subscriptions, no Stripe Billing.** Each renewal is a brand-new `PaymentIntent`.
 
-**Fee breakdown (for reference):**
-- BRL 25.90 × 1.19% + BRL 0.31 = ~BRL 0.62 total fee.
-- Net per partner: (BRL 25.90 − BRL 0.62) / 2 = ~BRL 12.64.
+**Fee breakdown:**
+- R$ 25,90 × ~1,5% + R$ 0,40 = ~R$ 0,79 total fee per Pix.
+- Net per partner: (R$ 25,90 − R$ 0,79) / 2 ≈ **R$ 12,56** each.
 
 ---
 
-## F11 — Real-Time Active Subscriber Counter
+## F11 — Real-Time Active Subscriber Counter (⛔ REMOVED)
 
-**Milestone:** M2.
+**Status:** removed during M2 scoping; re-confirmed removed at 2026-05-24 (ADR-0030) — the 30-day access pass model has no clean "active subscriber" semantic and the metric would mislead. Admin panel (F13) surfaces DAU + payments-in-period instead, which are the honest metrics for this billing model.
 
-**Description:** A small, discrete badge at the top of the app home screen shows the total number of active subscribers in real time. This is for the partners to quickly gauge growth. It updates automatically without a page refresh.
-
-**Visual spec:**
-- Small square badge at the top of the screen, adjacent to the route end-time badge.
-- Shows only the number (e.g., `[142]`). No label, no user names.
-- Same visual weight as the end-time badge (discrete, not prominent to riders).
-
-**Technical implementation:**
-- Backend maintains `stats:active_subscribers` counter in Redis.
-- Counter increments on subscription activation, decrements on expiration/cancellation.
-- WebSocket endpoint `WS /ws/stats` broadcasts the count on every change.
-- Fallback: if WebSocket is disconnected, app polls `GET /stats/active-subscribers` every 30 seconds.
-- REST endpoint serves the same count from Redis.
+The historical visual + technical spec (badge on home screen, WebSocket-backed Redis counter) was never implemented and is intentionally **not preserved** here — re-introducing the feature would need a new spec anyway, sized to whatever the future metric is.
 
 ---
 

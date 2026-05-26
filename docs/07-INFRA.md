@@ -276,7 +276,7 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
 
 ## Secrets Inventory (M1)
 
-> Only M1-relevant secrets are listed. M2 secrets (Efí `.p12`, Efí client secrets, HMAC) come during M2 work.
+> Only M1-relevant secrets are listed. M2 secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECTED_ACCOUNT_SOCIO_1`, `STRIPE_CONNECTED_ACCOUNT_SOCIO_2` per ADR-0030) come during slice 4 work.
 
 Secrets that will exist in production. None are committed to Git.
 

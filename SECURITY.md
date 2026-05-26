@@ -34,7 +34,7 @@ While the project is in active development (M1, M2), only the latest commit on `
 - Refresh token rotation (a used refresh is invalidated, replaced with a new one).
 - Rate limiting on `/auth/*` endpoints to mitigate credential stuffing.
 - Helmet, CORS, and rate-limit on every Fastify route.
-- Webhook signature validation (HMAC) for Efí Bank events.
+- Webhook signature validation via `stripe.webhooks.constructEvent` for Stripe events (ADR-0030).
 
 ### Infrastructure
 

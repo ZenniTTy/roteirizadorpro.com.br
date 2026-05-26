@@ -15,7 +15,10 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-PBF_DIR="$DIR/data/pbf"
+# Honor GH_DATA_DIR for local devs who relocated heavy data outside the repo
+# (see ../../roteirizadorpro-infra-data/). Falls back to the in-repo path for
+# CI/production parity with docker-compose.yml's default bind-mount.
+PBF_DIR="${GH_DATA_DIR:-$DIR/data}/pbf"
 SRC="$PBF_DIR/sudeste-latest.osm.pbf"
 DST="$PBF_DIR/sao-paulo-capital.osm.pbf"
 SRC_URL="https://download.geofabrik.de/south-america/brazil/sudeste-latest.osm.pbf"

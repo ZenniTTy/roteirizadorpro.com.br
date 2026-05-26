@@ -1,14 +1,20 @@
 # 05 — Screens
 
-The screen catalogue for Roteirizador Pro. **The canonical UI source is the approved Claude Design prototype** at `prototipo/`. This document mirrors the prototype's structure for code reference.
+The screen catalogue for Roteirizador Pro. Two source-of-truth layers per **ADR-0035**:
 
-> Functional UX patterns are inspired by Spoke/Circuit Route Planner; visual identity is 100% original (see `docs/decisions/0010-clone-positioning.md`).
+- **Behavior, gestures, flow, settings inventory** → trace to Spoke (ex-Circuit Route Planner) via `docs/inventory/2026-05-26-spoke-vs-rotpro.md`.
+- **Visual identity** (colors, spacing, radii, shadows, typography, icon family, animations) → trace to `prototipo/` (Claude Design prototype, client-approved 2026-05-07).
+- **Tiebreaker** → cliente Ueslei.
+
+The screen list below is a working catalogue. Entries that match a Spoke screen mark "Spoke-aligned" (functional parity expected); entries that are original to Roteirizador Pro (`ScreenShare`, Pix paywall) mark "RotPro-original" (we own the flow). Visual identity for every screen comes from the prototype regardless.
+
+> Per `docs/decisions/0010-clone-positioning.md`: replicate Spoke's functionality, never its visual assets.
 
 ## Prototype screen map (19 screens)
 
 Listed in the order they appear in `prototipo/Roteirizador Pro.html`. Each entry: section, screen ID, label, milestone scope, **M2 slice that ships it**, and prototype source file (`prototipo/screens-{a,b,d,e}.jsx`).
 
-> Slice mapping is the single source of truth for "when does this screen ship?". Order of work lives in `docs/08-ROADMAP.md`.
+> Slice mapping is the single source of truth for "when does this screen ship?". Order of work lives in `docs/08-ROADMAP-v2.md` (v1 archived 2026-05-26 to `docs/archive/` per ADR-0035). The slice/sub columns below reflect the pre-pivot decomposition; under the v2 plan slice 2 microsprints are MS-A1..MS-A8 and slice 3 microsprints are MS-B1..MS-B9 — check the v2 roadmap for which microsprint ships which screen post-pivot.
 
 ### Section 01 — Authentication
 
@@ -110,7 +116,7 @@ The two M1 screens are detailed here. M2 screens are documented at "what they ar
 
 ## Spoke/Circuit feature mapping (reference)
 
-The functional behavior of the app — drag-to-reorder, swipe-to-complete, soft paywall on navigation, list-first UX — is inspired by Spoke/Circuit Route Planner. Visual identity is original. This table documents which Spoke screens we replicate and which we deliberately exclude.
+The functional behavior of the app — drag-to-reorder, swipe-to-complete, soft paywall on navigation, list-first UX — is **fully replicated from Spoke/Circuit Route Planner** per ADR-0010 (functional fork) and ADR-0035 (Spoke is canonical for behavior). Visual identity is original (from `prototipo/`). This table is a high-level summary; the **authoritative scope decisions** (what we replicate, adapt, postpone, or discard) live in `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §3 (43 gap items) + §7 (LOCKED decisions per cliente's 7 directives). If this table conflicts with the inventory, the inventory wins — edit both in the same commit.
 
 ### Replicated (M2 work)
 

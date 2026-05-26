@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/app_theme.dart';
 
@@ -42,39 +43,29 @@ class RpButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadii.btn),
         boxShadow: disabled ? null : AppShadows.primaryButton,
       ),
-      child: Stack(
-        alignment: Alignment.center,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (locked) ...[
-                const Icon(Icons.lock_outline, size: 18, color: Colors.white),
-                const SizedBox(width: 8),
-              ],
-              if (icon != null) ...[
-                IconTheme(
-                  data: const IconThemeData(color: Colors.white, size: 18),
-                  child: icon!,
-                ),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          if (neon && !disabled)
-            const Positioned(
-              right: 14,
-              child: _NeonDot(),
+          if (locked) ...[
+            const Icon(LucideIcons.lock, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
+          ],
+          if (icon != null) ...[
+            IconTheme(
+              data: const IconThemeData(color: Colors.white, size: 18),
+              child: icon!,
             ),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -88,25 +79,6 @@ class RpButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadii.btn),
           child: child,
         ),
-      ),
-    );
-  }
-}
-
-class _NeonDot extends StatelessWidget {
-  const _NeonDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: 8,
-      decoration: const BoxDecoration(
-        color: AppColors.neon,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(color: Color(0xE6C6FF3D), blurRadius: 8),
-        ],
       ),
     );
   }
