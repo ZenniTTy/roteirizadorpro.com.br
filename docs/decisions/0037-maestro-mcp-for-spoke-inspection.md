@@ -1,6 +1,6 @@
 # ADR-0037: Adopt Maestro + Maestro MCP as the structural inspection layer for Spoke parity work
 
-- **Status:** Accepted
+- **Status:** Accepted (Amendment 1 applied 2026-05-26 — see §Amendments)
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Supersedes:** none
@@ -72,3 +72,29 @@ This decision is policy. Execution lives in the same commit that lands this ADR,
 - ADR-0023 — Dart MCP server adoption (precedent for adding a second MCP server alongside `dart`).
 - ADR-0035 — Spoke is functional source of truth; prototipo is creative visual reference.
 - ADR-0036 — `spoke-parity-checker` functional-parity gate; this ADR amends its Step 2/Step 3 inspection methodology without changing the gate semantics or the report contract.
+
+## Amendments
+
+### Amendment 1 (2026-05-26) — Operational rules learned during Fase B deep-pass
+
+Fase B (dense Spoke inventory pass, see `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §10.1-10.22) surfaced two operational practices that materially improved the quality of the structural extraction and reduced wasted cycles. Both apply to any future `spoke-parity-checker` dispatch and to any Fase-B-like inventory work.
+
+**Rule 1 — Docs > Inferência: when behavior is ambiguous, consult official docs FIRST.**
+
+When tap on a label opens an unexpected screen, when a UI element seems to have dual function, when a picker has non-obvious option semantics, the agent **MUST** first WebSearch / WebFetch the official Spoke / Circuit / Getcircuit documentation (`spoke.com`, `help.spoke.com`, `getcircuit.com`, app store listings, blog) before inferring behavior from the XML dump alone. Then return to Maestro to validate the docs-informed understanding empirically.
+
+Rationale: ambiguous UI elements consume a lot of cycles when explored via trial-and-error tap sequences. A 30-second WebSearch often resolves the ambiguity by surfacing the official feature name, which then makes the tap behavior obvious. Observed in Fase B at §10.6.1 (chip "ID Pendente" mistaken for delivery status — resolved by reading help.spoke.com) and at §10.6.2 (Package ID + Color labels + Load vehicle features confirmed via spoke.com).
+
+Constraint: ADR-0010 boundary preserved — docs are consulted to **understand functionality**, not to copy microcopy. Any text from official docs that the agent paraphrases into the inventory follows the same >5-word-verbatim rule that already applies to XML dumps.
+
+**Rule 2 — Empirical > Docs: when observation contradicts documentation, the observation wins.**
+
+Spoke's official documentation occasionally describes features that are gated by paid plans, region-specific configurations, or settings the current user does not have enabled. When the empirical Maestro observation contradicts what the docs claim, **the empirical observation has precedence** for the inventory entry. The inventory MUST note the divergence explicitly so future implementation decisions know that the docs alone cannot be trusted.
+
+Rationale: docs reflect Spoke's intended product surface; observation reflects what the user actually sees. RotPro replicates user behavior, not intended behavior. Observed in Fase B at §10.14 (docs claimed "Não entregue" opens a failure reason picker with pre-set + custom options; empirical shows direct silent mark + advance, no picker). Implementation deferred picker until empirical confirmation in different conditions.
+
+**Encoding these rules in the subagent prompt:**
+
+`.claude/agents/spoke-parity-checker.md` Step 4 (Compare) gains a new bullet: *"When uncertain about a behavior, consult official Spoke docs via WebSearch before inferring from the XML alone. If docs and observation diverge, observation wins; record the divergence in the report."* This was added in the Fase B PR alongside this amendment.
+
+---

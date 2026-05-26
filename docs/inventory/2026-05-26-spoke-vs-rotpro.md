@@ -1,7 +1,7 @@
 # Spoke vs Roteirizador Pro — inventário comparativo
 
-> **Data:** 2026-05-26
-> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1, ambos inspecionados em sessão única 2026-05-26 com uiautomator dump + screencap. Cobertura: ver §9 (telas inspecionadas vs pendentes).
+> **Data:** 2026-05-26 (Fase B deep-pass adicionada via Maestro MCP — §10.1-10.23 cobrem o ciclo completo de uso; ver §10.22 coverage map e 13 gaps explicitamente conhecidos)
+> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1. **Fase inicial (§1-§9):** uiautomator dump + screencap bash workflow. **Fase B (§10):** Maestro MCP `inspect_screen` + `take_screenshot` + `run` via tap automation, per ADR-0037. Cobertura: ver §10.22 coverage map.
 > **Driver:** [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke é o guia funcional, prototipo é referência criativa, cliente Ueslei é desempate
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
 > **Disclaimer legal:** este inventário descreve funcionalidades, navegação e estrutura de UX para fins de paridade funcional (per [ADR-0010](../decisions/0010-clone-positioning.md) — "functional fork with original visual identity"). Não reproduz microcopy verbatim, ícones, ilustrações, paletas, ou tipografia da Spoke. Screenshots de inspeção vivem apenas em `/tmp/spoke-inspection/` e NÃO são commitados.
@@ -1380,3 +1380,66 @@ Scaffold(
 13. **Comportamento "Excluir rota"** (destrutivo; pulei pra preservar dados)
 
 **Estes 13 gaps são candidatos pra uma sessão B-followup dedicada quando RotPro slice 2 estiver na fase de "preencher detalhes".** Não bloqueiam a primeira passada de implementação que pode começar imediatamente com §10.1-10.21 como ground truth.
+
+### 10.23 — Nota importante sobre microcopy dinâmica (Eduardo 2026-05-26)
+
+**⚠️ Correção 2026-05-26 — o ponto real do Eduardo:** Eduardo estava apontando o **modal de upsell contextualizado** (§10.24 abaixo) que mostra **"Eduardo, chegar cedo a casa. Motoristas de Ribeirão Preto terminam o trabalho mais cedo..."** — não os endereços dos stops. O modal usa **primeiro nome + cidade** dinamicamente personalizados via templating. Os endereços também são dinâmicos (vêm do geocoder), mas o ponto principal era esse modal.
+
+**Sobre endereços (registrado por completude):** os endereços que aparecem nos stop cards e nas linhas de paradas (ex: `"Subsetor Leste, 2 (L-2), Ribeirão Preto, 14090-250"`, `"Jardim Paulista, Ribeirão Preto"`) **NÃO são labels estáticos hardcoded** — são o **output do parser/geocoder** aplicado ao endereço real digitado/escolhido pelo usuário.
+
+**Implicações:**
+
+1. **"Ribeirão Preto" aparece porque é a cidade real dos endereços do Eduardo** (estado: SP). Em outras contas com endereços de São Paulo capital, apareceria "São Paulo". Em endereços do RJ, "Rio de Janeiro".
+
+2. **Format do address rendering observado em Spoke:**
+   - Stop card title (h6): `<rua>` — apenas o nome da rua (ex: "Rua Franca")
+   - Stop card subtitle (body2 muted): `<bairro>, <cidade>` ou `<bairro/complemento>, <cidade>, <CEP>` — varia por completude do endereço retornado pelo geocoder
+
+3. **Pro RotPro slice 3 backend (Nominatim SP):**
+   - Schema do `Stop` model deve guardar campos estruturados separados: `streetName`, `streetNumber?`, `neighborhood?`, `city`, `state`, `postalCode?`, `country` — **não concatenar em uma string única**
+   - UI rendering deve compor dinamicamente: `"$neighborhood${city != null ? ', $city' : ''}${postalCode != null ? ', $postalCode' : ''}"`
+   - Nominatim retorna esses fields separados no JSON `address` (tipo `address.road`, `address.suburb`, `address.city`, `address.postcode`)
+   - **Localization considerada:** `address.city_district` vs `address.suburb` vs `address.neighbourhood` — Spoke aparentemente usa o mais granular disponível ("Subsetor Leste, 2 (L-2)" é nível de subsetor administrativo de Ribeirão Preto, retornado por Nominatim como `address.suburb` ou `address.neighbourhood`).
+
+4. **Implicação pra ADR-0010 (legal boundary):** nenhuma — Spoke usa o mesmo Nominatim/Google Geocoding API que o RotPro vai usar. Não é decompile de Spoke, é uso de mesma fonte upstream.
+
+5. **Implicação pra inventário inteiro:** **toda string de endereço citada nesta §10 é exemplo de output observado pra dados específicos do Eduardo, NÃO é spec de copy.** Inventory entries que citam endereços (ex: §10.5 "Rua Franca", §10.6 título da Editar parada, §10.13 título no modo delivery, §10.18 "R. José da Silva, 713 Jardim Paulista") devem ser lidas como ilustrações estruturais, com a string real vindo do geocoder em runtime.
+
+**Outras strings dinâmicas observadas que seguem o mesmo princípio:**
+- **Nomes de rotas** (ex: "terça-feira Rota 2"): auto-gerados pelo `wizard` Spoke a partir de dia-da-semana + counter, editáveis pelo usuário
+- **Timestamps** (ex: "19:25", "19:36"): horários do device em real-time
+- **Counters** (ex: "1/4", "14 min • 4 paradas • 3,3 km", "4 paradas — 1 perdida"): computed da `Route` model
+- **CEPs** (ex: "14090-250", "14090-042"): vêm do geocoder
+
+Apenas labels **truly static** são parafraseadas no inventário (CTAs, titles de telas, settings labels). Strings dinâmicas viraram exemplos quando necessárias pra entender a estrutura.
+
+### 10.24 — 🚨 NOVO: Modal de upsell contextualizado (paywall promotion)
+
+**Trigger observado:** apareceu ao tentar entrar no flow "Adicionar parada" durante a Fase B (não confirmado se é trigger fixo neste momento ou se é probabilistic/A-B-test). Pode ser triggered após N opens da app, após X rotas criadas, ou em pontos específicos do flow de delivery — gap pra confirmar.
+
+**Estrutura observada:**
+
+| Elemento | Notas |
+|---|---|
+| Modal centered overlay | Sobre o conteúdo atual (Adicionar parada com 3 method buttons visíveis behind dim scrim) |
+| Title h2 | `"Eduardo, chegar cedo a casa."` — **personalizado:** `<userFirstName>, <CTA_personalizado>` |
+| Body text | `"Motoristas de Ribeirão Preto terminam o trabalho mais cedo com as rotas otimizadas do Spoke 👍"` — **personalizado:** `Motoristas de <userCity> terminam o trabalho mais cedo com as rotas otimizadas do Spoke`. Termina com emoji 👍 |
+| CTA primary filled | `"Termine mais cedo."` — leva pra paywall "Comparar planos" (provavelmente) |
+| CTA secondary text | `"Cancelar"` — dismiss modal, volta ao estado anterior |
+
+**Implicações:**
+
+1. **Personalização via template variables:** Spoke usa templating com `userFirstName` + `userCity` pra criar mensagens de upsell mais relevantes. Dado que essa info vem do profile, é trivial implementar similar no RotPro.
+
+2. **Paywall trigger contextual:** o modal aparece em **momentos de friction** (Adicionar parada quando flow é repetitivo) — momentos onde usuário pode estar mais receptivo a "Spoke faz isso mais rápido pra você". Boa estratégia de growth.
+
+3. **Use of social proof:** "Motoristas de [cidade]" é social proof local — usuário se identifica com pares da mesma região. Pra RotPro slice 4 (Stripe Pix paywall): considerar template similar com `cidade` do usuário e referência a outros motoristas locais.
+
+4. **Localização geográfica conhecida pelo backend:** Spoke sabe que Eduardo é de Ribeirão Preto (inferido via Geo-IP no signup ou via primeira rota criada). RotPro slice 3 backend deve persistir `User.city: String?` (nullable, inferred from first geocoded address ou via IP geolocation).
+
+5. **OUT-OF-SCOPE pra slice 2:** este modal é parte do funil de paywall — encaixa em slice 4 (Stripe Pix paywall). Slice 2 NÃO replica.
+
+**Pendente:**
+- Tap "Termine mais cedo" → confirmar que leva pra paywall §3.3 item 25 "Comparar planos"
+- Identificar trigger condition (quantos opens / quantas rotas / qual ação dispara?)
+- Confirmar se modal aparece também em outros pontos do app além de Adicionar parada
