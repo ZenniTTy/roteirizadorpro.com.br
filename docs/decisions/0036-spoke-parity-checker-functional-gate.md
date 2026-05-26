@@ -1,9 +1,10 @@
 # ADR-0036: Spoke functional parity gate — `spoke-parity-checker` subagent at D4 of every Spoke-aligned microsprint
 
-- **Status:** Accepted
+- **Status:** Accepted (Step 2/Step 3 inspection methodology amended by [ADR-0037](./0037-maestro-mcp-for-spoke-inspection.md))
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Extends:** ADR-0035 (Spoke functional / prototype visual hierarchy)
+- **Amended by:** ADR-0037 (Maestro CLI + Maestro MCP became the preferred inspection layer; `adb shell uiautomator dump` + `screencap` remain the documented fallback. The gate's semantics, the report contract, and the legal boundary are unchanged — only the wrapper around the Android Accessibility surface).
 - **Related ADRs:** ADR-0010 (functional fork positioning — legal boundary), ADR-0018 (in-loop auto-validation pattern). Filed alongside ADRs 0021/0027/0029 (sibling patterns: fidelity-remediation workflow, flutter-perf-auditor subagent, alchemist golden tests) que foram **deletadas no reset 2026-05-26**; histórico no git log.
 
 ## Context

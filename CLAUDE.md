@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-26 (M2 reset — limpeza completa de slice-2 microsprint bloat + 12 ADRs específicas + 10 specs/plans + 36 sessions arquivadas. Branch `chore/m2-reset-to-zero` reduz `apps/mobile/lib/` a só `core/` + `features/auth/`; reescreve `app.dart` minimal. ROADMAP-v2 simplificado: sem microsprints A/B, só lista de telas Spoke a replicar. Estratégia M2 firme: **white-label do Spoke** (100% funcional/estrutural com nossa stack; polish visual no final). Plano detalhado em `~/.claude/plans/velvet-yawning-thacker.md`. Previous: ADR-0035 pivot foundational + ADR-0036 parity gate.)
+> **Last updated:** 2026-05-26 (ADR-0037 — Maestro CLI 2.6 + Maestro MCP server adotados como camada de inspeção estrutural preferida do `spoke-parity-checker`; bash + uiautomator fica como fallback documentado. Wirado em `.mcp.json` ao lado do Dart MCP; subagent re-targeted; legal boundary de ADR-0010 inalterada — observação de runtime UI state, nada de decompilação. Habilita Fase B do plano `~/.claude/plans/velvet-yawning-thacker.md`: dense Spoke inventory sem hallucination. Previous: M2 reset 2026-05-26 — limpeza completa de slice-2 microsprint bloat; ROADMAP-v2 simplificado; estratégia firme **white-label do Spoke** (100% funcional/estrutural com nossa stack; polish visual no final). Foundational: ADR-0035 pivot + ADR-0036 parity gate.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -19,7 +19,8 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `bash apps/mobile/scripts/build-release-apk.sh` | Cuts a signed release APK. ADR-0014. |
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
 | `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). See ADR-0023. |
-| `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected. |
+| `MAESTRO_CLI_NO_ANALYTICS=1 maestro --version` | Sanity-check that the Maestro CLI (and therefore the Maestro MCP server) is reachable. Currently 2.6.0. Installed via `brew install mobile-dev-inc/tap/maestro --formula` (the plain cask install only ships the desktop app, no CLI). Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`. See ADR-0037. |
+| `/mcp` (inside Claude Code) | List active MCP servers. `dart` AND `maestro` should appear ✅ connected. |
 
 ## What This Project Is
 
@@ -58,6 +59,7 @@ When you start a session in this repo, read in this order:
     - **0023–0026 (AI harness):** Dart MCP server (0023), `@riverpod` codegen hook (0024), `flutter-test-author` subagent (0025), `GH_DATA_DIR` infra override (0026). Wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
     - **0030 (Stripe Pix):** slice 4 uses **Stripe Connect** with 50/50 split via Separate Charges and Transfers; **R$ 25,90 grants 30 days of access**, renewed via fresh manual Pix each cycle (no Stripe Billing, no Stripe Subscriptions API). Operational rules in `docs/BUSINESS-RULES.md`.
     - **0035 + 0036 (Spoke white-label):** Spoke is the canonical source for behavior/flows; `prototipo/` is canonical for visual identity only (cores, tokens, ícones Lucide); cliente Ueslei is tiebreaker. Dispatch `spoke-parity-checker` subagent upfront during brainstorming + closing at D4 for any slice-2/slice-3 microsprint. See §"Source-of-truth hierarchy" below.
+    - **0037 (Maestro MCP inspection):** `spoke-parity-checker` now **prefers** Maestro MCP (`mcp__maestro__inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`, `list_devices`) for structural extraction. Bash + `adb shell uiautomator dump` remains the documented fallback. Both observe the same Android Accessibility surface, so ADR-0010 legal posture is unchanged. The subagent's report carries an `Inspection path:` line so every dispatch is auditable.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
@@ -71,14 +73,16 @@ Two artifacts, each authoritative only on what it actually governs. When in doub
 
 When `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` is the canonical Spoke→implementation mapping per slice.
 
-### Spoke deep-dive default behavior (per ADR-0036, amended 2026-05-26)
+### Spoke deep-dive default behavior (per ADR-0036, amended by ADR-0037 — 2026-05-26)
 
 For any **slice-2 (Telas Core) or slice-3 (Real backend) microsprint** whose flow has a Spoke equivalent, the `spoke-parity-checker` subagent is dispatched **proactively and upfront during brainstorming** — BEFORE asking Eduardo UI/UX questions that Spoke already answers structurally. This is the default; do not offer alternatives ("inspect Spoke first or just ask the user?"). The inspection produces a structural baseline that informs the spec, and the same subagent is dispatched again at D4 closing for verification (the gate documented in ADR-0036 and `docs/M2-SLICE-CHECKLIST.md` §Verification).
+
+**Inspection path (per ADR-0037):** the subagent prefers **Maestro MCP** (`mcp__maestro__inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`, `list_devices`) because the hierarchy output is structured (paste-verbatim into the inventory; no paraphrasing into existence) and Maestro auto-navigates state coverage that synchronous bash sessions made tedious. When Maestro is unavailable (CLI missing, MCP not connected, driver crash), the subagent falls back to `adb shell uiautomator dump` + `screencap` — same Android Accessibility surface, same ADR-0010 boundary, slower workflow. The chosen path is recorded in every dispatch report's `Inspection path:` line.
 
 Ask Eduardo only for:
 - **(a)** Decisions Spoke doesn't cover (data migration paths, original RotPro features like ScreenShare/Pix paywall, scope cuts per `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §7).
 - **(b)** Directives that override Spoke (cliente preference per the 7 locked directives in inventory §7.1, e.g. no Apple/Facebook auth, no iOS).
-- **(c)** A one-line confirmation that the device is connected (`adb devices` shows `RQCW401G33T device`) and Spoke is logged-in before dispatch.
+- **(c)** A one-line confirmation that the device is connected (`adb devices` shows `RQCW401G33T device`, or `mcp__maestro__list_devices` returns it) and Spoke is logged-in before dispatch.
 
 Out of scope for this rule: slices 4 (Stripe paywall — original RotPro), 5 (sentido casa — original RotPro), 6 (LGPD — legal-only), 7 (admin panel — original RotPro). Those have no Spoke equivalent to inspect.
 
