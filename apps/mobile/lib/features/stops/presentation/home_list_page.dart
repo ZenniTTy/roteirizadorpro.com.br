@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/home_top_bar.dart';
 import '../../../core/widgets/rp_button.dart';
+import '../../../core/widgets/rp_fab.dart';
 import '../domain/stop.dart';
 import '../state/stops_controller.dart';
 import 'shared/home_bottom_nav.dart';
@@ -30,12 +31,14 @@ class HomeListPage extends ConsumerWidget {
         ),
         orElse: () => const HomeTopBar(count: 0),
       ),
-      floatingActionButton: Semantics(
-        button: true,
-        label: 'Adicionar parada',
-        child: FloatingActionButton(
+      // Push FAB above the "Otimizar rota" pinned button (~72px tall:
+      // 8+12 padding + 52 button height). Without this lift the FAB
+      // overlaps the CTA — flagged on MS-15a-followup M54 smoke (gap #3).
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: RpFab(
+          tooltip: 'Adicionar parada',
           onPressed: () => context.push('/home/stops/add'),
-          child: const Icon(Icons.add),
         ),
       ),
       bottomNavigationBar: HomeBottomNav(

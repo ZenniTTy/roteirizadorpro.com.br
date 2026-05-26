@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../theme/app_theme.dart';
 
@@ -35,7 +36,7 @@ class RpFab extends StatelessWidget {
           customBorder: const CircleBorder(),
           child: Center(
             child: Icon(
-              icon ?? Icons.add,
+              icon ?? LucideIcons.plus,
               color: Colors.white,
               size: 26,
             ),

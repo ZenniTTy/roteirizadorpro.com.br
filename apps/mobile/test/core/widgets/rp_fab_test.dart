@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/core/widgets/rp_fab.dart';
 
@@ -30,7 +31,7 @@ void main() {
       expect(decoration.shape, BoxShape.circle);
       expect(decoration.gradient, isA<LinearGradient>());
 
-      final icon = tester.widget<Icon>(find.byIcon(Icons.add));
+      final icon = tester.widget<Icon>(find.byIcon(LucideIcons.plus));
       expect(icon.size, 26);
       expect(icon.color, Colors.white);
     });
@@ -72,7 +73,7 @@ void main() {
         RpFab(onPressed: () {}, icon: Icons.mic),
       );
       expect(find.byIcon(Icons.mic), findsOneWidget);
-      expect(find.byIcon(Icons.add), findsNothing);
+      expect(find.byIcon(LucideIcons.plus), findsNothing);
     });
   });
 }
