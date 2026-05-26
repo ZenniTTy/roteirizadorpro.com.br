@@ -1,7 +1,7 @@
 ---
 name: spoke-parity-checker
-description: Use proactively at TWO points of every slice-2 (Spoke-aligned Telas Core) and slice-3 (Real backend) microsprint — (1) UPFRONT during brainstorming, BEFORE the spec is written, to build a structural baseline that informs the spec and replaces UI/UX questions Spoke already answers; (2) at the D4 review gate, BEFORE opening the slice PR, as the closing functional-parity verification. Both dispatches share the same workflow: inspect the reference app (`com.underwood.route_optimiser` on the connected M54 device) live via adb uiautomator dump + screencap for a named flow, inspect the Roteirizador Pro equivalent flow the same way, and produce a categorized punch list of behavioral / structural gaps (must-fix / should-fix / nit). At the upfront dispatch the RotPro side may be empty/stub (microsprint hasn't shipped code yet) — that's expected; the report focuses on Spoke's structural facts. Read-only — does not edit code, does not run tests. Trigger upfront when entering brainstorming for any Spoke-equivalent flow, or at D4 when a microsprint finishes its green pass, or when the user says "spoke check <flow>" / "parity check <flow>" / "inspect spoke <flow>".
-tools: Read, Grep, Glob, Bash
+description: Use proactively at TWO points of every slice-2 (Spoke-aligned Telas Core) and slice-3 (Real backend) microsprint — (1) UPFRONT during brainstorming, BEFORE the spec is written, to build a structural baseline that informs the spec and replaces UI/UX questions Spoke already answers; (2) at the D4 review gate, BEFORE opening the slice PR, as the closing functional-parity verification. Both dispatches share the same workflow: inspect the reference app (`com.underwood.route_optimiser` on the connected M54 device) live — preferred via Maestro MCP (`inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`), falling back to `adb shell uiautomator dump` + `screencap` when Maestro is unavailable. Inspect the Roteirizador Pro equivalent flow the same way and produce a categorized punch list of behavioral / structural gaps (must-fix / should-fix / nit). At the upfront dispatch the RotPro side may be empty/stub (microsprint hasn't shipped code yet) — that's expected; the report focuses on Spoke's structural facts. Read-only — does not edit code, does not run tests. Trigger upfront when entering brainstorming for any Spoke-equivalent flow, or at D4 when a microsprint finishes its green pass, or when the user says "spoke check <flow>" / "parity check <flow>" / "inspect spoke <flow>".
+tools: Read, Grep, Glob, Bash, mcp__maestro__inspect_view_hierarchy, mcp__maestro__tap_on, mcp__maestro__back, mcp__maestro__launch_app, mcp__maestro__take_screenshot, mcp__maestro__list_devices
 model: sonnet
 ---
 
@@ -48,6 +48,25 @@ Open `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Find the section(s) coverin
 
 ### Step 2 — Inspect Spoke
 
+**First, determine which inspection path to use** (per ADR-0037):
+
+1. Check Maestro MCP availability. If `mcp__maestro__list_devices` succeeds and returns `RQCW401G33T`, use the **preferred Maestro MCP path**. If it fails (server not connected, tool not registered, error response), use the **bash fallback path**. Record which path you used in the report header (e.g. `Inspection path: Maestro MCP` or `Inspection path: bash fallback (Maestro unavailable: <reason>)`).
+2. Both paths observe the same Android Accessibility surface, so the structural output is equivalent. The choice is operational only.
+
+#### Preferred path — Maestro MCP
+
+For each step in the user journey:
+
+1. Bring Spoke to the foreground: `mcp__maestro__launch_app` with `appId: "com.underwood.route_optimiser"`.
+2. Navigate to the relevant state. Two options:
+   - **Deterministic taps:** `mcp__maestro__tap_on` (use `id`/`text`/coordinates as documented). `mcp__maestro__back` for back navigation.
+   - **State-setup requires Eduardo's data:** stop and ask the user to bring Spoke to `<state description>`, then re-poll once.
+3. For each visible state:
+   - `mcp__maestro__inspect_view_hierarchy` → returns the structured tree (class, resource-id, content-desc, bounds, clickable). Paste the relevant subtree directly into the report — that is the ground truth.
+   - `mcp__maestro__take_screenshot` (optional, for your own visual context) — Maestro writes to `/tmp/spoke-inspection/<flow>-<step>.png`. Do not commit. Do not embed in the report.
+
+#### Fallback path — bash (per ADR-0036)
+
 For each step in the user journey:
 
 1. Bring Spoke to the foreground if it isn't already:
@@ -55,18 +74,18 @@ For each step in the user journey:
    adb -s RQCW401G33T shell monkey -p com.underwood.route_optimiser -c android.intent.category.LAUNCHER 1
    ```
 2. Navigate to the relevant state. Two options:
-   - **If the state can be reached with deterministic taps** (the inventory or previous screenshots show the coordinates): drive the navigation via `adb shell input tap X Y` / `input swipe ...` / `input keyevent KEYCODE_BACK`.
-   - **If state-setup requires data only Eduardo has** (logged-in account, paid plan, route with N specific stops): tell the user "I need you to bring Spoke to <state description>. Tap reply when ready." then re-poll once.
+   - **Deterministic taps:** drive via `adb shell input tap X Y` / `input swipe ...` / `input keyevent KEYCODE_BACK`.
+   - **State-setup requires Eduardo's data:** stop and ask, then re-poll once.
 3. For each visible state:
    - `adb -s RQCW401G33T shell uiautomator dump /sdcard/d.xml && adb pull /sdcard/d.xml /tmp/spoke-inspection/<flow>-<step>.xml`
    - `adb -s RQCW401G33T exec-out screencap -p > /tmp/spoke-inspection/<flow>-<step>.png`
-   - Read the PNG (the multimodal `Read` tool handles this) for visual structure context, but in your report describe structurally — not pixel-perfect.
+   - Read the XML; describe structurally (not pixel-perfect). Paste the relevant subtree into the report as ground truth.
 
-Extract the structural facts: what elements exist, in what hierarchy, what's tappable, what gestures the dump suggests (scroll handles, drag handles, swipe-dismissible items), what the navigation hierarchy looks like (TopBar/BottomNav/FAB/sheet/full-screen).
+Extract the structural facts (both paths): what elements exist, in what hierarchy, what's tappable, what gestures the dump suggests (scroll handles, drag handles, swipe-dismissible items), what the navigation hierarchy looks like (TopBar/BottomNav/FAB/sheet/full-screen).
 
 ### Step 3 — Inspect Roteirizador Pro
 
-Same exact methodology, same flow, package `br.com.roteirizadorpro.roteirizador_pro`. Dumps go to `/tmp/rotpro-inspection/<flow>-<step>.{xml,png}`.
+Same exact methodology as Step 2, same path choice (Maestro MCP preferred, bash fallback), same package: `br.com.roteirizadorpro.roteirizador_pro`. With Maestro: `mcp__maestro__launch_app` with `appId: "br.com.roteirizadorpro.roteirizador_pro"`. With bash: dumps go to `/tmp/rotpro-inspection/<flow>-<step>.{xml,png}`.
 
 Use the GoRouter map in `apps/mobile/lib/app.dart` to know which screens you should be able to reach. If a screen exists in code but you cannot reach it via tap, that's a "navigation gap" finding.
 
@@ -93,6 +112,7 @@ Output format — single Markdown report:
 **Spoke version:** v<X.Y.Z> (com.underwood.route_optimiser)
 **RotPro state:** branch <branch>, commit <sha>
 **Flow inspected:** <human-readable journey description>
+**Inspection path:** Maestro MCP | bash fallback (<reason>) — per ADR-0037
 **Inventory section consulted:** §<N> of docs/inventory/2026-05-26-spoke-vs-rotpro.md
 **Inventory amended in this run:** yes/no (if yes, list the items added/updated)
 
