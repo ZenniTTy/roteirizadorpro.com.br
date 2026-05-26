@@ -18,8 +18,8 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 | `cd apps/landing && bun run lint` | Before every landing commit. Lefthook enforces. |
 | `bash apps/mobile/scripts/build-release-apk.sh` | Cuts a signed release APK. ADR-0014. |
 | `aapt2 dump permissions <apk>` | Verifies Android permissions on the built APK — slice 1 lesson. |
-| `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). ADR-0023. |
-| `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected after a session restart following Phase 1 of the M2-AI sprint. |
+| `dart mcp-server --help` | Sanity-check that the Dart & Flutter MCP server is reachable. Server is registered in `.mcp.json` + allowlisted in `.claude/settings.json`; the assistant invokes it transparently. Requires Dart ≥ 3.9 (currently 3.11.5). See ADR-0023. |
+| `/mcp` (inside Claude Code) | List active MCP servers. `dart` should appear ✅ connected. |
 
 ## What This Project Is
 
@@ -54,9 +54,10 @@ When you start a session in this repo, read in this order:
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
 8. The slice's section in `docs/08-ROADMAP-v2.md` (e.g. "Slice 2 — Spoke-aligned Telas Core"), the matching `prototipo/screens-*.jsx` files (for visual identity only), and the matching section of `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (for functional/behavioral parity baseline).
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
-10. **Recent ADRs (post-M1, one-time orientation):**
-    - **0023–0029 (AI harness):** Dart MCP server, Riverpod codegen hook, two project-scoped subagents (`flutter-test-author`, `flutter-perf-auditor`), `mocktail` + `alchemist` dev_deps, `mcp_flutter` rejection, `GH_DATA_DIR` infra. Playbook + retrospective at `docs/sprints/2026-05-24-m2-ai-harness.md`. Already wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
-    - **0030 (Stripe Pix migration, supersedes 0007):** slice 4 uses **Stripe Connect** with 50/50 split via Separate Charges and Transfers; **R$ 25,90 grants 30 days of access**, renewed via fresh manual Pix each cycle (no Stripe Billing, no Stripe Subscriptions API). Operational rules in `docs/BUSINESS-RULES.md`.
+10. **Recent ADRs (one-time orientation):**
+    - **0023–0026 (AI harness):** Dart MCP server (0023), `@riverpod` codegen hook (0024), `flutter-test-author` subagent (0025), `GH_DATA_DIR` infra override (0026). Wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
+    - **0030 (Stripe Pix):** slice 4 uses **Stripe Connect** with 50/50 split via Separate Charges and Transfers; **R$ 25,90 grants 30 days of access**, renewed via fresh manual Pix each cycle (no Stripe Billing, no Stripe Subscriptions API). Operational rules in `docs/BUSINESS-RULES.md`.
+    - **0035 + 0036 (Spoke white-label):** Spoke is the canonical source for behavior/flows; `prototipo/` is canonical for visual identity only (cores, tokens, ícones Lucide); cliente Ueslei is tiebreaker. Dispatch `spoke-parity-checker` subagent upfront during brainstorming + closing at D4 for any slice-2/slice-3 microsprint. See §"Source-of-truth hierarchy" below.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
@@ -121,8 +122,8 @@ These rules can't be inferred from code. They are enforced by you, the agent.
 | Backend | Node.js 20 LTS + Fastify v5 + TypeBox | TypeBox is the type provider |
 | ORM | Prisma 7 + `@prisma/adapter-pg` | Driver adapters mandatory |
 | DB / Cache | PostgreSQL 16 / Redis 7 | |
-| Routing | GraphHopper self-hosted | SP-only on M1 (1GB droplet); Sudeste post-M1 |
-| Server | Ubuntu 24.04 on DigitalOcean (client's account) | 1GB on M1; resize to 8GB post-M1 escrow |
+| Routing | GraphHopper self-hosted | SP-Capital only (4GB droplet); expansion to Sudeste planejado pós-slice-3 |
+| Server | Ubuntu 24.04 on DigitalOcean (client's account) | 4GB droplet pós-M1; resize quando volume justificar |
 | Landing | Next.js 14 + Tailwind on Vercel | |
 | Node package manager | Bun 1.3+ (install only) | Runtime stays Node 20 LTS — see ADR-0011. Use `bun install`, `bun run`, `bunx`. `bun.lock` is the lockfile of record; never commit `package-lock.json`. |
 | Git hooks / commits | Lefthook 2.x + commitlint 20.x + commitizen | Per ADR-0012. `bun install` at the repo root sets `.git/hooks/{pre-commit,commit-msg}` automatically. Use `bun run commit` for an interactive Conventional Commit wizard. Pre-commit runs typecheck/lint/analyze for the changed app only — keep edits scoped. |
@@ -137,7 +138,7 @@ The stack has three places where data shape can be defined; only one is canonica
 |---|---|---|
 | Database | Prisma `schema.prisma` | `apps/backend/prisma/schema.prisma` — backend-internal; never on the wire |
 | HTTP API | TypeBox schemas | `apps/backend/src/<feature>/schemas.ts` (separate file from handlers) |
-| Mobile | Dart DTOs (manual mirror, M1) | `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` |
+| Mobile | Dart DTOs (manual mirror) | `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` |
 
 Rules (full text in `docs/03-CONVENTIONS.md` §8 and `docs/02-ARCHITECTURE.md` "API Contracts & Type Safety"):
 
@@ -145,7 +146,7 @@ Rules (full text in `docs/03-CONVENTIONS.md` §8 and `docs/02-ARCHITECTURE.md` "
 2. Every Dart DTO file starts with `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) and matches the TypeBox shape 1:1 (no renaming, no field skips). ASCII `->` only, no backticks.
 3. A change to a TypeBox schema and its Dart mirror travel in the same commit.
 
-Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Post-M1 plan: replace the manual mirror with OpenAPI export (`@fastify/swagger`) + Dart codegen. See ADR-0013.
+Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Plano futuro: substituir o mirror manual por OpenAPI export (`@fastify/swagger`) + Dart codegen quando o volume justificar (deferido — não bloqueante). See ADR-0013.
 
 ### Context7 Mandatory
 
@@ -166,8 +167,8 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - Provide tests, scripts, or screenshots that let you check yourself.
 - Address root causes, not symptoms.
 - If you can't verify it, don't ship it.
-- Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `prototype-fidelity-checker` + `adr-guardian` subagents) into one orchestrated report. See ADR-0018.
-- **For mobile TDD, dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
+- Use `/verify-slice` as the pre-PR gate — it packages `M2-SLICE-CHECKLIST.md` §Verification (flutter analyze + test, bun typecheck, `adr-guardian` subagent) into one orchestrated report. See ADR-0018.
+- **For mobile TDD (opcional pós-reset), dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point + um hook `block-test-author-impl.sh` em `.claude/hooks/` enforça mecanicamente. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
 - **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit.
 
 ### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
@@ -218,9 +219,11 @@ Full Git workflow lives in `CONTRIBUTING.md`.
 
 `.env*` (except `.env.example`) is gitignored. Never commit secrets — not even as placeholders. If a secret leaks, rotate it immediately and scrub history with `git filter-repo`.
 
-## Session End Protocol
+## Session End Protocol (opcional pós-reset 2026-05-26)
 
-At the end of any meaningful session:
+Sessions são **opcionais** agora. Só vale criar uma quando o trabalho da sessão é não-óbvio do git log (decisão arquitetural relevante, débito técnico aceito, lição aprendida que outras sessões podem repetir). Commits bem-escritos cobrem a maior parte do "o que aconteceu". Para mexer em TODO/CHANGELOG: edit inline no mesmo commit do trabalho.
+
+Se for criar session log:
 
 1. Update `TODO.md` (mark completed `[x]`, add discovered tasks `[ ]`).
 2. Create `docs/sessions/YYYY-MM-DD-NN-<topic>.md` from the template at `0000-template.md`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Mechanical refusal-discipline enforcement for the `flutter-test-author` subagent (ADR-0031).
+# Mechanical refusal-discipline enforcement for the `flutter-test-author` subagent.
 #
 # Enforces ADR-0025's red-gate contract at the tool-call layer, not just in the prompt body.
 # Triggered by PreToolUse(Edit|Write|MultiEdit) declared in the subagent's frontmatter.
@@ -18,9 +18,9 @@
 #   0 = allow (silent)
 #   2 = block (stderr message reaches the subagent + main thread)
 #
-# Why mechanical enforcement: empirical smoke (session 24, A.1 Dispatch 2) showed the prompt-body
-# refusal rule alone is insufficient under continuation-style prompts. This hook is the second
-# layer of defense; the prompt body is the first. See ADR-0031.
+# Why mechanical enforcement: empirical smoke (em sessões antes do reset 2026-05-26) mostrou que
+# a regra de recusa via prompt-body sozinha é insuficiente sob prompts continuation-style. Este
+# hook é a segunda camada de defesa; o prompt body é a primeira.
 
 set -euo pipefail
 
@@ -77,7 +77,7 @@ fi
 
 # Block: this looks like real implementation, not a stub.
 cat >&2 <<'EOF'
-BLOCKED by flutter-test-author refusal-discipline hook (ADR-0031).
+BLOCKED by flutter-test-author refusal-discipline hook (.claude/hooks/block-test-author-impl.sh).
 
 You attempted to write to apps/mobile/lib/ without including a `throw UnimplementedError()`
 marker. The flutter-test-author subagent is contractually red-gate-only — it may author test

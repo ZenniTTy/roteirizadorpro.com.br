@@ -22,7 +22,7 @@ You verify:
 - **Radii** — `BorderRadius.circular(N)` must match `AppRadii.*` which mirrors `prototipo/tokens.js` (e.g. `rBtn=24`, `rCard=16`, `rInput=12`, `rSheet=20`).
 - **Shadows** — `BoxShadow` values must match `AppShadows.*` (cardShadow, fabShadow, sheetShadow, sheetTop, primaryButton, inputFocus).
 - **Typography** — font sizes, weights, families used in `TextStyle` should match the prototype's pairings (commonly `15/w500/textMuted` for body, `18/w600/text` for titles, `14/w600/text` for cards, etc.).
-- **Icon family** — every `Icon(...)` reference must use `LucideIcons.*` per ADR-0032, not Material `Icons.*`. Material icons are flagged unless explicitly grandfathered (rare — check git blame).
+- **Icon family** — every `Icon(...)` reference must use `LucideIcons.*` (project convention — Lucide is the prototipo's icon family), not Material `Icons.*`. Material icons are flagged unless explicitly grandfathered (rare — check git blame).
 - **Identity guard** — flag any color, icon, illustration, microcopy, or font that looks like it was copied from Spoke or any other third-party app. Per `docs/decisions/0010-clone-positioning.md`, identity is 100% original.
 
 You do **not** verify:
@@ -47,7 +47,7 @@ You do **not** verify:
    - **Radii** — `BorderRadius.circular(N)` not anchored to an `AppRadii.*` constant.
    - **Shadows** — inline `BoxShadow` not anchored to an `AppShadows.*` constant.
    - **Typography** — font sizes/weights/colors not matching the prototype's pairings.
-   - **Icon family** — Material `Icons.*` instead of `LucideIcons.*` (ADR-0032).
+   - **Icon family** — Material `Icons.*` instead of `LucideIcons.*` (Lucide é a família do prototipo).
    - **Identity** — anything that smells of Spoke/Circuit. Be specific: a name, a color, a microcopy phrase.
 
 4. **Output format** — a single Markdown report:
@@ -91,4 +91,4 @@ You do **not** verify:
 - Do not run `flutter analyze`, `flutter test`, or any build command. Other tooling owns code correctness.
 - Do not propose Flutter implementation patterns. Your scope is visual identity, not how to fix.
 - Do not flag screen structure, navigation, or flow differences as divergences. Those are Spoke-aligned per ADR-0035 and tracked elsewhere.
-- Do not look at `docs/05-SCREENS.md` or `06-DESIGN-SYSTEM.md` as a higher authority than `prototipo/tokens.js` for visual tokens — `tokens.js` wins. For functional/structural questions, defer to the inventory document.
+- Do not look at `docs/06-DESIGN-SYSTEM.md` as a higher authority than `prototipo/tokens.js` for visual tokens — `tokens.js` wins. For functional/structural questions, defer to the inventory document (`docs/inventory/2026-05-26-spoke-vs-rotpro.md`).

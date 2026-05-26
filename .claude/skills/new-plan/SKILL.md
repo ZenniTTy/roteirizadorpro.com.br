@@ -1,13 +1,13 @@
 ---
 name: new-plan
-description: Start a new implementation plan under docs/superpowers/plans/ from the canonical template (docs/superpowers/plans/0000-template.md) per ADR-0019. Expects the matching spec at docs/superpowers/specs/<date>-<slug>-design.md to already exist and be approved. The skill scaffolds the header and back-reference, then stops so the human invokes superpowers:writing-plans to decompose the spec into atomic tasks. Argument is the kebab-case slug shared with the spec (e.g. "m2-slice-3-vrp-real"). Use after /new-spec finishes and the spec body is complete + approved.
+description: Start a new implementation plan under docs/superpowers/plans/ from the canonical template (docs/superpowers/plans/0000-template.md) per the spec-driven workflow convention. Expects the matching spec at docs/superpowers/specs/<date>-<slug>-design.md to already exist and be approved. The skill scaffolds the header and back-reference, then stops so the human invokes superpowers:writing-plans to decompose the spec into atomic tasks. Argument is the kebab-case slug shared with the spec (e.g. "m2-slice-3-vrp-real"). Use after /new-spec finishes and the spec body is complete + approved.
 disable-model-invocation: true
 allowed-tools: Bash(cp:*), Bash(ls:*), Bash(date:*), Bash(git rev-parse:*), Bash(git status:*), Bash(git log:*), Bash(test:*), Bash(find:*)
 ---
 
 # /new-plan — start a new implementation plan from the canonical template
 
-Creates `docs/superpowers/plans/<YYYY-MM-DD>-<slug>.md` from the plan template authored under ADR-0019. Like `/new-spec`, the skill is **deliberately incomplete**: it scaffolds the header + back-reference and stops, blocking task decomposition until the human runs `superpowers:writing-plans`.
+Creates `docs/superpowers/plans/<YYYY-MM-DD>-<slug>.md` from the plan template authored under the spec-driven workflow convention. Like `/new-spec`, the skill is **deliberately incomplete**: it scaffolds the header + back-reference and stops, blocking task decomposition until the human runs `superpowers:writing-plans`.
 
 ## Inputs
 
@@ -21,7 +21,7 @@ If `$ARGUMENTS` is missing, **stop and ask**. Slugs are load-bearing.
 
 ```bash
 test -f "$CLAUDE_PROJECT_DIR/docs/superpowers/plans/0000-template.md" || {
-  echo "FATAL: plan template missing at docs/superpowers/plans/0000-template.md (ADR-0019)"; exit 1;
+  echo "FATAL: plan template missing at docs/superpowers/plans/0000-template.md"; exit 1;
 }
 ```
 
@@ -100,7 +100,7 @@ Print this to the human verbatim:
 ```
 ✅ Plan scaffold created: docs/superpowers/plans/<YYYY-MM-DD>-<slug>.md
 
-STOP. Per ADR-0019, do NOT author Phase/Task bodies yet.
+STOP. Do NOT author Phase/Task bodies yet — invoke `superpowers:writing-plans` first.
 
 Next step (human-driven):
   Invoke `superpowers:writing-plans` with the spec at:
@@ -142,7 +142,7 @@ Then **exit**. Do not draft Task 0. Do not auto-invoke `writing-plans`.
 
 ## References
 
-- ADR-0019 — Spec-Driven Templates and `/new-spec` `/new-plan` Skills (this skill's rationale).
+- `docs/superpowers/plans/0000-template.md` — the canonical template this skill copies from.
 - `docs/superpowers/plans/0000-template.md` — the template this skill copies.
 - `docs/superpowers/plans/2026-05-13-m2-slice-2-telas-core.md` — the reference implementation the template distills.
 - `superpowers:writing-plans` (plugin skill) — the discipline this skill enforces before body authoring.

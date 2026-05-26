@@ -1,13 +1,13 @@
 ---
 name: new-spec
-description: Start a new spec under docs/superpowers/specs/ from the canonical template (docs/superpowers/specs/0000-template.md) per ADR-0019. Enforces the brainstorming-first discipline — stops the agent after creating the file header so the human invokes superpowers:brainstorming to lock decisions before authoring §Context onward. Argument is the kebab-case slug for the slice/feature (e.g. "m2-slice-3-vrp-real"). Use when starting any new slice or large feature that warrants a spec. Pre-requisite: the slice/feature is named in `docs/08-ROADMAP.md` and the user has approved working on it.
+description: Start a new spec under docs/superpowers/specs/ from the canonical template (docs/superpowers/specs/0000-template.md). Enforces the brainstorming-first discipline — stops the agent after creating the file header so the human invokes superpowers:brainstorming to lock decisions before authoring §Context onward. Argument is the kebab-case slug for the slice/feature (e.g. "slice-4-stripe-pix-paywall"). Use when starting a new slice or feature that warrants a formal spec (post-reset 2026-05-26: specs são opcionais; use só pra trabalho onde Spoke não decide a arquitetura — slice 4 Stripe paywall, slice 7 admin panel). Pre-requisite: the slice/feature is named in `docs/08-ROADMAP-v2.md` and the user has approved working on it.
 disable-model-invocation: true
 allowed-tools: Bash(cp:*), Bash(ls:*), Bash(date:*), Bash(git rev-parse:*), Bash(git status:*), Bash(git log:*), Bash(test:*)
 ---
 
 # /new-spec — start a new spec from the canonical template
 
-Creates `docs/superpowers/specs/<YYYY-MM-DD>-<slug>-design.md` from the template authored under ADR-0019. The skill is **deliberately incomplete**: it scaffolds the header and stops, blocking spec body authoring until the human runs `superpowers:brainstorming`. This mechanizes the discipline that produced slice 2's locked Q1/Q2/Q3 decisions.
+Creates `docs/superpowers/specs/<YYYY-MM-DD>-<slug>-design.md` from the canonical template at `docs/superpowers/specs/0000-template.md`. The skill is **deliberately incomplete**: it scaffolds the header and stops, blocking spec body authoring until the human runs `superpowers:brainstorming`. This mechanizes the brainstorming-first discipline.
 
 ## Inputs
 
@@ -21,7 +21,7 @@ If `$ARGUMENTS` is missing, **stop and ask** the human for the slug. Don't infer
 
 ```bash
 test -f "$CLAUDE_PROJECT_DIR/docs/superpowers/specs/0000-template.md" || {
-  echo "FATAL: spec template missing at docs/superpowers/specs/0000-template.md (ADR-0019)"; exit 1;
+  echo "FATAL: spec template missing at docs/superpowers/specs/0000-template.md"; exit 1;
 }
 ```
 
@@ -65,7 +65,7 @@ Open `$target` and replace the four header lines:
 - `> **Date:** YYYY-MM-DD` → `> **Date:** <resolved $today>`
 - `> **Status:** Awaiting user review …` (leave as-is; the human flips it after brainstorming + body)
 - `> **Branch:** \`feat/<slug>\` (off \`develop\` at \`<base-sha>\`)` → fill the slug AND run `git rev-parse origin/develop` to capture the base sha
-- `> **Source of truth:** docs/08-ROADMAP.md "<roadmap section>"` → name the actual section heading from `docs/08-ROADMAP.md` (the human confirms which one)
+- `> **Source of truth:** docs/08-ROADMAP-v2.md "<roadmap section>"` → name the actual section heading from `docs/08-ROADMAP-v2.md` (the human confirms which one)
 
 **Do NOT fill any other section.** The body is brainstorming output; this skill is a scaffold.
 
@@ -76,7 +76,7 @@ Print this to the human verbatim:
 ```
 ✅ Spec scaffold created: docs/superpowers/specs/<YYYY-MM-DD>-<slug>-design.md
 
-STOP. Per ADR-0019, do NOT author §Context onward yet.
+STOP. Do NOT author §Context onward yet — invoke `superpowers:brainstorming` first to lock decisions.
 
 Next step (human-driven):
   Invoke `superpowers:brainstorming` with Eduardo to lock the Q1/Q2/Q3-style
@@ -117,7 +117,7 @@ Then **exit**. Do not offer to fill the brainstorm output. Do not draft §Contex
 
 ## References
 
-- ADR-0019 — Spec-Driven Templates and `/new-spec` `/new-plan` Skills (this skill's rationale).
+- `docs/superpowers/specs/0000-template.md` — the canonical template this skill copies from.
 - `docs/superpowers/specs/0000-template.md` — the template this skill copies.
 - `docs/superpowers/specs/2026-05-13-m2-slice-2-telas-core-design.md` — the reference implementation the template distills.
 - `superpowers:brainstorming` (plugin skill) — the discipline this skill enforces before body authoring.
