@@ -1,7 +1,7 @@
 # 02 — Architecture
 
 > **Source-of-truth hierarchy (ADR-0035):** Spoke (ex-Circuit Route Planner) is canonical for behavior — screens, navigation, settings, gestures, flow ordering. The Claude Design prototype at `prototipo/` is canonical for visual identity only — tokens, colors, icon family, animations. Cliente Ueslei is final tiebreaker. The canonical Spoke↔RotPro screen catalogue lives in `docs/inventory/2026-05-26-spoke-vs-rotpro.md`; `docs/06-DESIGN-SYSTEM.md` mirrors `prototipo/tokens.js` (still the visual canonical).
-> **Current scope:** M1. Sections describing M2 endpoints, payment flow, and webhooks are **reference-only** for post-M1 work.
+> **Current scope:** M2 reset 2026-05-26. M1 ✅ shipped (auth + landing + GraphHopper SP + APK v1.0.0 em prod). Slice 1 do M2 ✅ shipped. Slice 2 em progresso pós-reset (`feat/m2-slice-2-spoke-clone` quando começar). Sections abaixo descrevem o estado-alvo do M2 completo; o que ainda não foi implementado pós-reset está marcado quando relevante.
 
 ## Overview
 
@@ -92,7 +92,7 @@
 
 ### Payment (Stripe Pix + Connect 50/50 split — M2)
 
-> Gateway migration: ADR-0007 (Efí Bank) was superseded by **ADR-0030 (Stripe)** on 2026-05-24. Operational rules + paywall UX live in `docs/BUSINESS-RULES.md`.
+> Gateway atual: **ADR-0030 (Stripe Pix)**. Operational rules + paywall UX live in `docs/BUSINESS-RULES.md`. (ADR-0007 anterior — Efí Bank — foi superseded por ADR-0030 e deletada no reset 2026-05-26; histórico no git log.)
 
 - Authentication: Stripe API key (`STRIPE_SECRET_KEY`) + webhook signing secret (`STRIPE_WEBHOOK_SECRET`). **No mTLS, no `.p12` certificate.**
 - SDK: official Stripe Node SDK (`stripe` npm package).
@@ -166,7 +166,7 @@
 
 ### Flow 3 — Stripe Pix paywall, 30-day access pass (M2 / slice 4)
 
-> **Pricing model — current state.** Adding stops, optimizing the route, viewing the result, sharing, map view, and "sentido casa" are **free forever**. The paywall fires on "Iniciar Navegação": one Pix charge of **R$ 25,90** grants **30 days** of access (the button stays unlocked for that period; external nav to Waze/Google Maps fires immediately). When 30 days expire, the user pays again — a fresh manual Pix payment, not a recurring charge. 50/50 split via Stripe Connect (Separate Charges and Transfers). Full rules in `docs/BUSINESS-RULES.md`. ADR-0030 supersedes ADR-0007 (Efí Bank).
+> **Pricing model — current state.** Adding stops, optimizing the route, viewing the result, sharing, map view, and "sentido casa" are **free forever**. The paywall fires on "Iniciar Navegação": one Pix charge of **R$ 25,90** grants **30 days** of access (the button stays unlocked for that period; external nav to Waze/Google Maps fires immediately). When 30 days expire, the user pays again — a fresh manual Pix payment, not a recurring charge. 50/50 split via Stripe Connect (Separate Charges and Transfers). Full rules in `docs/BUSINESS-RULES.md`. Per ADR-0030.
 
 ```
  1. User finishes adding stops and taps "Otimizar rota"
@@ -357,12 +357,12 @@ The stack has three places where data shape is defined: the database (Prisma), t
 |---|---|---|---|
 | Database | Prisma `schema.prisma` | `apps/backend/prisma/schema.prisma` | backend only — never crosses the wire |
 | HTTP API | TypeBox schemas | `apps/backend/src/<feature>/schemas.ts` | backend handlers (via `Static<typeof Schema>`) and Dart DTOs (via mirror) |
-| Mobile | Dart DTOs (manual mirror of TypeBox, M1; codegen post-M1) | `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` | mobile presentation layer |
+| Mobile | Dart DTOs (manual mirror of TypeBox; codegen deferido) | `apps/mobile/lib/features/<feature>/data/dto/<name>_dto.dart` | mobile presentation layer |
 
 ### Rules
 
 1. **Prisma types stay backend-internal.** A handler that returns `prisma.user.findUnique(...)` directly is a bug — `password_hash`, internal columns, and future migrations must not leak. Always whitelist via a TypeBox response schema.
-2. **TypeBox schemas are the API contract.** Every request body, query string, params, and every response status code is declared with a TypeBox schema. Schemas live in `apps/backend/src/<feature>/schemas.ts`, separate from route handlers, so they can be imported by tests and (post-M1) by an OpenAPI exporter. Handler types come from `Static<typeof Schema>`.
+2. **TypeBox schemas are the API contract.** Every request body, query string, params, and every response status code is declared with a TypeBox schema. Schemas live in `apps/backend/src/<feature>/schemas.ts`, separate from route handlers, so they can be imported by tests and (futuro, quando justificar) by an OpenAPI exporter. Handler types come from `Static<typeof Schema>`.
 3. **Mobile DTOs mirror TypeBox 1:1.** Each DTO file carries `// Mirror of: apps/backend/src/<feature>/schemas.ts -> <SchemaName>` (single-DTO) or `... -> {Schema1, Schema2, ...}` (multi-DTO) as its L1 header. ASCII `->` only, no backticks. Field names and types match exactly — no renaming. `fromJson` / `toJson` are explicit.
 4. **One PR changes both sides.** A change to a TypeBox schema and the change to its Dart mirror travel in the same commit. Code review enforces this until codegen lands.
 
@@ -421,9 +421,9 @@ POST   /routes/optimize { stops[], home }                   → 200 { ordered_st
                                                               # placeholder in M1, full in M2
 ```
 
-### M2 endpoints (post-M1, reference-only)
+### M2 endpoints (escopo-alvo, implementação em slice 3)
 
-> Not implemented in M1. Listed here for reference; scope reconfirmed with client after M1 acceptance.
+> Não implementados ainda. Lista do estado-alvo do backend M2 que será materializada na slice 3 (real backend for Spoke parity). Slice 2 (frontend telas core) usa apenas auth + o mock 200 de `/routes/optimize` que já existe.
 
 ```
 PATCH  /user/home                  { lat, lng, label }

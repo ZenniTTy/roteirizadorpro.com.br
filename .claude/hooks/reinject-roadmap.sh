@@ -9,14 +9,14 @@ cd "$CLAUDE_PROJECT_DIR" || exit 0
 
 echo "## Re-injected after compaction — canonical M2 sources"
 echo
-echo "Per CLAUDE.md, the single source of truth for M2 is docs/08-ROADMAP.md."
+echo "Per CLAUDE.md, the single source of truth for M2 is docs/08-ROADMAP-v2.md."
 echo "Slice-execution discipline lives in docs/M2-SLICE-CHECKLIST.md."
 echo
 
-if [[ -f docs/08-ROADMAP.md ]]; then
-  echo "### docs/08-ROADMAP.md (head)"
+if [[ -f docs/08-ROADMAP-v2.md ]]; then
+  echo "### docs/08-ROADMAP-v2.md (head)"
   echo '```'
-  sed -n '1,40p' docs/08-ROADMAP.md
+  sed -n '1,40p' docs/08-ROADMAP-v2.md
   echo '```'
   echo
 fi

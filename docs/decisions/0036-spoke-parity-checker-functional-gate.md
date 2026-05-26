@@ -4,7 +4,7 @@
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Extends:** ADR-0035 (Spoke functional / prototype visual hierarchy)
-- **Related ADRs:** ADR-0010 (functional fork positioning — legal boundary), ADR-0018 (in-loop auto-validation pattern), ADR-0021 (slice-2 fidelity remediation parent — workflow pattern), ADR-0027 (`flutter-perf-auditor` subagent — sibling visual/perf gate pattern), ADR-0029 (alchemist golden tests — sibling automated check pattern)
+- **Related ADRs:** ADR-0010 (functional fork positioning — legal boundary), ADR-0018 (in-loop auto-validation pattern). Filed alongside ADRs 0021/0027/0029 (sibling patterns: fidelity-remediation workflow, flutter-perf-auditor subagent, alchemist golden tests) que foram **deletadas no reset 2026-05-26**; histórico no git log.
 
 ## Context
 
@@ -85,7 +85,7 @@ The subagent runs in foreground (not background) when dispatched at D4 because t
 - ~20 min per dispatch × 17 microsprints across slices 2+3 = ~6 hours of subagent runtime budget over the v2 roadmap. Worth it but should be tracked.
 - Requires the M54 connected, both apps installed, Eduardo logged in to Spoke. If those prereqs fail the gate degrades to manual checklist (Option A as fallback).
 - The subagent's report quality depends on the inventory's quality. If the inventory has stale or inaccurate Spoke descriptions (e.g. Spoke version bumped and the flow changed), the subagent might miss real gaps. Mitigation: the subagent re-inspects live every run, so the inventory is reference-not-authority during execution.
-- Adds one more subagent to maintain. If the agent registry binds at session boot (as ADR-0031 observed for `flutter-test-author`), Eduardo may need to restart Claude Code once after this commit lands before the subagent is dispatchable in the current session.
+- Adds one more subagent to maintain. The agent registry binds at session boot — Eduardo may need to restart Claude Code once após este commit landar antes do subagent ser dispatchável na sessão atual.
 
 **Neutral:**
 - Slices 4/5/6/7 are unaffected — they have no Spoke equivalent to compare against. The subagent is opt-out for those slices.
@@ -137,8 +137,7 @@ This ADR is verified by:
 
 - ADR-0035 — Spoke functional / prototype visual hierarchy (this gate's prerequisite).
 - ADR-0010 — Functional fork positioning (legal boundary the subagent inherits).
-- ADR-0027 — `flutter-perf-auditor` subagent (sibling pattern: read-only D4 gate with categorized punch list).
-- ADR-0029 — `alchemist` golden tests (sibling pattern: automated visual delta check).
+- (ADRs 0027 + 0029 que eram sibling patterns foram deletadas no reset 2026-05-26; o `flutter-perf-auditor` subagent + `alchemist` golden config continuam ativos no `.claude/agents/` + `apps/mobile/test/flutter_test_config.dart`, só perderam ADR formal.)
 - ADR-0018 — In-loop auto-validation (workflow pattern this gate extends to a slower, manual-trigger cadence).
 - `.claude/agents/spoke-parity-checker.md` — the subagent file.
 - `docs/inventory/2026-05-26-spoke-vs-rotpro.md` — baseline the subagent consults.

@@ -4,10 +4,8 @@
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Extends:** ADR-0010 (functional fork positioning — remains foundational)
-- **Reframes:** ADR-0021 (slice-2 fidelity remediation — now means parity with Spoke's UX/behavior, not 1:1 with `prototipo/`)
-- **Reframes:** ADR-0032 (Lucide icons — adoption unchanged; rationale shifts from "match prototype's icon family" to "creative visual identity per the prototype")
-- **Reframes:** ADR-0033 (PrimaryButton neon dot dropped) and ADR-0034 (VoiceCapturePage single CTA) — these stop being "accepted divergences from the prototype" and become "design decisions aligned with Spoke + cliente preference"
-- **Related ADRs:** ADR-0010 (clone positioning — foundational), ADR-0019 (spec-driven workflow — workflow unchanged)
+- **Reframed at filing time:** ADRs 0021/0032/0033/0034 (slice-2 microsprint-specific decisions whose framing dependia da premissa antiga "prototipo canonical UI"). Essas 4 ADRs foram **deletadas no reset 2026-05-26** (limpeza completa do bloat slice-2); histórico preservado no git log.
+- **Related ADRs:** ADR-0010 (clone positioning — foundational)
 
 ## Context
 
@@ -18,7 +16,7 @@ When the Claude Design prototype (`prototipo/`) was delivered and client-approve
 This drift introduced two compounding problems:
 
 1. **Wrong layer of authority.** The prototype is a sketch of one designer's interpretation, not the user-facing behavior the cliente contracted. The actual UX guide is Spoke itself — the app real motoboys already use daily. When `prototipo/` and Spoke disagreed (which they did frequently — the prototype is incomplete on several flows and outright wrong on others), the canonical chain ran into Spoke, not back into the prototype.
-2. **Mounting "accepted divergence" debt.** ADR-0033 and ADR-0034 were both forced into existence because manual smoke on Samsung M54 revealed that strict prototype adherence produced UI worse than what cliente Ueslei expected. Each "divergence ADR" was a symptom of the wrong source-of-truth declaration. Continuing on this trajectory means filing one such ADR per microsprint indefinitely.
+2. **Mounting "accepted divergence" debt.** ADRs históricas (deletadas no reset 2026-05-26) eram forçadas porque manual smoke no Samsung M54 revelava que strict prototype adherence produzia UI pior do que cliente Ueslei esperava. Cada "divergence ADR" era sintoma da declaração errada de source-of-truth. Continuar nessa trajetória significava filar uma ADR dessas por microsprint indefinidamente.
 
 During the MS-15a-followup session (2026-05-25), Eduardo articulated the correction: the prototype is a **creative reference for visual identity** (palette, typography, icons, animations, "creative touch") — not a binding specification for screens, gestures, or flows. The functional spec is Spoke, because Spoke is what end-users already know.
 
