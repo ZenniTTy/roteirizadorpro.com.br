@@ -4,8 +4,8 @@
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Extends:** ADR-0035 (Spoke functional / prototype visual hierarchy)
-- **Amended by:** ADR-0037 (Maestro CLI + Maestro MCP became the preferred inspection layer; `adb shell uiautomator dump` + `screencap` remain the documented fallback. The gate's semantics, the report contract, and the legal boundary are unchanged — only the wrapper around the Android Accessibility surface).
-- **Related ADRs:** ADR-0010 (functional fork positioning — legal boundary), ADR-0018 (in-loop auto-validation pattern). Filed alongside ADRs 0021/0027/0029 (sibling patterns: fidelity-remediation workflow, flutter-perf-auditor subagent, alchemist golden tests) que foram **deletadas no reset 2026-05-26**; histórico no git log.
+- **Amended by:** ADR-0037 (Maestro CLI + Maestro MCP became the preferred inspection layer; `adb shell uiautomator dump` + `screencap` remain the documented fallback. The gate's semantics and the report contract are unchanged — only the wrapper around the Android Accessibility surface). Per ADR-0010 Amendment 2 (2026-05-27), inspection methodology is operator's choice; Maestro MCP remains default because it's fastest, not because it's the only allowed method.
+- **Related ADRs:** ADR-0010 (functional fork positioning — applies to shipped product, not engineering process), ADR-0018 (in-loop auto-validation pattern). Filed alongside ADRs 0021/0027/0029 (sibling patterns: fidelity-remediation workflow, flutter-perf-auditor subagent, alchemist golden tests) que foram **deletadas no reset 2026-05-26**; histórico no git log.
 
 ## Context
 
@@ -24,7 +24,7 @@ The slice-2 audit cycle from session 26 (manual M54 smoke after MS-15a closed) a
 1. Operates as a **read-only D4 verification gate** for every microsprint in slice 2 (Spoke-aligned Telas Core, microsprints MS-A1..MS-A8) and slice 3 (Real backend for Spoke parity, MS-B1..MS-B9).
 2. Inspects the reference Spoke instance (`com.underwood.route_optimiser` on Eduardo's M54, package licensed to Eduardo's account) at runtime via `adb shell uiautomator dump` + `adb exec-out screencap -p` for a named flow, then inspects the Roteirizador Pro equivalent flow the same way.
 3. Produces a Markdown punch list categorized must-fix / should-fix / nit, plus a "Steps mapped" side-by-side table per flow.
-4. Operates within the ADR-0010 legal boundary: structural functional observation only; no decompilation, no asset extraction, no reproduction of Spoke microcopy/icons/typography in reports or suggested code.
+4. Reports structural functional observations. Suggested code in reports uses original visual identity (RotPro microcopy, Lucide icons, prototipo tokens) per ADR-0035 — what we ship has nothing to do with what we observe. Inspection methodology itself is operator's choice per ADR-0010 Amendment 2.
 5. Consults `docs/inventory/2026-05-26-spoke-vs-rotpro.md` first as prior knowledge baseline, then re-inspects live. Proposes inventory amendments at the end of its run when it discovers Spoke behavior not yet covered.
 6. Is dispatched per microsprint by the controlling agent at the D4 review stage (same trigger pattern as `prototype-fidelity-checker` and `flutter-perf-auditor`); is NOT a git pre-commit hook (too expensive per commit at ~5-10 min adb session per dispatch).
 
@@ -50,9 +50,9 @@ The controlling agent (whoever is running the microsprint) runs the adb inspecti
 
 ### Option C — **Dedicated `spoke-parity-checker` subagent dispatched at D4**
 
-This decision. New subagent isolated from controlling agent context; consistent report format; explicit legal boundary in the prompt; pre-run prerequisite checks (M54 connected, both apps installed, Eduardo logged in); inventory consultation step before live inspection; verification step before reporting Must-fix.
+This decision. New subagent isolated from controlling agent context; consistent report format; pre-run prerequisite checks (M54 connected, both apps installed, Eduardo logged in); inventory consultation step before live inspection; verification step before reporting Must-fix.
 
-- Pros: consistent gate per microsprint; report format trivial to compare across sprints (audit trail); subagent isolation keeps the controlling agent's context clean; ADR-0010 legal guardrails baked into the prompt body so future controlling agents inherit them automatically.
+- Pros: consistent gate per microsprint; report format trivial to compare across sprints (audit trail); subagent isolation keeps the controlling agent's context clean.
 - Cons: one more subagent to maintain; per-dispatch cost ~20 min (adb dumps + screenshots + comparison + report write).
 - Accepted.
 
@@ -78,7 +78,7 @@ The subagent runs in foreground (not background) when dispatched at D4 because t
 
 **Positive:**
 - Slice 2 and slice 3 microsprints now have a closing gate that mechanically forces side-by-side validation. Eduardo's "como vai ser toda validação" question has a defensible answer for every microsprint going forward.
-- The subagent's legal-boundary section in its prompt body inherits the ADR-0010 stance and propagates it to every future agent that dispatches it — no controlling agent can accidentally instruct it to copy Spoke microcopy because the refusal contract is in the subagent itself.
+- The subagent's prompt body documents which artifacts go to `prototipo/` tokens vs Spoke structural observations, so the controlling agent gets implementable suggestions per ADR-0035 (Spoke = functional canonical; prototipo = visual canonical for shipped product).
 - Inventory `docs/inventory/2026-05-26-spoke-vs-rotpro.md` becomes auto-evolving: every parity check that hits a §9 "not inspected" flow amends the inventory in its report, so coverage grows over time.
 - Audit trail: every microsprint PR will reference its parity report, so the cliente sign-off conversation has consistent evidence per slice.
 
@@ -137,7 +137,7 @@ This ADR is verified by:
 ## References
 
 - ADR-0035 — Spoke functional / prototype visual hierarchy (this gate's prerequisite).
-- ADR-0010 — Functional fork positioning (legal boundary the subagent inherits).
+- ADR-0010 — Functional fork positioning (applies to shipped product; inspection is operator's choice per Amendment 2).
 - (ADRs 0027 + 0029 que eram sibling patterns foram deletadas no reset 2026-05-26; o `flutter-perf-auditor` subagent + `alchemist` golden config continuam ativos no `.claude/agents/` + `apps/mobile/test/flutter_test_config.dart`, só perderam ADR formal.)
 - ADR-0018 — In-loop auto-validation (workflow pattern this gate extends to a slower, manual-trigger cadence).
 - `.claude/agents/spoke-parity-checker.md` — the subagent file.

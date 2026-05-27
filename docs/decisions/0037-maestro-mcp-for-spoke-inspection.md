@@ -4,7 +4,7 @@
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Supersedes:** none
-- **Related ADRs:** ADR-0010 (clone positioning — legal boundary), ADR-0023 (Dart MCP server — MCP precedent), ADR-0035 (Spoke is the functional source of truth), ADR-0036 (spoke-parity-checker as the functional parity gate)
+- **Related ADRs:** ADR-0010 (clone positioning — shipped product rules; Amendment 2 makes inspection methodology operator's choice), ADR-0023 (Dart MCP server — MCP precedent), ADR-0035 (Spoke is the functional source of truth), ADR-0036 (spoke-parity-checker as the functional parity gate)
 
 ## Context
 
@@ -14,7 +14,7 @@ ADR-0036 established `spoke-parity-checker` as the proactive functional-parity g
 
 2. **Raw XML inflates hallucination risk.** When the agent is handed an XML dump and asked to produce a structural description, the LLM is generating prose between observed leaves of the tree. Most of the time that prose is faithful, but the format invites confident-sounding inference about behavior (gestures, navigation outcomes, animation patterns) that the dump itself does not contain. For an inventory we will then derive a roadmap from — Diretiva #13 explicitly forbids inventing UX where Spoke has an answer — that residual generation step is a real liability.
 
-Maestro 2.6 ships an official MCP server (`docs.maestro.dev/get-started/maestro-mcp`) that exposes the same primitives the bash workflow uses (`launch_app`, `tap_on`, `back`, `inspect_view_hierarchy`, `take_screenshot`, `list_devices`) as MCP tools over STDIO. The hierarchy command returns a structured representation (CSV/JSON with `class`, `resource-id`, `bounds`, `clickable`, etc.) that the agent can paste into the inventory verbatim instead of paraphrasing into existence. Underneath, Maestro talks to the same Android Accessibility framework as `adb shell uiautomator dump` — so the legal posture established in ADR-0010 (runtime UI observation, no decompilation, no asset extraction) is unchanged: the wrapper changes, not what is observed.
+Maestro 2.6 ships an official MCP server (`docs.maestro.dev/get-started/maestro-mcp`) that exposes the same primitives the bash workflow uses (`launch_app`, `tap_on`, `back`, `inspect_view_hierarchy`, `take_screenshot`, `list_devices`) as MCP tools over STDIO. The hierarchy command returns a structured representation (CSV/JSON with `class`, `resource-id`, `bounds`, `clickable`, etc.) that the agent can paste into the inventory verbatim instead of paraphrasing into existence. Underneath, Maestro talks to the same Android Accessibility framework as `adb shell uiautomator dump` — different wrapper, same observation surface.
 
 The repo already has one MCP precedent (Dart MCP, ADR-0023). Adding a second is mechanically a one-line edit to `.mcp.json` and one entry in `.claude/settings.json`'s `enabledMcpjsonServers`, validated locally with `maestro --version` and (once the session reloads) `/mcp`.
 
@@ -34,7 +34,7 @@ The repo already has one MCP precedent (Dart MCP, ADR-0023). Adding a second is 
 
 ### Option C — Adopt Maestro as the preferred path; keep bash as the documented fallback (this decision)
 
-- Pros: Captures the productivity and hallucination-resistance gains immediately for inventory-scale work; preserves ADR-0036's mechanism for any session where Maestro is unavailable; both paths observe the same Android Accessibility surface, so the legal boundary is unchanged regardless of which path executes; switching back is a one-line edit if Maestro proves unfit.
+- Pros: Captures the productivity and hallucination-resistance gains immediately for inventory-scale work; preserves ADR-0036's mechanism for any session where Maestro is unavailable; switching back is a one-line edit if Maestro proves unfit.
 - Cons: Two paths in the subagent prompt instead of one; small ongoing cost of keeping both descriptions accurate.
 - Cost: ~45 minutes Fase-A setup (Maestro install, MCP wire-up, subagent edit, .gitignore, this ADR) plus a one-time review cadence to confirm the fallback still works whenever the contract evolves.
 
@@ -42,7 +42,7 @@ The repo already has one MCP precedent (Dart MCP, ADR-0023). Adding a second is 
 
 Adopt **Option C**. Maestro CLI (installed via `brew install mobile-dev-inc/tap/maestro --formula`) plus Maestro MCP (wired into `.mcp.json` alongside the existing Dart server) become the **preferred** structural inspection layer for `spoke-parity-checker` and any other future Spoke-touching workflow. The existing `adb shell uiautomator dump` + `screencap` workflow stays in the subagent prompt as an explicitly documented **fallback** to run when `maestro --version` fails, when `/mcp` does not show `maestro ✅ connected`, or when a specific flow exposes a Maestro bug.
 
-The subagent prompt at `.claude/agents/spoke-parity-checker.md` is updated to make the preference machinery-readable: Step 2 (Inspect Spoke) instructs the dispatched agent to verify Maestro availability first and use Maestro tools when available, falling back to the bash path with the verification result captured in the report. Step 3 (Inspect Roteirizador Pro) follows the same pattern. The report's contract (legal guardrails, "must-fix / should-fix / nit" categorization, no microcopy >5 consecutive words, no `git add` of `/tmp/` artifacts) is unchanged.
+The subagent prompt at `.claude/agents/spoke-parity-checker.md` is updated to make the preference machinery-readable: Step 2 (Inspect Spoke) instructs the dispatched agent to verify Maestro availability first and use Maestro tools when available, falling back to the bash path with the verification result captured in the report. Step 3 (Inspect Roteirizador Pro) follows the same pattern. The report's "must-fix / should-fix / nit" categorization is unchanged.
 
 This decision is policy. Execution lives in the same commit that lands this ADR, on branch `chore/maestro-mcp-adoption`, scoped to: `.mcp.json`, `.claude/settings.json`, `.gitignore`, `.claude/agents/spoke-parity-checker.md`, and this file. No `apps/` code is touched.
 
@@ -53,7 +53,7 @@ This decision is policy. Execution lives in the same commit that lands this ADR,
 - **Positive — auto-navigation unlocks state coverage we previously skipped.** Walking every state of the route-active sheet (collapsed / mid / expanded / each bottom-bar input mode) is mechanical for `tap_on` + `inspect_view_hierarchy` but tedious enough by hand that prior inventory passes accepted partial coverage.
 - **Negative — new local dependency.** Contributors who run parity work need Maestro CLI installed (brew tap + install, ~5 minutes; ~400MB disk including a bundled JDK). CI/CD is untouched. Contributors who do not run parity work see nothing change.
 - **Negative — two paths to maintain in the subagent prompt.** The fallback documentation must stay accurate; a divergence is easy to introduce silently. Mitigated by the verification step at the top of Step 2, which forces every dispatch to record which path it took.
-- **Neutral — legal posture unchanged.** Both paths observe runtime UI state through the Android Accessibility framework. Both are bound by ADR-0010 (no decompilation, no asset extraction, original visual identity). The decision is about tooling, not about what is observed.
+- **Neutral — observation surface unchanged.** Both paths observe runtime UI state through the Android Accessibility framework. The decision is about tooling (which wrapper to use), not about what is observed. Inspection methodology is operator's choice per ADR-0010 Amendment 2 — Maestro is the default because it's fastest, not because it's the only allowed method.
 
 ## Implementation Notes
 
@@ -68,7 +68,7 @@ This decision is policy. Execution lives in the same commit that lands this ADR,
 
 - Maestro MCP server reference: https://docs.maestro.dev/get-started/maestro-mcp
 - Maestro CLI install: https://docs.maestro.dev/getting-started/installing-maestro
-- ADR-0010 — clone positioning (legal boundary, unchanged by this decision).
+- ADR-0010 — clone positioning (shipped product rules; Amendment 2 makes inspection methodology operator's choice).
 - ADR-0023 — Dart MCP server adoption (precedent for adding a second MCP server alongside `dart`).
 - ADR-0035 — Spoke is functional source of truth; prototipo is creative visual reference.
 - ADR-0036 — `spoke-parity-checker` functional-parity gate; this ADR amends its Step 2/Step 3 inspection methodology without changing the gate semantics or the report contract.
@@ -85,7 +85,7 @@ When tap on a label opens an unexpected screen, when a UI element seems to have 
 
 Rationale: ambiguous UI elements consume a lot of cycles when explored via trial-and-error tap sequences. A 30-second WebSearch often resolves the ambiguity by surfacing the official feature name, which then makes the tap behavior obvious. Observed in Fase B at §10.6.1 (chip "ID Pendente" mistaken for delivery status — resolved by reading help.spoke.com) and at §10.6.2 (Package ID + Color labels + Load vehicle features confirmed via spoke.com).
 
-Constraint: ADR-0010 boundary preserved — docs are consulted to **understand functionality**, not to copy microcopy. Any text from official docs that the agent paraphrases into the inventory follows the same >5-word-verbatim rule that already applies to XML dumps.
+Constraint applies to **shipped product** only (ADR-0010): docs are consulted to understand functionality, and any reproduced text in the shipped APK still goes through original PT-BR microcopy per ADR-0035. Inventory entries themselves can quote freely — they're engineering documentation, not shipped output.
 
 **Rule 2 — Empirical > Docs: when observation contradicts documentation, the observation wins.**
 

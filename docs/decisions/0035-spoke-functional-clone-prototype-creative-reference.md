@@ -53,9 +53,9 @@ This decision.
 - Pros: Both source artifacts keep their value; each is canonical only for what it's genuinely authoritative on; future "divergence" cases resolve via the hierarchy without new ADRs (visual decisions go to the prototype, functional decisions go to Spoke, conflicts go to the cliente). Eliminates the wrong-layer category of error.
 - Cons: Requires a one-time sweep of binding language across docs, ADRs, the subagent, and TODO.md (~24 sites). Adds a small ongoing cost: when a screen needs both visual and functional review, both sources are consulted. The cost is bounded and predictable.
 
-### Option D — Reverse-engineer Spoke directly into the codebase (decompile / steal markup)
+### Option D — Reverse-engineer Spoke directly into the codebase (copy Spoke's icons/markup into the shipped APK)
 
-Not considered. ADR-0010 forbids any Spoke visual asset entering the repository; this remains absolute.
+Not considered. The shipped APK uses original visual identity per ADR-0010 — Spoke icons/illustrations/palette/typography don't end up in what users install. Inspection methodology used to study Spoke is unrelated (operator's choice per ADR-0010 Amendment 2).
 
 ## Implementation summary
 
@@ -68,7 +68,7 @@ This ADR is **policy**. The execution sweep is documented in `plans/velvet-yawni
 
 A separate phase produces a side-by-side inventory of Spoke vs. Roteirizador Pro (current implementation) at `docs/inventory/2026-05-26-spoke-vs-rotpro.md`, which then drives the rewrite of slices 2 and 3 in `docs/08-ROADMAP-v2.md`. Slices 1, 4, 5, 6, 7 are unaffected by this ADR (slice 1 already shipped; slices 4–7 are agnostic of UI source).
 
-**Inspection of Spoke** is limited to runtime UI/UX behavior observed on the cliente's licensed installation (Samsung M54 device, Eduardo's account): screen flows, navigation, settings inventory, gesture mapping. No decompilation, no APK extraction, no inspection of source-level assets. The boundary is the boundary already established by ADR-0010: behavior and structure are not copyright-protected; visual assets are. This ADR does not change that line.
+**Inspection of Spoke** defaults to runtime UI/UX observation on the cliente's licensed installation (Samsung M54 device, Eduardo's account): screen flows, navigation, settings inventory, gesture mapping. Inspection methodology is operator's choice per ADR-0010 Amendment 2 — runtime is the fast default, other methods (APK inspection, etc.) are allowed when more efficient. What matters legally is what the **shipped APK** contains (original visual identity per ADR-0010 Decision section), not how the engineering team studied Spoke.
 
 ## Consequences
 
