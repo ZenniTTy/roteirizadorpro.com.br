@@ -1,10 +1,28 @@
 # Spoke vs Roteirizador Pro — inventário comparativo
 
-> **Data:** 2026-05-26 (Fase B deep-pass adicionada via Maestro MCP — §10.1-10.23 cobrem o ciclo completo de uso; ver §10.22 coverage map e 13 gaps explicitamente conhecidos)
-> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1. **Fase inicial (§1-§9):** uiautomator dump + screencap bash workflow. **Fase B (§10):** Maestro MCP `inspect_screen` + `take_screenshot` + `run` via tap automation, per ADR-0037. Cobertura: ver §10.22 coverage map.
+> **Data:** 2026-05-26 (Fase B deep-pass via Maestro MCP §10.1-10.24 + Fase B-followup §11 + **Audit 2026-05-26 §12-§13 — cross-check com docs oficiais Spoke**)
+> **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1. **Fase inicial (§1-§9):** uiautomator dump + screencap bash workflow. **Fase B (§10-§11):** Maestro MCP `inspect_screen` + `take_screenshot` + `run` via tap automation, per ADR-0037. **Audit (§12-§13):** cross-check sistemático com docs oficiais Spoke via 8 WebSearches em help.spoke.com + spoke.com/route-planner + spoke.com/dispatch.
 > **Driver:** [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke é o guia funcional, prototipo é referência criativa, cliente Ueslei é desempate
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
 > **Disclaimer legal:** este inventário descreve funcionalidades, navegação e estrutura de UX para fins de paridade funcional (per [ADR-0010](../decisions/0010-clone-positioning.md) — "functional fork with original visual identity"). Não reproduz microcopy verbatim, ícones, ilustrações, paletas, ou tipografia da Spoke. Screenshots de inspeção vivem apenas em `/tmp/spoke-inspection/` e NÃO são commitados.
+
+---
+
+## ⚠️ Como ler este inventário (post-audit 2026-05-26)
+
+**Audit 2026-05-26** identificou 7 discrepâncias (A.1-A.7) entre observação empírica e docs oficiais, 10 features Spoke não mapeadas (B.1-B.10), 6 ambiguidades por resolver (C.1-C.6), e 4 duplicações cosméticas (D.1-D.4). Aplicadas:
+
+- **A.1-A.7 corrigidas inline** (busque por "⚠️ Audit 2026-05-26" para localizar correções pontuais nas seções afetadas: §6.2bis, §10.3, §10.5, §10.6.2, §10.12, §10.19.1, §11.5, §6.4 item 1, §10.21)
+- **B.1-B.10 documentadas em §12** — features oficiais Spoke não mapeadas, categorizadas com decisão proposta (replicar/postergar/descartar) por slice
+- **C.1-C.6 documentadas em §13** — ambiguidades pendentes com protocolo de resolução executável (passos exatos Maestro MCP, tempo estimado, slice afetado)
+- **D.1-D.4 (cosmético — duplicações de info entre seções):** documentadas no relatório `/tmp/spoke-audit-2026-05-26.md` mas NÃO refatoradas inline (baixo impacto; faria sentido só num cleanup futuro do inventário inteiro)
+
+**Convenção para sessões de implementação:**
+
+1. **Antes de spec qualquer microsprint Spoke-aligned:** ler §10 + §11 da feature respectiva + §12 (verifica se há feature oficial não mapeada relevante) + §13 (verifica se há ambiguidade pendente que afete decisão).
+2. **Se §13 listar ambiguidade pendente:** executar protocolo de resolução ANTES de finalizar spec (30 min a 1h via Maestro MCP).
+3. **Se §12 listar feature relevante mas ainda sem decisão:** discutir com Eduardo no D1 brainstorming.
+4. **Microcopy / pricing tier / decisão técnica:** quote `⚠️ Audit 2026-05-26` é fonte autoritativa quando conflita com texto original do inventário.
 
 ---
 
@@ -93,7 +111,7 @@ Cada item: descrição funcional Spoke → estado RotPro → decisão proposta (
 | 10c | Seletor de idioma no flow de voz (Spoke mostra dropdown com idioma de reconhecimento) | Hardcoded `pt_BR` no `speech_to_text.listen()` | **Postergar** — único uso BR confirmado; voltar pós-M2 se houver demanda multi-idioma | Pós-M2 |
 | 11 | Transferir paradas (entre rotas? entre usuários?) | Não temos | **Postergar** — feature complexa, baixo uso provável | Pós-M2 |
 | 12 | Copiar paradas para clipboard | Não temos | **Replicar** — feature de baixo custo (text export); útil pra debug e backup do motoboy | Slice 2 Spoke-align |
-| 13 | Compartilhar cópia da rota (sair do app) | Temos `ShareSheet` próprio (WhatsApp + link + QR) | **Manter o nosso** — é feature original RotPro e Eduardo confirmou que fica | — |
+| 13 | **3 features Spoke distintas (não confundir):** (a) "Compartilhar cópia da rota" do kebab §6.4 = **enviar paradas pra outro motoboy Spoke** via QR/link/share (peer transfer); (b) "Compartilhar rota em tempo real" do ready-to-run §10.12 = **live tracking pro cliente final** acompanhar entrega; (c) RotPro `ShareSheet` (WhatsApp + link + QR) = **divulgação do APP** (`roteirizadorpro.com.br/download`) pra captar novos usuários — feature original. | **(a) Postergar pós-M2** (peer transfer requer 2 contas Spoke conhecidas — modelo viral, baixa prioridade); **(b) Slice 3+ backend** (live tracking requer endpoint público + tela web; é diferencial competitivo); **(c) Manter** RotPro como está (já é feature original; não conflita com Spoke) | (a) Pós-M2 / (b) Slice 3 follow-up / (c) Manter |
 
 ### 3.3 — Settings (preferências)
 
@@ -239,7 +257,9 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 
 ### 6.2bis — Tela ativa de rota (mapa + sheet) — deep-inspecionada 2026-05-26 via spoke-parity-checker
 
-**Arquitetura confirmada:** Spoke usa **Google Maps SDK** (TextureView + fragment_container) como **base layer full-screen**; toda UI é overlay Compose por cima. Sem Activity transitions dentro da rota.
+> **⚠️ Audit 2026-05-26:** esta seção descreve estado VAZIO da rota (sheet collapsed default). Para estado COM paradas (sheet auto-expanded), ver §10.5 — comportamento divergente.
+
+**Arquitetura confirmada:** Spoke usa **Google Maps SDK** apenas como **base layer de mapa** (TextureView + fragment_container) full-screen; toda UI Spoke é overlay Compose por cima. A **navegação turn-by-turn default é proprietária Spoke** ("Navegação do Spoke" — picker §10.19.1 opção #1, *Google-powered* por baixo mas UI custom Spoke), NÃO Google Maps direto. Autocomplete provavelmente usa Google Places API por trás dos panos (Spoke é cliente Google Maps Platform), mas a UI de resultados é Compose Spoke. Sem Activity transitions dentro da rota.
 
 **Estrutura geral do sheet (CRÍTICO):** os IDs `stepListHeader` (collapsed) e `stepList` (expanded) são a mesma view com Y diferente — equivalente a um `DraggableScrollableSheet`. **Exatamente 2 snap points confirmados:**
 - **Collapsed:** y=[2013, 2265], ~14% da altura da tela. Só uma barra (bottom bar) visível; mapa ocupa o resto.
@@ -280,13 +300,17 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 **Apresentação:** bottom-sheet modal (meia-tela) ao tap no 3-dot da bottom bar.
 
 **5 opções confirmadas por live dump (em ordem de aparição):**
-1. Compartilhar cópia da rota — export pra outro app (Share Intent Android)
-2. Transferir paradas — mover paradas pra outra rota (ou outro usuário?) — verificar em run dedicado
+1. Compartilhar cópia da rota — ⚠️ Audit 2026-05-26 (per A.5): **peer transfer pra outro motoboy Spoke** via QR code/link (NÃO é Share Intent genérico). Docs Spoke: "drivers can quickly and easily send and receive stops from other Spoke Route Planner users in just a few clicks, using a QR code, link, sharing, or by downloading"
+2. Transferir paradas — overlap com #1; provavelmente sub-feature ou semântica diferente. Hipótese: #1 = compartilhar rota inteira; #2 = mover paradas selecionadas pra outra rota (mesma conta ou outra). Validar gap §13 C.5
 3. Copiar paradas... — text export pra clipboard (formato a confirmar)
 4. Ler manifesto de rotas — OCR multi-stop de lista impressa
-5. Importar manifesto de rotas — file picker pra CSV/planilha
+5. Importar manifesto de rotas — file picker pra CSV/planilha (`.csv/.tsv/.xls/.xlsx/.xlm/.txt` per docs)
 
 **Nenhuma opção destrutiva neste menu.** "Excluir rota" fica no 3-dot do drawer (por linha de rota, ver §6.2).
+
+**⚠️ Audit 2026-05-26 — feature NÃO presente neste menu (ver §12 B.5):**
+- **Exportar CSV / Imprimir manifesto** — Spoke documenta export ("Every plan type provides options to print a manifest or export route data as a CSV file"). Pode estar em sub-menu não inspecionado OU ser feature do tier Standard apenas. Drillar em sessão dedicada.
+- **Compartilhar rota em tempo real** (live tracking pro cliente) — está em ready-to-run §10.12, NÃO neste kebab.
 
 ### 6.5 — Otimizar + Iniciar navegação (não inspecionado)
 Inferido:
@@ -568,7 +592,13 @@ nav_host (FrameLayout)
 - `PopupMenuButton<RouteAction>` ancorado no kebab Icon, com `PopupMenuItem` por opção.
 - Sem `PopupMenuDivider`, sem leading icon, sem `TextStyle(color: Colors.red)` em "Excluir".
 
-### 10.3 — Form "Editar rota" (parametrização do wizard — confirma §3.2 item 7b)
+### 10.3 — Form "Definir nome e data" (metadata edit — confirma §3.2 item 7b)
+
+> **⚠️ Audit 2026-05-26 — clarificação de naming:** esta seção mapeia **APENAS metadata edit** (nome + data da rota). Spoke tem **2 ações distintas** que ambas usam variantes de "Edit":
+> - **"Definir nome e data"** (kebab do drawer §10.2) → ESTA seção §10.3 — só edita metadata, NÃO mexe em stops
+> - **"Editar"** (outline CTA do estado ready-to-run §10.12) → abre route builder pra adicionar/remover **stops** (confirmado em docs Spoke: "Edit route button at the top of the panel, which will open the route builder where you can add or remove stops")
+>
+> Não confundir as duas ações na implementação RotPro — são 2 tela diferentes com semânticas diferentes.
 
 **Acesso:** drawer → 3-dot de qualquer rota → "Definir nome e data" (per §10.2). Open via item topo do popup.
 
@@ -636,6 +666,8 @@ nav_host (FrameLayout)
 **Pendente nesta passada:** comportamento das 5 sub-telas que abrem ao tocar nas rows (pickers de partida/destino/pausa) — gap remanescente até slice 2 ou slice 3 decidir replicar ou não esta tela.
 
 ### 10.5 — Tela ativa de rota COM 4 paradas reais — sheet **AUTO-EXPANDED** (MEGA achado vs §6.2bis)
+
+> **⚠️ Audit 2026-05-26:** clarificação sobre stack: Spoke usa **Google Maps SDK apenas como base layer de mapa** (TextureView visível no dump); a navegação turn-by-turn default é **Spoke Internal Navigation** (Google-powered mas UI custom), NÃO Google Maps direto. Aplica também a §6.2bis. Implicação RotPro: usar Google Maps puro é caminho diferente da Spoke (não é equivalência 1:1); ou no futuro construir navegação interna similar (out-of-scope M2).
 
 **🚨 §6.2bis estava parcialmente errada.** Quando se entra numa rota com paradas (passando pela §10.4 Detalhes da rota), o sheet abre **AUTO-EXPANDED** (`stepList` rid em y=160-2040), NÃO collapsed. O comportamento de §6.2bis ("collapsed por default com bottom bar de search visível") é o estado da rota **VAZIA** ou de rota que o usuário arrastou pra baixo manualmente. Esta diferença muda a UX implementation.
 
@@ -821,7 +853,7 @@ A tela aberta tem:
 
 2. **Localização do controle de status:** docs dizem "When you arrive at the stop, you mark the stop as Delivered/Failed" + "Add, remove, or reorder stops in real time, even while on the road, with hands-free voice input". Implicação: existe **uma tela/fluxo "navegação ativa"** dedicada que mostra controles de status. **Gap:** ainda não inspecionado. Próximo passo Maestro: tap em uma parada da lista no sheet (não no card inteiro como tentei, mas via **long-press OU swipe horizontal**) pra revelar status actions, OU verificar se há um botão "Iniciar rota" / "Start route" que entra em modo navegação.
 
-3. **Failure reasons:** confirmado "you can add a reason from a pre-set list, or add your own". Implicação: combo `Picker<FailureReason>` com lista hardcoded + opção `OUTRO` que abre TextField. Lista hardcoded a confirmar quando chegarmos no picker — comuns em apps de delivery: "Cliente ausente", "Endereço incorreto", "Endereço não encontrado", "Recusou entrega", "Cancelado por dispatcher".
+3. **Failure reasons:** ⚠️ Audit 2026-05-26 — **revisado:** quote "pre-set list + custom" veio de docs Spoke genéricas que provavelmente referenciam **Spoke Dispatch** (produto B2B pra equipes/dispatchers), NÃO **Spoke Route Planner** (B2C que Eduardo usa). Observação empírica em §10.14 mostra que Route Planner marca Failed silenciosamente sem picker. **Confirmado pra RotPro slice 2: NÃO implementar picker de razão.** Slice 3+ backend pode armazenar `failureReason: String?` (nullable, opcional) editável retroativamente via "Editar parada" se cliente quiser. Lista hardcoded inferida pra futuro: "Cliente ausente", "Endereço incorreto", "Endereço não encontrado", "Recusou entrega", "Cancelado por dispatcher" — todas inferências, NÃO observadas in-app.
 
 4. **Package ID confirmado:** quote oficial — "Package ID" allows "unique ID to each stop" for "destination matching" no carregamento do veículo. **Confirma minha hipótese §10.6.1.** Formato Moderno (A1/A2/A3) vs Clássico (1/2/3) é só preferência visual; conceito é o mesmo. Atribuído **POST-optimization** ("após otimização e confirmação da rota" per texto inline na própria tela).
 
@@ -829,7 +861,7 @@ A tela aberta tem:
 
 6. **"Load vehicle" feature:** docs mencionam recurso de **"map packages to specific vehicle locations"** — usuário marca onde fisicamente o pacote está no carro (frente, atrás, esquerda, etc.) pra facilitar acesso quando chegar no stop. Este é o conteúdo provável do campo **"Localizador de pacotes"** em §10.6 (que mostra "Não definido" por default). **Gap pendente:** inspecionar tap em "Localizador de pacotes" pra ver UI de location picker. Pode ser uma grade visual representando o veículo.
 
-7. **Plan / Paywall:** docs confirmam "Single monthly plan presentation with 7-day free trial" + "optimize up to 500 stops per route" no plano pago. RotPro slice 4 (Stripe Pix) deve respeitar limite similar; pricing já decidido em ADR-0030 (R$ 25,90 / 30 dias).
+7. **Plan / Paywall:** ⚠️ Audit 2026-05-26 — pricing tiers REAIS da Spoke (corrigido): **Free** (10 stops/route, unlimited features) < **Lite** (unlimited stops, limited features) < **Standard** ($20/mês, unlimited tudo). NÃO é "single monthly plan" — são 3 tiers. RotPro slice 4 (Stripe Pix) adota **modelo single-tier** com paywall (R$ 25,90/30 dias = acesso total, sem free trial gated) per ADR-0030. Decisão de produto: NÃO replicar tiers Spoke; manter modelo binário (free/paid). Eduardo + cliente Ueslei decidem se quer free trial ou free tier limitado antes do slice 4 (gap §13 C.6).
 
 #### Mudança de prática operacional (aplica a toda Fase B daqui pra frente)
 
@@ -942,7 +974,7 @@ Testes empíricos executados via Maestro MCP em 2026-05-26 (commit `00b99f9` adi
   - **`🚛 "Carregar veí..."`** (truck icon + label truncado "veículo", outline button) — re-entry pro Load vehicle flow se usuário pulou no FTUE
 - CTAs bottom mudam:
   - **"14min"** verde (mantém)
-  - **"Editar"** (outline) — substitui "Refinar"; permite editar rota mesmo pós-confirm
+  - **"Editar"** (outline) — substitui "Refinar"; permite editar rota mesmo pós-confirm. ⚠️ Audit 2026-05-26: este "Editar" abre o **route builder pra add/remove stops** (confirmado em docs Spoke), DIFERENTE do "Definir nome e data" do kebab do drawer (§10.3) que só edita metadata
   - **"Iniciar rota"** (filled primary blue) — substitui "Confirmar"; **GATEWAY pro modo delivery onde status actions vivem**
 
 **Bounds da linha de 2 botões action:** aproximadamente `y=[1310, 1410]` (preciso novo inspect pra bounds exatos quando voltar).
@@ -1206,9 +1238,15 @@ Modal dialog (não bottom sheet) com radio list + Cancelar:
 2. **Google Maps**
 3. **Waze**
 4. **Navegador Yandex** (Yandex Navigator — russo, popular em mercados russos)
-5. **Outro** — open-ended; provavelmente abre activity chooser do Android pra deep-link
+5. **Outro** — Android `ACTION_VIEW` com `geo:` URI; abre Activity Chooser do sistema pra qualquer app de mapa instalado escolher
 
-**Implicação RotPro:** per ADR-0010 usaremos **Google Maps default + Waze**. Não replicar Spoke próprio nem Yandex nem Outro. Lista RotPro: `[GoogleMaps, Waze]` apenas.
+**⚠️ Audit 2026-05-26 — implicação RotPro revisada:**
+
+Per ADR-0010 escopo principal é **Google Maps default + Waze**. A opção **"Outro"** é trivial de implementar (1 linha Flutter `url_launcher` com URI `geo:lat,lng?q=address`) e dá flexibilidade ao usuário (apps locais Sygic/HERE/TomTom/Maps.me/etc.). Decisão:
+
+- **Slice 2:** lista RotPro = `[GoogleMaps, Waze, Outro]`. "Outro" usa `url_launcher` + `LaunchMode.externalApplication` com URI `geo:` que Android resolve via Intent Chooser
+- **NÃO replicar:** "Navegação do Spoke" (não temos app próprio), "Navegador Yandex" (irrelevante BR)
+- **Implementação pseudo-código:** `Uri.parse('geo:${stop.lat},${stop.lng}?q=${Uri.encodeComponent(stop.address)}')` → `launchUrl(uri, mode: LaunchMode.externalApplication)`
 
 #### 10.19.2 — Picker: "Tipo de veículo" (5 opções com ícones + restrições)
 
@@ -1320,8 +1358,14 @@ Scaffold(
 ```
 
 - 3 método shortcuts visíveis SÓ no empty state (quando `searchController.text.isEmpty && autocompleteResults.isEmpty`); colapsam quando o usuário começa a digitar (gap a confirmar via teste real)
-- 4 métodos no total: Texto (autocomplete), Mapa (tap-no-mapa), Leitor (OCR), Voz
-- Cada um navega pra tela dedicada própria, exceto Texto que faz inline (resultado autocomplete na mesma tela)
+- **⚠️ Audit 2026-05-26 — 5 métodos no total** (não 4 como inventário original dizia):
+  1. **Texto** (autocomplete inline)
+  2. **Mapa** (tap-no-mapa)
+  3. **Leitor** (OCR single-stop via câmera)
+  4. **Voz** (single-stop voice + CTA secundário "fale vários endereços" → voice multi-stop dictation per §3.2 item 10b)
+  5. **CSV upload** (bulk import via "Importar manifesto de rotas" no kebab §6.4 item 5; aceita `.csv/.tsv/.xls/.xlsx/.xlm/.txt`) — NÃO está nos 3 button shortcuts mas é canal oficial Spoke; entry point diferente (kebab da rota ativa, não Add Stop UI)
+- Métodos 1-4 navegam pra tela dedicada própria (exceto Texto que faz inline). Método 5 está no kebab pra cobrir bulk-add fluxo profissional.
+- **Decisão RotPro:** slice 2 implementa 1-4 (paridade com 3 button shortcuts + entry texto inline); slice 3+ implementa 5 (CSV upload é trabalho de parser não-trivial; postergado per §3.2 item 9)
 
 **Pendente nesta passada:**
 - Tap "Mapa" → confirmar UI tap-no-mapa (provavelmente full-screen map + pin draggable + Confirm CTA bottom)
@@ -1563,7 +1607,7 @@ Tap no dropdown abre dialog (sem header):
 - **Tela "Editar parada" auto-abre via swipe-up da sheet** após adicionar (BIG FIND)
 
 **Observações estruturais:**
-- Autocomplete é Google Places API (Spoke usa Google Maps SDK)
+- Autocomplete provavelmente usa Google Places API por trás dos panos (Spoke é cliente Google Maps Platform), MAS a UI da lista de resultados é Compose Spoke proprietário, não o Place Autocomplete Widget nativo. RotPro NÃO precisa replicar Google Places por contrato — Nominatim SP self-hosted entrega o mesmo UX (lista de resultados).
 - Resultados aparecem on-the-fly (debounced) conforme usuário digita
 - Não há "buscar" button — autocomplete é sempre live
 
@@ -1580,13 +1624,19 @@ Tap no dropdown abre dialog (sem header):
 
 - Layout 100% idêntico ao pós-otimização (§10.6, §11.1)
 - **SURPRESA crítica:** Pacotes / Ordem / Tipo **continuam DISABLED** (`enabled:false`) mesmo em rota não-otimizada
-- Eduardo está no plano "Standard" (visível no drawer), então NÃO é gating de plano
-- Hipóteses pendentes pra Pacotes/Ordem/Tipo ficarem disabled:
+- Eduardo está no plano "**Standard**" (visível no drawer "Standard • Renova-se em ter. 09 de jun.")
+
+**⚠️ Audit 2026-05-26 — pricing tiers Spoke (correção crítica):**
+
+Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/mês unlimited)**. Inventário original assumia "Standard" = tier intermediário (era Lite); **correto: Standard é o tier mais caro e dá acesso a TUDO**. Conclusão: NÃO é gating de plano — Eduardo tem acesso total.
+
+- Hipóteses pendentes pra Pacotes/Ordem/Tipo ficarem disabled (todas válidas; nenhuma testada empiricamente — bloqueio §13 C.1):
   - (a) Requer "Localizador de pacotes" preenchido primeiro
   - (b) Requer rota com mínimo N paradas (ex: ≥3)
   - (c) Requer pelo menos uma otimização anterior na rota
   - (d) Bug Spoke v3.65.1 — features visualmente presentes mas não-ativáveis
-  - **DECISÃO:** RotPro DEVE implementar essas controles SEMPRE ativos (sem gating arbitrário); melhor UX que Spoke aqui.
+  - (e) **NOVA** — billing edge case ("Renova-se em..." pode indicar trial expirando vs licença válida; testar com conta sem assinatura)
+  - **DECISÃO RotPro:** implementar esses controles SEMPRE ativos (sem gating arbitrário); melhor UX que Spoke aqui. RotPro Standard = único tier (single Stripe Pix paywall per ADR-0030).
 - Outros items **ENABLED** corretamente:
   - Chip cor "Azul" → bottom sheet picker (§11.1)
   - Chip ID "A1" → ainda não drilled (provavelmente picker similar, gap)
@@ -1678,6 +1728,351 @@ Tap no dropdown abre dialog (sem header):
 **Decisão:** estes 25 gaps ficam pra sessão B-followup-2 dedicada (ou sessões implementação onde forem necessários). Para slice 2 telas mais comuns (Editar parada items individuais + Detalhes da rota), basta fazer dispatch `spoke-parity-checker` no próprio microsprint da tela conforme padrão ADR-0036 — não é necessário drillar TUDO antes de implementar.
 
 **Princípio operacional:** inventário breadth-completo (§1-§10) + depth-parcial (§11) + gate dispatch per-microsprint cobre 100% dos casos sem requerir uma sessão dedicada gigante drillando manualmente cada UI antes de qualquer código rolar. White-label do Spoke acontece de forma incremental: cada tela do roadmap pega seu próprio spoke-parity-check no D1 brainstorming + D4 review.
+
+---
+
+## §12 — Features oficiais Spoke não mapeadas no inventário (audit 2026-05-26)
+
+> **Por que existe esta seção:** auditoria sistemática cross-checking inventário × docs oficiais Spoke (help.spoke.com + spoke.com/route-planner + spoke.com/dispatch) identificou **10 features documentadas oficialmente que não estavam mapeadas** em §1-§11. Cada uma é categorizada com decisão proposta (replicar/postergar/descartar) baseada em ADR-0010 + roadmap atual.
+>
+> **Fonte:** 8 WebSearches em domínios oficiais Spoke (auditoria 2026-05-26). Todas as quotes parafraseadas per ADR-0010 (não-verbatim).
+
+### Tabela consolidada §12 — gap analysis pós-audit
+
+| # | Feature Spoke | Estado RotPro | Severidade gap | Decisão proposta | Slice de execução |
+|---|---|---|---|---|---|
+| B.1 | **Disruption alerts** (crowdsourced traffic events tipo Waze) | Não temos | 🔴 Crítico funcionalmente; 🟢 baixo pra MVP | **Descartar** — requer base de usuários ativos (network effect) + integração complexa | Não no roadmap |
+| B.2 | **Battery saver mode** durante navegação | Não temos navegação interna | 🟢 Irrelevante | **Descartar** — pré-requisito (navegação interna) está fora de escopo | Não no roadmap |
+| B.3 | **Roundtrip** ("Return to starting location" auto-fill) | Slice 5 "Sentido casa" já cobre conceito mais amplo | 🟡 Parcial overlap | **Manter slice 5** + adicionar opção "Ida e volta" simples no Detalhes da rota (§10.4) se replicarmos essa tela | Slice 5 (existing) + Slice 2 opcional |
+| B.4 | **Per-route override** de Start time / Driving speed / Delivery speed / Max stops | Settings só global em §3.3 | 🟡 Moderado | **Slice 3 backend follow-up** — depende do solver suportar constraints; útil pra motoboy ajustar ETA | Slice 3 follow-up |
+| B.5 | **Exportar rota como CSV** (oposto da importação) | Não temos | 🟡 Moderado | **Slice 3 ou pós-M2** — trivial técnico (≈1 dia), valor real pra backup/relatório fiscal do motoboy BR | Slice 3 follow-up |
+| B.5b | **Print formatted manifest** (PDF imprimível) | Não temos | 🟢 Baixo | **Postergar pós-M2** — requer Cloud Print integration; uso baixo no contexto BR | Pós-M2 |
+| B.6 | **POD com assinatura digital** (finger sign) | §3.4 item 34 "Postergar" | 🟡 Moderado | **Manter decisão atual** mas reagrupar conceitualmente: POD = sistema unificado (foto + assinatura + setting "obrigatório"); slice 3 = foto MVP, pós-M2 = assinatura | Slice 3 (foto) + Pós-M2 (assinatura) |
+| B.7 | **Time window por parada** (entrega "só entre 10-12h" como solver constraint) | Não temos; §10.6 "Horário de chegada" pode ser range mas não confirmado | 🟡 Moderado | **Slice 3 backend follow-up** — depende do solver suportar time-window VRP; útil pra B2B | Slice 3 follow-up |
+| B.7b | **Priority por parada** (urgência alta = solver prioriza) | Não temos | 🟢 Baixo | **Pós-M2** — feature avançada VRP | Pós-M2 |
+| B.8 | **Start time per-route** (override do "Iniciar agora mesmo" pra "Iniciar às HH:MM") | §10.4 placeholder; não drilled | 🟡 Moderado | **Slice 3 backend** — solver precisa pra considerar traffic patterns por horário | Slice 3 backend |
+| B.9 | **Picked up status** (terceiro estado pra `stop.type == Coleta`) | §10.6.2 menciona; §10.13 obs #4 hipótese | 🟡 Moderado | **Slice 2 modelo + Slice 3 UI** — implementar enum `StopDeliveryStatus { pending, delivered, failed, pickedUp }` desde slice 2; UI render conditional pra `Stop.type == pickup` | Slice 2 (modelo) + Slice 3 (UI conditional) |
+| B.10 | **Maximum stops** setting (per-plan limit Free = 10, Standard = unlimited) | Não temos modelo de tiers | 🟡 Resolver com Eduardo | **Decisão produto** — RotPro slice 4 adota modelo binário (free/paid) per ADR-0030; sem limite por stops. Confirmar com Eduardo se quer free trial gated ou free tier limitado antes do slice 4 (§13 C.6) | Slice 4 (decisão antes) |
+
+### Detalhes das features mais críticas
+
+#### §12.B.1 — Disruption alerts (descartado)
+
+**Docs Spoke:** "Drivers can report different types of disruptions including **crash, congestion, police, mobile speed camera, roadworks, lane closure, stalled vehicle or object on road**. Drivers using Spoke's Internal Navigation automatically receive real-time traffic alerts on their route, with live crowdsourced data from Spoke, Waze, and Google Maps."
+
+**Por que descartar:**
+- **Network effect dependency:** disruption alerts só funcionam com base ampla de motoboys ativos reportando. RotPro novato não tem essa massa crítica.
+- **Engineering complexity:** requer endpoint público pra crowdsourced events + persistência geoespacial + push pra usuários próximos + UI no mapa.
+- **Alternativa free:** Waze já faz isso. Quando RotPro motoboy escolhe "Waze" como nav app default, ele recebe disruption alerts de graça (do Waze).
+
+**Decisão:** **descartar definitivamente** do roadmap. Documentar em §7.4 como item adicional. Se cliente Ueslei pedir explicitamente, reavaliar pós-M2.
+
+#### §12.B.4 — Per-route overrides de parâmetros do solver
+
+**Docs Spoke:** "You can edit the route start/end location, start/end time, **maximum number of stops, driving speed and delivery speed**, and these changes will be **automatically saved and will only apply to that route**"
+
+**Implicação técnica:** modelo `Route` precisa de campos opcionais (nullable) pra override:
+```dart
+class Route {
+  // ... campos base ...
+  DateTime? startTimeOverride;        // se null, usa "agora"
+  DateTime? endTimeOverride;          // hard deadline
+  int? maxStopsOverride;              // gating de adição
+  double? drivingSpeedKmh;            // override do default global
+  int? avgStopDurationMinOverride;    // override do setting "Tempo médio na parada"
+}
+```
+
+Backend solver consome esses overrides condicionalmente. Front renderiza na tela "Detalhes da rota" §10.4 (sub-screen "Editar parâmetros desta rota" — novo, não inventariado).
+
+**Decisão:** **Slice 3 backend follow-up** — depende de termos solver real (nearest-neighbor + 2-opt baseline). Override de `startTime` é o mais valioso pra traffic patterns.
+
+#### §12.B.5 — Export CSV (oposto da importação)
+
+**Docs Spoke:** "Every plan type provides options to **print a manifest or export route data as a CSV file**, including route date, route name, stop ETA, stop number, address, driver, and package count"
+
+**Schema CSV mínimo (per docs):**
+```
+route_date, route_name, stop_number, stop_address, stop_eta, driver_name, package_count
+2026-05-26, "terça-feira Rota 3", 01, "Rua Franca...", "21:08", "Eduardo", 1
+2026-05-26, "terça-feira Rota 3", 02, "Rua Iguape...", "21:12", "Eduardo", 1
+```
+
+**Implementação RotPro slice 3:**
+- Adicionar item no kebab da rota (§6.4): "Exportar como CSV"
+- Tap → gera CSV em memória → `share_plus` package abre Android ShareSheet pro user escolher destino (Google Drive, WhatsApp, email)
+- Esforço: ~1 dia (csv generation + share intent)
+
+**Decisão:** **Slice 3 follow-up** — incluir na slice 3 backend planning. Pós-M2 se cortar escopo.
+
+#### §12.B.9 — Picked up status (terceiro estado)
+
+**Docs Spoke confirmam 3 estados:** `Delivered`, `Failed`, `Picked up`.
+
+**Hipótese inventário §10.13 obs #4:** "Picked up" aparece SÓ quando `Stop.type == Coleta` (não `Entrega`).
+
+**Implementação RotPro (slice 2 modelo, slice 3 UI):**
+```dart
+// Slice 2 — Model
+enum StopDeliveryStatus { pending, delivered, failed, pickedUp }
+enum StopType { delivery, pickup }
+
+class Stop {
+  StopType type;                              // default delivery
+  StopDeliveryStatus status;                  // default pending
+  String? failureReason;                      // opcional, nullable
+  DateTime? statusChangedAt;                  // timestamp da última mudança
+}
+
+// Slice 3 — UI (delivery mode §10.13)
+// Render conditional dos 3 botões:
+Widget buildStatusButtons(Stop stop) {
+  return Row(children: [
+    // SEMPRE renderiza "Navegar" (primary)
+    FilledButton(child: Text('Navegar'), onPressed: ...),
+    // Failed sempre disponível
+    OutlinedButton(child: Text('Não entregue'), onPressed: ...),
+    // 3º botão conditional: Delivered (Entrega) OU Picked up (Coleta)
+    if (stop.type == StopType.delivery)
+      OutlinedButton(child: Text('Entregue'), onPressed: ...),
+    if (stop.type == StopType.pickup)
+      OutlinedButton(child: Text('Coletado'), onPressed: ...),
+  ]);
+}
+```
+
+**Decisão:** **Slice 2 (modelo)** — implementar enum desde já pra schema não migrar depois. **Slice 3 (UI conditional)** — render dos botões baseado em `stop.type`.
+
+#### §12.B.10 — Maximum stops e modelo de pricing
+
+**Docs Spoke:** Free tier = 10 stops máx por rota. Standard tier = unlimited.
+
+**Decisão RotPro slice 4:** **3 cenários possíveis** que cliente Ueslei deve escolher antes da slice 4 implementar:
+
+| Cenário | Descrição | Impacto técnico |
+|---|---|---|
+| (a) **Single paid tier** | Sempre paga R$ 25,90/30 dias = acesso total; sem free tier | Implementação atual (ADR-0030) — sem mudança |
+| (b) **Free trial + paid** | 7 dias free trial unlimited; depois R$ 25,90/30 dias ou app fica read-only | Adicionar campo `User.trialEndsAt` + middleware checa expiração |
+| (c) **Free limitado + paid unlimited** | Free tier permite ≤10 stops/rota (ou ≤N rotas/mês); paid R$ 25,90/30 dias unlimited | Adicionar gate no front (`if route.stops.length > 10 && !user.isPaid show paywall`) + middleware backend valida criação |
+
+**Cenário recomendado pra MVP BR:** **(a) Single paid tier** — simplicidade de comunicação ("paga e usa"), zero overhead de billing edge cases, alinhado com cultura Pix BR (pagamento único pontual).
+
+**Decisão:** levar pra Eduardo + cliente Ueslei no planning do slice 4 (gap §13 C.6).
+
+---
+
+## §13 — Ambiguidades pendentes + protocolo de resolução (audit 2026-05-26)
+
+> **Por que existe esta seção:** auditoria identificou **6 ambiguidades** que afetam decisões de implementação mas não foram resolvidas empiricamente. Cada uma tem (a) hipótese atual, (b) impacto técnico se hipótese errada, (c) protocolo de resolução (passos exatos pra validar via Maestro MCP), (d) slice afetado.
+>
+> **Princípio:** **NÃO implementar baseado em hipótese** quando há protocolo de validação executável em ≤30 min. Dispatch `spoke-parity-checker` quando o microsprint correspondente começar.
+
+### §13.C.1 — 🔴 CRÍTICA: Pacotes/Ordem/Tipo disabled (Editar parada) — 5 hipóteses não testadas
+
+**Hipótese atual:** controls disabled por uma de 5 condições:
+- (a) Requer "Localizador de pacotes" preenchido primeiro
+- (b) Requer rota com mínimo N paradas (ex: ≥3)
+- (c) Requer pelo menos uma otimização anterior na rota
+- (d) Bug Spoke v3.65.1
+- (e) Billing edge case
+
+**Impacto se errado:** RotPro pode implementar controles sempre ativos e descobrir bug em produção (ex: solver não aceita override de Ordem antes de N paradas, gera plano inválido).
+
+**Protocolo de resolução (30 min, Maestro MCP no M54):**
+
+```
+PASSO 1 — Testar hipótese (a): preencher Localizador de pacotes
+  1. Editar parada existente (rota teste B-followup)
+  2. Tap "Localizador de pacotes" → drillar UI + preencher valor qualquer
+  3. Voltar para Editar parada → verificar se Pacotes/Ordem/Tipo ativaram
+  4. Se SIM → hipótese (a) confirmada; documentar pré-condição
+  5. Se NÃO → continuar PASSO 2
+
+PASSO 2 — Testar hipótese (b): adicionar 3ª parada
+  1. Adicionar Stop 3 via texto autocomplete
+  2. Abrir Editar parada Stop 1 → verificar se controls ativaram
+  3. Se SIM → hipótese (b) confirmada; documentar N=mínimo
+  4. Se NÃO → continuar PASSO 3
+
+PASSO 3 — Testar hipótese (c): otimizar uma vez + cancelar
+  1. Tap "Otimizar rota" CTA
+  2. Não confirmar (back button do estado §10.9)
+  3. Editar parada Stop 1 → verificar se controls ativaram
+  4. Se SIM → hipótese (c) confirmada
+  5. Se NÃO → hipóteses (d) bug ou (e) billing — pular pra PASSO 5
+
+PASSO 4 — Validação cruzada (hipótese (a) confirmada):
+  1. Remover "Localizador de pacotes" da Stop com controls ativos
+  2. Verificar se controls voltam pra disabled
+  3. Se SIM → confirma causalidade (não correlação)
+
+PASSO 5 — Hipótese (d) ou (e):
+  1. WebSearch + WebFetch issue tracker Spoke (community.spoke.com, GitHub se houver, Reddit /r/SpokeRoutePlanner)
+  2. Procurar reports de "Pacotes/Ordem/Tipo disabled" em v3.65.1
+  3. Se nenhum match → hipótese (e) — abrir conta secundária Free tier e testar mesmo flow
+```
+
+**Slice afetado:** Slice 2 (modelo `Stop`) + Slice 3 (UI Editar parada). **Bloqueio implícito:** spec da tela "Editar parada" não pode ser finalizada sem resolver isso.
+
+**Decisão RotPro (mesmo se não resolvermos):** implementar sempre ativos per §11.5; documentar em ADR se descobrirmos comportamento Spoke pós-resolução. Risco: re-trabalho de gating se Spoke tiver razão técnica não-óbvia.
+
+---
+
+### §13.C.2 — 🟡 MODERADA: "Detalhes da rota" (§10.4) — FTUE one-time ou per-route?
+
+**Hipótese atual:** checkbox "Salvar como padrão" CHECKED by default sugere comportamento "abre primeira vez, depois pula".
+
+**Impacto se errado:**
+- Se **per-route obrigatório:** RotPro precisa implementar essa tela como step mandatório no Criar rota wizard (adiciona complexidade ao slice 2)
+- Se **FTUE one-time:** RotPro pode pular essa tela inteiramente (Spoke decision overhead, não user-essential)
+- Se **per-session:** comportamento intermediário (uma vez por app open)
+
+**Protocolo de resolução (5 min):**
+
+```
+PASSO 1: criar nova rota teste (rota A)
+PASSO 2: deixar checkbox "Salvar como padrão" CHECKED (default)
+PASSO 3: tap "Concluído" → entra na rota A
+PASSO 4: voltar pro drawer
+PASSO 5: criar SEGUNDA rota nova (rota B)
+PASSO 6: observar se Detalhes da rota abre OU pula direto pra tela ativa
+
+Resultado:
+- Se PULA → FTUE one-time (default config persistida)
+- Se ABRE → per-route obrigatório
+
+PASSO 7: kill + reopen app
+PASSO 8: criar TERCEIRA rota (rota C)
+PASSO 9: observar de novo
+- Se PULA → confirmado FTUE one-time (defaults stickam)
+- Se ABRE → per-session (resetou após kill)
+```
+
+**Slice afetado:** Slice 2 (decisão: replicar Detalhes da rota ou pular?).
+
+**Decisão recomendada se per-route obrigatório:** RotPro implementa **simplificado** — só Partida + Destino (Ida e volta), sem Pausa (feature avançada postergável). Se FTUE/per-session, RotPro pula 100% slice 2 (defaults sensatos hardcoded).
+
+---
+
+### §13.C.3 — 🟡 MODERADA: "Instruções de acesso" tap não abriu (§11.1) — UI real desconhecida
+
+**Hipótese atual:** 3 possíveis causas (endereço fora do geocoder cache / hit area menor / bug local v3.65.1).
+
+**Impacto:** docs Spoke definem behavior (sticky-to-address + checkbox padrão), mas a UI real (modal vs full-screen vs inline text field) pode ser diferente do que docs sugerem.
+
+**Protocolo de resolução (10 min):**
+
+```
+PASSO 1: criar parada com endereço CONHECIDO do geocoder Spoke
+  Ex: "Praça da Sé, São Paulo" (landmark, garantido geocoded)
+PASSO 2: abrir Editar parada → tap "Instruções de acesso"
+  Se ABRE → UI revealed; documentar componente real
+  Se NÃO ABRE → continuar PASSO 3
+
+PASSO 3: tentar tap longo (long-press) em "Instruções de acesso"
+  Alguns Compose buttons requerem long-press
+
+PASSO 4: tentar Maestro `tapOn: id` em vez de `point`
+  Maestro selector por ID pode ter hit area diferente
+
+PASSO 5: se ainda não abrir → bug local confirmado
+  WebSearch Spoke release notes v3.65.1 por bug report
+  Inspecionar versão mais recente disponível no Play Store
+```
+
+**Slice afetado:** Slice 3 backend (precisa modelar `Address.accessInstructions` field) + Slice 3 UI.
+
+**Decisão RotPro (mesmo se não resolvermos):** implementar baseado nos docs (modal/bottom sheet com TextField multiline + checkbox "Salvar como padrão para este endereço" + 2 CTAs Cancelar/Salvar). Risco de divergência UX é baixo (feature secundária).
+
+---
+
+### §13.C.4 — 🟢 MENOR: "Refinar" CTA pós-otimização (§10.9) — opções desconhecidas
+
+**Hipótese atual:** abre sheet com opções pra ajustar otimização (checkboxes/sliders pra priorizar tempo/distância/etc.).
+
+**Impacto:** se Refinar é só "re-roda solver com mesmo input" (sem opções), RotPro implementa com 1 botão simples. Se abre UI complexa, é tela inteira nova.
+
+**Protocolo de resolução (5 min):**
+
+```
+PASSO 1: rota teste com ≥3 paradas, otimizar
+PASSO 2: no estado §10.9 (pre-confirm), tap "Refinar"
+PASSO 3: documentar UI que abre (sheet? tela nova? confirm modal?)
+PASSO 4: se houver opções, drillar cada uma
+```
+
+**Slice afetado:** Slice 3 backend (solver opções) + Slice 3 UI (Refinar tela).
+
+**Decisão recomendada se ambíguo:** implementar Refinar como **simples re-run do solver** (1 botão); evoluir se cliente pedir.
+
+---
+
+### §13.C.5 — 🟢 MENOR: "Compartilhar cópia" vs "Transferir paradas" (§6.4 itens 1 e 2) — overlap
+
+**Hipótese atual:** #1 = compartilhar rota inteira; #2 = mover paradas selecionadas pra outra rota.
+
+**Impacto:** se overlap real, RotPro pode unificar como uma feature; se distintos, são 2 features separadas.
+
+**Protocolo de resolução (10 min):**
+
+```
+PASSO 1: rota teste com ≥2 paradas
+PASSO 2: kebab → tap "Compartilhar cópia da rota"
+  Documentar UI (QR code? link? share sheet?)
+PASSO 3: kebab → tap "Transferir paradas"
+  Documentar UI (lista pra selecionar? target picker?)
+PASSO 4: comparar — são fluxos diferentes ou variants?
+```
+
+**Slice afetado:** Slice 3 follow-up ou Pós-M2 (per §12 B.5).
+
+**Decisão recomendada:** drillar quando slice respectivo chegar; até lá, mapear conceitualmente como 2 features distintas.
+
+---
+
+### §13.C.6 — 🟡 MODERADA: Decisão de pricing model RotPro (slice 4)
+
+**Não é ambiguidade Spoke, é decisão de produto que precisa cliente Ueslei.**
+
+**Cenários (per §12 B.10):**
+- (a) Single paid tier — sempre paga
+- (b) Free trial + paid — 7 dias unlimited free, depois paga
+- (c) Free limitado + paid — free ≤10 stops/rota, paga = unlimited
+
+**Impacto técnico:**
+- (a) = implementação atual ADR-0030, zero overhead
+- (b) = `User.trialEndsAt` + middleware + paywall trigger UX
+- (c) = `User.isPaid` boolean + gating no front + middleware backend
+
+**Protocolo de resolução (pre-slice 4 planning, 1 reunião):**
+
+```
+PASSO 1: Eduardo agenda 30 min com cliente Ueslei
+PASSO 2: apresentar 3 cenários + tradeoffs
+PASSO 3: cliente escolhe
+PASSO 4: documentar em ADR-0030 amendment + atualizar BUSINESS-RULES.md
+PASSO 5: spec slice 4 começa
+```
+
+**Slice afetado:** Slice 4 (Stripe Pix paywall). **Bloqueio explícito:** não começar spec slice 4 sem essa decisão.
+
+**Recomendação técnica:** (a) Single paid tier — mais simples, alinhado com cultura Pix BR (pagamento pontual), evita edge cases de billing. Se cliente quiser growth (b ou c), aceitar mas com prazo +3 dias na estimativa.
+
+---
+
+### §13 — Resumo executivo dos gaps por status
+
+| Severidade | Quantidade | Quando resolver |
+|---|---|---|
+| 🔴 Crítica (bloqueia spec) | 1 (C.1) | **ANTES de spec Slice 2 Editar parada** (30 min Maestro) |
+| 🟡 Moderada (afeta arquitetura) | 3 (C.2, C.3, C.6) | C.2+C.3 antes de slice respectivo; **C.6 antes de spec Slice 4** (reunião) |
+| 🟢 Menor (afeta UI detalhe) | 2 (C.4, C.5) | Drillar no microsprint que tocar a feature |
+
+**Princípio operacional:** invocar `spoke-parity-checker` no D1 brainstorming de cada microsprint resolve C.1-C.5 just-in-time. C.6 é manual (decisão humana).
+
+---
+
+
 
 
 
