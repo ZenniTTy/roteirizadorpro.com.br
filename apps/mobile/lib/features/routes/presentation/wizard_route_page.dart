@@ -167,18 +167,21 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                       title: 'Hoje',
                       subtitle: _formatDateShort(today),
                       selected: state.dateOption == WizardDateOption.today,
+                      icon: LucideIcons.calendarClock,
                       onTap: () => controller.updateDateOption(WizardDateOption.today),
                     ),
                     _DateRadio(
                       title: 'Amanhã',
                       subtitle: _formatDateShort(tomorrow),
                       selected: state.dateOption == WizardDateOption.tomorrow,
+                      icon: LucideIcons.calendarDays,
                       onTap: () => controller.updateDateOption(WizardDateOption.tomorrow),
                     ),
                     _DateRadio(
                       title: 'Escolher data',
                       subtitle: state.customDate != null ? _formatDateShort(state.customDate!) : null,
                       selected: state.dateOption == WizardDateOption.custom,
+                      icon: LucideIcons.calendarSearch,
                       onTap: _pickDate,
                     ),
                     const SizedBox(height: 32),
@@ -204,7 +207,8 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                       trailing: Checkbox(
                         value: state.reuseStops,
                         onChanged: (val) => controller.toggleReuseStops(),
-                        activeColor: AppColors.primary,
+                        activeColor: AppColors.neon,
+                        checkColor: AppColors.neonInk,
                       ),
                       onTap: () => controller.toggleReuseStops(),
                     ),
@@ -217,6 +221,7 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
               padding: const EdgeInsets.all(24),
               child: RpButton(
                 label: 'Confirmar',
+                neon: true,
                 onPressed: () => _confirm(state, autoName),
               ),
             ),
@@ -231,53 +236,79 @@ class _DateRadio extends StatelessWidget {
   final String title;
   final String? subtitle;
   final bool selected;
+  final IconData icon;
   final VoidCallback onTap;
 
   const _DateRadio({
     required this.title,
     this.subtitle,
     required this.selected,
+    required this.icon,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadii.input),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.neonLight.withOpacity(0.5) : AppColors.surface,
+          border: Border.all(
+            color: selected ? AppColors.neonDark : AppColors.border,
+            width: selected ? 1.5 : 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadii.input),
+        ),
         child: Row(
           children: [
-            Radio<bool>(
-              value: true,
-              groupValue: selected,
-              onChanged: (_) => onTap(),
-              activeColor: AppColors.primary,
+            Icon(
+              icon,
+              size: 24,
+              color: selected ? AppColors.primary : AppColors.textMuted,
             ),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w400,
-                color: AppColors.text,
-              ),
-            ),
-            if (subtitle != null) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  subtitle!,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textMuted,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                      color: AppColors.text,
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: AppColors.textMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
+            const SizedBox(width: 16),
+            Checkbox(
+              value: selected,
+              onChanged: (_) => onTap(),
+              activeColor: AppColors.neon,
+              checkColor: AppColors.neonInk,
+              shape: const CircleBorder(),
+              side: BorderSide(
+                color: selected ? AppColors.neonDark : AppColors.textMuted.withOpacity(0.5),
+                width: 1.5,
+              ),
+            ),
           ],
         ),
       ),
