@@ -6,10 +6,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/rp_button.dart';
 import '../../../core/widgets/rp_input.dart';
-import '../../routes/domain/route.dart' as rp_route;
 import '../application/wizard_form_controller.dart';
 import '../state/routes_provider.dart';
-import '../state/active_route_provider.dart';
 
 const _kWeekdaysShort = <String>['', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 const _kMonthsShort = <String>['', 'jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -67,7 +65,7 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
       return;
     }
 
-    // In a real app, we'd call routesProvider.notifier.createRoute(...)
+    // In a real app, we'd call routesProvider.notifier.createRoute(name: name, date: selectedDate)
     // For Slice 2, since Routes is just a seed list provider, we'll pretend it created
     // and just set an active mock route (or navigate).
     // Actually, routesProvider is NOT a notifier in Slice 2. So we can't add to it directly.
