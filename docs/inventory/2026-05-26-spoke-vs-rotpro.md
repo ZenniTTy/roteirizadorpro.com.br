@@ -1443,3 +1443,242 @@ Apenas labels **truly static** são parafraseadas no inventário (CTAs, titles d
 - Tap "Termine mais cedo" → confirmar que leva pra paywall §3.3 item 25 "Comparar planos"
 - Identificar trigger condition (quantos opens / quantas rotas / qual ação dispara?)
 - Confirmar se modal aparece também em outros pontos do app além de Adicionar parada
+
+---
+
+## §11 — Fase B-followup deep drills (2026-05-26)
+
+> **Por que existe esta seção:** Após PR #15 (Fase B inicial) mergeado, Eduardo identificou que coverage do §10.22 era breadth-only — vários sub-flows críticos (Editar parada items individuais, Detalhes da rota sub-screens, 8 features kebab, Voice/Camera multi-address, Criar rota wizard completo) só foram nomeados mas não drilled. Esta seção (§11) fecha esses gaps via dispatches Maestro MCP adicionais.
+>
+> **Estratégia:** drillar em estado **editável** (rota não-otimizada) para mapear Pacotes/Ordem/Tipo (que ficam disabled após otimização). Achados duplicam §10.x apenas onde há informação NOVA; cross-references apontam pra entrada original.
+
+### 11.1 — Editar parada: drilldown em estado pós-otimização (parcial)
+
+**Inspecionado:** 2026-05-26 via Maestro MCP `inspect_screen` (parada A1 da rota terça-feira otimizada)
+
+**Achados que confirmam/expandem §10.6:**
+
+- **Chip "Azul" (cor) → bottom sheet picker** — Tap abre Compose-based bottom sheet:
+  - TopBar: [`Limpar` (esq) | `Cor` (centro) | `Concluído` (dir, primary)]
+  - Lista vertical scroll de 5 opções: Azul / Verde-azulado / Roxo / Rosa / Laranja
+  - Top area `[0,92][1080,1257]` com `a11y:"Fechar planilha"` (tap-to-dismiss)
+  - Padrão = mesma sheet de §10.6 secondary chip
+  - **CTA "Limpar"** remove cor atual (volta pra "sem cor"); **CTA "Concluído"** confirma e fecha
+  - Implementação RotPro: `showModalBottomSheet` com `ListView` de 5 chips ColorTokens.* + ações Limpar/Concluir no topo
+
+- **Chip "A1" (package ID)** — APENAS DISPLAY em rota otimizada (não abre picker). Pré-otimização provavelmente é editável (gap a confirmar).
+
+- **"Pacotes" stepper, "Ordem" segmented, "Tipo" segmented — DISABLED (`enabled:false`)** após otimização confirmada (lock state §10.10). Pré-otimização presumivelmente ativos.
+  - Ordem opções: [Primeira | **Automática** ✓ default | Última]
+  - Tipo opções: [**Entrega** ✓ default | Coleta]
+  - Pacotes: stepper [- / contador / +] padrão "1"; visível mas tap não responde
+
+- **Geocoder snackbar:** quando GPS indoor / sem fix, aparece snackbar no topo "[texto curto sobre endereço não identificado]" + botão "Limpar" — UX fallback pra LocationRequest falho. Implementação RotPro: SnackBar com action button via `ScaffoldMessenger`.
+
+- **"Instruções de acesso" (button-style row)** — tap NÃO abriu modal visível nas 2 tentativas. Investigado via docs oficiais Spoke (per ADR-0037 Amendment 1 Rule 1).
+  - **Função canônica (docs):** permite anexar instruções específicas ao **endereço** (não à parada): códigos de portão, localização de chaves, etc.
+  - **Sticky behavior:** info fica ligada ao **endereço**, não à parada. Quando o mesmo endereço entrar em rota futura, instruções aparecem automaticamente.
+  - **Edit/Clear:** editável e removível a qualquer momento.
+  - **Checkbox "save as default for this address"** (texto traduzido provavelmente "Salvar como padrão para este endereço") — opt-in pra persistir per-address.
+  - **Hipóteses pro tap não abrir:** (a) endereço fora do geocoder cache da Spoke (snackbar "endereço não pode ser identificado" sugere isso); (b) hit area menor que 100% do row visível; (c) bug local v3.65.1. Não é gating de otimização (instrução é dado de endereço, não de solver).
+  - **Comportamento esperado quando funciona (per docs):** abre modal/tela com TextField multiline + label "Instruções de acesso" + checkbox "Salvar como padrão para este endereço" + CTAs Cancelar/Salvar.
+  - **Implicação pro RotPro:** precisa modelar `access_instructions` no nível do `Address` (não do `Stop`). Sugestão schema: tabela `address_defaults` com FK pra `addresses` OU `JSONB column meta` em `addresses` com `{access_instructions: string, save_as_default: bool}`. Tela: full-screen ou bottom sheet com TextField multiline (4-6 linhas), checkbox padrão, salvar via `addressRepository.updateMeta(addressId, ...)`.
+
+**Pendente drill em rota não-otimizada (gap real conhecido):**
+- Tap chip "A1" (package ID picker — quais opções?)
+- Tap stepper Pacotes (+/-, range, default behavior)
+- Tap segmented Ordem (lock comportamento Primeira/Última)
+- Tap segmented Tipo (Entrega vs Coleta — afeta solver?)
+- Tap "Instruções de acesso" (modal vs inline TextField)
+- Tap row "Horário de chegada" → time picker / range picker?
+- Tap row "Tempo estimado na parada" → picker de minutos?
+- Tap "Mudar endereço" → search screen igual Adicionar parada §10.21?
+- Tap "Duplicar parada" → cria cópia + opens Editar? ou navega de volta?
+- Tap "Remover parada" → confirm dialog? silent delete? undo?
+
+**Decisão:** drillar esses 10 items requer recriar rota teste com paradas + NÃO otimizar. Realizado parcialmente abaixo (§11.5).
+
+### 11.2 — DatePickerDialog (Criar rota → "Escolher data")
+
+**Inspecionado:** 2026-05-26 via Maestro MCP (wizard Criar rota)
+
+**Estrutura observada (Material 3 padrão Android com app namespace):**
+
+- **Header:** "SELECIONAR DATA" (label) + "Data selecionada" subtitle (vazio = "Seleção atual: nenhuma")
+- **Toggle:** ícone direito para "Mudar para o modo de entrada de texto" (input MM/DD/YYYY ao invés de calendário)
+- **Mês navegação:** "MAIO DE 2026" (Button clickable — abre year picker provavelmente) + < previous + > next
+- **GridView 7 cols:** D / S / T / Q / Q / S / S (dias da semana)
+- **GridView células dia:** cada TextView clickable com `a11y` completo ("Sexta-feira, 1 de maio") — today destacado ("Hoje Terça-feira, 26 de maio")
+- **Footer:** CANCELAR (esq) / OK (dir, disabled enquanto não selecionou)
+- **resource-ids:** `com.underwood.route_optimiser:id/mtrl_picker_*` — confirma uso de Material Design Components Date Picker padrão
+
+**Implicação pro RotPro:**
+- Usar `showDatePicker` do Flutter Material (`material.dart`) — produz UI quase idêntica (Material 3 com `useMaterial3: true` no app theme)
+- Localização PT-BR via `MaterialLocalizations.delegate` + `Locale('pt', 'BR')` em `MaterialApp.supportedLocales`
+- Para o input mode toggle, `showDatePicker` já oferece via `initialEntryMode: DatePickerEntryMode.calendarOnly | input | inputOnly`
+
+### 11.3 — Tela "Reutilizar paradas" (Copiar paradas de uma rota anterior)
+
+**Inspecionado:** 2026-05-26 via Maestro MCP (wizard Criar rota → após selecionar data + "Reutilizar paradas anteriores" checked OU CTA "Copiar paradas de uma rota anterior" no estado vazio da rota)
+
+**Estrutura observada:**
+
+- **TopBar:** Voltar (esq) + título "Reutilizar paradas" + botão direito (ⓘ ajuda provavelmente, não drilled)
+- **Dropdown rota fonte:** "De: 27 de mai. quarta-feira" — clickable, abre dialog picker
+- **3 sections expansíveis com checkbox + título + (count ou estado vazio):**
+  - "Paradas não realizadas" — checkbox + microcopy "Nenhuma parada não realizada nesta rota"
+  - "Paradas puladas" — checkbox + microcopy "Nenhuma parada pulada nesta rota"
+  - "Paradas feitas" — checkbox + microcopy "Nenhuma parada feita nesta rota"
+- **CTA rodapé fixo:** "Copiar paradas" (disabled se nenhum item selecionado)
+
+**Sub-flow: Picker de rota fonte (dialog floating)**
+
+Tap no dropdown abre dialog (sem header):
+
+- Lista de TODAS as rotas DESC por data (mais recente em cima)
+- Cada item linha: data (esq) + nome da rota (centro) + status badge (baixo: "Não iniciada" | "1 parada perdida" | etc.)
+- A rota que está sendo criada AGORA aparece no picker como rota válida (sem self-exclude — gap intencional? bug? a confirmar)
+- Sem busca, sem agrupador por período (drawer agrupa, picker não)
+- Tap em item → fecha dialog + atualiza dropdown da tela principal
+
+**Implicação pro RotPro:**
+- Tela full-screen com Scaffold + AppBar + Body com 3 ExpansionTile + CTA fixo no bottom
+- Picker de rota fonte: `showDialog` com `ListView.builder` ordenada por `createdAt DESC`; sem busca (Spoke não tem)
+- Excluir rota corrente do picker (consertar gap do Spoke — UX melhor)
+- Validação backend: deduplicar paradas no copy (mesmo endereço pode existir em múltiplas rotas; usuário escolhe)
+
+### 11.4 — Adicionar parada via TEXTO (autocomplete)
+
+**Inspecionado:** 2026-05-26 via Maestro MCP (tap input texto sticky no header da tela ativa de rota)
+
+**Estrutura observada:**
+
+- **Bottom sheet expandida cobrindo mapa** — abre full-screen com keyboard
+- **Sticky header (top):** mesmo input EditText + 🏷️ "Ler etiqueta de endereço" + 🎤 "Dite o endereço" + ✕ "Limpar"
+- **Section header:** "Adicionar nova parada"
+- **Lista de resultados autocomplete (5 visíveis):**
+  - Cada item: linha 1 (endereço + número) negrito + linha 2 (bairro, cidade - estado, país) cinza
+  - Resultados pra "Av Paulista 1000": Bela Vista SP / Vila Nunes Paulínia / Jardins SP / Vila NS Fátima Americana / Av. Paulista, 1000 (sem subtítulo)
+  - Behavior: tap → adiciona parada à rota + fecha sheet + retorna à tela ativa de rota com marker no mapa
+- **Tela "Editar parada" auto-abre via swipe-up da sheet** após adicionar (BIG FIND)
+
+**Observações estruturais:**
+- Autocomplete é Google Places API (Spoke usa Google Maps SDK)
+- Resultados aparecem on-the-fly (debounced) conforme usuário digita
+- Não há "buscar" button — autocomplete é sempre live
+
+**Implicação pro RotPro:**
+- Slice 2 stub: lista fake hardcoded 4-5 endereços quando input >= 3 chars (per ROADMAP-v2 Slice 2)
+- Slice 3 real: Nominatim SP query com debounce 300ms; resultado em `ListView.builder`
+- Adicionar parada: criar `Stop` com `address`, `lat`, `lng` do resultado + invalidate provider `currentRouteStopsProvider`
+
+### 11.5 — Editar parada em rota NÃO-otimizada (estado completamente editável)
+
+**Inspecionado:** 2026-05-26 via Maestro MCP (rota nova criada → 2 paradas adicionadas → swipe-up no sheet)
+
+**Estrutura observada (mesma de §10.6 / §11.1, com correções):**
+
+- Layout 100% idêntico ao pós-otimização (§10.6, §11.1)
+- **SURPRESA crítica:** Pacotes / Ordem / Tipo **continuam DISABLED** (`enabled:false`) mesmo em rota não-otimizada
+- Eduardo está no plano "Standard" (visível no drawer), então NÃO é gating de plano
+- Hipóteses pendentes pra Pacotes/Ordem/Tipo ficarem disabled:
+  - (a) Requer "Localizador de pacotes" preenchido primeiro
+  - (b) Requer rota com mínimo N paradas (ex: ≥3)
+  - (c) Requer pelo menos uma otimização anterior na rota
+  - (d) Bug Spoke v3.65.1 — features visualmente presentes mas não-ativáveis
+  - **DECISÃO:** RotPro DEVE implementar essas controles SEMPRE ativos (sem gating arbitrário); melhor UX que Spoke aqui.
+- Outros items **ENABLED** corretamente:
+  - Chip cor "Azul" → bottom sheet picker (§11.1)
+  - Chip ID "A1" → ainda não drilled (provavelmente picker similar, gap)
+  - Instruções de acesso → docs §11.1 (não drilled UI)
+  - EditText notas/observações → input livre
+  - Localizador de pacotes → não drilled (provavelmente abre TextField)
+  - Horário de chegada → não drilled (provavelmente TimePickerDialog ou range picker)
+  - Tempo estimado na parada → não drilled (provavelmente picker minutos)
+  - Mudar endereço → não drilled (provavelmente abre search §11.4)
+  - Duplicar parada → não drilled
+  - Remover parada → não drilled (provavelmente confirm dialog)
+
+**Bottom sheet behavior NOVO documentado:**
+- Após adicionar parada via texto §11.4, a sheet expanded auto-mostra "Editar parada" da última adicionada (não a lista de stops)
+- Swipe-down fecha sheet e volta pra lista; swipe-up dá full screen Editar parada
+- Padrão: Spoke trata Editar parada como bottom sheet draggable (NÃO full-screen route)
+
+**Implicação pro RotPro:**
+- Editar parada deve ser `DraggableScrollableSheet` com snap points; NÃO uma rota separada no GoRouter
+- Auto-show edit sheet após adicionar parada nova (better UX que apenas "stop added" toast)
+- Pacotes/Ordem/Tipo sempre ativos (não gated por estado da rota)
+
+### 11.6 — Drawer pós-criação de novas rotas (delta sobre §10.20)
+
+**Inspecionado:** 2026-05-26 via Maestro MCP
+
+**Achados delta:**
+
+- Drawer agrupa rotas em **3 períodos** (não-fixos, dinâmicos por data):
+  - "Próximas rotas" (data > hoje) — ex: "27 de mai. quarta-feira"
+  - "Hoje" (data == hoje) — todas as rotas do dia (incluindo recém-concluídas com badge "1 parada perdida")
+  - "Início deste mês" (semana anterior) — ex: "18 de mai. Segunda-Feira"
+- Cada item: data (esq) + nome opcional (centro, ex: "terça-feira Rota 3") + kebab 3-dot (dir)
+- Header user: foto + "Eduardo Rodrigues" + "eduardoteishoku@gmail.com" + "Standard • Renova-se em ter. 09 de jun."
+- CTAs topo: Ajuda e suporte (?) + Configurações (⚙️)
+- CTA rodapé fixo: "Criar rota" full-width
+
+**Implicação pro RotPro:**
+- Agrupador dinâmico: function `groupRoutesByPeriod(routes)` → Map<String, List<Route>> com keys "Próximas", "Hoje", "Início deste mês" (calcular semanas)
+- Header: avatar do user + nome + email + linha de assinatura (slice 4)
+- Settings entry no topo (não no rodapé como o RotPro atual)
+
+### 11.7 — Coverage map atualizado pós-§11
+
+> **Coverage real após §11:** breadth ainda dominante mas várias profundidades fechadas. O §10.22 listava 13 gaps; muitos seguem abertos mas com docs+hipóteses registradas.
+
+**Drilled empiricamente em §11 (com Maestro MCP):**
+- §11.1 Editar parada pós-otimização (color picker drilled, 3 controls disabled identificados)
+- §11.2 DatePickerDialog completo (Material 3)
+- §11.3 Reutilizar paradas + picker rota fonte (sub-flow completo)
+- §11.4 Adicionar parada via texto autocomplete (UI completa, 5 resultados, behavior pós-tap)
+- §11.5 Editar parada em rota não-otimizada (CRÍTICO: 3 controls continuam disabled mesmo aqui)
+- §11.6 Drawer agrupador dinâmico (3 períodos identificados)
+
+**Drilled via WebSearch docs (per ADR-0037 Amendment 1 Rule 1):**
+- §11.1 Instruções de acesso (sticky-to-address + save-default checkbox)
+- Spoke pricing tiers (Free 10 stops / Lite limitado / Standard $20/mo full)
+
+**Gaps REAIS pendentes (∼25 items, NÃO 13 como §10.22 sub-estimou):**
+
+| # | Item | Bloqueio pra drillar |
+|---|---|---|
+| 1 | Pacotes stepper habilitar trigger | Hipóteses não testadas (a-d em §11.5) |
+| 2 | Ordem segmented habilitar | Mesmo |
+| 3 | Tipo segmented Entrega/Coleta | Mesmo |
+| 4 | Chip "A1" tap (package ID picker) | Não drilled |
+| 5 | "Localizador de pacotes" tap (input?) | Não drilled |
+| 6 | "Horário de chegada" tap (time picker?) | Não drilled |
+| 7 | "Tempo estimado na parada" tap (min picker?) | Não drilled |
+| 8 | "Mudar endereço" tap (search screen?) | Não drilled |
+| 9 | "Duplicar parada" tap (toast? confirm?) | Não drilled |
+| 10 | "Remover parada" tap (confirm dialog?) | Não drilled — destrutivo |
+| 11 | "Instruções de acesso" tap UI real | Não abriu nas 2 tentativas — docs preenchem gap |
+| 12 | Detalhes da rota — Partida picker | Não drilled |
+| 13 | Detalhes da rota — Iniciar agora time picker | Não drilled |
+| 14 | Detalhes da rota — Ida e volta destination | Não drilled |
+| 15 | Detalhes da rota — Definir horário término | Não drilled |
+| 16 | Detalhes da rota — Adicionar pausa picker | Não drilled |
+| 17 | Kebab rota — Compartilhar (ShareSheet?) | Não drilled |
+| 18 | Kebab rota — Transferir paradas | Não drilled |
+| 19 | Kebab rota — Copiar paradas (full flow) | Não drilled |
+| 20 | Kebab rota — Pular otimização | Não drilled |
+| 21 | Kebab rota — Ler manifesto (OCR multi) | Não drilled — permissão câmera |
+| 22 | Kebab rota — Importar manifesto (CSV/share) | Não drilled |
+| 23 | Kebab rota — Imprimir rota | Não drilled |
+| 24 | Kebab rota — Remover paradas (bulk) | Não drilled — destrutivo |
+| 25 | Voz "fale vários endereços" | Não drilled — permissão mic |
+
+**Decisão:** estes 25 gaps ficam pra sessão B-followup-2 dedicada (ou sessões implementação onde forem necessários). Para slice 2 telas mais comuns (Editar parada items individuais + Detalhes da rota), basta fazer dispatch `spoke-parity-checker` no próprio microsprint da tela conforme padrão ADR-0036 — não é necessário drillar TUDO antes de implementar.
+
+**Princípio operacional:** inventário breadth-completo (§1-§10) + depth-parcial (§11) + gate dispatch per-microsprint cobre 100% dos casos sem requerir uma sessão dedicada gigante drillando manualmente cada UI antes de qualquer código rolar. White-label do Spoke acontece de forma incremental: cada tela do roadmap pega seu próprio spoke-parity-check no D1 brainstorming + D4 review.
+
+
+
+
