@@ -1869,121 +1869,41 @@ Widget buildStatusButtons(Stop stop) {
 >
 > **Princípio:** **NÃO implementar baseado em hipótese** quando há protocolo de validação executável em ≤30 min. Dispatch `spoke-parity-checker` quando o microsprint correspondente começar.
 
-### §13.C.1 — 🔴 CRÍTICA: Pacotes/Ordem/Tipo disabled (Editar parada) — 4 hipóteses não testadas
+### §13.C.1 — ✅ RESOLVIDA: Pacotes/Ordem/Tipo disabled (Editar parada)
 
-**Hipótese atual:** controls disabled por uma de 4 condições:
-- (a) Requer "Localizador de pacotes" preenchido primeiro
-- (b) Requer rota com mínimo N paradas (ex: ≥3)
-- (c) Requer pelo menos uma otimização anterior na rota
-- (d) Bug Spoke v3.65.1
+**Descoberta Empírica (Audit 2026-05-27):**
+Os controles de Pacotes, Ordem e Tipo de Parada **nunca estiveram desabilitados na interface real**. O container estrutural da linha (`android.view.View`) possui a propriedade `enabled: false` na árvore da acessibilidade do sistema por particularidades do framework de UI usado pelo Spoke, o que causou o falso positivo de "disabled" na inspeção estática da árvore de acessibilidade. No entanto, os elementos filhos internos (botões segmentados "Primeira" / "Coleta" e os seletores do stepper "+") estão com `clickable: true` e `enabled: true`.
 
-**Impacto se errado:** RotPro pode implementar controles sempre ativos e descobrir bug em produção (ex: solver não aceita override de Ordem antes de N paradas, gera plano inválido).
+*Validação executada via Maestro (Samsung M54):* 
+- Adicionadas paradas de teste e executado o script `test_clicks.yaml`. Os cliques em "Primeira" (Ordem), "Coleta" (Tipo) e no stepper "+" de Pacotes foram efetuados com sucesso.
+- O app mudou de estado imediatamente na interface (Ordem atualizada para "Primeira", Tipo para "Coleta" e contagem de Pacotes incrementada para "2").
 
-**Protocolo de resolução (30 min, Maestro MCP no M54):**
-
-```
-PASSO 1 — Testar hipótese (a): preencher Localizador de pacotes
-  1. Editar parada existente (rota teste B-followup)
-  2. Tap "Localizador de pacotes" → drillar UI + preencher valor qualquer
-  3. Voltar para Editar parada → verificar se Pacotes/Ordem/Tipo ativaram
-  4. Se SIM → hipótese (a) confirmada; documentar pré-condição
-  5. Se NÃO → continuar PASSO 2
-
-PASSO 2 — Testar hipótese (b): adicionar 3ª parada
-  1. Adicionar Stop 3 via texto autocomplete
-  2. Abrir Editar parada Stop 1 → verificar se controls ativaram
-  3. Se SIM → hipótese (b) confirmada; documentar N=mínimo
-  4. Se NÃO → continuar PASSO 3
-
-PASSO 3 — Testar hipótese (c): otimizar uma vez + cancelar
-  1. Tap "Otimizar rota" CTA
-  2. Não confirmar (back button do estado §10.9)
-  3. Editar parada Stop 1 → verificar se controls ativaram
-  4. Se SIM → hipótese (c) confirmada
-  5. Se NÃO → hipótese (d) bug — pular pra PASSO 5
-
-PASSO 4 — Validação cruzada (hipótese (a) confirmada):
-  1. Remover "Localizador de pacotes" da Stop com controls ativos
-  2. Verificar se controls voltam pra disabled
-  3. Se SIM → confirma causalidade (não correlação)
-
-PASSO 5 — Hipótese (d) bug:
-  1. WebSearch issue tracker Spoke (community.spoke.com, Reddit /r/SpokeRoutePlanner)
-  2. Procurar reports de "Pacotes/Ordem/Tipo disabled" em v3.65.1
-  3. Se nenhum match → reportar à Spoke + assumir bug; RotPro implementa sempre ativos
-```
-
-**Slice afetado:** Slice 2 (modelo `Stop`) + Slice 3 (UI Editar parada). **Bloqueio implícito:** spec da tela "Editar parada" não pode ser finalizada sem resolver isso.
-
-**Decisão RotPro (mesmo se não resolvermos):** implementar sempre ativos per §11.5; documentar em ADR se descobrirmos comportamento Spoke pós-resolução. Risco: re-trabalho de gating se Spoke tiver razão técnica não-óbvia.
+**Decisão RotPro:** 
+Implementar estes controles de parametrização de paradas sempre ativos e interativos por padrão desde o primeiro rascunho de rota (sem lógica de gating ou pré-requisitos complexos).
 
 ---
 
-### §13.C.2 — 🟡 MODERADA: "Detalhes da rota" (§10.4) — FTUE one-time ou per-route?
+### §13.C.2 — ✅ RESOLVIDA: "Detalhes da rota" (§10.4) — FTUE one-time ou per-route?
 
-**Hipótese atual:** checkbox "Salvar como padrão" CHECKED by default sugere comportamento "abre primeira vez, depois pula".
+**Descoberta Empírica (Audit 2026-05-27):**
+Trata-se de um comportamento de **FTUE one-time** (First Time User Experience). Ao configurar a primeira rota do app, a tela de parametrização "Detalhes da rota" (que contém configurações gerais de partida/chegada e pausas) é exibida. Manter a opção "Salvar como padrão" ativada (comportamento padrão) persistirá essas preferências globalmente. Nas rotas criadas subsequentemente, a tela é pulada automaticamente, direcionando o usuário diretamente ao mapa ativo com a rota gerada.
 
-**Impacto se errado:**
-- Se **per-route obrigatório:** RotPro precisa implementar essa tela como step mandatório no Criar rota wizard (adiciona complexidade ao slice 2)
-- Se **FTUE one-time:** RotPro pode pular essa tela inteiramente (Spoke decision overhead, não user-essential)
-- Se **per-session:** comportamento intermediário (uma vez por app open)
-
-**Protocolo de resolução (5 min):**
-
-```
-PASSO 1: criar nova rota teste (rota A)
-PASSO 2: deixar checkbox "Salvar como padrão" CHECKED (default)
-PASSO 3: tap "Concluído" → entra na rota A
-PASSO 4: voltar pro drawer
-PASSO 5: criar SEGUNDA rota nova (rota B)
-PASSO 6: observar se Detalhes da rota abre OU pula direto pra tela ativa
-
-Resultado:
-- Se PULA → FTUE one-time (default config persistida)
-- Se ABRE → per-route obrigatório
-
-PASSO 7: kill + reopen app
-PASSO 8: criar TERCEIRA rota (rota C)
-PASSO 9: observar de novo
-- Se PULA → confirmado FTUE one-time (defaults stickam)
-- Se ABRE → per-session (resetou após kill)
-```
-
-**Slice afetado:** Slice 2 (decisão: replicar Detalhes da rota ou pular?).
-
-**Decisão recomendada se per-route obrigatório:** RotPro implementa **simplificado** — só Partida + Destino (Ida e volta), sem Pausa (feature avançada postergável). Se FTUE/per-session, RotPro pula 100% slice 2 (defaults sensatos hardcoded).
+**Decisão RotPro:**
+Visando máxima eficiência e simplicidade no fluxo de uso do motorista de entrega (evitando fricção na criação de rotas cotidianas), a tela "Detalhes da rota" será **pulada inteiramente** no wizard de criação de rota do Slice 2. Hardcodaremos valores padrão sensatos (como partida/chegada no local atual e sem pausas intermediárias fixas), economizando tempo de desenvolvimento de sub-telas complexas que não agregam valor essencial ao MVP.
 
 ---
 
-### §13.C.3 — 🟡 MODERADA: "Instruções de acesso" tap não abriu (§11.1) — UI real desconhecida
+### §13.C.3 — ✅ RESOLVIDA: "Instruções de acesso" tap não abriu (§11.1) — UI real desconhecida
 
-**Hipótese atual:** 3 possíveis causas (endereço fora do geocoder cache / hit area menor / bug local v3.65.1).
+**Descoberta Empírica (Audit 2026-05-27):**
+Foi confirmado um bug na versão inspecionada do Spoke (v3.65.1). Ao interagir com o elemento correspondente de coordenadas `(296, 638)`, o clique é registrado com sucesso pelo sistema de acessibilidade, mas nenhuma ação visual é disparada, impossibilitando a exibição da UI nativa do Spoke para esta função.
 
-**Impacto:** docs Spoke definem behavior (sticky-to-address + checkbox padrão), mas a UI real (modal vs full-screen vs inline text field) pode ser diferente do que docs sugerem.
-
-**Protocolo de resolução (10 min):**
-
-```
-PASSO 1: criar parada com endereço CONHECIDO do geocoder Spoke
-  Ex: "Praça da Sé, São Paulo" (landmark, garantido geocoded)
-PASSO 2: abrir Editar parada → tap "Instruções de acesso"
-  Se ABRE → UI revealed; documentar componente real
-  Se NÃO ABRE → continuar PASSO 3
-
-PASSO 3: tentar tap longo (long-press) em "Instruções de acesso"
-  Alguns Compose buttons requerem long-press
-
-PASSO 4: tentar Maestro `tapOn: id` em vez de `point`
-  Maestro selector por ID pode ter hit area diferente
-
-PASSO 5: se ainda não abrir → bug local confirmado
-  WebSearch Spoke release notes v3.65.1 por bug report
-  Inspecionar versão mais recente disponível no Play Store
-```
-
-**Slice afetado:** Slice 3 backend (precisa modelar `Address.accessInstructions` field) + Slice 3 UI.
-
-**Decisão RotPro (mesmo se não resolvermos):** implementar baseado nos docs (modal/bottom sheet com TextField multiline + checkbox "Salvar como padrão para este endereço" + 2 CTAs Cancelar/Salvar). Risco de divergência UX é baixo (feature secundária).
+**Decisão RotPro:**
+Dado o bug no app de referência, a equipe da Roteirizador Pro definiu a especificação de interface de forma autônoma e aderente aos requisitos funcionais descritos na documentação geral:
+- Implementar como um **Bottom Sheet customizado** acionado a partir da tela de "Editar parada".
+- Conter um campo multiline (`TextField` com 4 a 6 linhas) para inserção das notas e instruções específicas do endereço.
+- Incluir a opção checkbox *"Salvar como padrão para este endereço"*, acionando o comportamento **sticky-to-address** no banco de dados local/remoto para persistência automática em rotas futuras que visitem a mesma coordenada/endereço.
+- CTAs claros de "Cancelar" e "Salvar".
 
 ---
 
