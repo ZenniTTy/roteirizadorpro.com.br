@@ -27,14 +27,16 @@ class AuthController extends _$AuthController {
     if (tokens == null) return null;
     try {
       final response = await ref.read(authRepositoryProvider).me();
+      await ref.read(tokenStorageProvider).save(tokens, response.user);
       return response.user;
     } on AuthApiException catch (e) {
       if (e.statusCode == 401) {
         await ref.read(tokenStorageProvider).clear();
+        return null;
       }
-      return null;
+      return await ref.read(tokenStorageProvider).readUser();
     } catch (_) {
-      return null;
+      return await ref.read(tokenStorageProvider).readUser();
     }
   }
 
@@ -46,6 +48,7 @@ class AuthController extends _$AuthController {
           );
       await ref.read(tokenStorageProvider).save(
             AuthTokens(access: response.access, refresh: response.refresh),
+            response.user,
           );
       return response.user;
     });

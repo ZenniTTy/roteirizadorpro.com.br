@@ -1,4 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import 'dto/auth_dtos.dart';
 
 class AuthTokens {
   const AuthTokens({required this.access, required this.refresh});
@@ -13,6 +17,7 @@ class TokenStorage {
 
   static const _accessKey = 'rp.auth.access';
   static const _refreshKey = 'rp.auth.refresh';
+  static const _userKey = 'rp.auth.user';
 
   static const _defaultStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
@@ -28,13 +33,27 @@ class TokenStorage {
     return AuthTokens(access: access, refresh: refresh);
   }
 
-  Future<void> save(AuthTokens tokens) async {
+  Future<AuthUserDto?> readUser() async {
+    final userJson = await _storage.read(key: _userKey);
+    if (userJson == null) return null;
+    try {
+      return AuthUserDto.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> save(AuthTokens tokens, [AuthUserDto? user]) async {
     await _storage.write(key: _accessKey, value: tokens.access);
     await _storage.write(key: _refreshKey, value: tokens.refresh);
+    if (user != null) {
+      await _storage.write(key: _userKey, value: jsonEncode(user.toJson()));
+    }
   }
 
   Future<void> clear() async {
     await _storage.delete(key: _accessKey);
     await _storage.delete(key: _refreshKey);
+    await _storage.delete(key: _userKey);
   }
 }
