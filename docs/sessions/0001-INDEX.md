@@ -12,4 +12,4 @@ A partir daqui, sessions são opcionais — só vale criar uma quando o trabalho
 
 ## Sessions
 
-(nenhuma sessão ainda no novo regime — primeira tela white-label provavelmente terá uma)
+- [2026-05-27-01-slice-2-area-2-wizard.md](./2026-05-27-01-slice-2-area-2-wizard.md) — Wizard Criar Rota (Área 2)

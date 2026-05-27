@@ -23,4 +23,4 @@ Slices restantes (detalhe em [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md))
 
 ## Discovered while working
 
-(vazio até a primeira tela white-label ser implementada)
+- [x] Implementado: Wizard de Criação de Rota (Área 2) com testes e UI fiel ao protótipo Spoke.
