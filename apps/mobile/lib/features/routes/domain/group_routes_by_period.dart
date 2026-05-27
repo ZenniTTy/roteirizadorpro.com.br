@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'route.dart';
 
 /// Groups [routes] into period buckets relative to [now].
@@ -47,11 +49,21 @@ Map<RoutePeriod, List<Route>> groupRoutesByPeriod(
   // Sort descending by date inside each bucket, and drop empty buckets while
   // preserving canonical enum order.
   final out = <RoutePeriod, List<Route>>{};
+  var bucketedCount = 0;
   for (final period in RoutePeriod.values) {
     final list = buckets[period]!;
+    bucketedCount += list.length;
     if (list.isEmpty) continue;
     list.sort((a, b) => b.date.compareTo(a.date));
     out[period] = list;
+  }
+  // Surface silently-dropped rows in debug builds so Slice 3's CRUD work
+  // doesn't accidentally hide history beyond the current month.
+  if (kDebugMode && bucketedCount != routes.length) {
+    debugPrint(
+      '[groupRoutesByPeriod] dropped ${routes.length - bucketedCount} route(s) '
+      'older than current month (Slice 2 scope — pagination is Slice 3).',
+    );
   }
   return out;
 }

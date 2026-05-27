@@ -6,9 +6,17 @@ import '../../domain/route.dart' as domain;
 import '../../domain/route_action.dart';
 import 'drawer_route_tile.dart';
 
-/// Scrollable section of the [AppDrawer] showing routes grouped by period.
-/// Bucket headers are only rendered for non-empty buckets, in the canonical
-/// top→bottom order set by [domain.RoutePeriod] (Spoke parity §11.6).
+/// Single virtualised scrolling section of the [AppDrawer].
+///
+/// Renders, in order: an optional [headerSlot] (DrawerHeaderCard), a
+/// divider, then one bucket header + route tiles per non-empty
+/// [domain.RoutePeriod] (canonical top→bottom order set by the enum,
+/// per Spoke parity §11.6).
+///
+/// Implemented as a single [ListView.builder] over a precomputed flat
+/// row list so all tiles are virtualised (no nested ListViews, no
+/// shrinkWrap). Important for Slice 3 when the route list grows past
+/// the seed values.
 class DrawerRouteList extends StatelessWidget {
   const DrawerRouteList({
     super.key,
@@ -16,41 +24,64 @@ class DrawerRouteList extends StatelessWidget {
     required this.activeRouteId,
     required this.onRouteTap,
     required this.onRouteKebabAction,
+    this.headerSlot,
+    this.scrollController,
   });
 
   final List<domain.Route> routes;
   final String? activeRouteId;
   final void Function(domain.Route) onRouteTap;
   final void Function(domain.Route, RouteAction) onRouteKebabAction;
+  final Widget? headerSlot;
+  final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context) {
     final grouped = groupRoutesByPeriod(routes, DateTime.now());
+    final rows = _flatten(grouped);
 
-    if (grouped.isEmpty) {
+    if (rows.isEmpty && headerSlot == null) {
       return const SizedBox.shrink();
     }
 
-    final children = <Widget>[];
+    return ListView.builder(
+      controller: scrollController,
+      padding: EdgeInsets.zero,
+      itemCount: rows.length,
+      itemBuilder: (context, index) {
+        final row = rows[index];
+        return switch (row) {
+          _HeaderSlot(:final child) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                child,
+                const Divider(height: 1, color: AppColors.border),
+              ],
+            ),
+          _SectionHeaderRow(:final label) => _SectionHeader(label: label),
+          _RouteRow(:final route) => DrawerRouteTile(
+              route: route,
+              activeRouteId: activeRouteId,
+              onTap: () => onRouteTap(route),
+              onKebabAction: (action) => onRouteKebabAction(route, action),
+            ),
+        };
+      },
+    );
+  }
+
+  List<_Row> _flatten(Map<domain.RoutePeriod, List<domain.Route>> grouped) {
+    final rows = <_Row>[];
+    if (headerSlot != null) {
+      rows.add(_HeaderSlot(headerSlot!));
+    }
     for (final entry in grouped.entries) {
-      children.add(_SectionHeader(label: _labelFor(entry.key)));
+      rows.add(_SectionHeaderRow(_labelFor(entry.key)));
       for (final route in entry.value) {
-        children.add(
-          DrawerRouteTile(
-            route: route,
-            activeRouteId: activeRouteId,
-            onTap: () => onRouteTap(route),
-            onKebabAction: (action) => onRouteKebabAction(route, action),
-          ),
-        );
+        rows.add(_RouteRow(route));
       }
     }
-
-    return ListView(
-      shrinkWrap: true,
-      padding: EdgeInsets.zero,
-      children: children,
-    );
+    return rows;
   }
 
   static String _labelFor(domain.RoutePeriod period) => switch (period) {
@@ -59,6 +90,25 @@ class DrawerRouteList extends StatelessWidget {
         domain.RoutePeriod.thisWeek => 'Esta semana',
         domain.RoutePeriod.thisMonth => 'Este mês',
       };
+}
+
+sealed class _Row {
+  const _Row();
+}
+
+class _HeaderSlot extends _Row {
+  const _HeaderSlot(this.child);
+  final Widget child;
+}
+
+class _SectionHeaderRow extends _Row {
+  const _SectionHeaderRow(this.label);
+  final String label;
+}
+
+class _RouteRow extends _Row {
+  const _RouteRow(this.route);
+  final domain.Route route;
 }
 
 class _SectionHeader extends StatelessWidget {

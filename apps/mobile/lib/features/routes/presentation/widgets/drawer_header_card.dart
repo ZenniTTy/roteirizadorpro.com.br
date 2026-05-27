@@ -13,17 +13,10 @@ class DrawerHeaderCard extends StatelessWidget {
   const DrawerHeaderCard({
     super.key,
     required this.user,
-    required this.onHelp,
-    required this.onSettings,
     required this.onSubscribe,
   });
 
   final UserViewModel user;
-  // Kept for source compatibility while the sheet shell evolves. These
-  // currently route to no-op shims because Help/Settings now render in
-  // the sheet top bar.
-  final VoidCallback onHelp;
-  final VoidCallback onSettings;
   final VoidCallback onSubscribe;
 
   @override
@@ -51,10 +44,12 @@ class DrawerHeaderCard extends StatelessWidget {
                   children: [
                     Text(
                       user.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.text,
+                        color: user.isUnavailable
+                            ? AppColors.warning
+                            : AppColors.text,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -83,7 +78,7 @@ class DrawerHeaderCard extends StatelessWidget {
               ),
             ],
           ),
-          if (!user.hasActiveSubscription) ...[
+          if (!user.hasActiveSubscription && !user.isUnavailable) ...[
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: onSubscribe,

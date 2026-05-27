@@ -9,13 +9,15 @@ import 'widgets/app_drawer.dart';
 ///
 /// Layout per Spoke v3.65.1 live dump 2026-05-27 (bounds reference 1080×2400):
 ///   - Map full-screen behind everything
-///   - Floating circular hamburger top-left (~24dp icon dentro de 48dp circle)
-///     em `Positioned(top: safeTop+12, left: 16)` — abre [AppDrawer] como
-///     modal bottom sheet
+///   - Floating circular hamburger top-left abre [AppDrawer]
 ///   - 2 floating circular map controls direita (layer toggle + recenter)
 ///     stub visual; wiring real em Área 3
 ///   - Sheet collapsed no rodapé com search pill estilo input clicável
 ///     contendo OCR + Voice + kebab como suffix icons
+///
+/// Todos os controles "stub Slice 2" disparam um SnackBar "em breve" pra
+/// nunca dar a impressão de botão quebrado pro usuário (silent-failure
+/// guard).
 class RouteShellPage extends ConsumerWidget {
   const RouteShellPage({super.key});
 
@@ -24,9 +26,6 @@ class RouteShellPage extends ConsumerWidget {
     final mq = MediaQuery.of(context);
 
     return Scaffold(
-      // Sheet collapsed fica grudado ao bottom via bottomNavigationBar —
-      // isso garante que ele respeita inset do system nav bar automaticamente
-      // (não precisa de SafeArea manual).
       bottomNavigationBar: const _SheetCollapsed(),
       body: Stack(
         children: [
@@ -51,14 +50,14 @@ class RouteShellPage extends ConsumerWidget {
                 _FloatingCircleButton(
                   semanticsLabel: 'Alternar modo de mapa',
                   icon: LucideIcons.layers,
-                  onTap: () {},
+                  onTap: () => _comingSoon(context, 'Alternar modo de mapa'),
                   iconColor: AppColors.primary,
                 ),
                 const SizedBox(height: 12),
                 _FloatingCircleButton(
                   semanticsLabel: 'Alternar para o mapa',
                   icon: LucideIcons.locateFixed,
-                  onTap: () {},
+                  onTap: () => _comingSoon(context, 'Centrar no mapa'),
                 ),
               ],
             ),
@@ -67,6 +66,12 @@ class RouteShellPage extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _comingSoon(BuildContext context, String label) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('$label — em breve')),
+  );
 }
 
 class _FloatingCircleButton extends StatelessWidget {
@@ -106,11 +111,6 @@ class _FloatingCircleButton extends StatelessWidget {
   }
 }
 
-/// Search pill collapsed at the bottom of the shell.
-///
-/// Per Spoke parity §10.5 live dump 2026-05-27: a single rounded container
-/// presenting search icon + grey placeholder + OCR/Voice/Kebab suffix icons
-/// (all inside the same pill, NOT separate buttons after).
 class _SheetCollapsed extends StatelessWidget {
   const _SheetCollapsed();
 
@@ -127,9 +127,7 @@ class _SheetCollapsed extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadii.btn),
           child: InkWell(
             borderRadius: BorderRadius.circular(AppRadii.btn),
-            onTap: () {
-              // TODO(Área 4): navegar pra "Adicionar parada" entry.
-            },
+            onTap: () => _comingSoon(context, 'Adicionar parada'),
             child: Container(
               height: 52,
               padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -158,19 +156,19 @@ class _SheetCollapsed extends StatelessWidget {
                   _SuffixIcon(
                     semanticsLabel: 'Ler etiqueta de endereço',
                     icon: LucideIcons.scanLine,
-                    onTap: () {},
+                    onTap: () => _comingSoon(context, 'Ler etiqueta'),
                   ),
                   const SizedBox(width: 4),
                   _SuffixIcon(
                     semanticsLabel: 'Dite o endereço',
                     icon: LucideIcons.mic,
-                    onTap: () {},
+                    onTap: () => _comingSoon(context, 'Ditar endereço'),
                   ),
                   const SizedBox(width: 4),
                   _SuffixIcon(
                     semanticsLabel: 'Mais opções da rota',
                     icon: LucideIcons.ellipsisVertical,
-                    onTap: () {},
+                    onTap: () => _comingSoon(context, 'Opções da rota'),
                   ),
                 ],
               ),

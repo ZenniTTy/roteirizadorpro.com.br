@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
+import 'package:roteirizador_pro/features/routes/domain/user_view_model.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/drawer_header_card.dart';
 
 import '../../_helpers/fake_current_user.dart';
@@ -19,8 +20,6 @@ void main() {
       _wrap(
         DrawerHeaderCard(
           user: kUserWithoutSub,
-          onHelp: () {},
-          onSettings: () {},
           onSubscribe: () {},
         ),
       ),
@@ -37,8 +36,6 @@ void main() {
       _wrap(
         DrawerHeaderCard(
           user: kUserWithoutSub,
-          onHelp: () {},
-          onSettings: () {},
           onSubscribe: () {},
         ),
       ),
@@ -54,8 +51,6 @@ void main() {
       _wrap(
         DrawerHeaderCard(
           user: kUserWithSub,
-          onHelp: () {},
-          onSettings: () {},
           onSubscribe: () {},
         ),
       ),
@@ -65,8 +60,23 @@ void main() {
     expect(find.text('Assinar'), findsNothing);
   });
 
-  // Help and Settings icons used to live here; per Spoke parity §10.1
-  // amendment 2026-05-27, they now render in the sheet's top bar
-  // (DrawerSheetTopBar — see app_drawer.dart). The semantics check for
-  // their presence moved to app_drawer_test.dart.
+  testWidgets(
+      'Assinar button is ABSENT when user is unavailable '
+      '(loading/error state)', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        DrawerHeaderCard(
+          user: UserViewModel.unavailable(),
+          onSubscribe: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // unavailable() carries hasActiveSubscription=false but should NOT render
+    // the Assinar CTA — that would be misleading while the session is
+    // degraded.
+    expect(find.text('Assinar'), findsNothing);
+    expect(find.text('Sessão indisponível'), findsOneWidget);
+  });
 }

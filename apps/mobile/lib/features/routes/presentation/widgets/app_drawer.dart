@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../auth/state/auth_controller.dart';
 import '../../domain/route_action.dart';
 import '../../state/active_route_provider.dart';
 import '../../state/current_user_provider.dart';
@@ -33,9 +34,6 @@ class AppDrawer extends ConsumerWidget {
       useRootNavigator: true,
       backgroundColor: AppColors.bg,
       barrierColor: Colors.black54,
-      // Material clamps `isScrollControlled` to ~95% by default; combined
-      // with `useSafeArea: true` this guarantees we never overlap the
-      // status bar nor the gesture inset.
       constraints: const BoxConstraints(maxWidth: double.infinity),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -60,8 +58,6 @@ class AppDrawer extends ConsumerWidget {
       builder: (context, scrollController) {
         return Column(
           children: [
-            // Top bar: X close on the left; Help (PopupMenu) and Settings
-            // on the right. Spoke parity §10.1 amendment 2026-05-27.
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
               child: Row(
@@ -77,42 +73,32 @@ class AppDrawer extends ConsumerWidget {
                     ),
                   ),
                   _TopActions(
-                    onHelp: () => _showHelpMenu(context),
+                    onHelp: (action) => _handleHelpAction(context, ref, action),
                     onSettings: () => _comingSoon(context, 'Configurações'),
                   ),
                 ],
               ),
             ),
             Expanded(
-              child: ListView(
-                controller: scrollController,
-                padding: EdgeInsets.zero,
-                children: [
-                  DrawerHeaderCard(
-                    user: user,
-                    onHelp: () {},
-                    onSettings: () {},
-                    onSubscribe: () => _comingSoon(context, 'Assinar'),
-                  ),
-                  const Divider(height: 1, color: AppColors.border),
-                  DrawerRouteList(
-                    routes: routes,
-                    activeRouteId: activeRouteId,
-                    onRouteTap: (route) {
-                      ref
-                          .read(activeRouteIdProvider.notifier)
-                          .setActiveRoute(route.id);
-                      Navigator.of(context).pop();
-                    },
-                    onRouteKebabAction: (route, action) =>
-                        _comingSoon(context, _kebabActionLabel(action)),
-                  ),
-                ],
+              child: DrawerRouteList(
+                scrollController: scrollController,
+                routes: routes,
+                activeRouteId: activeRouteId,
+                headerSlot: DrawerHeaderCard(
+                  user: user,
+                  onSubscribe: () => _comingSoon(context, 'Assinar'),
+                ),
+                onRouteTap: (route) {
+                  ref
+                      .read(activeRouteIdProvider.notifier)
+                      .setActiveRoute(route.id);
+                  if (context.mounted) Navigator.of(context).pop();
+                },
+                onRouteKebabAction: (route, action) =>
+                    _comingSoon(context, _kebabActionLabel(action)),
               ),
             ),
             const Divider(height: 1, color: AppColors.border),
-            // CTA "Criar rota" — pinned to bottom, always above system
-            // gesture inset thanks to SafeArea(top: false).
             SafeArea(
               top: false,
               child: Padding(
@@ -142,30 +128,22 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
-  void _showHelpMenu(BuildContext context) {
-    final overlay =
-        Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
-    final position = RelativeRect.fromLTRB(
-      overlay.size.width - 220,
-      88,
-      8,
-      overlay.size.height,
-    );
-    showMenu<String>(
-      context: context,
-      position: position,
-      items: const [
-        PopupMenuItem(value: 'support', child: Text('Ajuda e suporte')),
-        PopupMenuItem(value: 'feedback', child: Text('Compartilhar feedback')),
-      ],
-    ).then((value) {
-      if (value != null && context.mounted) {
-        _comingSoon(
-          context,
-          value == 'support' ? 'Ajuda e suporte' : 'Compartilhar feedback',
-        );
-      }
-    });
+  Future<void> _handleHelpAction(
+    BuildContext context,
+    WidgetRef ref,
+    _HelpAction action,
+  ) async {
+    switch (action) {
+      case _HelpAction.support:
+        _comingSoon(context, 'Ajuda e suporte');
+      case _HelpAction.feedback:
+        _comingSoon(context, 'Compartilhar feedback');
+      case _HelpAction.signOut:
+        // Temporary affordance until Settings (Área 10) lands a real Sair row.
+        // Without this, after login the user has no path back to /login.
+        await ref.read(authControllerProvider.notifier).signOut();
+        if (context.mounted) Navigator.of(context).pop();
+    }
   }
 
   void _comingSoon(BuildContext context, String label) {
@@ -181,9 +159,11 @@ class AppDrawer extends ConsumerWidget {
       };
 }
 
+enum _HelpAction { support, feedback, signOut }
+
 class _TopActions extends StatelessWidget {
   const _TopActions({required this.onHelp, required this.onSettings});
-  final VoidCallback onHelp;
+  final void Function(_HelpAction) onHelp;
   final VoidCallback onSettings;
 
   @override
@@ -194,10 +174,29 @@ class _TopActions extends StatelessWidget {
         Semantics(
           label: 'Ajuda',
           button: true,
-          child: IconButton(
+          child: PopupMenuButton<_HelpAction>(
             icon: const Icon(LucideIcons.circleHelp),
-            color: AppColors.textMuted,
-            onPressed: onHelp,
+            color: AppColors.bg,
+            tooltip: 'Ajuda',
+            position: PopupMenuPosition.under,
+            onSelected: onHelp,
+            itemBuilder: (_) => const [
+              PopupMenuItem<_HelpAction>(
+                value: _HelpAction.support,
+                child: Text('Ajuda e suporte'),
+              ),
+              PopupMenuItem<_HelpAction>(
+                value: _HelpAction.feedback,
+                child: Text('Compartilhar feedback'),
+              ),
+              // Temporary: until Configurações (Área 10) ships a Sair row,
+              // expose logout from the Help menu so the user isn't trapped.
+              PopupMenuDivider(),
+              PopupMenuItem<_HelpAction>(
+                value: _HelpAction.signOut,
+                child: Text('Sair'),
+              ),
+            ],
           ),
         ),
         Semantics(
