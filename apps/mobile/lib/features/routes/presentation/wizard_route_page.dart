@@ -183,6 +183,11 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                       selected: state.dateOption == WizardDateOption.custom,
                       icon: LucideIcons.calendarSearch,
                       onTap: _pickDate,
+                      trailing: const Icon(
+                        LucideIcons.chevronRight,
+                        size: 24,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 32),
                     const Text(
@@ -209,11 +214,17 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            Icon(
+                              LucideIcons.history,
+                              size: 24,
+                              color: state.reuseStops ? AppColors.primary : AppColors.textMuted,
+                            ),
+                            const SizedBox(width: 16),
                             const Expanded(
                               child: Text(
                                 'Reutilizar paradas anteriores',
                                 style: TextStyle(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.text,
                                 ),
@@ -262,6 +273,7 @@ class _DateRadio extends StatelessWidget {
   final bool selected;
   final IconData icon;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _DateRadio({
     required this.title,
@@ -269,6 +281,7 @@ class _DateRadio extends StatelessWidget {
     required this.selected,
     required this.icon,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -301,7 +314,7 @@ class _DateRadio extends StatelessWidget {
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15,
                       fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                       color: AppColors.text,
                     ),
@@ -322,7 +335,7 @@ class _DateRadio extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            Transform.scale(
+            trailing ?? Transform.scale(
               scale: 1.25,
               child: Checkbox(
                 value: selected,
