@@ -194,23 +194,47 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Reutilizar paradas anteriores',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.text,
+                    GestureDetector(
+                      onTap: () => controller.toggleReuseStops(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: state.reuseStops ? AppColors.neonLight.withOpacity(0.5) : AppColors.surface,
+                          border: Border.all(
+                            color: state.reuseStops ? AppColors.neonDark : AppColors.border,
+                            width: state.reuseStops ? 1.5 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(AppRadii.input),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Reutilizar paradas anteriores',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.text,
+                                ),
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 1.25,
+                              child: Checkbox(
+                                value: state.reuseStops,
+                                onChanged: (val) => controller.toggleReuseStops(),
+                                activeColor: AppColors.neon,
+                                checkColor: AppColors.neonInk,
+                                side: BorderSide(
+                                  color: state.reuseStops ? AppColors.neonDark : AppColors.textMuted.withOpacity(0.5),
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      trailing: Checkbox(
-                        value: state.reuseStops,
-                        onChanged: (val) => controller.toggleReuseStops(),
-                        activeColor: AppColors.neon,
-                        checkColor: AppColors.neonInk,
-                      ),
-                      onTap: () => controller.toggleReuseStops(),
                     ),
                     const SizedBox(height: 48), // Bottom padding
                   ],
@@ -298,15 +322,18 @@ class _DateRadio extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            Checkbox(
-              value: selected,
-              onChanged: (_) => onTap(),
-              activeColor: AppColors.neon,
-              checkColor: AppColors.neonInk,
-              shape: const CircleBorder(),
-              side: BorderSide(
-                color: selected ? AppColors.neonDark : AppColors.textMuted.withOpacity(0.5),
-                width: 1.5,
+            Transform.scale(
+              scale: 1.25,
+              child: Checkbox(
+                value: selected,
+                onChanged: (_) => onTap(),
+                activeColor: AppColors.neon,
+                checkColor: AppColors.neonInk,
+                shape: const CircleBorder(),
+                side: BorderSide(
+                  color: selected ? AppColors.neonDark : AppColors.textMuted.withOpacity(0.5),
+                  width: 1.5,
+                ),
               ),
             ),
           ],
