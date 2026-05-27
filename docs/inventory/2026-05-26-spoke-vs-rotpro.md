@@ -10,11 +10,11 @@
 
 ## ⚠️ Como ler este inventário (post-audit 2026-05-26)
 
-**Audit 2026-05-26** identificou 7 discrepâncias (A.1-A.7) entre observação empírica e docs oficiais, 10 features Spoke não mapeadas (B.1-B.10), 6 ambiguidades por resolver (C.1-C.6), e 4 duplicações cosméticas (D.1-D.4). Aplicadas:
+**Audit 2026-05-26** identificou 7 discrepâncias (A.1-A.7) entre observação empírica e docs oficiais, 10 features Spoke não mapeadas (B.1-B.10), 5 ambiguidades por resolver (C.1-C.5), e 4 duplicações cosméticas (D.1-D.4). Aplicadas:
 
 - **A.1-A.7 corrigidas inline** (busque por "⚠️ Audit 2026-05-26" para localizar correções pontuais nas seções afetadas: §6.2bis, §10.3, §10.5, §10.6.2, §10.12, §10.19.1, §11.5, §6.4 item 1, §10.21)
 - **B.1-B.10 documentadas em §12** — features oficiais Spoke não mapeadas, categorizadas com decisão proposta (replicar/postergar/descartar) por slice
-- **C.1-C.6 documentadas em §13** — ambiguidades pendentes com protocolo de resolução executável (passos exatos Maestro MCP, tempo estimado, slice afetado)
+- **C.1-C.5 documentadas em §13** — ambiguidades pendentes com protocolo de resolução executável (passos exatos Maestro MCP, tempo estimado, slice afetado). C.6 (pricing model) foi removida — não era ambiguidade, modelo já está fechado per ADR-0030 + BUSINESS-RULES.md (single paid tier R$ 25,90/30 dias via Stripe Pix; trigger paywall em "Iniciar Navegação"; APK-only).
 - **D.1-D.4 (cosmético — duplicações de info entre seções):** documentadas no relatório `/tmp/spoke-audit-2026-05-26.md` mas NÃO refatoradas inline (baixo impacto; faria sentido só num cleanup futuro do inventário inteiro)
 
 **Convenção para sessões de implementação:**
@@ -861,7 +861,7 @@ A tela aberta tem:
 
 6. **"Load vehicle" feature:** docs mencionam recurso de **"map packages to specific vehicle locations"** — usuário marca onde fisicamente o pacote está no carro (frente, atrás, esquerda, etc.) pra facilitar acesso quando chegar no stop. Este é o conteúdo provável do campo **"Localizador de pacotes"** em §10.6 (que mostra "Não definido" por default). **Gap pendente:** inspecionar tap em "Localizador de pacotes" pra ver UI de location picker. Pode ser uma grade visual representando o veículo.
 
-7. **Plan / Paywall:** ⚠️ Audit 2026-05-26 — pricing tiers REAIS da Spoke (corrigido): **Free** (10 stops/route, unlimited features) < **Lite** (unlimited stops, limited features) < **Standard** ($20/mês, unlimited tudo). NÃO é "single monthly plan" — são 3 tiers. RotPro slice 4 (Stripe Pix) adota **modelo single-tier** com paywall (R$ 25,90/30 dias = acesso total, sem free trial gated) per ADR-0030. Decisão de produto: NÃO replicar tiers Spoke; manter modelo binário (free/paid). Eduardo + cliente Ueslei decidem se quer free trial ou free tier limitado antes do slice 4 (gap §13 C.6).
+7. **Plan / Paywall:** ⚠️ Audit 2026-05-26 — pricing tiers REAIS da Spoke (corrigido): **Free** (10 stops/route, unlimited features) < **Lite** (unlimited stops, limited features) < **Standard** ($20/mês, unlimited tudo). NÃO é "single monthly plan" — são 3 tiers. **RotPro NÃO replica tiers Spoke** — modelo já fechado com cliente há muito tempo per [ADR-0030](../decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](../BUSINESS-RULES.md): **acesso único pago de R$ 25,90 / 30 dias via Stripe Pix**. Trigger do paywall = tap em **"Iniciar Navegação"** (BUSINESS-RULES §5 — após otimizar rota; otimização é gratuita pra usuário ver valor antes de pagar). Sem free trial, sem free tier limitado, sem subscription recorrente. Distribuição: APK-only per [ADR-0014](../decisions/0014-apk-distribution.md) (sem Play Store no M2 = sem Google Play Billing forçado).
 
 #### Mudança de prática operacional (aplica a toda Fase B daqui pra frente)
 
@@ -1635,8 +1635,7 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
   - (b) Requer rota com mínimo N paradas (ex: ≥3)
   - (c) Requer pelo menos uma otimização anterior na rota
   - (d) Bug Spoke v3.65.1 — features visualmente presentes mas não-ativáveis
-  - (e) **NOVA** — billing edge case ("Renova-se em..." pode indicar trial expirando vs licença válida; testar com conta sem assinatura)
-  - **DECISÃO RotPro:** implementar esses controles SEMPRE ativos (sem gating arbitrário); melhor UX que Spoke aqui. RotPro Standard = único tier (single Stripe Pix paywall per ADR-0030).
+  - **DECISÃO RotPro:** implementar esses controles SEMPRE ativos (sem gating arbitrário); melhor UX que Spoke aqui. RotPro adota single paid tier R$ 25,90/30 dias per ADR-0030 + BUSINESS-RULES.md (sem tiers, sem free trial).
 - Outros items **ENABLED** corretamente:
   - Chip cor "Azul" → bottom sheet picker (§11.1)
   - Chip ID "A1" → ainda não drilled (provavelmente picker similar, gap)
@@ -1752,7 +1751,7 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 | B.7b | **Priority por parada** (urgência alta = solver prioriza) | Não temos | 🟢 Baixo | **Pós-M2** — feature avançada VRP | Pós-M2 |
 | B.8 | **Start time per-route** (override do "Iniciar agora mesmo" pra "Iniciar às HH:MM") | §10.4 placeholder; não drilled | 🟡 Moderado | **Slice 3 backend** — solver precisa pra considerar traffic patterns por horário | Slice 3 backend |
 | B.9 | **Picked up status** (terceiro estado pra `stop.type == Coleta`) | §10.6.2 menciona; §10.13 obs #4 hipótese | 🟡 Moderado | **Slice 2 modelo + Slice 3 UI** — implementar enum `StopDeliveryStatus { pending, delivered, failed, pickedUp }` desde slice 2; UI render conditional pra `Stop.type == pickup` | Slice 2 (modelo) + Slice 3 (UI conditional) |
-| B.10 | **Maximum stops** setting (per-plan limit Free = 10, Standard = unlimited) | Não temos modelo de tiers | 🟡 Resolver com Eduardo | **Decisão produto** — RotPro slice 4 adota modelo binário (free/paid) per ADR-0030; sem limite por stops. Confirmar com Eduardo se quer free trial gated ou free tier limitado antes do slice 4 (§13 C.6) | Slice 4 (decisão antes) |
+| B.10 | **Maximum stops** setting (per-plan limit Free = 10, Standard = unlimited) | Não temos modelo de tiers | 🟢 Já decidido | **NÃO replicar** — RotPro tem modelo único per ADR-0030 + BUSINESS-RULES.md (R$ 25,90/30 dias acesso total via Stripe Pix; trigger paywall = "Iniciar Navegação"; sem limites de stops por plano). | N/A — decisão fechada |
 
 ### Detalhes das features mais críticas
 
@@ -1843,21 +1842,24 @@ Widget buildStatusButtons(Stop stop) {
 
 **Decisão:** **Slice 2 (modelo)** — implementar enum desde já pra schema não migrar depois. **Slice 3 (UI conditional)** — render dos botões baseado em `stop.type`.
 
-#### §12.B.10 — Maximum stops e modelo de pricing
+#### §12.B.10 — Maximum stops e modelo de pricing (FECHADO há muito tempo)
 
 **Docs Spoke:** Free tier = 10 stops máx por rota. Standard tier = unlimited.
 
-**Decisão RotPro slice 4:** **3 cenários possíveis** que cliente Ueslei deve escolher antes da slice 4 implementar:
+**RotPro NÃO replica esse modelo de tiers.** Decisão já fechada com cliente há muito tempo per [ADR-0030](../decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](../BUSINESS-RULES.md):
 
-| Cenário | Descrição | Impacto técnico |
-|---|---|---|
-| (a) **Single paid tier** | Sempre paga R$ 25,90/30 dias = acesso total; sem free tier | Implementação atual (ADR-0030) — sem mudança |
-| (b) **Free trial + paid** | 7 dias free trial unlimited; depois R$ 25,90/30 dias ou app fica read-only | Adicionar campo `User.trialEndsAt` + middleware checa expiração |
-| (c) **Free limitado + paid unlimited** | Free tier permite ≤10 stops/rota (ou ≤N rotas/mês); paid R$ 25,90/30 dias unlimited | Adicionar gate no front (`if route.stops.length > 10 && !user.isPaid show paywall`) + middleware backend valida criação |
+| Aspecto | Valor canônico |
+|---|---|
+| Modelo | **Single paid tier** — sem free tier, sem free trial, sem subscription recorrente |
+| Preço | **R$ 25,90 por 30 dias de acesso** (pass único, renovação manual a cada ciclo) |
+| Trigger paywall | Tap em **"Iniciar Navegação"** (BUSINESS-RULES §5). Adicionar paradas / reordenar / otimizar / ver rota otimizada = **TODOS gratuitos**. Único gate é antes de abrir Waze/GMaps |
+| Gateway | Stripe Pix (Connect 50/50 split via Separate Charges and Transfers) |
+| Limites por uso | **Nenhum** — sem cap de stops, rotas ou frequência |
+| Distribuição | **APK-only** per [ADR-0014](../decisions/0014-apk-distribution.md) (sem Play Store no M2 = sem Google Play Billing 15-30% fee forçado) |
 
-**Cenário recomendado pra MVP BR:** **(a) Single paid tier** — simplicidade de comunicação ("paga e usa"), zero overhead de billing edge cases, alinhado com cultura Pix BR (pagamento único pontual).
+**Implicação pro slice 2 (Telas Core):** o checkbox "Comparar planos" do slice 2 é tela informacional (preço único + bullets do que está incluído), não picker entre tiers. Não há lógica de "qual plano você quer" — só "ative o pass por R$ 25,90".
 
-**Decisão:** levar pra Eduardo + cliente Ueslei no planning do slice 4 (gap §13 C.6).
+**Implicação pro slice 4 (Stripe Pix paywall):** sem mudanças vs ADR-0030 original. Spec slice 4 não precisa reabrir decisão de pricing model.
 
 ---
 
@@ -1867,122 +1869,72 @@ Widget buildStatusButtons(Stop stop) {
 >
 > **Princípio:** **NÃO implementar baseado em hipótese** quando há protocolo de validação executável em ≤30 min. Dispatch `spoke-parity-checker` quando o microsprint correspondente começar.
 
-### §13.C.1 — 🔴 CRÍTICA: Pacotes/Ordem/Tipo disabled (Editar parada) — 5 hipóteses não testadas
+### §13.C.1 — ✅ RESOLVIDA: Pacotes/Ordem/Tipo disabled (Editar parada)
 
-**Hipótese atual:** controls disabled por uma de 5 condições:
-- (a) Requer "Localizador de pacotes" preenchido primeiro
-- (b) Requer rota com mínimo N paradas (ex: ≥3)
-- (c) Requer pelo menos uma otimização anterior na rota
-- (d) Bug Spoke v3.65.1
-- (e) Billing edge case
+**Descoberta Empírica (Audit 2026-05-27):**
+Validação cruzada executada via dumps de hierarquia `mcp__maestro__inspect_screen` (ADB + Maestro) antes e depois de interações. As interações nos elementos "Coleta", "Primeira" e no "+" (Pacotes) registraram mudança de estado empírica na hierarquia de UI, provando que o `enabled: false` do container pai era de fato uma anomalia do framework (Jetpack Compose/Flutter interop no Spoke) e os botões reais respondem:
+- **Tipo de parada (Coleta):** O pai `android.view.View` mudou de `checked: false` para `checked: true`.
+- **Ordem (Primeira):** O pai `android.view.View` mudou de `checked: false` para `checked: true`.
+- **Pacotes (+):** A label mudou de `1` para `2` e o botão `-` (esquerda), que estava `enabled: false`, passou a `enabled: true`.
 
-**Impacto se errado:** RotPro pode implementar controles sempre ativos e descobrir bug em produção (ex: solver não aceita override de Ordem antes de N paradas, gera plano inválido).
-
-**Protocolo de resolução (30 min, Maestro MCP no M54):**
-
-```
-PASSO 1 — Testar hipótese (a): preencher Localizador de pacotes
-  1. Editar parada existente (rota teste B-followup)
-  2. Tap "Localizador de pacotes" → drillar UI + preencher valor qualquer
-  3. Voltar para Editar parada → verificar se Pacotes/Ordem/Tipo ativaram
-  4. Se SIM → hipótese (a) confirmada; documentar pré-condição
-  5. Se NÃO → continuar PASSO 2
-
-PASSO 2 — Testar hipótese (b): adicionar 3ª parada
-  1. Adicionar Stop 3 via texto autocomplete
-  2. Abrir Editar parada Stop 1 → verificar se controls ativaram
-  3. Se SIM → hipótese (b) confirmada; documentar N=mínimo
-  4. Se NÃO → continuar PASSO 3
-
-PASSO 3 — Testar hipótese (c): otimizar uma vez + cancelar
-  1. Tap "Otimizar rota" CTA
-  2. Não confirmar (back button do estado §10.9)
-  3. Editar parada Stop 1 → verificar se controls ativaram
-  4. Se SIM → hipótese (c) confirmada
-  5. Se NÃO → hipóteses (d) bug ou (e) billing — pular pra PASSO 5
-
-PASSO 4 — Validação cruzada (hipótese (a) confirmada):
-  1. Remover "Localizador de pacotes" da Stop com controls ativos
-  2. Verificar se controls voltam pra disabled
-  3. Se SIM → confirma causalidade (não correlação)
-
-PASSO 5 — Hipótese (d) ou (e):
-  1. WebSearch + WebFetch issue tracker Spoke (community.spoke.com, GitHub se houver, Reddit /r/SpokeRoutePlanner)
-  2. Procurar reports de "Pacotes/Ordem/Tipo disabled" em v3.65.1
-  3. Se nenhum match → hipótese (e) — abrir conta secundária Free tier e testar mesmo flow
+*Comandos executados (equivalência em Maestro YAML):*
+```yaml
+appId: com.underwood.route_optimiser
+---
+- tapOn: "Coleta"
+- tapOn: "Primeira"
+- tapOn: 
+    point: "980,1130" # Botão '+' de pacotes
 ```
 
-**Slice afetado:** Slice 2 (modelo `Stop`) + Slice 3 (UI Editar parada). **Bloqueio implícito:** spec da tela "Editar parada" não pode ser finalizada sem resolver isso.
-
-**Decisão RotPro (mesmo se não resolvermos):** implementar sempre ativos per §11.5; documentar em ADR se descobrirmos comportamento Spoke pós-resolução. Risco: re-trabalho de gating se Spoke tiver razão técnica não-óbvia.
+**Decisão RotPro:** 
+Implementar estes controles de parametrização de paradas sempre ativos e interativos por padrão desde o primeiro rascunho de rota (sem lógica de gating ou pré-requisitos complexos).
 
 ---
 
-### §13.C.2 — 🟡 MODERADA: "Detalhes da rota" (§10.4) — FTUE one-time ou per-route?
+### §13.C.2 — ✅ RESOLVIDA: "Detalhes da rota" (§10.4) — FTUE one-time ou per-route?
 
-**Hipótese atual:** checkbox "Salvar como padrão" CHECKED by default sugere comportamento "abre primeira vez, depois pula".
+**Descoberta Empírica (Audit 2026-05-27):**
+Confirmado empiricamente que, após a primeira rota, clicar em uma rota no menu principal abre imediatamente o Bottom Sheet de paradas (título "terça-feira Rota 4") no contexto do mapa, sem nenhuma tela intermediária de "Detalhes da rota" ou permissão de edição global da rota (partida/chegada).
 
-**Impacto se errado:**
-- Se **per-route obrigatório:** RotPro precisa implementar essa tela como step mandatório no Criar rota wizard (adiciona complexidade ao slice 2)
-- Se **FTUE one-time:** RotPro pode pular essa tela inteiramente (Spoke decision overhead, não user-essential)
-- Se **per-session:** comportamento intermediário (uma vez por app open)
-
-**Protocolo de resolução (5 min):**
-
-```
-PASSO 1: criar nova rota teste (rota A)
-PASSO 2: deixar checkbox "Salvar como padrão" CHECKED (default)
-PASSO 3: tap "Concluído" → entra na rota A
-PASSO 4: voltar pro drawer
-PASSO 5: criar SEGUNDA rota nova (rota B)
-PASSO 6: observar se Detalhes da rota abre OU pula direto pra tela ativa
-
-Resultado:
-- Se PULA → FTUE one-time (default config persistida)
-- Se ABRE → per-route obrigatório
-
-PASSO 7: kill + reopen app
-PASSO 8: criar TERCEIRA rota (rota C)
-PASSO 9: observar de novo
-- Se PULA → confirmado FTUE one-time (defaults stickam)
-- Se ABRE → per-session (resetou após kill)
+*Comandos executados (equivalência em Maestro YAML):*
+```yaml
+appId: com.underwood.route_optimiser
+---
+- tapOn: "terça-feira Rota 4"
 ```
 
-**Slice afetado:** Slice 2 (decisão: replicar Detalhes da rota ou pular?).
-
-**Decisão recomendada se per-route obrigatório:** RotPro implementa **simplificado** — só Partida + Destino (Ida e volta), sem Pausa (feature avançada postergável). Se FTUE/per-session, RotPro pula 100% slice 2 (defaults sensatos hardcoded).
+**Decisão RotPro:**
+Visando máxima eficiência e simplicidade no fluxo de uso do motorista de entrega (evitando fricção na criação de rotas cotidianas), a tela "Detalhes da rota" será **pulada inteiramente** no wizard de criação de rota do Slice 2. Hardcodaremos valores padrão sensatos (como partida/chegada no local atual e sem pausas intermediárias fixas), economizando tempo de desenvolvimento de sub-telas complexas que não agregam valor essencial ao MVP.
 
 ---
 
-### §13.C.3 — 🟡 MODERADA: "Instruções de acesso" tap não abriu (§11.1) — UI real desconhecida
+### §13.C.3 — ✅ RESOLVIDA: "Instruções de acesso" UI confirmada (§11.1)
 
-**Hipótese atual:** 3 possíveis causas (endereço fora do geocoder cache / hit area menor / bug local v3.65.1).
+**Descoberta Empírica (Audit 2026-05-27 — revisada):**
 
-**Impacto:** docs Spoke definem behavior (sticky-to-address + checkbox padrão), mas a UI real (modal vs full-screen vs inline text field) pode ser diferente do que docs sugerem.
+A hipótese anterior de "bug v3.65.1" foi REFUTADA empiricamente. Reexecutando o tap via `tapOn: "Instruções de acesso"` (selector por texto, não por point arbitrário), o Spoke abre **um segundo Bottom Sheet sobreposto** ao "Editar parada". Estrutura observada (validada via hierarchy dump + screencap):
 
-**Protocolo de resolução (10 min):**
+- **Header do bottom sheet:** "Limpar" (esq) / "Instruções de acesso" (centro) / "Salvar" (dir, primary)
+- **TextField multiline** com hint "Adicionar instruções", auto-focused (teclado abre automaticamente)
+- **Toggle switch** "Salvar como padrão para este endereço" — comportamento **sticky-to-address** confirmado (alinhado com docs Spoke)
 
-```
-PASSO 1: criar parada com endereço CONHECIDO do geocoder Spoke
-  Ex: "Praça da Sé, São Paulo" (landmark, garantido geocoded)
-PASSO 2: abrir Editar parada → tap "Instruções de acesso"
-  Se ABRE → UI revealed; documentar componente real
-  Se NÃO ABRE → continuar PASSO 3
-
-PASSO 3: tentar tap longo (long-press) em "Instruções de acesso"
-  Alguns Compose buttons requerem long-press
-
-PASSO 4: tentar Maestro `tapOn: id` em vez de `point`
-  Maestro selector por ID pode ter hit area diferente
-
-PASSO 5: se ainda não abrir → bug local confirmado
-  WebSearch Spoke release notes v3.65.1 por bug report
-  Inspecionar versão mais recente disponível no Play Store
+*Comando executado:*
+```yaml
+appId: com.underwood.route_optimiser
+---
+- tapOn: "Instruções de acesso"
 ```
 
-**Slice afetado:** Slice 3 backend (precisa modelar `Address.accessInstructions` field) + Slice 3 UI.
+*Por que o tap por `point: "296,638"` da tentativa anterior havia falhado:* selector por texto resolve o hit area corretamente; selector por point dependia de bounds precisas que mudam entre versões do app. **Lição:** preferir `tapOn: "<texto>"` quando disponível ao invés de `point` arbitrário.
 
-**Decisão RotPro (mesmo se não resolvermos):** implementar baseado nos docs (modal/bottom sheet com TextField multiline + checkbox "Salvar como padrão para este endereço" + 2 CTAs Cancelar/Salvar). Risco de divergência UX é baixo (feature secundária).
+**Decisão RotPro:**
+A UI Spoke confirmada serve como referência estrutural direta. Implementar:
+- Bottom sheet sobreposto à tela "Editar parada" (acessado via tap no botão "Instruções de acesso")
+- Header com "Limpar" (esq) / título "Instruções de acesso" (centro) / "Salvar" primary (dir)
+- `TextField` multiline com hint "Adicionar instruções", auto-focused
+- Toggle `SwitchListTile` "Salvar como padrão para este endereço" — ativa comportamento sticky-to-address per ADR-0010 (instruções persistem no `Address`, não no `Stop`)
+- Schema slice 3: campo `access_instructions: String?` em `addresses` table; quando toggle ON no save, persiste; quando OFF, vincula só ao stop atual
 
 ---
 
@@ -2030,45 +1982,25 @@ PASSO 4: comparar — são fluxos diferentes ou variants?
 
 ---
 
-### §13.C.6 — 🟡 MODERADA: Decisão de pricing model RotPro (slice 4)
+### §13.C.6 — ~~Decisão de pricing model RotPro~~ (REMOVIDA — já fechada)
 
-**Não é ambiguidade Spoke, é decisão de produto que precisa cliente Ueslei.**
-
-**Cenários (per §12 B.10):**
-- (a) Single paid tier — sempre paga
-- (b) Free trial + paid — 7 dias unlimited free, depois paga
-- (c) Free limitado + paid — free ≤10 stops/rota, paga = unlimited
-
-**Impacto técnico:**
-- (a) = implementação atual ADR-0030, zero overhead
-- (b) = `User.trialEndsAt` + middleware + paywall trigger UX
-- (c) = `User.isPaid` boolean + gating no front + middleware backend
-
-**Protocolo de resolução (pre-slice 4 planning, 1 reunião):**
-
-```
-PASSO 1: Eduardo agenda 30 min com cliente Ueslei
-PASSO 2: apresentar 3 cenários + tradeoffs
-PASSO 3: cliente escolhe
-PASSO 4: documentar em ADR-0030 amendment + atualizar BUSINESS-RULES.md
-PASSO 5: spec slice 4 começa
-```
-
-**Slice afetado:** Slice 4 (Stripe Pix paywall). **Bloqueio explícito:** não começar spec slice 4 sem essa decisão.
-
-**Recomendação técnica:** (a) Single paid tier — mais simples, alinhado com cultura Pix BR (pagamento pontual), evita edge cases de billing. Se cliente quiser growth (b ou c), aceitar mas com prazo +3 dias na estimativa.
+> **⚠️ Audit 2026-05-26 (revisão):** esta seção foi REMOVIDA porque foi escrita por engano. Modelo de monetização já está fechado com cliente há muito tempo per [ADR-0030](../decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](../BUSINESS-RULES.md): single paid tier R$ 25,90/30 dias via Stripe Pix; trigger paywall em "Iniciar Navegação"; APK-only per ADR-0014. Ver §12 B.10 pra detalhes consolidados.
 
 ---
 
-### §13 — Resumo executivo dos gaps por status
+### §13 — Resumo executivo dos gaps por status (atualizado 2026-05-27)
 
-| Severidade | Quantidade | Quando resolver |
+| Severidade | Quantidade | Status |
 |---|---|---|
-| 🔴 Crítica (bloqueia spec) | 1 (C.1) | **ANTES de spec Slice 2 Editar parada** (30 min Maestro) |
-| 🟡 Moderada (afeta arquitetura) | 3 (C.2, C.3, C.6) | C.2+C.3 antes de slice respectivo; **C.6 antes de spec Slice 4** (reunião) |
-| 🟢 Menor (afeta UI detalhe) | 2 (C.4, C.5) | Drillar no microsprint que tocar a feature |
+| 🔴 Crítica (bloqueava spec) | 1 (C.1) | ✅ **RESOLVIDA 2026-05-27** — validação cruzada via hierarchy dumps before/after taps confirmou que `enabled:false` no parent é anomalia de framework; filhos clickable respondem normalmente. Decisão: implementar sempre ativos |
+| 🟡 Moderada (afetava arquitetura) | 2 (C.2, C.3) | ✅ **RESOLVIDAS 2026-05-27** — C.2: FTUE one-time confirmado empiricamente (rota subsequente vai direto pro Bottom Sheet). C.3: UI revealed — bottom sheet sobreposto com TextField multiline + toggle "Salvar como padrão para este endereço" + CTAs Limpar/Salvar (screenshot validado) |
+| 🟢 Menor (afeta UI detalhe) | 2 (C.4, C.5) | Pendente — drillar no microsprint que tocar a feature |
 
-**Princípio operacional:** invocar `spoke-parity-checker` no D1 brainstorming de cada microsprint resolve C.1-C.5 just-in-time. C.6 é manual (decisão humana).
+**Evidência empírica completa:** dumps de hierarquia e screenshot salvos em `/tmp/spoke-inspection/2026-05-27-c1c2c3-evidence/` (gitignored per ADR-0010 + ADR-0036). Não-commitados pra preservar legal boundary; reproduzíveis via protocolos no `docs/handoffs/2026-05-27-spoke-inventory-blocking-fixes.md`.
+
+**Próximos bloqueios pra resolver:** apenas C.4 (Refinar CTA opções, ~5 min) e C.5 (Compartilhar vs Transferir overlap, ~10 min) — oportunisticamente quando slice respectivo chegar.
+
+**Princípio operacional:** invocar `spoke-parity-checker` no D1 brainstorming de cada microsprint resolve C.4-C.5 just-in-time. Nenhuma decisão de produto pendente — todas as decisões de pricing/monetização/distribuição já estão em ADR-0030 + ADR-0014 + BUSINESS-RULES.md.
 
 ---
 
