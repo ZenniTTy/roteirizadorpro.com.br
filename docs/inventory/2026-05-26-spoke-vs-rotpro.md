@@ -1872,11 +1872,20 @@ Widget buildStatusButtons(Stop stop) {
 ### §13.C.1 — ✅ RESOLVIDA: Pacotes/Ordem/Tipo disabled (Editar parada)
 
 **Descoberta Empírica (Audit 2026-05-27):**
-Os controles de Pacotes, Ordem e Tipo de Parada **nunca estiveram desabilitados na interface real**. O container estrutural da linha (`android.view.View`) possui a propriedade `enabled: false` na árvore da acessibilidade do sistema por particularidades do framework de UI usado pelo Spoke, o que causou o falso positivo de "disabled" na inspeção estática da árvore de acessibilidade. No entanto, os elementos filhos internos (botões segmentados "Primeira" / "Coleta" e os seletores do stepper "+") estão com `clickable: true` e `enabled: true`.
+Validação cruzada executada via dumps de hierarquia `mcp__maestro__inspect_screen` (ADB + Maestro) antes e depois de interações. As interações nos elementos "Coleta", "Primeira" e no "+" (Pacotes) registraram mudança de estado empírica na hierarquia de UI, provando que o `enabled: false` do container pai era de fato uma anomalia do framework (Jetpack Compose/Flutter interop no Spoke) e os botões reais respondem:
+- **Tipo de parada (Coleta):** O pai `android.view.View` mudou de `checked: false` para `checked: true`.
+- **Ordem (Primeira):** O pai `android.view.View` mudou de `checked: false` para `checked: true`.
+- **Pacotes (+):** A label mudou de `1` para `2` e o botão `-` (esquerda), que estava `enabled: false`, passou a `enabled: true`.
 
-*Validação executada via Maestro (Samsung M54):* 
-- Adicionadas paradas de teste e executado o script `test_clicks.yaml`. Os cliques em "Primeira" (Ordem), "Coleta" (Tipo) e no stepper "+" de Pacotes foram efetuados com sucesso.
-- O app mudou de estado imediatamente na interface (Ordem atualizada para "Primeira", Tipo para "Coleta" e contagem de Pacotes incrementada para "2").
+*Comandos executados (equivalência em Maestro YAML):*
+```yaml
+appId: com.underwood.route_optimiser
+---
+- tapOn: "Coleta"
+- tapOn: "Primeira"
+- tapOn: 
+    point: "980,1130" # Botão '+' de pacotes
+```
 
 **Decisão RotPro:** 
 Implementar estes controles de parametrização de paradas sempre ativos e interativos por padrão desde o primeiro rascunho de rota (sem lógica de gating ou pré-requisitos complexos).
@@ -1886,7 +1895,14 @@ Implementar estes controles de parametrização de paradas sempre ativos e inter
 ### §13.C.2 — ✅ RESOLVIDA: "Detalhes da rota" (§10.4) — FTUE one-time ou per-route?
 
 **Descoberta Empírica (Audit 2026-05-27):**
-Trata-se de um comportamento de **FTUE one-time** (First Time User Experience). Ao configurar a primeira rota do app, a tela de parametrização "Detalhes da rota" (que contém configurações gerais de partida/chegada e pausas) é exibida. Manter a opção "Salvar como padrão" ativada (comportamento padrão) persistirá essas preferências globalmente. Nas rotas criadas subsequentemente, a tela é pulada automaticamente, direcionando o usuário diretamente ao mapa ativo com a rota gerada.
+Confirmado empiricamente que, após a primeira rota, clicar em uma rota no menu principal abre imediatamente o Bottom Sheet de paradas (título "terça-feira Rota 4") no contexto do mapa, sem nenhuma tela intermediária de "Detalhes da rota" ou permissão de edição global da rota (partida/chegada).
+
+*Comandos executados (equivalência em Maestro YAML):*
+```yaml
+appId: com.underwood.route_optimiser
+---
+- tapOn: "terça-feira Rota 4"
+```
 
 **Decisão RotPro:**
 Visando máxima eficiência e simplicidade no fluxo de uso do motorista de entrega (evitando fricção na criação de rotas cotidianas), a tela "Detalhes da rota" será **pulada inteiramente** no wizard de criação de rota do Slice 2. Hardcodaremos valores padrão sensatos (como partida/chegada no local atual e sem pausas intermediárias fixas), economizando tempo de desenvolvimento de sub-telas complexas que não agregam valor essencial ao MVP.
@@ -1896,7 +1912,14 @@ Visando máxima eficiência e simplicidade no fluxo de uso do motorista de entre
 ### §13.C.3 — ✅ RESOLVIDA: "Instruções de acesso" tap não abriu (§11.1) — UI real desconhecida
 
 **Descoberta Empírica (Audit 2026-05-27):**
-Foi confirmado um bug na versão inspecionada do Spoke (v3.65.1). Ao interagir com o elemento correspondente de coordenadas `(296, 638)`, o clique é registrado com sucesso pelo sistema de acessibilidade, mas nenhuma ação visual é disparada, impossibilitando a exibição da UI nativa do Spoke para esta função.
+Interação executada com sucesso. Ao clicar no botão "Instruções de acesso" no bottom sheet de "Editar parada", o Spoke abre **um segundo Bottom Sheet** sobreposto, cujo título é "Instruções de acesso". Este novo sheet contém um `TextField` multiline com o hint "Adicionar instruções" e aciona o teclado imediatamente.
+
+*Comandos executados (equivalência em Maestro YAML):*
+```yaml
+appId: com.underwood.route_optimiser
+---
+- tapOn: "Instruções de acesso"
+```
 
 **Decisão RotPro:**
 Dado o bug no app de referência, a equipe da Roteirizador Pro definiu a especificação de interface de forma autônoma e aderente aos requisitos funcionais descritos na documentação geral:
