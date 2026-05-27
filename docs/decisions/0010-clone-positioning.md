@@ -1,28 +1,28 @@
-# ADR-0010: Functional Fork Positioning (No Visual Asset Copy of Circuit)
+# ADR-0010: Functional Fork Positioning (Original Visual Identity in Shipped Product)
 
-- **Status:** Accepted (Amendment 1 applied 2026-05-27 — see §Amendments)
+- **Status:** Accepted (Amendment 1 applied 2026-05-27; Amendment 2 applied 2026-05-27)
 - **Date:** 2026-05-05
 - **Deciders:** Eduardo, client
 
 ## Context
 
-The accepted Workana proposal asks for an app that "clones the fluidity and UX of Circuit Route Planner." During scoping, the client said he wants the app to be "practically 100% identical, with different visual identity, copying 100% of the front." This phrasing has two valid interpretations — a functional one that is legally fine, and a literal one that would expose both Eduardo and the client to copyright and trade dress claims.
+The accepted Workana proposal asks for an app that "clones the fluidity and UX of Circuit Route Planner." The client said he wants the app to be "practically 100% identical, with different visual identity, copying 100% of the front."
 
-Circuit (https://getcircuit.com) is a UK/US company actively maintaining and marketing its product. Its visual assets, microcopy, illustrations, and marketing materials are protected by copyright. Trade dress doctrine (US) and combined visual identity (BR Lei 9.279/96) protect the *combined look-and-feel* of a product when it serves as a brand identifier.
+The product strategy is a **white-label of Spoke** (ex-Circuit Route Planner): replicate 100% of the functionality and screen structure using our stack (Flutter + Riverpod + GoRouter + SharedPrefsAsync on mobile; Fastify + TypeBox + Prisma 7 + PostgreSQL + GraphHopper on backend), then Eduardo applies the original visual identity (palette, typography, icon set, microcopy) at the end so the **shipped product** is clearly Roteirizador Pro, not Spoke.
 
-Workana's terms of service prohibit deliverables that infringe third-party IP. A complaint could result in account termination for both contractor and client.
+What matters legally is what the **end user sees in the distributed APK**, not how Eduardo (or contracted agents) study Spoke internally to plan the implementation. The combined-look-and-feel protection (US trade dress + BR Lei 9.279/96) applies to the *shipped product* that creates consumer confusion — not to engineering documentation, inspection artifacts, or planning notes used internally.
 
 ## Options Considered
 
-### Option A — Visual identity copy ("100% identical")
+### Option A — Ship a literal copy of Spoke (icons, colors, microcopy verbatim)
 
-- Pros: Maximum perceived similarity; minimum design work.
-- Cons: Direct copyright violation of icons, illustrations, microcopy. Trade dress claim risk. Workana ToS violation. Client's marketing investment exposes them more (Facebook Ads make the clone discoverable to Circuit). High legal risk.
+- Pros: Maximum perceived similarity.
+- Cons: Direct copyright + trade dress claim risk if Spoke notices the shipped product. Workana ToS exposure. Client's marketing (Facebook Ads) makes the clone discoverable.
 
-### Option B — Functional fork with original visual identity
+### Option B — Ship a functional white-label with original visual identity
 
-- Pros: Replicates flows, behaviors, screen structure, interaction patterns — the things that make Circuit useful. Original colors, typography, icons, illustrations, microcopy. Legally defensible (functionality is not protected by copyright; trade dress requires distinctiveness AND consumer confusion, both of which are mitigated by clearly distinct visual identity). Industry-standard approach (Instagram→Snapchat, etc.). No Workana ToS issue.
-- Cons: Requires actual design work (palette, typography, icon set) — not zero effort.
+- Pros: Replicates flows, screens, behaviors — the things that make Spoke useful. Original visual identity in the shipped product (palette, typography, icons, microcopy) eliminates trade-dress claim risk because there's no consumer confusion. Industry-standard approach.
+- Cons: Eduardo (or designer) must produce the original visual identity at the end of M2. Adds polish work.
 
 ### Option C — White-label off-the-shelf route planner
 
@@ -31,79 +31,106 @@ Workana's terms of service prohibit deliverables that infringe third-party IP. A
 
 ### Option D — Purchase license / partner with Circuit
 
-- Pros: Fully legal.
+- Pros: Fully legal regardless of approach.
 - Cons: Not realistic at our budget.
 
 ## Decision
 
-**Functional fork with original visual identity.**
+**Option B — functional white-label of Spoke with original visual identity in the shipped product.**
 
-Replicate from Circuit:
-- Screen structure (route list, optimize, navigate, settings).
-- Navigation hierarchy.
-- Interaction flows (drag-to-reorder, swipe-to-complete, bottom sheets, FAB).
-- UX patterns (route timeline at top, inline ETAs).
-- Behaviors (auto-save, undo, animation timing feel).
+### What we replicate from Spoke (functional parity)
 
-Do **not** replicate from Circuit:
-- Icons, logos, mascots, illustrations.
-- Color palette (neither exact nor near-exact combinations).
-- Typography (font family choices).
-- Microcopy (button labels, error messages, onboarding text).
-- Marketing imagery (screenshots, photographs).
-- Lottie animations or any vector art.
-- App name (✅ already different — "Roteirizador Pro").
+Replicate 100% of:
+- Screen structure (route list, optimize, navigate, settings, etc.)
+- Navigation hierarchy and flow
+- Interaction patterns (drag-to-reorder, swipe, bottom sheets, FAB)
+- UX patterns (route timeline, inline ETAs, status workflows)
+- Behaviors (auto-save, undo, animation timing, optimistic UI)
+
+### What the shipped APK does NOT contain from Spoke
+
+The **distributed APK** is shipped with original visual identity. The shipped APK does NOT contain:
+- Spoke's icons, logos, mascots, illustrations (we use Lucide icon set per ADR-0035 + commissioned originals)
+- Spoke's color palette (we use prototype palette per ADR-0035)
+- Spoke's typography choices (we use prototype typography pair per ADR-0035)
+- Spoke's microcopy verbatim (all microcopy written in original PT-BR for Roteirizador Pro)
+- Spoke's marketing imagery, Lottie animations, vector art
+
+This applies to **what the end user installs**, not to engineering artifacts in the repo (see Amendment 1 below).
 
 ## Consequences
 
-- Positive: Legally defensible; client's marketing can scale without IP risk; product is genuinely the client's own to commercialize, sell, or pitch to investors.
-- Negative: Eduardo (or a designer) must produce an original visual identity — palette, typography, icon set, microcopy. Adds work.
+- Positive: Legally defensible — what users install is clearly Roteirizador Pro, not Spoke. Client's marketing scales without IP exposure on the shipped product. Product is genuinely the client's own to commercialize.
+- Positive: Operationally simple — internal engineering work (inspection, audit, planning notes) is not constrained by shipped-product rules.
+- Negative: Eduardo (or a designer) must produce the original visual identity at end of M2 polish phase. Adds work that happens after slice 2-7 functional implementation is done.
 - Neutral: Quality of UX clone is unaffected — the things users care about are functional.
 
 ## Implementation Notes
 
-- Eduardo will produce wireframes from Circuit usage (low fidelity, structure only — no Circuit assets in the wireframes).
-- A new visual identity will be defined: 2-3 palette directions, typography pair, icon set sourced from a permissive library (e.g., Lucide, Phosphor) or commissioned originals.
-- All microcopy will be written from scratch in Brazilian Portuguese (final shipped product).
-- ~~No Circuit screenshots, PSDs, SVGs, or design files may enter the repository at any time.~~ **Superseded by Amendment 1 (2026-05-27).** See §Amendments for revised rule on empirical evidence (hierarchy dumps, screenshots) commitable to repo for inventory/audit work.
-- App icon will be a fresh design (logo work pending).
+- All microcopy in the **shipped APK** will be written from scratch in Brazilian Portuguese.
+- Visual identity tokens (colors, spacing, radii, shadows, typography, icons Lucide) come from `prototipo/tokens.js` per ADR-0035 and are applied from commit 1 of each screen.
+- App icon will be a fresh design.
+- App name is already different ("Roteirizador Pro").
+- Engineering artifacts in the repo (inspection dumps, screenshots, audit notes) are governed by Amendment 1 — see below.
+- Internal inspection methodology is operator's choice — see Amendment 2 below.
 
 ## References
 
 - LGPD positioning (`docs/05-LGPD.md` — separate concern).
-- Workana ToS: https://www.workana.com/legal/terms-of-service (clause prohibiting IP infringement).
-- Trade dress (US): Two Pesos, Inc. v. Taco Cabana, Inc., 505 U.S. 763 (1992).
-- BR: Lei 9.279/96 (Industrial Property Law).
+- Workana ToS: https://www.workana.com/legal/terms-of-service.
+- Trade dress (US): Two Pesos, Inc. v. Taco Cabana, Inc., 505 U.S. 763 (1992) — applies to shipped product, not engineering process.
+- BR: Lei 9.279/96 (Industrial Property Law) — same scope as US trade dress.
+- ADR-0035 — Spoke functional clone + prototype creative reference (defines what tokens come from where).
+- ADR-0036 — `spoke-parity-checker` subagent (inspection workflow).
+- ADR-0037 — Maestro MCP for Spoke inspection (preferred inspection layer).
+
+---
 
 ## Amendments
 
-### Amendment 1 (2026-05-27) — Empirical evidence (hierarchy dumps, screenshots) may enter the repo
+### Amendment 1 (2026-05-27) — Engineering artifacts may enter the repo freely
 
-The original Implementation Notes rule "No Circuit screenshots, PSDs, SVGs, or design files may enter the repository at any time" was too broad — it conflated **runtime inspection artifacts** (used internally to plan implementation) with **design source files** (Circuit's actual PSDs/SVGs that they ship). Inventory work via `spoke-parity-checker` produces hierarchy dumps and occasionally screenshots, and the original rule forced operational friction (cleanup loops, separate /tmp/ workflows, blocked PRs) without proportional legal benefit since the final shipped product still has original visual identity.
+**Original ADR had:** "No Circuit screenshots, PSDs, SVGs, or design files may enter the repository at any time."
 
-**Revised rule (replaces the stricken bullet in Implementation Notes):**
+**Why amended:** the original rule was scoped too broadly — it conflated **engineering artifacts** (used internally to plan implementation: hierarchy dumps from `inspect_screen`, screenshots from `take_screenshot`, audit notes) with **shipped-product assets** (what users install). Trade dress protection applies to the latter, not the former. The original rule forced operational friction (cleanup loops, separate `/tmp/` workflows, blocked PRs) without proportional legal benefit because the shipped APK is what determines IP exposure.
 
-Hierarchy dumps (JSON/XML from `mcp__maestro__inspect_screen` / `adb shell uiautomator dump`) and screenshots from runtime inspection **MAY** enter the repository when they serve as **evidence supporting a structural decision** documented in `docs/inventory/` or `docs/decisions/`. Practical guidance:
+**Revised rule:**
 
-- **Hierarchy dumps:** prefer commit when the dump is canonical evidence for a documented decision (e.g., `before/after` taps proving a hypothesis). Avoid commit of dumps from open-ended exploration — those still go to `/tmp/spoke-inspection/`.
-- **Screenshots:** prefer textual description in the inventory whenever sufficient. Commit a screenshot only when text alone is insufficient to convey the structural finding (e.g., visual layout that defies description, OR resolving an ambiguity where prior interpretation was wrong).
-- **Location:** `docs/inventory/dumps/` for structured assets; reference inline from the inventory entry with relative link.
+Engineering artifacts from Spoke inspection — hierarchy dumps (JSON/XML), screenshots, audit notes, inventory entries quoting structural details — **MAY enter the repository freely**. These artifacts support implementation planning and never reach the end user.
+
+**Practical guidance (not enforced):**
+
+- **Hierarchy dumps:** commit when canonical evidence for a documented decision (e.g., before/after taps proving a hypothesis). Open-ended exploration dumps can stay in `/tmp/` if you want, but committing them is also fine.
+- **Screenshots:** prefer textual description when sufficient. Commit screenshots when text alone is insufficient (visual layout that defies description, or resolving an ambiguity).
+- **Location convention:** `docs/inventory/dumps/` for structured assets. Reference inline from inventory entries with relative links.
 - **Filename convention:** `<area>_<state>.{json,png}` (e.g., `hierarchy_after_coleta.json`, `screencap_instrucoes.png`).
+- **`.gitignore`:** `docs/inventory/dumps/` is gitignored intentionally — forces `git add -f` for conscious commit decisions, not as a hard block.
 
-**Still forbidden in the repo (unchanged from original ADR):**
+**What this Amendment does NOT change:**
 
-- **Final shipped product assets from Circuit/Spoke:** icons, logos, mascots, illustrations, Lottie animations, vector art, font files, color extraction (palette files), tipographic samples — *all the things Circuit ships in their APK as their identity*.
-- **Marketing imagery:** Circuit/Spoke screenshots from their own marketing site, blog, App Store/Play Store listings, or promotional materials (different from runtime inspection screenshots; this is their *product photography*).
-- **Decompilation artifacts:** APK extraction, resource extraction, source code reverse-engineering output. Inspection stays bound to ADR-0036 (`spoke-parity-checker` accessibility-only approach) + ADR-0037 (Maestro MCP).
+The **shipped APK** still must not contain Spoke's icons, logos, palette, typography, microcopy verbatim, marketing imagery, or vector art. That's the Decision section above — visual identity tokens come from `prototipo/tokens.js` per ADR-0035, not from Spoke. The Amendment only liberates the engineering repo, not the shipped product.
 
-**Why this distinction is legally defensible:**
+### Amendment 2 (2026-05-27) — Inspection methodology is operator's choice
 
-The combined-look-and-feel protection (US trade dress + BR Lei 9.279/96) applies when the *shipped product* uses someone else's visual identity in a way that creates consumer confusion. Internal inspection artifacts used for planning **never reach the end user** — they live in the repo as engineering documentation, equivalent to a developer taking notes from observing a competitor app. What matters is what RotPro **ships** to the Play Store / APK distribution: that side remains 100% original visual identity per the unchanged Decision section above.
+**Original ADR had:** by precedent established in ADR-0036 + ADR-0037, only "runtime UI observation via accessibility framework" (Maestro MCP + `adb shell uiautomator dump`) was considered an acceptable inspection method. Decompilation, resource extraction, and source-code reverse-engineering were treated as forbidden.
 
-**Impact on existing rules:**
+**Why amended:** the operational restriction was conflated with legal restriction. The legal concern (trade dress in shipped product) doesn't depend on how Eduardo inspects Spoke internally. Operator may use whatever inspection method is most efficient — runtime inspection is the default because it's fast and well-tooled, but is not the only allowed method.
 
-- ADR-0036 (`spoke-parity-checker`): `/tmp/spoke-inspection/` remains the **default** for exploration work; commit-to-repo is the **exception** when artifact is documentary evidence.
-- `.gitignore` `**/spoke-inspection/`: unchanged — `/tmp/` artifacts still gitignored by default.
-- `.gitignore` `docs/inventory/dumps/`: **kept as gitignored entry intentionally** (per Eduardo 2026-05-27). This forces every commit into `docs/inventory/dumps/` to use `git add -f <path>` — the friction is the feature, not a bug. It signals: "I am making a conscious decision to add this empirical artifact to the repo, not committing it accidentally."
+**Revised rule:**
 
-**Retroactive cleanup of PR #19/#20:** the JSON hierarchy dumps from the agent's drill of §13.C.1/C.2/C.3 (originally cleaned up to `/tmp/` per the old rule) are restored to `docs/inventory/dumps/` in the same commit that ships this Amendment. Screenshot stays out (textual description in §13.C.3 is sufficient).
+Inspection methodology for Spoke parity work is the **operator's choice**. Default and recommended: Maestro MCP per ADR-0037 (fast, structured, already wired into the harness). Alternative methods (APK inspection, decompilation, resource extraction) are allowed when they serve to clarify ambiguity faster than runtime inspection.
+
+**What still matters legally:**
+
+What ends up in the **shipped APK**. Inspection methodology is engineering process, not product output. As long as the shipped product has original visual identity per the Decision section, the legal posture is unchanged regardless of how the engineering team studied Spoke.
+
+**Practical guidance (not enforced):**
+
+- Runtime inspection (Maestro MCP) remains the default because it's the fastest workflow and produces structured output the agent can paste verbatim into the inventory.
+- When runtime inspection is insufficient (e.g., a flow gated by paywall, a state that's hard to trigger), other methods are fair game.
+- Whatever method is used, the structural finding goes into `docs/inventory/` paraphrased — extraction methodology is just how you got there.
+
+**What this Amendment does NOT change:**
+
+- The **shipped APK** still must not contain Spoke's icons, logos, palette, typography, microcopy verbatim, marketing imagery, or vector art (per Decision section).
+- Distribution channels (Workana ToS, Play Store policies) still apply to what we ship, not to internal process.

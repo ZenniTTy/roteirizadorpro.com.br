@@ -4,7 +4,7 @@
 > **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1. **Fase inicial (§1-§9):** uiautomator dump + screencap bash workflow. **Fase B (§10-§11):** Maestro MCP `inspect_screen` + `take_screenshot` + `run` via tap automation, per ADR-0037. **Audit (§12-§13):** cross-check sistemático com docs oficiais Spoke via 8 WebSearches em help.spoke.com + spoke.com/route-planner + spoke.com/dispatch.
 > **Driver:** [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke é o guia funcional, prototipo é referência criativa, cliente Ueslei é desempate
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
-> **Disclaimer legal:** este inventário descreve funcionalidades, navegação e estrutura de UX para fins de paridade funcional (per [ADR-0010](../decisions/0010-clone-positioning.md) — "functional fork with original visual identity"). Não reproduz microcopy verbatim, ícones, ilustrações, paletas, ou tipografia da Spoke. Screenshots de inspeção vivem apenas em `/tmp/spoke-inspection/` e NÃO são commitados.
+> **Sobre escopo:** este inventário é **engineering documentation** que descreve funcionalidades, navegação e estrutura UX da Spoke pra guiar implementação. Quotes Spoke aparecem livremente aqui (engenharia, não shipped product). O que rege legalmente é apenas o **shipped APK** ter identidade visual original per [ADR-0010](../decisions/0010-clone-positioning.md) Decision section + [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (Lucide icons, prototipo tokens, original PT-BR microcopy). Engineering artifacts (este inventário, hierarchy dumps em `docs/inventory/dumps/`, screenshots) podem entrar no repo livremente per ADR-0010 Amendment 1.
 
 ---
 
@@ -345,7 +345,7 @@ Eduardo locked the scope on 2026-05-26 with 7 directives + 3 answers. Strategy: 
 10. **Intercom, Bugsnag/Sentry, Android Auto** — fora (MVP enxuto, infra cara descartada)
 11. **Estimativa real documentada, sem maquiar** — Eduardo decide se renegocia com Workana
 12. **Quando houver qualquer dúvida estrutural/funcional, validar inspecionando o Spoke e seguir a estrutura observada** (com nossa identidade visual). Codificada via ADR-0036 amendment 2026-05-26 (dispatch upfront do `spoke-parity-checker` durante brainstorming). Aplica-se a slices 2 + 3; slices 4/5/6/7 ficam fora porque não têm equivalente Spoke. Adicionada 2026-05-26 durante MS-A1 brainstorming Q10, depois que Eduardo redirecionou "se tiver qualquer dúvida, valide usando o SPOKE, e siga como está lá".
-13. **Objetivo M2 = white-label da Spoke com nossa stack — 100% idêntico funcionalmente AGORA, ajuste de UI fica pro final**. Não inventar arquitetura, não inventar UX, não criar opções. Tudo o que existe na Spoke (flow, tela, gesto, settings, comportamento) deve existir igual na RotPro, adequado à stack Flutter+Riverpod+GoRouter+SharedPrefsAsync. Adicionada 2026-05-26 durante MS-A1 design review, depois que Eduardo redirecionou "tudo está ficando tão complexo. Meu objetivo simplesmente é esse: trazer tudo igual, depois eu ajusto UI." **Implicação prática:** brainstorming agora só pergunta sobre (a) decisões que Spoke não cobre (migração de dados, features RotPro originais), (b) microcopy PT-BR (per legal boundary não copiamos Spoke), (c) confirmação de inspeção (M54 conectado, Spoke logado). NÃO perguntar mais "Opção A/B/C arquitetural" — Spoke decide; se Spoke ambíguo, dispatch o subagent.
+13. **Objetivo M2 = white-label da Spoke com nossa stack — 100% idêntico funcionalmente AGORA, ajuste de UI fica pro final**. Não inventar arquitetura, não inventar UX, não criar opções. Tudo o que existe na Spoke (flow, tela, gesto, settings, comportamento) deve existir igual na RotPro, adequado à stack Flutter+Riverpod+GoRouter+SharedPrefsAsync. Adicionada 2026-05-26 durante MS-A1 design review, depois que Eduardo redirecionou "tudo está ficando tão complexo. Meu objetivo simplesmente é esse: trazer tudo igual, depois eu ajusto UI." **Implicação prática:** brainstorming agora só pergunta sobre (a) decisões que Spoke não cobre (migração de dados, features RotPro originais), (b) microcopy PT-BR final pro shipped APK (per ADR-0035 — RotPro tem PT-BR original; durante slice 2 pode ficar paraphrase Spoke como placeholder), (c) confirmação de inspeção (M54 conectado, Spoke logado). NÃO perguntar mais "Opção A/B/C arquitetural" — Spoke decide; se Spoke ambíguo, dispatch o subagent.
 
 ### 7.2 — Replicar (em escopo M2)
 
@@ -526,7 +526,7 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 
 > **Source:** `mcp__maestro__inspect_screen` / `mcp__maestro__run` no M54 (`RQCW401G33T`). Fonte preferida per ADR-0037; substitui bash + `uiautomator dump` como mecanismo primário.
 > **Escopo:** este § apenda **só fatos estruturais ainda NÃO capturados nas §§3/5/6**. Quando uma sub-seção repetiria material já em §6.x, ela é omitida ou reduzida a "ver §6.X" + delta novo.
-> **Disclaimer ADR-0010 mantido:** dumps abaixo são reduzidos pra hierarquia + IDs + bounds + content-desc. Microcopy verbatim >5 palavras consecutivas é parafraseado ou omitido.
+> **Sobre os dumps abaixo:** redução pra hierarquia + IDs + bounds + content-desc é por concisão (legibilidade), não obrigação. Per ADR-0010 Amendment 1, este inventário pode quotar Spoke livremente — o que rege legalmente é o shipped APK ter identidade visual original (ADR-0035).
 
 ### 10.1 — Drawer aberto (delta sobre §6.2)
 
@@ -1445,7 +1445,7 @@ Scaffold(
    - Nominatim retorna esses fields separados no JSON `address` (tipo `address.road`, `address.suburb`, `address.city`, `address.postcode`)
    - **Localization considerada:** `address.city_district` vs `address.suburb` vs `address.neighbourhood` — Spoke aparentemente usa o mais granular disponível ("Subsetor Leste, 2 (L-2)" é nível de subsetor administrativo de Ribeirão Preto, retornado por Nominatim como `address.suburb` ou `address.neighbourhood`).
 
-4. **Implicação pra ADR-0010 (legal boundary):** nenhuma — Spoke usa o mesmo Nominatim/Google Geocoding API que o RotPro vai usar. Não é decompile de Spoke, é uso de mesma fonte upstream.
+4. **Implicação pra ADR-0010 (shipped product):** nenhuma — Spoke usa o mesmo Nominatim/Google Geocoding API que o RotPro vai usar. Strings de endereço vêm de upstream comum (geocoder), não são propriedade Spoke.
 
 5. **Implicação pra inventário inteiro:** **toda string de endereço citada nesta §10 é exemplo de output observado pra dados específicos do Eduardo, NÃO é spec de copy.** Inventory entries que citam endereços (ex: §10.5 "Rua Franca", §10.6 título da Editar parada, §10.13 título no modo delivery, §10.18 "R. José da Silva, 713 Jardim Paulista") devem ser lidas como ilustrações estruturais, com a string real vindo do geocoder em runtime.
 

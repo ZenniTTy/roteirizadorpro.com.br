@@ -40,14 +40,14 @@ Per [ADR-0037](../decisions/0037-maestro-mcp-for-spoke-inspection.md), Maestro C
 
 Se algum desses falhar, consultar ADR-0037 + `MAESTRO_CLI_NO_ANALYTICS=1 maestro doctor`.
 
-### Disclaimers legais (NÃO violar)
+### Regras de escopo (per ADR-0010 Amendments 1+2)
 
-Per ADR-0010:
-- ✅ **Permitido:** descrever estrutura (hierarquia, classes Android, bounds, content-description, IDs de recurso, gestos inferíveis), número/ordem de elementos, fluxos de navegação
-- ❌ **Proibido:** copiar microcopy verbatim da Spoke (>5 palavras consecutivas) pro inventário ou roadmap
-- ❌ **Proibido:** copiar ícones, ilustrações, paleta, tipografia
-- ❌ **Proibido:** decompilar APK, extrair recursos
-- ❌ **Proibido:** commit de screenshots (vive só em `/tmp/spoke-inspection/`, gitignored per ADR-0036)
+O que rege legalmente é o **shipped APK** (o que o user instala), não o engineering process. Detalhe:
+
+- ✅ **Permitido no shipped APK** (e portanto orientação pra implementação): RotPro tem identidade visual original — Lucide icons + prototipo tokens + original PT-BR microcopy per ADR-0035
+- ✅ **Permitido nos engineering artifacts** (este handoff, inventário, dumps, screenshots): quote livre, hierarchy dumps no repo, screenshots no repo se ajudar
+- ✅ **Inspection methodology é escolha do operator** per ADR-0010 Amendment 2: Maestro MCP é o default (mais rápido), mas APK inspection / decompilation / etc. são fair game se forem mais eficientes pra resolver ambiguidade
+- ❌ **Proibido no shipped APK**: Spoke icons/illustrations/palette/typography/microcopy verbatim — o usuário não pode achar que está usando Spoke quando instala RotPro
 
 ### Autorização pré-concedida pelo Eduardo
 
@@ -473,12 +473,10 @@ mcp__maestro__run com:
 ## 7 — O que NÃO fazer nesta sessão
 
 - ❌ Implementar código RotPro (não é o objetivo; objetivo é resolver bloqueios do inventário)
-- ❌ Commitar screenshots (gitignored em `/tmp/spoke-inspection/`)
-- ❌ Copiar microcopy verbatim >5 palavras da Spoke (paraphrase only)
-- ❌ Decompilar APK / inspecionar recursos (só runtime UI state)
 - ❌ Pushar direto pra `develop` (sempre branch + PR)
 - ❌ Resolver §13.C.4/C.5 (menores; oportunisticamente quando chegar nas áreas)
 - ❌ Mexer em `docs/decisions/` ou `apps/` (out of scope)
+- ❌ Confundir engineering process com shipped product (per ADR-0010 Amendments 1+2 — extração, dumps, screenshots tudo OK no repo; o que importa é o APK que o user instala usar identidade visual original)
 
 ---
 
@@ -487,7 +485,7 @@ mcp__maestro__run com:
 - `docs/inventory/2026-05-26-spoke-vs-rotpro.md` — inventário Spoke completo (1684+ linhas; §13 é onde os bloqueios estão listados)
 - `docs/08-ROADMAP-v2.md` — roadmap atual (PR #18 reescrita ainda em revisão; ler versão de develop OU do PR)
 - `docs/BUSINESS-RULES.md` — modelo de monetização canônico (single paid tier R$ 25,90/30 dias)
-- [ADR-0010](../decisions/0010-clone-positioning.md) — clone positioning (legal boundary)
+- [ADR-0010](../decisions/0010-clone-positioning.md) — clone positioning (applies to shipped product; Amendments 1+2 liberam engineering process)
 - [ADR-0030](../decisions/0030-stripe-pix-30-day-access-pass.md) — Stripe Pix paywall
 - [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke = canonical funcional
 - [ADR-0036](../decisions/0036-spoke-parity-checker-functional-gate.md) — spoke-parity-checker subagent
