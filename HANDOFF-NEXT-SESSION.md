@@ -8,10 +8,11 @@
 ## Onde estamos (2026-05-27 fim de sessão)
 
 - **Branch ativa:** `feat/m2-slice-2-area-2-drawer` (saiu de `develop`).
-- **Não foi mergeada ainda.** A branch contém 3 commits da Área 2:
+- **Não foi mergeada ainda.** A branch contém 4 commits:
   - `780023e feat(mobile): drawer lateral (Área 2, tela 1) — white-label Spoke`
   - `bb2fe58 feat(mobile): popup 3-dot da rota (Área 2, tela 2) — kebab actions`
-  - `<próximo SHA> fix(mobile): audit follow-up — logout reachable + error states + perf`
+  - `4048411 fix(mobile): drawer audit follow-up — logout, error states, perf`
+  - `fc2ad50 chore(antigravity): frontmatter triggers + list formatting on .agent/rules/`
 - **36/36 testes verde**, `flutter analyze --no-pub` clean, APK debug
   instalado no Samsung M54 (`RQCW401G33T`) apontando pra prod API
   (`https://api.roteirizadorpro.com.br`).
