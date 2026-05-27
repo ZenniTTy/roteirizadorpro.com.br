@@ -547,6 +547,15 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 - **Card de perfil clickable inteiro** (`[46,261][921,441]`) — tap navega pra tela de account (não inspecionada nesta passada). Bounds dos textos: nome `[260,271][668,329]` (height 58 ≈ 18sp), email `[260,329][757,377]` (height 48 ≈ 14sp), plano `[260,383][498,431]`.
 - **Avatar do usuário:** bounds `[46,261][226,441]` (180×180px, ~9% da largura). É um ImageView circular (renderizado como View no dump — provavelmente Compose AsyncImage).
 
+**Amendments 2026-05-27 (D1 parity-check pré-implementação RotPro drawer):**
+- **Botão "Assinar" é condicional ao status de assinatura.** Não aparece pra usuário com assinatura ativa (Standard). Estruturalmente, quando ausente, o espaço entre profile card (y=441) e primeira seção de rotas (y=554) é padding vazio de ~113px. Implementação: `Visibility(visible: !user.hasActiveSubscription)`.
+- **Help icon NÃO abre tela.** Abre `PopupMenu` dropdown com 2 itens: "Ajuda e suporte" (→ Intercom in-app chat widget) + "Compartilhar feedback" (não inspecionado nesta passada).
+- **Settings icon abre tela "Configurações" completa** (Área 10 do ROADMAP-v2) — 3 sections + Sair. Título "Configurações" centralizado na top bar.
+- **Swipe-from-left-edge NÃO abre o drawer.** Testado 3 velocidades; nenhuma abre. Em Spoke v3.65.1 o drawer só abre via tap no hamburger. Implementação RotPro: `Scaffold(drawerEnableOpenDragGesture: false)`.
+- **Active route = rota cujo sheet está visível por trás do drawer** (não "última acessada" persistida). Indicador puramente visual via `TextStyle(color: ...)` condicional, sem atributo `selected`/`checked` na a11y tree. Implementação: estado reativo `activeRouteIdProvider`.
+- **Profile card tap não-confirmado funcional em v3.65.1 com conta Standard ativa** — 14 tentativas de tap em diferentes coordenadas dentro de `[46,261][921,441]` não produziram navegação observável, apesar do card ser `clickable=true`. Possíveis hipóteses: navegação só pra non-subscriber (upsell), destino é tela de assinatura já acessível via Settings, ou ação não-implementada em v3.65.1. RotPro decision: implementar `onTap` apontando pra tela de perfil stub; conectar a flow real quando paywall (Slice 4) ficar pronto.
+- **Hamburger fica no `stepListHeader` da rota ativa, não em AppBar separada.** Bounds observados: `[79,171][147,239]` (~24dp icon dentro de container ~48dp tappable). Implementação RotPro: `IconButton` no header do sheet do route shell, à esquerda do TextField "Toque para adicionar".
+
 **Hierarquia compactada (delta):**
 ```
 nav_host (FrameLayout)
@@ -1662,21 +1671,27 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 
 **Inspecionado:** 2026-05-26 via Maestro MCP
 
-**Achados delta:**
+**Achados delta (revisados 2026-05-27 — D1 parity-check):**
 
-- Drawer agrupa rotas em **3 períodos** (não-fixos, dinâmicos por data):
+- Drawer agrupa rotas em **4 períodos** (não 3 como originalmente documentado; correção pós-inspeção 2026-05-27), dinâmicos por data:
   - "Próximas rotas" (data > hoje) — ex: "27 de mai. quarta-feira"
   - "Hoje" (data == hoje) — todas as rotas do dia (incluindo recém-concluídas com badge "1 parada perdida")
-  - "Início deste mês" (semana anterior) — ex: "18 de mai. Segunda-Feira"
-- Cada item: data (esq) + nome opcional (centro, ex: "terça-feira Rota 3") + kebab 3-dot (dir)
-- Header user: foto + "Eduardo Rodrigues" + "eduardoteishoku@gmail.com" + "Standard • Renova-se em ter. 09 de jun."
+  - **"Início desta semana"** (data está na semana corrente mas é anterior a hoje, ex: hoje qua, rotas de seg/ter aparecem aqui)
+  - "Início deste mês" (data está no mês corrente mas fora da semana corrente)
+- **Sort entre buckets:** ordem fixa top→bottom: Próximas → Hoje → Início desta semana → Início deste mês.
+- **Sort interno de cada bucket:** rotas mais recentes primeiro (descendente por data; rotas do mesmo dia agrupadas).
+- Cada item: data abreviada (esq) + nome opcional (centro, ex: "terça-feira Rota 3") + kebab 3-dot (dir)
+- Header user: foto + "Eduardo Rodrigues" + "eduardoteishoku@gmail.com" + "Standard • Renova-se em ter. 09 de jun." (linha plano só pra assinante ativo)
 - CTAs topo: Ajuda e suporte (?) + Configurações (⚙️)
 - CTA rodapé fixo: "Criar rota" full-width
 
 **Implicação pro RotPro:**
-- Agrupador dinâmico: function `groupRoutesByPeriod(routes)` → Map<String, List<Route>> com keys "Próximas", "Hoje", "Início deste mês" (calcular semanas)
-- Header: avatar do user + nome + email + linha de assinatura (slice 4)
-- Settings entry no topo (não no rodapé como o RotPro atual)
+- Agrupador dinâmico: function `groupRoutesByPeriod(routes, now)` → `Map<RoutePeriod, List<Route>>` com 4 keys; ordem do Map é a ordem canônica top→bottom.
+- Header: avatar do user + nome + email + linha de assinatura condicional (slice 4 plumbing).
+- Settings entry no topo (não no rodapé como o RotPro pré-reset tinha).
+- Sort interno descendente por `Route.date` dentro de cada bucket.
+
+**Gap pendente (Eduardo manual):** confirmar empiricamente que "Próximas rotas" aparece NO TOPO da lista. Tentativa via Maestro bloqueou na criação de rota futura na conta real do Eduardo. Workaround: Eduardo cria 1 rota com data > hoje no Spoke, abre drawer, screenshota.
 
 ### 11.7 — Coverage map atualizado pós-§11
 
