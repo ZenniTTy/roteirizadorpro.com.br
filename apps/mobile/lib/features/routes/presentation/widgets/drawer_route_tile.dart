@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/route.dart' as domain;
+import '../../domain/route_action.dart';
+import 'route_kebab_menu.dart';
 
 /// A single row in the drawer route list.
-/// Shows abbreviated date + display name + kebab. Active-state colour is
-/// driven by [activeRouteId] matching [route.id] (Spoke parity §10.1).
+/// Shows abbreviated date + display name + kebab popup menu. Active-state
+/// colour is driven by [activeRouteId] matching [route.id] (Spoke parity
+/// §10.1). Kebab opens [RouteKebabMenu] (Spoke parity §10.2).
 class DrawerRouteTile extends StatelessWidget {
   const DrawerRouteTile({
     super.key,
     required this.route,
     required this.activeRouteId,
     required this.onTap,
-    required this.onKebab,
+    required this.onKebabAction,
   });
 
   final domain.Route route;
   final String? activeRouteId;
   final VoidCallback onTap;
-  final VoidCallback onKebab;
+  final void Function(RouteAction action) onKebabAction;
 
   @override
   Widget build(BuildContext context) {
@@ -54,15 +56,7 @@ class DrawerRouteTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Semantics(
-              label: 'Mais opções',
-              button: true,
-              child: IconButton(
-                icon: const Icon(LucideIcons.ellipsisVertical),
-                color: AppColors.textMuted,
-                onPressed: onKebab,
-              ),
-            ),
+            RouteKebabMenu(onSelected: onKebabAction),
           ],
         ),
       ),

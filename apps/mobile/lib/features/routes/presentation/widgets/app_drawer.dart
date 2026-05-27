@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../domain/route_action.dart';
 import '../../state/active_route_provider.dart';
 import '../../state/current_user_provider.dart';
 import '../../state/routes_provider.dart';
@@ -103,8 +104,8 @@ class AppDrawer extends ConsumerWidget {
                           .setActiveRoute(route.id);
                       Navigator.of(context).pop();
                     },
-                    onRouteKebab: (route) =>
-                        _comingSoon(context, 'Opções da rota'),
+                    onRouteKebabAction: (route, action) =>
+                        _comingSoon(context, _kebabActionLabel(action)),
                   ),
                 ],
               ),
@@ -172,6 +173,12 @@ class AppDrawer extends ConsumerWidget {
       SnackBar(content: Text('$label — em breve')),
     );
   }
+
+  String _kebabActionLabel(RouteAction action) => switch (action) {
+        RouteAction.editMeta => 'Definir nome e data',
+        RouteAction.duplicate => 'Duplicar rota',
+        RouteAction.delete => 'Excluir rota',
+      };
 }
 
 class _TopActions extends StatelessWidget {

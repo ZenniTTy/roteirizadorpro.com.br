@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/widgets/drawer_route_tile.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/route_kebab_menu.dart';
 
 Widget _wrap(Widget child) => MaterialApp(
       theme: AppTheme.light(),
@@ -26,7 +27,7 @@ void main() {
           route: _route('r1'),
           activeRouteId: null, // no active route
           onTap: () {},
-          onKebab: () {},
+          onKebabAction: (_) {},
         ),
       ),
     );
@@ -43,7 +44,7 @@ void main() {
           route: _route('r2'),
           activeRouteId: 'r2', // this tile is active
           onTap: () {},
-          onKebab: () {},
+          onKebabAction: (_) {},
         ),
       ),
     );
@@ -59,7 +60,7 @@ void main() {
           route: _route('r3'),
           activeRouteId: null,
           onTap: () {},
-          onKebab: () {},
+          onKebabAction: (_) {},
         ),
       ),
     );
@@ -75,6 +76,21 @@ void main() {
     );
   });
 
+  testWidgets('kebab is rendered as a RouteKebabMenu widget', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        DrawerRouteTile(
+          route: _route('r5'),
+          activeRouteId: null,
+          onTap: () {},
+          onKebabAction: (_) {},
+        ),
+      ),
+    );
+
+    expect(find.byType(RouteKebabMenu), findsOneWidget);
+  });
+
   testWidgets('abbreviated date is rendered', (tester) async {
     // Route date: 2026-05-27 → expect some abbreviated form like "27 de mai."
     await tester.pumpWidget(
@@ -83,7 +99,7 @@ void main() {
           route: _route('r4'),
           activeRouteId: null,
           onTap: () {},
-          onKebab: () {},
+          onKebabAction: (_) {},
         ),
       ),
     );

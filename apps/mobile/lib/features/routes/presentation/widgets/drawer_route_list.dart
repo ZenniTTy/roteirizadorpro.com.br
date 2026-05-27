@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/group_routes_by_period.dart';
 import '../../domain/route.dart' as domain;
+import '../../domain/route_action.dart';
 import 'drawer_route_tile.dart';
 
 /// Scrollable section of the [AppDrawer] showing routes grouped by period.
@@ -14,13 +15,13 @@ class DrawerRouteList extends StatelessWidget {
     required this.routes,
     required this.activeRouteId,
     required this.onRouteTap,
-    required this.onRouteKebab,
+    required this.onRouteKebabAction,
   });
 
   final List<domain.Route> routes;
   final String? activeRouteId;
   final void Function(domain.Route) onRouteTap;
-  final void Function(domain.Route) onRouteKebab;
+  final void Function(domain.Route, RouteAction) onRouteKebabAction;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +40,7 @@ class DrawerRouteList extends StatelessWidget {
             route: route,
             activeRouteId: activeRouteId,
             onTap: () => onRouteTap(route),
-            onKebab: () => onRouteKebab(route),
+            onKebabAction: (action) => onRouteKebabAction(route, action),
           ),
         );
       }
