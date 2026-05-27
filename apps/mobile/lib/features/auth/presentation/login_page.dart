@@ -158,22 +158,44 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => _showSnack('Recuperação de senha em breve.'),
-                    child: const Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: EdgeInsets.only(right: 4),
-                        child: Text(
-                          'Esqueci minha senha',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w500,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: true, // Sempre ativado conforme nova política
+                            onChanged: (val) {},
+                            activeColor: AppColors.primary,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          const Text(
+                            'Lembrar de mim',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      GestureDetector(
+                        onTap: () => _showSnack('Recuperação de senha em breve.'),
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 4),
+                          child: Text(
+                            'Esqueci minha senha',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   RpButton(
