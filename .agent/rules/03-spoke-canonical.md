@@ -1,3 +1,7 @@
+---
+trigger: glob
+---
+
 <!--
 Activation: Glob (intended) — pattern: apps/mobile/lib/features/**/*.dart, docs/inventory/**, prototipo/**
 Confirm in Antigravity UI: Customizations → Rules → this file → set "Glob" with the pattern above.

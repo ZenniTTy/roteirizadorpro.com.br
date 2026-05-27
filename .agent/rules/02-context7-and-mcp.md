@@ -1,3 +1,7 @@
+---
+trigger: glob
+---
+
 <!--
 Activation: Glob (intended) — pattern: apps/**/*.{ts,tsx,dart,prisma}, package.json, pubspec.yaml
 Confirm in Antigravity UI: Customizations → Rules → this file → set "Glob" with the pattern above.
@@ -39,6 +43,7 @@ Record the chosen path in any Spoke inspection report: `Inspection path: Maestro
 ## MCP servers configured for this repo
 
 See `.mcp.json` in the repo root. Currently:
+
 - `dart` — Dart & Flutter MCP server (ADR-0023)
 - `maestro` — Maestro CLI 2.6 MCP integration (ADR-0037)
 
