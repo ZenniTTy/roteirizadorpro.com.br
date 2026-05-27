@@ -1996,7 +1996,14 @@ PASSO 4: comparar — são fluxos diferentes ou variants?
 | 🟡 Moderada (afetava arquitetura) | 2 (C.2, C.3) | ✅ **RESOLVIDAS 2026-05-27** — C.2: FTUE one-time confirmado empiricamente (rota subsequente vai direto pro Bottom Sheet). C.3: UI revealed — bottom sheet sobreposto com TextField multiline + toggle "Salvar como padrão para este endereço" + CTAs Limpar/Salvar (screenshot validado) |
 | 🟢 Menor (afeta UI detalhe) | 2 (C.4, C.5) | Pendente — drillar no microsprint que tocar a feature |
 
-**Evidência empírica completa:** dumps de hierarquia e screenshot salvos em `/tmp/spoke-inspection/2026-05-27-c1c2c3-evidence/` (gitignored per ADR-0010 + ADR-0036). Não-commitados pra preservar legal boundary; reproduzíveis via protocolos no `docs/handoffs/2026-05-27-spoke-inventory-blocking-fixes.md`.
+**Evidência empírica canônica** (per ADR-0010 Amendment 1, 2026-05-27):
+- [`docs/inventory/dumps/hierarchy_before_taps.json`](./dumps/hierarchy_before_taps.json) — estado inicial Editar parada com 3 controls disabled aparentes
+- [`docs/inventory/dumps/hierarchy_after_coleta.json`](./dumps/hierarchy_after_coleta.json) — após tap "Coleta": inversão estado (parent agora `checked:true`)
+- [`docs/inventory/dumps/hierarchy_after_primeira.json`](./dumps/hierarchy_after_primeira.json) — após tap "Primeira" (Ordem segmented)
+- [`docs/inventory/dumps/hierarchy_after_pacotes.json`](./dumps/hierarchy_after_pacotes.json) — após tap "+" do stepper Pacotes
+- [`docs/inventory/dumps/hierarchy_after_instrucoes.json`](./dumps/hierarchy_after_instrucoes.json) — Bottom sheet sobreposto de "Instruções de acesso" revelado
+
+Reproduzíveis via protocolos no [`docs/handoffs/2026-05-27-spoke-inventory-blocking-fixes.md`](../handoffs/2026-05-27-spoke-inventory-blocking-fixes.md). Dumps são gitignored por default (`docs/inventory/dumps/` no `.gitignore`); commits exigem `git add -f` consciente per Amendment 1.
 
 **Próximos bloqueios pra resolver:** apenas C.4 (Refinar CTA opções, ~5 min) e C.5 (Compartilhar vs Transferir overlap, ~10 min) — oportunisticamente quando slice respectivo chegar.
 
