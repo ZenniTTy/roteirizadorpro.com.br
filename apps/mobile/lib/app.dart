@@ -7,6 +7,7 @@ import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/routes/presentation/route_shell_page.dart';
+import 'features/routes/presentation/wizard_route_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -40,7 +41,16 @@ final _routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
-      GoRoute(path: '/home', builder: (_, __) => const RouteShellPage()),
+      GoRoute(
+        path: '/home',
+        builder: (_, __) => const RouteShellPage(),
+        routes: [
+          GoRoute(
+            path: 'routes/create',
+            builder: (_, __) => const WizardRoutePage(),
+          ),
+        ],
+      ),
     ],
   );
 });
