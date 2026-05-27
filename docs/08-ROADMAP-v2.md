@@ -20,7 +20,7 @@ Telas a replicar do Spoke (em qualquer ordem operacional — sem dependências a
 
 - [ ] **Drawer lateral** — lista de rotas agrupadas por período ("Hoje", "Início deste mês"); CTA "Criar rota" full-width pinned no rodapé; 3-dot por linha com renomear/duplicar/excluir. Detalhe em inventory §6.2.
 - [ ] **Lista de rotas (RoutesListPage)** — surface alternativa ao drawer pra estados sem rota ativa.
-- [ ] **Wizard criar rota** — tela cheia (não sheet); 3 zonas: nome opcional com auto-suggestion, data (Hoje/Amanhã/Escolher data → DatePickerDialog), checkbox "Reutilizar paradas anteriores". Detalhe em inventory §6.2.
+- [ ] **Wizard criar rota** — tela cheia (não sheet); 3 zonas: nome opcional com auto-suggestion, data (Hoje/Amanhã/Escolher data → DatePickerDialog), checkbox "Reutilizar paradas anteriores". Detalhe em inventory §6.2. *Decisão §13.C.2:* A tela intermediária "Detalhes da rota" será inteiramente pulada, injetando defaults sensatos direto no rascunho.
 - [ ] **Wizard editar rota** — mesma tela parametrizada por `Route?` (null=create, non-null=edit); sem zona "Opções de início rápido". Detalhe em inventory §3.2 item 7b.
 - [ ] **Tela ativa de rota** — mapa placeholder full-screen + DraggableScrollableSheet com 2 snap points (collapsed bar + expanded full-screen) + hamburger float top-left + bottom bar (input endereço + OCR + voice + 3-dot kebab). Detalhe em inventory §6.2bis.
 - [ ] **Adicionar parada — texto** — busca endereço com autocomplete stub (real autocomplete depende de Nominatim em slice 3).
@@ -29,7 +29,7 @@ Telas a replicar do Spoke (em qualquer ordem operacional — sem dependências a
 - [ ] **Adicionar parada — tap no mapa** — tap em ponto específico cria Stop com lat/lng.
 - [ ] **Reordenar paradas** — drag-to-reorder dentro da expanded sheet.
 - [ ] **Detalhe da parada** — status (Pendente/Entregue/Falhou + motivo), notas, POD stub (foto real em slice 3).
-- [ ] **Editar parada** — modal/sheet com endereço + complemento + notas + tipo de parada.
+- [ ] **Editar parada** — modal/sheet com endereço + complemento + notas + tipo de parada. *Decisão §13.C.1:* Controles de Ordem, Tipo e Pacotes sempre ativos e interativos. *Decisão §13.C.3:* O botão "Instruções de acesso" abre Bottom Sheet customizado (TextField multiline + checkbox "Salvar como padrão" para comportamento sticky-to-address).
 - [ ] **Otimizar rota** — CTA + loading state + lista reordenada com badge "otimizada" (mock 200 retornando ordem de entrada até slice 3 plugar solver real).
 - [ ] **Navegar (turn-by-turn handoff)** — entrega o próximo destino pro Waze/Google Maps via deeplink (ADR-0010, Google Maps default).
 - [ ] **Rota concluída** — resumo com paradas entregues + falhas + métricas.
