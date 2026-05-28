@@ -25,4 +25,6 @@ Slices restantes (detalhe em [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md))
 
 - [x] Implementado: Wizard de Criação de Rota (Área 2) com testes e UI fiel ao protótipo Spoke.
 - [x] Implementado: Reutilizar Paradas (Área 2.5) e Tela Ativa da Rota com mapa e controles (Área 3).
-- [ ] Validar UI via emulador / build local (Requer hot-restart do usuário).
+- [x] Validar UI via emulador / build local (Requer hot-restart do usuário).
+- [x] Migrado: flutter_map para google_maps_flutter no Android, ajustado Safe Area e UI da bottom sheet (ADR-0039).
+- [ ] Implementar a próxima etapa da Slice 2 (adicionar parada, reordenar, navegar).
