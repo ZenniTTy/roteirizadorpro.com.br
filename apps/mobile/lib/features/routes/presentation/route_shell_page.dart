@@ -1,12 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import 'widgets/app_drawer.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Shell that hosts the active route's map + sheet.
 ///
@@ -17,39 +16,43 @@ import 'package:url_launcher/url_launcher.dart';
 ///     stub visual; wiring real em Área 3
 ///   - Sheet collapsed no rodapé com search pill estilo input clicável
 ///     contendo OCR + Voice + kebab como suffix icons
-///
-/// Todos os controles "stub Slice 2" disparam um SnackBar "em breve" pra
-/// nunca dar a impressão de botão quebrado pro usuário (silent-failure
-/// guard).
-class RouteShellPage extends ConsumerWidget {
+class RouteShellPage extends ConsumerStatefulWidget {
   const RouteShellPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RouteShellPage> createState() => _RouteShellPageState();
+}
+
+class _RouteShellPageState extends ConsumerState<RouteShellPage> {
+  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
+  double _sheetPosition = 0.12; // Tracks the DraggableScrollableSheet size
+
+  static const CameraPosition _initialPosition = CameraPosition(
+    target: LatLng(-23.550520, -46.633308), // São Paulo
+    zoom: 13.0,
+  );
+
+  @override
+  Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
+    
+    // Convert 0.12 of screen height + safe area to calculate button position
+    final sheetHeightPx = mq.size.height * _sheetPosition;
+    final buttonsBottom = sheetHeightPx + 16;
 
     return Scaffold(
       body: Stack(
         children: [
-          FlutterMap(
-            options: MapOptions(
-              initialCenter: const LatLng(-23.550520, -46.633308), // São Paulo
-              initialZoom: 13.0,
-            ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'br.com.roteirizadorpro.roteirizador_pro',
-              ),
-              RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution(
-                    'OpenStreetMap contributors',
-                    onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
-                  ),
-                ],
-              ),
-            ],
+          GoogleMap(
+            mapType: MapType.normal,
+            initialCameraPosition: _initialPosition,
+            onMapCreated: (GoogleMapController controller) {
+              _controller.complete(controller);
+            },
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
+            myLocationButtonEnabled: false,
+            compassEnabled: false,
           ),
           Positioned(
             top: mq.padding.top + 12,
@@ -62,7 +65,7 @@ class RouteShellPage extends ConsumerWidget {
           ),
           Positioned(
             right: 16,
-            bottom: 12,
+            bottom: buttonsBottom,
             child: Column(
               children: [
                 _FloatingCircleButton(
@@ -80,7 +83,13 @@ class RouteShellPage extends ConsumerWidget {
               ],
             ),
           ),
-          const _ActiveRouteSheet(),
+          NotificationListener<DraggableScrollableNotification>(
+            onNotification: (notification) {
+              setState(() => _sheetPosition = notification.extent);
+              return true;
+            },
+            child: const _ActiveRouteSheet(),
+          ),
         ],
       ),
     );
@@ -135,12 +144,20 @@ class _ActiveRouteSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    
+    // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
+    // ~72px for the search bar and handle + bottom nav bar padding
+    final minHeightPx = 72.0 + bottomPadding;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final minChildSize = (minHeightPx / screenHeight).clamp(0.12, 0.3);
+
     return DraggableScrollableSheet(
-      initialChildSize: 0.12,
-      minChildSize: 0.12,
+      initialChildSize: minChildSize,
+      minChildSize: minChildSize,
       maxChildSize: 0.9,
       snap: true,
-      snapSizes: const [0.12, 0.5, 0.9],
+      snapSizes: [minChildSize, 0.5, 0.9],
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
@@ -222,7 +239,7 @@ class _ActiveRouteSheet extends StatelessWidget {
               Expanded(
                 child: ListView(
                   controller: scrollController,
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
                   children: [
                     const SizedBox(height: 32),
                     const Center(
