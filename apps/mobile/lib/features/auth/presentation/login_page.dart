@@ -159,28 +159,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: true, // Sempre ativado conforme nova política
-                            onChanged: (val) {},
-                            activeColor: AppColors.primary,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          const Text(
-                            'Lembrar de mim',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.text,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
                       GestureDetector(
                         onTap: () => _showSnack('Recuperação de senha em breve.'),
                         child: const Padding(

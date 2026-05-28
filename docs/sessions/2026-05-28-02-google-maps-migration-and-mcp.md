@@ -26,6 +26,7 @@ Migrate the map provider from `flutter_map` to `google_maps_flutter` to ensure 1
 - Rewrote `route_shell_page.dart` using the `GoogleMap` widget.
 - Adjusted the `DraggableScrollableSheet` layout so that its `minChildSize` accounts for Android navigation bar padding (increased base height from 72px to 110px), and anchored the map control buttons dynamically to stay higher above the sheet.
 - Emphasized a general guideline: whenever the agent gets stuck, rely on MCP tools (like Chrome DevTools, Context7, and Web Search) to debug and find modern best practices.
+- **Lesson Learned (Refactoring)**: When extracting logic out of a build method (e.g., `minChildSize` calculation), verify if intermediate variables like `bottomPadding` are still referenced further down in the widget tree before deleting them. Always run `flutter build apk` or `flutter analyze` after layout refactoring before assuming success.
 
 ## Decisions Made
 

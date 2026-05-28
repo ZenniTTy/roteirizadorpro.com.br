@@ -27,18 +27,24 @@ class TokenStorage {
   final FlutterSecureStorage _storage;
 
   Future<AuthTokens?> read() async {
-    final access = await _storage.read(key: _accessKey);
-    final refresh = await _storage.read(key: _refreshKey);
-    if (access == null || refresh == null) return null;
-    return AuthTokens(access: access, refresh: refresh);
+    try {
+      final access = await _storage.read(key: _accessKey);
+      final refresh = await _storage.read(key: _refreshKey);
+      if (access == null || refresh == null) return null;
+      return AuthTokens(access: access, refresh: refresh);
+    } catch (_) {
+      await clear();
+      return null;
+    }
   }
 
   Future<AuthUserDto?> readUser() async {
-    final userJson = await _storage.read(key: _userKey);
-    if (userJson == null) return null;
     try {
+      final userJson = await _storage.read(key: _userKey);
+      if (userJson == null) return null;
       return AuthUserDto.fromJson(jsonDecode(userJson) as Map<String, dynamic>);
     } catch (_) {
+      await clear();
       return null;
     }
   }

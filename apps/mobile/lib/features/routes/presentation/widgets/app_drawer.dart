@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/rp_button.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../domain/route_action.dart';
 import '../../domain/route.dart' as rp_route;
@@ -105,25 +106,14 @@ class AppDrawer extends ConsumerWidget {
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                child: FilledButton.icon(
+                child: RpButton(
                   onPressed: () {
                     Navigator.of(context).pop();
                     context.push('/home/routes/create');
                   },
                   icon: const Icon(LucideIcons.plus),
-                  label: const Text('Criar rota'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.btn),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  label: 'Criar rota',
+                  neon: true,
                 ),
               ),
             ),

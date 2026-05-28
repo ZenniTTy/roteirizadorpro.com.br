@@ -1,0 +1,26 @@
+appId: br.com.roteirizadorpro.roteirizador_pro
+---
+- clearState
+- launchApp
+# Wait for Login Page
+- assertVisible: "E-mail"
+- tapOn: "E-mail"
+- inputText: "teste@roteirizador.com.br"
+- tapOn: "Senha"
+- inputText: "123456"
+- hideKeyboard
+- tapOn: "Entrar"
+
+# Wait for Map to load (Route Shell Page)
+- extendedWaitUntil:
+    visible: "Centralizar mapa" # or whatever the Semantics label is for the locate button
+    timeout: 10000
+
+# Open App Drawer
+- tapOn: "Abrir menu" # Hamburger menu or X close? Let's check semantics.
+
+# Verify Assinar button exists (since it's a new user)
+- assertVisible: "Assinar"
+
+# Verify Criar Rota button exists
+- assertVisible: "Criar rota"

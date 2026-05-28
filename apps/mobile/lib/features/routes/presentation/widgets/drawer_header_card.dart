@@ -83,8 +83,8 @@ class DrawerHeaderCard extends StatelessWidget {
             FilledButton.tonal(
               onPressed: onSubscribe,
               style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primaryLight,
-                foregroundColor: AppColors.primary,
+                backgroundColor: AppColors.accent,
+                foregroundColor: AppColors.bg,
                 minimumSize: const Size.fromHeight(44),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadii.btn),

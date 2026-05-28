@@ -25,7 +25,7 @@ class RouteShellPage extends ConsumerStatefulWidget {
 
 class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
-  double _sheetPosition = 0.12; // Tracks the DraggableScrollableSheet size
+  double? _sheetPosition; // Tracks the DraggableScrollableSheet size
 
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(-23.550520, -46.633308), // São Paulo
@@ -35,9 +35,16 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
+    final bottomPadding = mq.padding.bottom;
+    
+    // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
+    final minHeightPx = 110.0 + bottomPadding;
+    final minChildSize = (minHeightPx / mq.size.height).clamp(0.12, 0.3);
+    
+    _sheetPosition ??= minChildSize;
     
     // Convert sheet position to pixels and add margin to keep buttons above the sheet
-    final sheetHeightPx = mq.size.height * _sheetPosition;
+    final sheetHeightPx = mq.size.height * _sheetPosition!;
     final buttonsBottom = sheetHeightPx + 32;
 
     return Scaffold(
@@ -88,7 +95,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
               setState(() => _sheetPosition = notification.extent);
               return true;
             },
-            child: const _ActiveRouteSheet(),
+            child: _ActiveRouteSheet(minChildSize: minChildSize),
           ),
         ],
       ),
@@ -140,16 +147,13 @@ class _FloatingCircleButton extends StatelessWidget {
 }
 
 class _ActiveRouteSheet extends StatelessWidget {
-  const _ActiveRouteSheet();
+  const _ActiveRouteSheet({required this.minChildSize});
+  
+  final double minChildSize;
 
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    
-    // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
-    final minHeightPx = 110.0 + bottomPadding;
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final minChildSize = (minHeightPx / screenHeight).clamp(0.12, 0.3);
 
     return DraggableScrollableSheet(
       initialChildSize: minChildSize,
