@@ -24,4 +24,5 @@ Slices restantes (detalhe em [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md))
 ## Discovered while working
 
 - [x] Implementado: Wizard de Criação de Rota (Área 2) com testes e UI fiel ao protótipo Spoke.
-- [ ] Implementar integração do mapa e busca de endereços (Área 2.5)
+- [x] Implementado: Reutilizar Paradas (Área 2.5) e Tela Ativa da Rota com mapa e controles (Área 3).
+- [ ] Validar UI via emulador / build local (Requer hot-restart do usuário).
