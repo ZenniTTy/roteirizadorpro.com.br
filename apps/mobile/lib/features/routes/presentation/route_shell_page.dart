@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart' show Factory;
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -29,105 +27,148 @@ class RouteShellPage extends ConsumerStatefulWidget {
 class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
-  double? _sheetPosition; // Tracks the DraggableScrollableSheet size
+
+  // Altura do sheet em fração da tela (0..1). Inicializa com collapsed
+  // após o primeiro build pra incluir o bottom inset do device.
+  double _sheetFraction = 0.18;
+  double? _dragStartFraction;
 
   static const CameraPosition _initialPosition = CameraPosition(
-    target: LatLng(-23.550520, -46.633308), // São Paulo
+    target: LatLng(-23.550520, -46.633308),
     zoom: 13.0,
   );
+
+  // Frações canônicas dos 3 snaps (calculadas dinamicamente em build):
+  late double _collapsedFraction;
+  static const double _mediumFraction = 0.40;
+  static const double _expandedFraction = 0.90;
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    final bottomPadding = mq.padding.bottom;
+    // Collapsed = handle + pill + breathing room + system nav inset.
+    final collapsedPx = 130.0 + mq.padding.bottom;
+    _collapsedFraction = (collapsedPx / mq.size.height).clamp(0.15, 0.35);
 
-    // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
-    final minHeightPx = 130.0 + bottomPadding;
-    final minChildSize = (minHeightPx / mq.size.height).clamp(0.15, 0.35);
-
-    _sheetPosition ??= minChildSize;
-
-    // Convert sheet position to pixels and add margin to keep buttons above the sheet
-    final sheetHeightPx = mq.size.height * _sheetPosition!;
-    final buttonsBottom = sheetHeightPx + 48;
+    final clampedFraction =
+        _sheetFraction.clamp(_collapsedFraction, _expandedFraction);
 
     return Scaffold(
-      body: Stack(
+      // ARQUITETURA descoberta via Maestro do Spoke 2026-05-28:
+      // - O mapa do Spoke NÃO é full-screen — ele OCUPA SÓ A FATIA DA TELA
+      //   acima do sheet. Quando o sheet expande, o mapa encolhe (vide
+      //   `[0,0][1080,2058]` → `[0,0][1080,1245]` no dump pós-swipe).
+      // - Isso elimina a sobreposição mapa-sheet, evitando que o
+      //   EagerGestureRecognizer do GoogleMap (PlatformView) intercepte
+      //   gestos verticais que deveriam ser do sheet (flutter#105994).
+      //
+      // Implementação em Flutter: Column { Expanded(map), SizedBox(sheet) }.
+      // Conforme `_sheetFraction` cresce via drag handle, o SizedBox
+      // toma mais espaço e o Expanded encolhe automaticamente.
+      //
+      // O DraggableScrollableSheet do Flutter NÃO funciona dentro de um
+      // SizedBox (depende de altura unconstrained pra calcular *ChildSize).
+      // Por isso usamos um sheet MANUAL: AnimatedContainer + GestureDetector
+      // no handle, snap states discretos.
+      body: Column(
         children: [
-          GoogleMap(
-            mapType: MapType.normal,
-            initialCameraPosition: _initialPosition,
-            onMapCreated: (GoogleMapController controller) {
-              _controller.complete(controller);
-            },
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
-            myLocationButtonEnabled: false,
-            compassEnabled: false,
-            // Per flutter/flutter#105994 + #28655: GoogleMap consome gestos
-            // verticais por padrão e impede o DraggableScrollableSheet por
-            // cima de receber drag. Declarar explicitamente APENAS os
-            // recognizers que o mapa precisa (scale pinch-to-zoom + tap +
-            // long-press + horizontal pan) cede o vertical pan pro sheet,
-            // preservando a interatividade do mapa pra zoom e pan lateral.
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-              Factory<ScaleGestureRecognizer>(
-                () => ScaleGestureRecognizer(),
-              ),
-              Factory<TapGestureRecognizer>(
-                () => TapGestureRecognizer(),
-              ),
-              Factory<LongPressGestureRecognizer>(
-                () => LongPressGestureRecognizer(),
-              ),
-              Factory<HorizontalDragGestureRecognizer>(
-                () => HorizontalDragGestureRecognizer(),
-              ),
-            },
-          ),
-          Positioned(
-            top: mq.padding.top + 12,
-            left: 16,
-            child: _FloatingCircleButton(
-              semanticsLabel: 'Abrir menu',
-              icon: LucideIcons.menu,
-              onTap: () => AppDrawer.show(context),
-            ),
-          ),
-          Positioned(
-            right: 16,
-            bottom: buttonsBottom,
-            child: Column(
+          Expanded(
+            child: Stack(
               children: [
-                _FloatingCircleButton(
-                  semanticsLabel: 'Alternar modo de mapa',
-                  icon: LucideIcons.layers,
-                  onTap: () => _comingSoon(context, 'Alternar modo de mapa'),
-                  iconColor: AppColors.primary,
+                Positioned.fill(
+                  child: GoogleMap(
+                    mapType: MapType.normal,
+                    initialCameraPosition: _initialPosition,
+                    onMapCreated: (GoogleMapController controller) {
+                      _controller.complete(controller);
+                    },
+                    zoomControlsEnabled: false,
+                    mapToolbarEnabled: false,
+                    myLocationButtonEnabled: false,
+                    compassEnabled: false,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _FloatingCircleButton(
-                  semanticsLabel: 'Alternar para o mapa',
-                  icon: LucideIcons.locateFixed,
-                  onTap: () => _comingSoon(context, 'Centrar no mapa'),
+                Positioned(
+                  top: mq.padding.top + 12,
+                  left: 16,
+                  child: _FloatingCircleButton(
+                    semanticsLabel: 'Abrir menu',
+                    icon: LucideIcons.menu,
+                    onTap: () => AppDrawer.show(context),
+                  ),
+                ),
+                Positioned(
+                  right: 16,
+                  bottom: 12,
+                  child: Column(
+                    children: [
+                      _FloatingCircleButton(
+                        semanticsLabel: 'Alternar modo de mapa',
+                        icon: LucideIcons.layers,
+                        onTap: () =>
+                            _comingSoon(context, 'Alternar modo de mapa'),
+                        iconColor: AppColors.primary,
+                      ),
+                      const SizedBox(height: 12),
+                      _FloatingCircleButton(
+                        semanticsLabel: 'Alternar para o mapa',
+                        icon: LucideIcons.locateFixed,
+                        onTap: () => _comingSoon(context, 'Centrar no mapa'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          NotificationListener<DraggableScrollableNotification>(
-            // `return false` deixa a notification continuar propagando.
-            // Não há nada acima dela no tree que reaja a essa notification,
-            // mas é boa prática quando o listener apenas observa (per
-            // api.flutter.dev/flutter/widgets/NotificationListener-class.html).
-            onNotification: (notification) {
-              setState(() => _sheetPosition = notification.extent);
-              return false;
-            },
-            child: _ActiveRouteSheet(minChildSize: minChildSize),
+          AnimatedContainer(
+            duration: _dragStartFraction != null
+                ? Duration.zero
+                : const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
+            height: mq.size.height * clampedFraction,
+            child: _ActiveRouteSheet(
+              onHandleDragStart: () {
+                _dragStartFraction = _sheetFraction;
+              },
+              onHandleDragUpdate: (delta) {
+                if (_dragStartFraction == null) return;
+                setState(() {
+                  _sheetFraction =
+                      (_sheetFraction - delta / mq.size.height).clamp(
+                    _collapsedFraction,
+                    _expandedFraction,
+                  );
+                });
+              },
+              onHandleDragEnd: (velocity) {
+                _dragStartFraction = null;
+                setState(() => _sheetFraction = _snapTo(velocity));
+              },
+            ),
           ),
         ],
       ),
     );
+  }
+
+  /// Snap-to-nearest helper. Velocity > 0 = arrastando pra baixo (encolher),
+  /// < 0 = pra cima (crescer). Snap mais próximo entre collapsed/medium/
+  /// expanded com viés pra direção da velocidade.
+  double _snapTo(double velocity) {
+    final snaps = [_collapsedFraction, _mediumFraction, _expandedFraction];
+    // Aplica viés na direção do flick.
+    final biased = _sheetFraction - velocity * 0.0001;
+    var closest = snaps.first;
+    var minDist = (biased - closest).abs();
+    for (final s in snaps) {
+      final d = (biased - s).abs();
+      if (d < minDist) {
+        minDist = d;
+        closest = s;
+      }
+    }
+    return closest;
   }
 }
 
@@ -175,78 +216,102 @@ class _FloatingCircleButton extends StatelessWidget {
 }
 
 class _ActiveRouteSheet extends StatelessWidget {
-  const _ActiveRouteSheet({required this.minChildSize});
+  const _ActiveRouteSheet({
+    required this.onHandleDragStart,
+    required this.onHandleDragUpdate,
+    required this.onHandleDragEnd,
+  });
 
-  final double minChildSize;
+  /// Disparado quando o user começa a arrastar a área do handle (parte
+  /// superior do sheet, ~24px). O parent guarda a fração atual pra usar
+  /// como ponto de partida do drag.
+  final VoidCallback onHandleDragStart;
+
+  /// Delta em pixels (positivo = movimento pra BAIXO; negativo = pra CIMA).
+  /// O parent traduz isso em incremento de altura do SizedBox que envolve
+  /// este sheet (movimento pra cima EXPANDE o sheet, isto é, cresce a
+  /// altura → mapa encolhe).
+  final void Function(double deltaPixels) onHandleDragUpdate;
+
+  /// Velocidade vertical final (pixels/segundo). Negativa = flick pra
+  /// cima → snap pro maior bucket; positiva = flick pra baixo → snap pro
+  /// menor.
+  final void Function(double velocityPixelsPerSecond) onHandleDragEnd;
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final bottomInset = mq.padding.bottom;
-    // Collapsed size precisa caber: 12px top + 4px handle + 16px gap + 48px pill
-    // + 12px bottom breathing room + inset do system nav bar do device.
-    final collapsedPx = 92.0 + bottomInset;
-    final smallSize = (collapsedPx / mq.size.height).clamp(0.10, 0.30);
 
-    return DraggableScrollableSheet(
-      initialChildSize: smallSize,
-      minChildSize: smallSize,
-      maxChildSize: 0.9,
-      snap: true,
-      snapSizes: [smallSize, 0.4, 0.9],
-      builder: (context, scrollController) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black26, blurRadius: 10, offset: Offset(0, -2))
-            ],
-          ),
-          // CustomScrollView + SliverFillRemaining(hasScrollBody: false,
-          // fillOverscroll: true) é o padrão canônico documentado em
-          // api.flutter.dev/.../SliverFillRemaining/hasScrollBody.html +
-          // flutter/flutter#35758 pra resolver "drag em área vazia não
-          // expande o sheet". O ListView anterior tinha esse bug porque o
-          // filler transparent fazia o ListView SEMPRE scrollable, então o
-          // drag scrollava conteúdo interno em vez de transferir o gesto
-          // pro DraggableScrollableSheet pai.
-          //
-          // ATENÇÃO ao GoogleMap por baixo: per flutter/flutter#105994 o
-          // GoogleMap consome gestos verticais. O Container OPACO (color:
-          // Colors.white) sobre o sheet inteiro garante que o hit-test
-          // ganhe contra o map. Não tocar nessa cor pra Colors.transparent.
-          //
-          // padding.bottom adicionado ao SafeArea-like interno do
-          // CustomScrollView pra contornar flutter/flutter#123394 (SafeArea
-          // não respeita bottom inset dentro de DraggableScrollableSheet).
-          child: CustomScrollView(
-            controller: scrollController,
-            physics: const AlwaysScrollableScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(child: _buildSheetContent(context)),
-              SliverToBoxAdapter(child: SizedBox(height: bottomInset + 12)),
-              const SliverFillRemaining(
-                hasScrollBody: false,
-                fillOverscroll: true,
-                child: SizedBox.shrink(),
+    // GestureDetector EXTERNO captura vertical drag em TODA a área do
+    // sheet (handle, pill row, big buttons). `behavior: translucent` deixa
+    // tap em InkWell internos continuarem funcionando — drag e tap são
+    // gestos diferentes na arena do Flutter.
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragStart: (_) => onHandleDragStart(),
+      onVerticalDragUpdate: (d) => onHandleDragUpdate(d.delta.dy),
+      onVerticalDragEnd: (d) => onHandleDragEnd(d.velocity.pixelsPerSecond.dy),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Handle bar (~24px) — sem GestureDetector interno: o externo
+            // captura.
+            SizedBox(
+              height: 24,
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-            ],
-          ),
-        );
-      },
+            ),
+            _buildCollapsedContent(context),
+            // Big buttons. ClampingScrollPhysics evita o user scrollar a
+            // lista interna acidentalmente — mas como o GestureDetector
+            // externo está em arena com qualquer ScrollView interno, no
+            // estado collapsed o drag vertical sempre ganha vs scroll.
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildMediumContent(context),
+                    SizedBox(height: bottomInset + 12),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  /// Real content of the sheet — drag handle + search pill + 2 big buttons.
-  /// Extraído para um método pra manter o `slivers:` legível e isolar a
-  /// estrutura de gesto (CustomScrollView + SliverFillRemaining) do layout.
-  Widget _buildSheetContent(BuildContext context) {
+  /// Conteúdo SEMPRE visível, mesmo no estado collapsed:
+  /// drag handle + search pill (com OCR + mic + kebab).
+  /// Tamanho: ~108px. Cabe na viewport collapsed sem virar o
+  /// CustomScrollView scrollable — garantia pro drag-to-expand funcionar.
+  Widget _buildCollapsedContent(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Drag Handle
         const SizedBox(height: 12),
         Center(
           child: Container(
@@ -259,12 +324,10 @@ class _ActiveRouteSheet extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        // Top Action Row (Search Pill + Kebab)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              // Search Pill
               Expanded(
                 child: InkWell(
                   onTap: () => context.push('/home/routes/add-stop'),
@@ -305,7 +368,6 @@ class _ActiveRouteSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Kebab Menu
               _GradientCircleButton(
                 icon: LucideIcons.moreVertical,
                 semanticsLabel: 'Opções da rota',
@@ -314,28 +376,31 @@ class _ActiveRouteSheet extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        // 2 Big Buttons (Medium state content)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              _SheetBigButton(
-                icon: LucideIcons.plusCircle,
-                label: 'Adicionar paradas',
-                onTap: () => context.push('/home/routes/add-stop'),
-              ),
-              const SizedBox(height: 12),
-              _SheetBigButton(
-                icon: LucideIcons.copy,
-                label: 'Copiar paradas de uma rota anterior',
-                onTap: () => _comingSoon(context, 'Copiar paradas'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
       ],
+    );
+  }
+
+  /// Conteúdo do estado MEDIUM em diante: 2 big buttons (Adicionar paradas
+  /// + Copiar paradas de rota anterior). Fica abaixo do collapsed content;
+  /// no estado collapsed o user só vê a borda superior deles antes do drag.
+  Widget _buildMediumContent(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      child: Column(
+        children: [
+          _SheetBigButton(
+            icon: LucideIcons.plusCircle,
+            label: 'Adicionar paradas',
+            onTap: () => context.push('/home/routes/add-stop'),
+          ),
+          const SizedBox(height: 12),
+          _SheetBigButton(
+            icon: LucideIcons.copy,
+            label: 'Copiar paradas de uma rota anterior',
+            onTap: () => _comingSoon(context, 'Copiar paradas'),
+          ),
+        ],
+      ),
     );
   }
 

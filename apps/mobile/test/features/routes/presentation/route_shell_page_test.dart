@@ -91,42 +91,46 @@ void main() {
   });
 
   testWidgets(
-      'sheet body uses CustomScrollView with a SliverFillRemaining filler '
-      '(hasScrollBody: false) so drag from the empty area expands the sheet',
-      (tester) async {
-    // This is the canonical fix for "DraggableScrollableSheet doesn't expand
-    // when dragging in the empty area below the content" (Flutter issues
-    // #35758 / #116427). The previous ListView + transparent Container filler
-    // was a hack that made the inner list scrollable, so drag gestures on
-    // the empty area scrolled the invisible filler INSTEAD of expanding the
-    // sheet. CustomScrollView + SliverFillRemaining(hasScrollBody: false)
-    // makes the filler NOT consume the gesture, so it propagates to the
-    // DraggableScrollableSheet pai and the sheet expands as expected.
+      'shell uses Column { Expanded(map), AnimatedContainer(sheet) } so map '
+      'and sheet never overlap — Spoke arch parity', (tester) async {
+    // Maestro experiments 2026-05-28 provaram que o padrão canônico
+    // (CustomScrollView + SliverFillRemaining) FALHA quando o
+    // DraggableScrollableSheet está num Stack com GoogleMap por baixo:
+    // o EagerGestureRecognizer do mapa (PlatformView) sempre ganha a arena
+    // de hit-test contra o sheet. flutter/flutter#105994 / #28655.
+    //
+    // O Spoke (canonical white-label source) NÃO empilha map+sheet num
+    // Stack — usa Column onde o mapa redimensiona dinamicamente conforme
+    // o sheet expande. Mapa nunca está por baixo do sheet → zero conflito
+    // de gesto. Replicar essa arquitetura é o fix definitivo.
+    //
+    // Este test garante a invariante estrutural: NÃO há
+    // DraggableScrollableSheet (que requer Stack/Positioned fullscreen pra
+    // funcionar); HÁ uma Column com Expanded + AnimatedContainer.
     await tester.pumpWidget(_wrapPage());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    // Sheet manual, não DraggableScrollableSheet.
     expect(
-      find.byType(CustomScrollView),
-      findsOneWidget,
+      find.byType(DraggableScrollableSheet),
+      findsNothing,
       reason:
-          'Sheet body must use CustomScrollView (not ListView) so we can pair '
-          'a real content sliver with a SliverFillRemaining(hasScrollBody: '
-          'false) — see Flutter issues #35758 and #116427. The previous '
-          'ListView + transparent Container filler hack caused empty-area '
-          'drags to scroll internal content instead of expanding the '
-          'DraggableScrollableSheet.',
+          'O sheet manual via GestureDetector + AnimatedContainer substituiu '
+          'o DraggableScrollableSheet (que não funciona dentro de SizedBox '
+          'da Column nem coexiste bem com GoogleMap por baixo).',
     );
 
-    // Guard against regression to the ListView hack: there must be no
-    // ListView inside the DraggableScrollableSheet builder.
-    final draggable = find.byType(DraggableScrollableSheet);
-    expect(draggable, findsOneWidget);
+    // Column é a estrutura raiz do body.
     expect(
-      find.descendant(of: draggable, matching: find.byType(ListView)),
-      findsNothing,
-      reason: 'No ListView inside the sheet — the canonical pattern is '
-          'CustomScrollView + SliverFillRemaining.',
+      find.descendant(
+        of: find.byType(Scaffold),
+        matching: find.byType(Column),
+      ),
+      findsWidgets,
     );
+
+    // AnimatedContainer envolve o sheet (anima a altura entre snaps).
+    expect(find.byType(AnimatedContainer), findsAtLeastNWidgets(1));
   });
 }
