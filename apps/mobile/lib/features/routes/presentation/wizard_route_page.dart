@@ -103,7 +103,16 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
       // would show the auto-name as a gray placeholder hint, leading the
       // user to think the field was empty. Now they see the actual
       // current name in dark editable text — Spoke parity §10.3.
-      _nameController.text = route.name ?? _computeAutoName(routes, route.date);
+      // Pre-populate with EXACTLY the same string the user saw on the
+      // drawer row (Route.displayName() = name ?? weekday-pt-br). Earlier
+      // version used `_computeAutoName` which always appended " Rota N",
+      // causing a visible inconsistency between drawer ("sexta-feira") and
+      // edit field ("sexta-feira Rota 1") — caught during Maestro smoke
+      // test 2026-05-28. The save logic at `_confirm()` compares against
+      // this same displayName to detect "user kept the original",
+      // preserving the null-name semantics. `routes` list still read
+      // above for the stale-deep-link guard.
+      _nameController.text = route.displayName();
     });
   }
 
@@ -115,25 +124,27 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
 
   void _confirm(WizardFormState state, String autoName) {
     final customName = _nameController.text.trim();
-    // Save logic per Spoke D4 must-fix #2 (2026-05-28):
-    // - Edit mode pre-populates the field with `route.name ?? autoName`.
-    //   If the user leaves it unchanged (= matches autoName OR is empty),
-    //   we save `null` so the route reverts to the placeholder pattern
-    //   downstream. Only an EXPLICITLY DIFFERENT text counts as a custom
-    //   name. Without this, opening + saving an auto-named route would
-    //   freeze the auto-name in the DB.
-    // - Create mode: empty text or text identical to autoName → save as
-    //   null (route uses placeholder); else save the typed text.
-    final isUsingAutoName = customName.isEmpty || customName == autoName;
-    final nameForEdit = isUsingAutoName ? null : customName;
-    final nameForCreate = isUsingAutoName ? null : customName;
-
     final selectedDate = _resolveDate(state);
 
+    // Save logic (Maestro smoke test 2026-05-28 reconciliation):
+    // - In CREATE the field is empty by default; the placeholder shows
+    //   the predictive auto-name "weekday Rota N". If the user typed
+    //   exactly that placeholder or left the field empty → save null
+    //   so Route.displayName() takes over downstream.
+    // - In EDIT the field is pre-populated with route.displayName() —
+    //   the SAME string the user just saw on the drawer row. So the
+    //   comparison must be against THAT string, not against the
+    //   create-mode autoName ("weekday Rota N"), otherwise saving an
+    //   unchanged auto-named route would freeze it as a custom name.
     if (widget.isEdit) {
-      // Update existing route metadata. `nameForEdit == null` deliberately
-      // clears the saved name so the placeholder (weekday + counter) takes
-      // over again — matches Spoke §10.3.
+      final route = ref
+          .read(routesProvider)
+          .where((r) => r.id == widget.routeId)
+          .firstOrNull;
+      final originalDisplayName = route?.displayName() ?? '';
+      final isUsingOriginal =
+          customName.isEmpty || customName == originalDisplayName;
+      final nameForEdit = isUsingOriginal ? null : customName;
       ref.read(routesProvider.notifier).updateRouteMeta(
             widget.routeId!,
             name: nameForEdit,
@@ -142,6 +153,9 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
       _popOrHome();
       return;
     }
+
+    final isUsingAutoName = customName.isEmpty || customName == autoName;
+    final nameForCreate = isUsingAutoName ? null : customName;
 
     // Create mode: persist the new route in the in-memory provider and
     // navigate. `createRoute` returns the new id — Slice 2 just navigates

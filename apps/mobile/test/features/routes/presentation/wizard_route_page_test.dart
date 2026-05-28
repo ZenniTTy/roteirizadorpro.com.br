@@ -91,19 +91,18 @@ void main() {
     });
 
     testWidgets(
-        'when route.name is null (auto-named route), pre-populates the '
-        'field with the COMPUTED auto-name in editable text (Spoke D4 '
-        'must-fix #2 2026-05-28 — before this fix the field stayed empty '
-        'and showed the auto-name only as a gray placeholder hint, '
-        'misleading the user)', (tester) async {
-      // Date is the only seed route on its day → auto-name will be
-      // "<weekday> Rota 1". Using a fixed date keeps the assertion stable
-      // regardless of when tests run.
-      final fixedDate = DateTime(2026, 6, 17); // wednesday
+        'when route.name is null (auto-named route), pre-populates with '
+        'route.displayName() — the SAME string shown on the drawer row '
+        '(Maestro smoke test 2026-05-28 reconciliation: earlier version '
+        'used _computeAutoName which appended " Rota N", causing visible '
+        'inconsistency between drawer "sexta-feira" and edit field '
+        '"sexta-feira Rota 1")', (tester) async {
+      // Wednesday → PT-BR weekday "quarta-feira". Route.displayName()
+      // returns just the weekday when name is null.
       final routes = [
         domain.Route(
           id: 'r-auto',
-          date: fixedDate,
+          date: DateTime(2026, 6, 17), // wednesday
           status: domain.RouteStatus.draft,
           name: null,
         ),
@@ -112,9 +111,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      // The auto-name pattern: "<weekday-pt-br> Rota 1" — assert by the
-      // stable suffix to avoid coupling to the weekday format.
-      expect(find.textContaining('Rota 1'), findsAtLeastNWidgets(1));
+      // The field must contain the weekday — and NOT followed by " Rota N".
+      expect(find.text('quarta-feira'), findsOneWidget);
+      expect(find.textContaining('Rota '), findsNothing);
     });
 
     testWidgets('falls back to create UI when routeId does not resolve',
