@@ -155,7 +155,7 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                     ),
                     const SizedBox(height: 32),
                     const Text(
-                      'Selecione a data',
+                      'Data de partida',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -164,21 +164,21 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                     ),
                     const SizedBox(height: 12),
                     _DateRadio(
-                      title: 'Hoje',
+                      title: 'Ainda hoje',
                       subtitle: _formatDateShort(today),
                       selected: state.dateOption == WizardDateOption.today,
                       icon: LucideIcons.calendarClock,
                       onTap: () => controller.updateDateOption(WizardDateOption.today),
                     ),
                     _DateRadio(
-                      title: 'Amanhã',
+                      title: 'Para amanhã',
                       subtitle: _formatDateShort(tomorrow),
                       selected: state.dateOption == WizardDateOption.tomorrow,
                       icon: LucideIcons.calendarDays,
                       onTap: () => controller.updateDateOption(WizardDateOption.tomorrow),
                     ),
                     _DateRadio(
-                      title: 'Escolher data',
+                      title: 'Escolher no calendário',
                       subtitle: state.customDate != null ? _formatDateShort(state.customDate!) : null,
                       selected: state.dateOption == WizardDateOption.custom,
                       icon: LucideIcons.calendarSearch,
@@ -190,13 +190,27 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    const Text(
-                      'Opções de início rápido',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
+                    Row(
+                      children: [
+                        const Text(
+                          'Atalhos',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.text,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: 'Carrega os endereços da sua última rota salva, ideal para entregadores com rotas fixas.',
+                          triggerMode: TooltipTriggerMode.tap,
+                          child: Icon(
+                            LucideIcons.info,
+                            size: 18,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     GestureDetector(
@@ -222,7 +236,7 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
                             const SizedBox(width: 16),
                             const Expanded(
                               child: Text(
-                                'Reutilizar paradas anteriores',
+                                'Aproveitar últimas paradas',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500,
@@ -342,7 +356,6 @@ class _DateRadio extends StatelessWidget {
                 onChanged: (_) => onTap(),
                 activeColor: AppColors.neon,
                 checkColor: AppColors.neonInk,
-                shape: const CircleBorder(),
                 side: BorderSide(
                   color: selected ? AppColors.neonDark : AppColors.textMuted.withOpacity(0.5),
                   width: 1.5,
