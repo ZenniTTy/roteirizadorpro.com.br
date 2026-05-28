@@ -80,19 +80,40 @@ class DrawerHeaderCard extends StatelessWidget {
           ),
           if (!user.hasActiveSubscription && !user.isUnavailable) ...[
             const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: onSubscribe,
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.bg,
-                minimumSize: const Size.fromHeight(44),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.btn),
+            Container(
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.neon, AppColors.neonDark],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(AppRadii.btn),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x339BCC1F), blurRadius: 12, offset: Offset(0, 4)),
+                ],
               ),
-              child: const Text(
-                'Assinar',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onSubscribe,
+                  borderRadius: BorderRadius.circular(AppRadii.btn),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(LucideIcons.gem, color: AppColors.neonInk, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        'Assinar',
+                        style: TextStyle(
+                          color: AppColors.neonInk,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

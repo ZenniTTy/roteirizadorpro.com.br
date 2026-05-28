@@ -55,7 +55,6 @@ class DrawerRouteList extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 child,
-                const Divider(height: 1, color: AppColors.border),
               ],
             ),
           _SectionHeaderRow(:final label) => _SectionHeader(label: label),
@@ -124,10 +123,10 @@ class _SectionHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
             height: 1,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppColors.accent,
+                  AppColors.accent.withOpacity(0.15),
                   Colors.transparent,
                 ],
               ),
