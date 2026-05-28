@@ -64,8 +64,8 @@ void main() {
   });
 
   testWidgets(
-      'sheet collapsed exposes search pill, big buttons, and kebab — '
-      'while floating hamburger remains separate', (tester) async {
+      'sheet collapsed shows ONLY handle + search pill + kebab — big '
+      'buttons stay hidden (Spoke parity 2026-05-28)', (tester) async {
     await tester.pumpWidget(_wrapPage());
     await tester.pump();
 
@@ -77,13 +77,19 @@ void main() {
     // map controls.
     expect(find.bySemanticsLabel('Opções da rota'), findsOneWidget);
 
-    // Big buttons (medium-state content) — these are also visible at
-    // collapsed sizes thanks to the CustomScrollView's overscroll
-    // behaviour (see "drag from empty space" test below).
-    expect(find.text('Adicionar paradas'), findsOneWidget);
+    // Big buttons devem ESTAR ESCONDIDOS no estado collapsed — Spoke
+    // (live 2026-05-28) só renderiza esses botões quando o sheet sobe
+    // pra medium+. Nosso showButtons usa
+    // currentFraction > collapsedFraction + 0.02; no primeiro pump as
+    // duas frações coincidem → botões ocultos.
+    expect(find.text('Adicionar parada'), findsNothing);
+    expect(find.text('Copiar paradas de uma rota anterior'), findsNothing);
+
+    // Empty state ("Adicione as primeiras paradas...") também só aparece
+    // quando o sheet sobe.
     expect(
-      find.text('Copiar paradas de uma rota anterior'),
-      findsOneWidget,
+      find.textContaining('Adicione as primeiras paradas'),
+      findsNothing,
     );
 
     // Hamburger is in the floating button — exactly one in the page.

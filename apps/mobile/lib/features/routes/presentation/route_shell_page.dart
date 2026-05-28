@@ -46,9 +46,11 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
-    // Collapsed = handle + pill + breathing room + system nav inset.
-    final collapsedPx = 130.0 + mq.padding.bottom;
-    _collapsedFraction = (collapsedPx / mq.size.height).clamp(0.15, 0.35);
+    // Collapsed = handle (24) + pill row height (48 + 16 vertical padding) +
+    // bottom system nav inset + a small breathing pad. Não inclui os
+    // big buttons — eles só aparecem quando o sheet sobe pra medium+.
+    final collapsedPx = 24.0 + 16.0 + 48.0 + 16.0 + mq.padding.bottom;
+    _collapsedFraction = (collapsedPx / mq.size.height).clamp(0.10, 0.30);
 
     final clampedFraction =
         _sheetFraction.clamp(_collapsedFraction, _expandedFraction);
@@ -128,6 +130,8 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             curve: Curves.easeOut,
             height: mq.size.height * clampedFraction,
             child: _ActiveRouteSheet(
+              currentFraction: clampedFraction,
+              collapsedFraction: _collapsedFraction,
               onHandleDragStart: () {
                 _dragStartFraction = _sheetFraction;
               },
@@ -217,10 +221,20 @@ class _FloatingCircleButton extends StatelessWidget {
 
 class _ActiveRouteSheet extends StatelessWidget {
   const _ActiveRouteSheet({
+    required this.currentFraction,
+    required this.collapsedFraction,
     required this.onHandleDragStart,
     required this.onHandleDragUpdate,
     required this.onHandleDragEnd,
   });
+
+  /// Fração atual do sheet (mesma usada pelo AnimatedContainer do pai).
+  /// Quando estamos perto do collapsedFraction, escondemos os 2 big buttons
+  /// fixos no rodapé pra não aparecerem cortados.
+  final double currentFraction;
+
+  /// Fração mínima (collapsed). Usado como ponto de comparação.
+  final double collapsedFraction;
 
   /// Disparado quando o user começa a arrastar a área do handle (parte
   /// superior do sheet, ~24px). O parent guarda a fração atual pra usar
@@ -243,6 +257,10 @@ class _ActiveRouteSheet extends StatelessWidget {
     final mq = MediaQuery.of(context);
     final bottomInset = mq.padding.bottom;
 
+    // Mostrar os big buttons só quando o sheet está claramente acima do
+    // collapsed (epsilon 0.02 evita flicker no snap).
+    final showButtons = currentFraction > collapsedFraction + 0.02;
+
     // GestureDetector EXTERNO captura vertical drag em TODA a área do
     // sheet (handle, pill row, big buttons). `behavior: translucent` deixa
     // tap em InkWell internos continuarem funcionando — drag e tap são
@@ -264,140 +282,161 @@ class _ActiveRouteSheet extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Handle bar (~24px) — sem GestureDetector interno: o externo
-            // captura.
-            SizedBox(
-              height: 24,
-              child: Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle bar único (~24px). Único — não duplicado.
+              SizedBox(
+                height: 24,
+                child: Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
               ),
-            ),
-            _buildCollapsedContent(context),
-            // Big buttons. ClampingScrollPhysics evita o user scrollar a
-            // lista interna acidentalmente — mas como o GestureDetector
-            // externo está em arena com qualquer ScrollView interno, no
-            // estado collapsed o drag vertical sempre ganha vs scroll.
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildMediumContent(context),
-                    SizedBox(height: bottomInset + 12),
-                  ],
-                ),
+              _buildSearchRow(context),
+              // Spacer expandido — quando o sheet está medium+ hospeda o
+              // empty state da Spoke (dashed pin + microcopy). No collapsed
+              // fica vazio (SizedBox.shrink) pra não ocupar espaço.
+              // Também serve como área de captura de drag (GestureDetector
+              // externo translucent). No futuro hospeda a lista de stops.
+              Expanded(
+                child: showButtons
+                    ? _buildEmptyState(context)
+                    : const SizedBox.shrink(),
               ),
-            ),
-          ],
+              // Big buttons FIXOS no rodapé. Só renderizados quando o sheet
+              // está medium+ (showButtons = true). Sempre respeitam o
+              // bottomInset do device (não ficam por baixo dos nav buttons).
+              if (showButtons)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _SheetPrimaryButton(
+                        icon: LucideIcons.plus,
+                        label: 'Adicionar parada',
+                        onTap: () => context.push('/home/routes/add-stop'),
+                      ),
+                      const SizedBox(height: 10),
+                      _SheetOutlinedButton(
+                        label: 'Copiar paradas de uma rota anterior',
+                        onTap: () => _comingSoon(context, 'Copiar paradas'),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  /// Conteúdo SEMPRE visível, mesmo no estado collapsed:
-  /// drag handle + search pill (com OCR + mic + kebab).
-  /// Tamanho: ~108px. Cabe na viewport collapsed sem virar o
-  /// CustomScrollView scrollable — garantia pro drag-to-expand funcionar.
-  Widget _buildCollapsedContent(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 12),
-        Center(
-          child: Container(
-            width: 40,
-            height: 4,
+  /// Empty state visível quando o sheet está medium+ e a rota não tem
+  /// paradas ainda (estado canônico observado na Spoke 2026-05-28).
+  /// Pin dashed central + microcopy PT-BR.
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 64,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: AppColors.textMuted.withValues(alpha: 0.5),
+                width: 1.5,
+                style: BorderStyle.solid,
+              ),
+            ),
+            child: const Icon(
+              LucideIcons.plus,
+              color: AppColors.textMuted,
+              size: 24,
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => context.push('/home/routes/add-stop'),
-                  borderRadius: BorderRadius.circular(30),
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.only(left: 12, right: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(LucideIcons.search,
-                            color: AppColors.primary, size: 20),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Adicionar parada...',
-                            style: TextStyle(
-                                color: AppColors.textMuted, fontSize: 14),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        _SearchInnerButton(
-                          icon: LucideIcons.camera,
-                          onTap: () => _comingSoon(context, 'Leitor OCR'),
-                        ),
-                        const SizedBox(width: 4),
-                        _SearchInnerButton(
-                          icon: LucideIcons.mic,
-                          onTap: () => _comingSoon(context, 'Comando de Voz'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              'Adicione as primeiras paradas para começar a criar sua rota',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textMuted,
+                height: 1.4,
               ),
-              const SizedBox(width: 12),
-              _GradientCircleButton(
-                icon: LucideIcons.moreVertical,
-                semanticsLabel: 'Opções da rota',
-                onTap: () => _comingSoon(context, 'Opções da Rota'),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  /// Conteúdo do estado MEDIUM em diante: 2 big buttons (Adicionar paradas
-  /// + Copiar paradas de rota anterior). Fica abaixo do collapsed content;
-  /// no estado collapsed o user só vê a borda superior deles antes do drag.
-  Widget _buildMediumContent(BuildContext context) {
+  /// Search pill + kebab — sempre visível em qualquer estado do sheet.
+  Widget _buildSearchRow(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
         children: [
-          _SheetBigButton(
-            icon: LucideIcons.plusCircle,
-            label: 'Adicionar paradas',
-            onTap: () => context.push('/home/routes/add-stop'),
+          Expanded(
+            child: InkWell(
+              onTap: () => context.push('/home/routes/add-stop'),
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.only(left: 12, right: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      LucideIcons.search,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Adicionar parada...',
+                        style:
+                            TextStyle(color: AppColors.textMuted, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    _SearchInnerButton(
+                      icon: LucideIcons.camera,
+                      onTap: () => _comingSoon(context, 'Leitor OCR'),
+                    ),
+                    const SizedBox(width: 4),
+                    _SearchInnerButton(
+                      icon: LucideIcons.mic,
+                      onTap: () => _comingSoon(context, 'Comando de Voz'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          const SizedBox(height: 12),
-          _SheetBigButton(
-            icon: LucideIcons.copy,
-            label: 'Copiar paradas de uma rota anterior',
-            onTap: () => _comingSoon(context, 'Copiar paradas'),
+          const SizedBox(width: 12),
+          _GradientCircleButton(
+            icon: LucideIcons.moreVertical,
+            semanticsLabel: 'Opções da rota',
+            onTap: () => _comingSoon(context, 'Opções da Rota'),
           ),
         ],
       ),
@@ -434,43 +473,105 @@ class _SearchInnerButton extends StatelessWidget {
   }
 }
 
-class _SheetBigButton extends StatelessWidget {
-  const _SheetBigButton(
-      {required this.icon, required this.label, required this.onTap});
+/// Botão principal do sheet: roxo gradient (filled).
+/// Texto branco, ícone Lucide branco, fonte menor (14sp) per pedido
+/// 2026-05-28 (estavam grandes demais).
+class _SheetPrimaryButton extends StatelessWidget {
+  const _SheetPrimaryButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2))
-          ],
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primary, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: const LinearGradient(
+              colors: [AppColors.primary, AppColors.accent],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(
                 label,
                 style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.text),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Botão secundário do sheet: outlined, sem fill, borda + texto roxos.
+/// Spoke (live dump 2026-05-28) renderiza este botão SEM ícone — só
+/// texto centralizado. Fonte menor (14sp).
+class _SheetOutlinedButton extends StatelessWidget {
+  const _SheetOutlinedButton({
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.primary, width: 1.5),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
