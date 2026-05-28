@@ -27,6 +27,8 @@ Migrate the map provider from `flutter_map` to `google_maps_flutter` to ensure 1
 - Adjusted the `DraggableScrollableSheet` layout so that its `minChildSize` accounts for Android navigation bar padding (increased base height from 72px to 110px), and anchored the map control buttons dynamically to stay higher above the sheet.
 - Emphasized a general guideline: whenever the agent gets stuck, rely on MCP tools (like Chrome DevTools, Context7, and Web Search) to debug and find modern best practices.
 - **Lesson Learned (Refactoring)**: When extracting logic out of a build method (e.g., `minChildSize` calculation), verify if intermediate variables like `bottomPadding` are still referenced further down in the widget tree before deleting them. Always run `flutter build apk` or `flutter analyze` after layout refactoring before assuming success.
+- **Lesson Learned (Maestro input selectors)**: Static `Text` column labels shouldn't be targeted for `tapOn` in Maestro/Accessibility testing when they are separate widgets from the actual input container. Instead, targeting unique placeholder text (like `seu@email.com` and `••••••••`) is the bulletproof way to guarantee that keyboard focus is properly directed before typing credentials.
+- **Lesson Learned (Remember-me integration)**: Do not remove user-facing checkboxes or rely entirely on implicit, always-on session persistence when the user expects explicit credentials caching. Wiring the checkbox to a lightweight `SharedPreferencesAsync` envelope ensures that emails and passwords can be securely cached and pre-filled upon next cold start, dramatically enhancing developer and user onboarding flows.
 
 ## Decisions Made
 
