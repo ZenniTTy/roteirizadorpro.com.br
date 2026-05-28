@@ -236,7 +236,7 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 **3-dot overflow de qualquer linha de rota:** (a) "Definir nome e data" (abre form de edição estrutura idêntica ao wizard mas sem zona C), (b) "Duplicar rota", (c) "Excluir rota" — sem confirm dialog observado (verificar com rota não-vazia).
 
 **Wizard "Criar rota" (tela cheia, NÃO bottom sheet):**
-1. Tap em "Criar rota" no rodapé do drawer → push de tela cheia com back-arrow no top-left (não X close)
+1. Tap em "Criar rota" no rodapé do drawer → push de tela cheia com **X close no top-left** — CORRIGIDO 2026-05-28 via D4 spoke-parity-checker. Audit original 2026-05-26 documentava back-arrow; inspeção Maestro live em 2026-05-28 confirmou X em AMBOS create e edit. RotPro alinhado em commit do mesmo dia.
 2. **Zona A** — "Nome da rota (opcional)" + EditText. Placeholder = nome auto-gerado, pattern "[dia-da-semana] Rota [N]" onde N incrementa por rota do mesmo dia. Se o usuário não editar, o placeholder vira o nome salvo.
 3. **Zona B** — "Selecione a data" + 3 radio-rows:
    - "Hoje" + data abreviada inline ("ter., 26 de mai."), pré-selecionado
@@ -621,7 +621,7 @@ nav_host (FrameLayout)
 | Elemento | Bounds | Notas |
 |---|---|---|
 | Topbar | `[0,92][1080,250]` | Background azul-escuro full-width |
-| Botão close (X) | `[12,105][147,240]` | a11y `"Voltar"` — RENDERIZADO COMO X, NÃO BACK-ARROW. §6.2 diz "back-arrow no top-left" mas o **edit usa X close** (diferença vs Create) |
+| Botão close (X) | `[12,105][147,240]` | a11y `"Voltar"` — RENDERIZADO COMO X. **CORRIGIDO 2026-05-28 via D4:** §6.2 também usa X (audit original errou ao dizer "back-arrow" pro create); AMBOS modos usam X close. |
 | Title text | `[45,295][331,371]` | `"Editar rota"` (não "Criar rota") |
 | Label "Nome da rota (opcional)" | `[45,439][455,487]` | Mesma label do create |
 | EditText nome | `[79,522][1001,657]` | **Pré-populado com o nome atual** ("terça-feira Rota 2"). Diferença vs create onde é placeholder cinza |
@@ -634,7 +634,7 @@ nav_host (FrameLayout)
 | CTA primary "Salvar alterações" | `[45,2062][1035,2220]` | **DIFERE do create que é "Confirmar"** |
 
 **Diferenças confirmadas vs Wizard "Criar rota" (§6.2):**
-- Topbar usa **X close** (não back-arrow) — divergência com §6.2 que dizia "back-arrow no top-left"
+- Topbar usa **X close** — CONFIRMADO 2026-05-28 que create também usa X (§6.2 atualizado neste PR; não há mais divergência entre create e edit nesta dimensão)
 - Title: "Editar rota" vs "Criar rota"
 - EditText pré-populado com nome atual vs placeholder auto-gerado
 - **Sem "Zona C" (Opções de início rápido / Reutilizar paradas)** — confirmado per §6.2
@@ -642,7 +642,7 @@ nav_host (FrameLayout)
 
 **Implementação RotPro:**
 - Reuse wizard widget parametrizado por `Route?` (null=create, non-null=edit)
-- Conditional: render X-button se `route != null` (back-arrow se null), title via switch, EditText `controller.text = route?.name ?? ""` (sem hint quando edit), Zona C `Visibility(visible: route == null, ...)`, CTA label via switch.
+- Conditional: **X close em AMBOS** modos (a11y "Fechar" em edit, "Voltar" em create), title via switch, EditText `controller.text = route?.name ?? <computed-autoname>` (pré-popula display name mesmo quando rota usa auto-name, hint suprimido quando edit), Zona C `Visibility(visible: route == null, ...)`, CTA label via switch. Save logic: name salvo como `null` quando texto digitado == autoName computado, do contrário usa texto. **Atualizado 2026-05-28 via D4 spoke-parity-checker.**
 
 ### 10.4 — Tela "Detalhes da rota" (ACHADO NOVO — NÃO está em §6.x)
 

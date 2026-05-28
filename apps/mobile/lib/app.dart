@@ -53,6 +53,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => const WizardRoutePage(),
           ),
           GoRoute(
+            // Edit metadata (name+date) for an existing route — opened from
+            // drawer popup 3-dot "Definir nome e data". Reuses WizardRoutePage
+            // parameterised by routeId. Spoke parity §10.3 (inventário).
+            path: 'routes/:routeId/edit',
+            builder: (_, state) =>
+                WizardRoutePage(routeId: state.pathParameters['routeId']),
+          ),
+          GoRoute(
             path: 'routes/reuse-stops',
             builder: (_, __) => const ReuseStopsPage(),
           ),

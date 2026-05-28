@@ -60,4 +60,40 @@ class WizardFormController extends _$WizardFormController {
   void updateCustomName(String name) {
     state = state.copyWith(customName: name.isEmpty ? null : name);
   }
+
+  /// Reseta o form aos defaults (estado limpo).
+  /// Chamado no initState do wizard pra evitar carregar state stale entre
+  /// aberturas consecutivas (controller é keep-alive padrão Riverpod).
+  void reset() {
+    state = const WizardFormState();
+  }
+
+  /// Hidrata o form com o estado de uma rota existente (modo edit).
+  /// `date` é mapeada pra `WizardDateOption.today`/`tomorrow` se coincidir;
+  /// caso contrário, vai pra `custom` com `customDate = date`.
+  /// `name` vai pro `customName` (null se rota usa o nome auto-gerado).
+  void hydrateFromDate({required DateTime date, String? name}) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final sameDay = DateTime(date.year, date.month, date.day);
+
+    final WizardDateOption option;
+    DateTime? customDate;
+    if (sameDay == today) {
+      option = WizardDateOption.today;
+    } else if (sameDay == tomorrow) {
+      option = WizardDateOption.tomorrow;
+    } else {
+      option = WizardDateOption.custom;
+      customDate = sameDay;
+    }
+
+    state = WizardFormState(
+      dateOption: option,
+      customDate: customDate,
+      reuseStops: false,
+      customName: name,
+    );
+  }
 }

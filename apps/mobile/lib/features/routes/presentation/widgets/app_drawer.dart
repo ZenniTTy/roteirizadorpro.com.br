@@ -161,8 +161,14 @@ class AppDrawer extends ConsumerWidget {
   ) async {
     switch (action) {
       case RouteAction.editMeta:
-        // TODO: Pass route parameter to wizard when implemented
-        _comingSoon(context, 'Definir nome e data');
+        // Close the drawer first so the wizard takes over the full screen
+        // (drawer is a modal bottom sheet; pushing the wizard route under
+        // it would stack two overlays and visually freeze the drawer).
+        Navigator.of(context).pop();
+        // Push the wizard in edit mode keyed by routeId. Inventário §10.3:
+        // X close, title "Editar rota", name pre-populated, no Zona C,
+        // CTA "Salvar alterações".
+        context.push('/home/routes/${route.id}/edit');
       case RouteAction.duplicate:
         ref.read(routesProvider.notifier).duplicateRoute(route.id);
         if (context.mounted) Navigator.of(context).pop();
@@ -171,17 +177,22 @@ class AppDrawer extends ConsumerWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppColors.bg,
-            title: const Text('Excluir esta rota?', style: TextStyle(color: AppColors.text)),
-            content: const Text('Esta ação não pode ser desfeita.', style: TextStyle(color: AppColors.textMuted)),
+            title: const Text('Excluir esta rota?',
+                style: TextStyle(color: AppColors.text)),
+            content: const Text('Esta ação não pode ser desfeita.',
+                style: TextStyle(color: AppColors.textMuted)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancelar', style: TextStyle(color: AppColors.text)),
+                child: const Text('Cancelar',
+                    style: TextStyle(color: AppColors.text)),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                style:
+                    FilledButton.styleFrom(backgroundColor: AppColors.primary),
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+                child: const Text('Excluir',
+                    style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
