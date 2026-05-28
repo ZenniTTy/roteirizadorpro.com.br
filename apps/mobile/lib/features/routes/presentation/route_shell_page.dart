@@ -38,14 +38,14 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final bottomPadding = mq.padding.bottom;
     
     // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
-    final minHeightPx = 110.0 + bottomPadding;
-    final minChildSize = (minHeightPx / mq.size.height).clamp(0.12, 0.3);
+    final minHeightPx = 130.0 + bottomPadding;
+    final minChildSize = (minHeightPx / mq.size.height).clamp(0.15, 0.35);
     
     _sheetPosition ??= minChildSize;
     
     // Convert sheet position to pixels and add margin to keep buttons above the sheet
     final sheetHeightPx = mq.size.height * _sheetPosition!;
-    final buttonsBottom = sheetHeightPx + 32;
+    final buttonsBottom = sheetHeightPx + 48;
 
     return Scaffold(
       body: Stack(

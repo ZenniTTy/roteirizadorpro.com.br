@@ -57,7 +57,7 @@ class DrawerRouteList extends StatelessWidget {
                 child,
               ],
             ),
-          _SectionHeaderRow(:final label) => _SectionHeader(label: label),
+          _SectionHeaderRow(:final label, :final isFirst) => _SectionHeader(label: label, isFirst: isFirst),
           _RouteRow(:final route) => DrawerRouteTile(
               route: route,
               activeRouteId: activeRouteId,
@@ -74,8 +74,10 @@ class DrawerRouteList extends StatelessWidget {
     if (headerSlot != null) {
       rows.add(_HeaderSlot(headerSlot!));
     }
+    var isFirstSection = true;
     for (final entry in grouped.entries) {
-      rows.add(_SectionHeaderRow(_labelFor(entry.key)));
+      rows.add(_SectionHeaderRow(_labelFor(entry.key), isFirstSection));
+      isFirstSection = false;
       for (final route in entry.value) {
         rows.add(_RouteRow(route));
       }
@@ -101,8 +103,9 @@ class _HeaderSlot extends _Row {
 }
 
 class _SectionHeaderRow extends _Row {
-  const _SectionHeaderRow(this.label);
+  const _SectionHeaderRow(this.label, this.isFirst);
   final String label;
+  final bool isFirst;
 }
 
 class _RouteRow extends _Row {
@@ -111,28 +114,30 @@ class _RouteRow extends _Row {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label});
+  const _SectionHeader({required this.label, this.isFirst = false});
   final String label;
+  final bool isFirst;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            height: 1,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.accent.withOpacity(0.15),
-                  Colors.transparent,
-                ],
+        if (!isFirst)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.neon.withOpacity(0.08),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
           ),
-        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
           child: Text(
