@@ -4,16 +4,16 @@ appId: br.com.roteirizadorpro.roteirizador_pro
 - launchApp
 # Wait for Login Page
 - assertVisible: "E-mail"
-- tapOn: "E-mail"
+- tapOn: "seu@email.com"
 - inputText: "teste@roteirizador.com.br"
-- tapOn: "Senha"
-- inputText: "123456"
+- tapOn: "••••••••"
+- inputText: "12345678"
 - hideKeyboard
 - tapOn: "Entrar"
 
 # Wait for Map to load (Route Shell Page)
 - extendedWaitUntil:
-    visible: "Centralizar mapa" # or whatever the Semantics label is for the locate button
+    visible: "Alternar para o mapa"
     timeout: 10000
 
 # Open App Drawer

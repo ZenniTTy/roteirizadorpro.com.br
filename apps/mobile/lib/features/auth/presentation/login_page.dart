@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/rp_button.dart';
@@ -25,11 +26,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _registerTapRecognizer = TapGestureRecognizer();
   bool _showPassword = false;
   bool _submitting = false;
+  bool _rememberMe = true;
 
   @override
   void initState() {
     super.initState();
     _registerTapRecognizer.onTap = () => context.go('/register');
+    _loadRememberedCredentials();
+  }
+
+  Future<void> _loadRememberedCredentials() async {
+    try {
+      final prefs = SharedPreferencesAsync();
+      final rememberMe = await prefs.getBool('rp.auth.remember_me') ?? true;
+      setState(() {
+        _rememberMe = rememberMe;
+      });
+      if (rememberMe) {
+        final email = await prefs.getString('rp.auth.remembered_email');
+        final password = await prefs.getString('rp.auth.remembered_password');
+        if (email != null) {
+          _emailController.text = email;
+        }
+        if (password != null) {
+          _passwordController.text = password;
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -59,7 +82,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await ref
           .read(authControllerProvider.notifier)
           .login(email: email, password: password);
-      // The router redirect will route to /home automatically.
+      
+      final prefs = SharedPreferencesAsync();
+      if (_rememberMe) {
+        await prefs.setBool('rp.auth.remember_me', true);
+        await prefs.setString('rp.auth.remembered_email', email);
+        await prefs.setString('rp.auth.remembered_password', password);
+      } else {
+        await prefs.setBool('rp.auth.remember_me', false);
+        await prefs.remove('rp.auth.remembered_email');
+        await prefs.remove('rp.auth.remembered_password');
+      }
     } on AuthApiException catch (e) {
       _showSnack(_friendlyError(e));
     } catch (_) {
@@ -159,8 +192,32 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _rememberMe,
+                            onChanged: (val) {
+                              setState(() {
+                                _rememberMe = val ?? false;
+                              });
+                            },
+                            activeColor: AppColors.primary,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          const Text(
+                            'Lembrar de mim',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.text,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                       GestureDetector(
                         onTap: () => _showSnack('Recuperação de senha em breve.'),
                         child: const Padding(
