@@ -1,0 +1,17 @@
+appId: br.com.roteirizadorpro.roteirizador_pro
+---
+- launchApp:
+    clearState: true
+- tapOn: "E-mail"
+- inputText: "teste@roteirizador.com.br"
+- tapOn: "••••••••"
+- inputText: "12345678"
+- hideKeyboard
+- tapOn: "Entrar"
+
+- extendedWaitUntil:
+    visible: "Alternar para o mapa"
+    timeout: 10000
+
+- swipe:
+    direction: UP

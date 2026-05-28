@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../domain/route.dart';
+import '../domain/stop.dart';
 
 part 'routes_provider.g.dart';
 
@@ -60,5 +61,15 @@ class Routes extends _$Routes {
       name: '${existing.displayName()} (Cópia)',
     );
     state = [...state, duplicated];
+  }
+
+  void addStop(String routeId, Stop stop) {
+    state = state.map((r) {
+      if (r.id == routeId) {
+        final newStops = [...r.stops, stop];
+        return r.copyWith(stops: newStops);
+      }
+      return r;
+    }).toList();
   }
 }

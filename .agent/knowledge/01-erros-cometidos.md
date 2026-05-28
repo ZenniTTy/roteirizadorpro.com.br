@@ -23,3 +23,13 @@ Para garantir que não repitamos os mesmos erros nas próximas sessões de desen
 ## 5. Falta de MCP/Busca para Boas Práticas
 **Erro:** Travar ao tentar adivinhar a implementação de um pacote ou framework, em vez de buscar a documentação oficial com `context7` (search_web).
 **Solução:** Sempre usar o `search_web` (ou tool apropriado) ou ferramentas de MCP quando em dúvida sobre uma API específica de Flutter, Riverpod, etc, pois a base de dados de treinamento pode estar desatualizada (como especificado no `CLAUDE.md`).
+
+## 6. Falha Silenciosa de Variáveis de Ambiente (API Keys)
+**Erro:** Assumir que variáveis de ambiente (como `MAPS_API_KEY`) serão carregadas automaticamente no `String.fromEnvironment` apenas por existirem no arquivo `.env`. Isso causou falhas silenciosas ou recusas na API (ex: Google Places API não retornando resultados ao digitar).
+**Solução:** 
+1. Sempre instruir o usuário (ou adicionar nos scripts) que o `flutter run` ou `flutter build` precisa da flag `--dart-define-from-file=.env`.
+2. Em nível de código, **sempre validar programaticamente** se as chaves críticas não estão vazias logo no início das funções ou na inicialização do repositório (ex: `if (apiKey.isEmpty) throw Exception(...)`), para estourar o erro de forma clara e visível para o desenvolvedor ao invés de falhar silenciosamente na requisição.
+
+## 7. Inventar Features Fora da Especificação (Spoke/RotPro) (REGRA CRÍTICA / GATE)
+**Erro:** Adicionar botões, ícones, layouts ou filtros (ex: botão de filtro no mapa) que não existem no app de referência (Spoke) ou na documentação do Roteirizador Pro, agindo por conta própria e poluindo a UI.
+**Solução:** NUNCA invente NADA. Apenas implemente o que foi pedido e o que existe no protótipo ou na Spoke. SEMPRE valide na Spoke (ou na documentação `prototipo/`) para ver se a feature/UI existe antes de implementar. Se não existir, não adicione! Caso haja uma lacuna técnica e você precise de algo para o fluxo funcionar, documente o erro/falta de contexto e puxe a responsabilidade para o usuário antes de criar funcionalidades novas. Essa regra atua como um "Gate" para o Agente.

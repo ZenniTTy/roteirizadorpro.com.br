@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -153,114 +154,123 @@ class _ActiveRouteSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    // Use a fixed small minChildSize so it snaps to Search Pill only
+    final double smallSize = (110 / MediaQuery.sizeOf(context).height).clamp(0.12, 0.2);
 
     return DraggableScrollableSheet(
-      initialChildSize: minChildSize,
-      minChildSize: minChildSize,
+      initialChildSize: smallSize,
+      minChildSize: smallSize,
       maxChildSize: 0.9,
       snap: true,
-      snapSizes: [minChildSize, 0.5, 0.9],
+      snapSizes: [smallSize, 0.4, 0.9],
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: AppColors.bg,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                offset: Offset(0, -2),
-              ),
+              BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -2))
             ],
           ),
-          child: Column(
+          child: ListView(
+            controller: scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
             children: [
-              // Handle
+              // Drag Handle
+              const SizedBox(height: 12),
               Center(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
-              // Search Input Simulation
+              const SizedBox(height: 16),
+              
+              // Top Action Row (Search Pill + Kebab)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Material(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.btn),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppRadii.btn),
-                    onTap: () => _comingSoon(context, 'Adicionar parada'),
-                    child: Container(
-                      height: 52,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.border),
-                        borderRadius: BorderRadius.circular(AppRadii.btn),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(LucideIcons.search, color: AppColors.textMuted, size: 18),
-                          const SizedBox(width: 10),
-                          const Expanded(
-                            child: Text(
-                              'Toque para adicionar',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 15),
-                            ),
-                          ),
-                          _SuffixIcon(
-                            semanticsLabel: 'Ler etiqueta de endereço',
-                            icon: LucideIcons.scanLine,
-                            onTap: () => _comingSoon(context, 'Ler etiqueta'),
-                          ),
-                          const SizedBox(width: 4),
-                          _SuffixIcon(
-                            semanticsLabel: 'Dite o endereço',
-                            icon: LucideIcons.mic,
-                            onTap: () => _comingSoon(context, 'Ditar endereço'),
-                          ),
-                          const SizedBox(width: 4),
-                          _SuffixIcon(
-                            semanticsLabel: 'Mais opções da rota',
-                            icon: LucideIcons.ellipsisVertical,
-                            onTap: () => _comingSoon(context, 'Opções da rota'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const Divider(color: AppColors.border),
-              // Empty List Area
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + bottomPadding),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
                   children: [
-                    const SizedBox(height: 32),
-                    const Center(
-                      child: Text(
-                        'Nenhuma parada adicionada',
-                        style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                    // Search Pill
+                    Expanded(
+                      child: InkWell(
+                        onTap: () => context.push('/home/routes/add-stop'),
+                        borderRadius: BorderRadius.circular(30),
+                        child: Container(
+                          height: 48,
+                          padding: const EdgeInsets.only(left: 12, right: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            border: Border.all(color: AppColors.border),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(LucideIcons.search, color: AppColors.primary, size: 20),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'Adicionar parada...',
+                                  style: TextStyle(color: AppColors.textMuted, fontSize: 14),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              _SearchInnerButton(
+                                icon: LucideIcons.camera,
+                                onTap: () => _comingSoon(context, 'Leitor OCR'),
+                              ),
+                              const SizedBox(width: 4),
+                              _SearchInnerButton(
+                                icon: LucideIcons.mic,
+                                onTap: () => _comingSoon(context, 'Comando de Voz'),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _comingSoon(context, 'Importar planilha'),
-                        icon: const Icon(LucideIcons.fileSpreadsheet, color: AppColors.primary),
-                        label: const Text('Importar paradas', style: TextStyle(color: AppColors.primary)),
-                      ),
+                    const SizedBox(width: 12),
+                    // Kebab Menu
+                    _GradientCircleButton(
+                      icon: LucideIcons.moreVertical,
+                      semanticsLabel: 'Opções da rota',
+                      onTap: () => _comingSoon(context, 'Opções da Rota'),
                     ),
                   ],
                 ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // 2 Big Buttons (Medium state content)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _SheetBigButton(
+                      icon: LucideIcons.plusCircle,
+                      label: 'Adicionar paradas',
+                      onTap: () => context.push('/home/routes/add-stop'),
+                    ),
+                    const SizedBox(height: 12),
+                    _SheetBigButton(
+                      icon: LucideIcons.copy,
+                      label: 'Copiar paradas de uma rota anterior',
+                      onTap: () => _comingSoon(context, 'Copiar paradas'),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Filler container so dragging the empty space works
+              Container(
+                height: MediaQuery.sizeOf(context).height,
+                color: Colors.transparent,
               ),
             ],
           ),
@@ -268,17 +278,84 @@ class _ActiveRouteSheet extends StatelessWidget {
       },
     );
   }
+
+  void _comingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$feature em breve')),
+    );
+  }
 }
 
-class _SuffixIcon extends StatelessWidget {
-  const _SuffixIcon({
-    required this.semanticsLabel,
+class _SearchInnerButton extends StatelessWidget {
+  const _SearchInnerButton({required this.icon, required this.onTap});
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: AppColors.primary, size: 20),
+      ),
+    );
+  }
+}
+
+class _SheetBigButton extends StatelessWidget {
+  const _SheetBigButton({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+          boxShadow: const [
+            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2))
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GradientCircleButton extends StatelessWidget {
+  const _GradientCircleButton({
     required this.icon,
+    required this.semanticsLabel,
     required this.onTap,
   });
 
-  final String semanticsLabel;
   final IconData icon;
+  final String semanticsLabel;
   final VoidCallback onTap;
 
   @override
@@ -286,13 +363,27 @@ class _SuffixIcon extends StatelessWidget {
     return Semantics(
       label: semanticsLabel,
       button: true,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: SizedBox(
-          width: 32,
-          height: 32,
-          child: Icon(icon, color: AppColors.textMuted, size: 18),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        elevation: 4,
+        shadowColor: AppColors.primary.withValues(alpha: 0.3),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.accent],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Icon(icon, size: 22, color: Colors.white),
+          ),
         ),
       ),
     );

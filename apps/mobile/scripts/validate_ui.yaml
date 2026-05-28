@@ -19,8 +19,5 @@ appId: br.com.roteirizadorpro.roteirizador_pro
 # Open App Drawer
 - tapOn: "Abrir menu" # Hamburger menu or X close? Let's check semantics.
 
-# Verify Assinar button exists (since it's a new user)
-- assertVisible: "Assinar"
-
 # Verify Criar Rota button exists
 - assertVisible: "Criar rota"

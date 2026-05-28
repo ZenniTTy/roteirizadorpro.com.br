@@ -11,5 +11,10 @@ class AppEnv {
     defaultValue: 'development',
   );
 
+  static const String mapsApiKey = String.fromEnvironment(
+    'MAPS_API_KEY',
+    defaultValue: '',
+  );
+
   static bool get isProduction => appEnvironment == 'production';
 }
