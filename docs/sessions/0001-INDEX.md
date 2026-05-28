@@ -13,3 +13,4 @@ A partir daqui, sessions são opcionais — só vale criar uma quando o trabalho
 ## Sessions
 
 - [2026-05-27-01-slice-2-area-2-wizard.md](./2026-05-27-01-slice-2-area-2-wizard.md) — Wizard Criar Rota (Área 2)
+- [2026-05-27-02-slice-2-area-2-wizard-ui.md](./2026-05-27-02-slice-2-area-2-wizard-ui.md) — Wizard UI Polish and Harness Best Practices
