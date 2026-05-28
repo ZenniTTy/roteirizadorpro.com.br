@@ -255,17 +255,22 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 
 **Pós-criação:** navega imediatamente pra **tela ativa de rota** — ver §6.2bis.
 
-### 6.2bis — Tela ativa de rota (mapa + sheet) — deep-inspecionada 2026-05-26 via spoke-parity-checker
+### 6.2bis — Tela ativa de rota (mapa + sheet) — deep-inspecionada 2026-05-26 via spoke-parity-checker; **arquitetura corrigida 2026-05-28 via Maestro live**
 
 > **⚠️ Audit 2026-05-26:** esta seção descreve estado VAZIO da rota (sheet collapsed default). Para estado COM paradas (sheet auto-expanded), ver §10.5 — comportamento divergente.
+>
+> **🔄 Correção arquitetural 2026-05-28:** inspeção Maestro confirmou que Spoke usa **layout Column (mapa Expanded + sheet pinado)**, NÃO Stack com sheet por cima. Snap points = **3** (collapsed / medium / expanded), não 2. Imagens client-fornecidas + dumps Maestro pré/pós-swipe são a fonte autoritativa.
 
-**Arquitetura confirmada:** Spoke usa **Google Maps SDK** apenas como **base layer de mapa** (TextureView + fragment_container) full-screen; toda UI Spoke é overlay Compose por cima. A **navegação turn-by-turn default é proprietária Spoke** ("Navegação do Spoke" — picker §10.19.1 opção #1, *Google-powered* por baixo mas UI custom Spoke), NÃO Google Maps direto. Autocomplete provavelmente usa Google Places API por trás dos panos (Spoke é cliente Google Maps Platform), mas a UI de resultados é Compose Spoke. Sem Activity transitions dentro da rota.
+**Arquitetura confirmada (corrigida 2026-05-28):** Spoke usa **Google Maps SDK** como TextureView, mas o mapa **NÃO é full-screen overlayed** — ele ocupa só a fatia da tela acima do sheet (`[0,0][1080,1899]` collapsed → `[0,0][1080,240]` expanded). Equivale a um layout `Column { Expanded(map), DraggableContainer(sheet) }`: quando o sheet expande, o mapa encolhe dinamicamente; nunca há sobreposição. Isso elimina o conflito de hit-test entre o EagerGestureRecognizer interno do GoogleMap PlatformView e os gestos do sheet (Flutter issues #105994 / #28655 / #123394). **Decisão de implementação RotPro replicada em `route_shell_page.dart` commit `ad51fbb` (2026-05-28).**
 
-**Estrutura geral do sheet (CRÍTICO):** os IDs `stepListHeader` (collapsed) e `stepList` (expanded) são a mesma view com Y diferente — equivalente a um `DraggableScrollableSheet`. **Exatamente 2 snap points confirmados:**
-- **Collapsed:** y=[2013, 2265], ~14% da altura da tela. Só uma barra (bottom bar) visível; mapa ocupa o resto.
-- **Expanded:** y=[160, 2400], full-screen abaixo da status bar. Cobre o mapa inteiro (mapa continua renderizado por baixo mas invisível).
-- **Sem snap point intermediário.** Swipe de collapsed vai direto pra expanded.
-- **Drag handle:** ~y=1985, centered, horizontal pill curto.
+A **navegação turn-by-turn default é proprietária Spoke** ("Navegação do Spoke" — picker §10.19.1 opção #1, *Google-powered* por baixo mas UI custom Spoke), NÃO Google Maps direto. Autocomplete provavelmente usa Google Places API por trás dos panos (Spoke é cliente Google Maps Platform), mas a UI de resultados é Compose Spoke. Sem Activity transitions dentro da rota.
+
+**Estrutura geral do sheet (CRÍTICO):** os IDs `stepListHeader` (collapsed) e `stepList` (expanded) são a mesma view com Y diferente — equivalente a um sheet drag-controlled manual. **3 snap points confirmados (corrigido 2026-05-28 via imagens iPhone client + Maestro Android live):**
+- **Collapsed:** y=[~2013, 2400], ~14% da altura. Só uma barra (search pill + ícones OCR/mic/kebab) visível; mapa ocupa o resto. **Big buttons "Adicionar parada" + "Copiar paradas..." NÃO aparecem nesse estado** (vão estourar dos limites se renderizados — pinados são, mas escondidos por bound).
+- **Medium:** ~40% da altura. Mapa visível em ~50% topo; sheet mostra search + empty state ("Adicione as primeiras paradas...") + big buttons pinados no rodapé.
+- **Expanded:** ~90% da altura. Mapa só uma faixa fina no topo; sheet domina a tela; big buttons **continuam pinados no rodapé** (não scrollam com conteúdo).
+- **Snap behavior:** **direction-based**, não snap-to-nearest. Qualquer flick pra cima a partir do collapsed/medium promove ao próximo snap maior; qualquer flick pra baixo recolhe ao próximo menor; só na ausência de flick claro o snap usa "mais próximo". RotPro implementa em `_RouteShellPageState._snapTo` (threshold 50 px/s) — commit `80902ed` (2026-05-28).
+- **Drag handle:** ~y=1985, centered, horizontal pill curto. **Apenas 1 handle** (não duplicado).
 
 **Elementos da bottom bar collapsed (esquerda → direita):**
 | Elemento | Bounds | Content-desc | Função |
