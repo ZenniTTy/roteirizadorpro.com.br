@@ -156,17 +156,41 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     );
   }
 
-  /// Snap-to-nearest helper. Velocity > 0 = arrastando pra baixo (encolher),
-  /// < 0 = pra cima (crescer). Snap mais próximo entre collapsed/medium/
-  /// expanded com viés pra direção da velocidade.
+  /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
+  ///   - Flick pra cima (velocity < -kFlick) → próximo snap MAIOR.
+  ///   - Flick pra baixo (velocity > kFlick) → próximo snap MENOR.
+  ///   - Sem flick claro → snap-to-nearest na fração atual.
+  ///
+  /// O snap-to-nearest puro (que tinha antes) tornava a transição
+  /// mid → expanded relutante: como mid (0.40) está mais perto de
+  /// collapsed (0.18) que de expanded (0.90), qualquer arrasto suave
+  /// voltava pro mid. Direction-based resolve: qualquer flick pra cima
+  /// já promove ao próximo snap maior, igual Spoke.
   double _snapTo(double velocity) {
+    const kFlickThreshold = 50.0; // px/s — abaixo disso conta como "parado".
     final snaps = [_collapsedFraction, _mediumFraction, _expandedFraction];
-    // Aplica viés na direção do flick.
-    final biased = _sheetFraction - velocity * 0.0001;
+
+    if (velocity < -kFlickThreshold) {
+      // Flick pra cima → próximo snap maior que o atual (com pequena
+      // tolerância pra evitar comparar com o próprio).
+      for (final s in snaps) {
+        if (s > _sheetFraction + 0.01) return s;
+      }
+      return snaps.last;
+    }
+    if (velocity > kFlickThreshold) {
+      // Flick pra baixo → próximo snap menor que o atual.
+      for (final s in snaps.reversed) {
+        if (s < _sheetFraction - 0.01) return s;
+      }
+      return snaps.first;
+    }
+
+    // Sem flick claro: snap-to-nearest puro.
     var closest = snaps.first;
-    var minDist = (biased - closest).abs();
+    var minDist = (_sheetFraction - closest).abs();
     for (final s in snaps) {
-      final d = (biased - s).abs();
+      final d = (_sheetFraction - s).abs();
       if (d < minDist) {
         minDist = d;
         closest = s;
@@ -343,43 +367,54 @@ class _ActiveRouteSheet extends StatelessWidget {
 
   /// Empty state visível quando o sheet está medium+ e a rota não tem
   /// paradas ainda (estado canônico observado na Spoke 2026-05-28).
-  /// Pin dashed central + microcopy PT-BR.
+  /// Pin quadrado arredondado (NÃO oval) + microcopy PT-BR.
+  ///
+  /// Wrap em FittedBox pra evitar overflow durante o drag em frações
+  /// intermediárias (quando o Expanded fica com altura insuficiente
+  /// momentaneamente).
   Widget _buildEmptyState(BuildContext context) {
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 56,
-            height: 64,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: AppColors.textMuted.withValues(alpha: 0.5),
-                width: 1.5,
-                style: BorderStyle.solid,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Pin 48x48 quadrado arredondado — radius < dimensão/2
+              // garante quadrado-com-cantos-arredondados (não oval).
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.textMuted.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: const Icon(
+                  LucideIcons.plus,
+                  color: AppColors.textMuted,
+                  size: 22,
+                ),
               ),
-            ),
-            child: const Icon(
-              LucideIcons.plus,
-              color: AppColors.textMuted,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
-            child: Text(
-              'Adicione as primeiras paradas para começar a criar sua rota',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textMuted,
-                height: 1.4,
+              const SizedBox(height: 10),
+              const SizedBox(
+                width: 280,
+                child: Text(
+                  'Adicione as primeiras paradas para começar a criar sua rota',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                    height: 1.4,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
