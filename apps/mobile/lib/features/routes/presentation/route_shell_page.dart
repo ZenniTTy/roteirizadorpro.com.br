@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart' show Factory;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -62,6 +64,26 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             mapToolbarEnabled: false,
             myLocationButtonEnabled: false,
             compassEnabled: false,
+            // Per flutter/flutter#105994 + #28655: GoogleMap consome gestos
+            // verticais por padrão e impede o DraggableScrollableSheet por
+            // cima de receber drag. Declarar explicitamente APENAS os
+            // recognizers que o mapa precisa (scale pinch-to-zoom + tap +
+            // long-press + horizontal pan) cede o vertical pan pro sheet,
+            // preservando a interatividade do mapa pra zoom e pan lateral.
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory<ScaleGestureRecognizer>(
+                () => ScaleGestureRecognizer(),
+              ),
+              Factory<TapGestureRecognizer>(
+                () => TapGestureRecognizer(),
+              ),
+              Factory<LongPressGestureRecognizer>(
+                () => LongPressGestureRecognizer(),
+              ),
+              Factory<HorizontalDragGestureRecognizer>(
+                () => HorizontalDragGestureRecognizer(),
+              ),
+            },
           ),
           Positioned(
             top: mq.padding.top + 12,
@@ -93,9 +115,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             ),
           ),
           NotificationListener<DraggableScrollableNotification>(
+            // `return false` deixa a notification continuar propagando.
+            // Não há nada acima dela no tree que reaja a essa notification,
+            // mas é boa prática quando o listener apenas observa (per
+            // api.flutter.dev/flutter/widgets/NotificationListener-class.html).
             onNotification: (notification) {
               setState(() => _sheetPosition = notification.extent);
-              return true;
+              return false;
             },
             child: _ActiveRouteSheet(minChildSize: minChildSize),
           ),
@@ -155,9 +181,12 @@ class _ActiveRouteSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use a fixed small minChildSize so it snaps to Search Pill only
-    final double smallSize =
-        (110 / MediaQuery.sizeOf(context).height).clamp(0.12, 0.2);
+    final mq = MediaQuery.of(context);
+    final bottomInset = mq.padding.bottom;
+    // Collapsed size precisa caber: 12px top + 4px handle + 16px gap + 48px pill
+    // + 12px bottom breathing room + inset do system nav bar do device.
+    final collapsedPx = 92.0 + bottomInset;
+    final smallSize = (collapsedPx / mq.size.height).clamp(0.10, 0.30);
 
     return DraggableScrollableSheet(
       initialChildSize: smallSize,
@@ -175,21 +204,29 @@ class _ActiveRouteSheet extends StatelessWidget {
                   color: Colors.black26, blurRadius: 10, offset: Offset(0, -2))
             ],
           ),
-          // CustomScrollView ao invés de ListView para que o gesto de arraste
-          // na área vazia ABAIXO do conteúdo expanda o sheet (e não scrolle
-          // conteúdo interno fantasma). O SliverFillRemaining no fim com
-          // `hasScrollBody: false` faz o filler NÃO consumir o gesto — ele
-          // chega no DraggableScrollableSheet pai, que arrasta o sheet.
-          // Já o conteúdo real (handle, pílula, botões) está em
-          // SliverToBoxAdapters — esses consomem o scroll só quando o sheet
-          // já está expandido, replicando o feel do Spoke / Google Maps.
-          // Referência: api.flutter.dev/flutter/widgets/SliverFillRemaining/
-          //   hasScrollBody.html + flutter/flutter#35758.
+          // CustomScrollView + SliverFillRemaining(hasScrollBody: false,
+          // fillOverscroll: true) é o padrão canônico documentado em
+          // api.flutter.dev/.../SliverFillRemaining/hasScrollBody.html +
+          // flutter/flutter#35758 pra resolver "drag em área vazia não
+          // expande o sheet". O ListView anterior tinha esse bug porque o
+          // filler transparent fazia o ListView SEMPRE scrollable, então o
+          // drag scrollava conteúdo interno em vez de transferir o gesto
+          // pro DraggableScrollableSheet pai.
+          //
+          // ATENÇÃO ao GoogleMap por baixo: per flutter/flutter#105994 o
+          // GoogleMap consome gestos verticais. O Container OPACO (color:
+          // Colors.white) sobre o sheet inteiro garante que o hit-test
+          // ganhe contra o map. Não tocar nessa cor pra Colors.transparent.
+          //
+          // padding.bottom adicionado ao SafeArea-like interno do
+          // CustomScrollView pra contornar flutter/flutter#123394 (SafeArea
+          // não respeita bottom inset dentro de DraggableScrollableSheet).
           child: CustomScrollView(
             controller: scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(child: _buildSheetContent(context)),
+              SliverToBoxAdapter(child: SizedBox(height: bottomInset + 12)),
               const SliverFillRemaining(
                 hasScrollBody: false,
                 fillOverscroll: true,
