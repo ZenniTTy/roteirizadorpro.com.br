@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../domain/route_action.dart';
+import '../../domain/route.dart' as rp_route;
 import '../../state/active_route_provider.dart';
 import '../../state/current_user_provider.dart';
 import '../../state/routes_provider.dart';
@@ -96,7 +97,7 @@ class AppDrawer extends ConsumerWidget {
                   if (context.mounted) Navigator.of(context).pop();
                 },
                 onRouteKebabAction: (route, action) =>
-                    _comingSoon(context, _kebabActionLabel(action)),
+                    _handleRouteKebabAction(context, ref, route, action),
               ),
             ),
             const Divider(height: 1, color: AppColors.border),
@@ -161,6 +162,48 @@ class AppDrawer extends ConsumerWidget {
         RouteAction.duplicate => 'Duplicar rota',
         RouteAction.delete => 'Excluir rota',
       };
+
+  Future<void> _handleRouteKebabAction(
+    BuildContext context,
+    WidgetRef ref,
+    rp_route.Route route,
+    RouteAction action,
+  ) async {
+    switch (action) {
+      case RouteAction.editMeta:
+        // TODO: Pass route parameter to wizard when implemented
+        _comingSoon(context, 'Definir nome e data');
+      case RouteAction.duplicate:
+        ref.read(routesProvider.notifier).duplicateRoute(route.id);
+        if (context.mounted) Navigator.of(context).pop();
+      case RouteAction.delete:
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.bg,
+            title: const Text('Excluir esta rota?', style: TextStyle(color: AppColors.text)),
+            content: const Text('Esta ação não pode ser desfeita.', style: TextStyle(color: AppColors.textMuted)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancelar', style: TextStyle(color: AppColors.text)),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Excluir', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed == true && context.mounted) {
+          ref.read(routesProvider.notifier).removeRoute(route.id);
+          // Auto-close drawer if deleting the active route etc
+          Navigator.of(context).pop();
+        }
+    }
+  }
 }
 
 enum _HelpAction { support, feedback, signOut }

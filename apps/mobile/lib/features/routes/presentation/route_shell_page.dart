@@ -4,6 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import 'widgets/app_drawer.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Shell that hosts the active route's map + sheet.
 ///
@@ -26,12 +29,27 @@ class RouteShellPage extends ConsumerWidget {
     final mq = MediaQuery.of(context);
 
     return Scaffold(
-      bottomNavigationBar: const _SheetCollapsed(),
       body: Stack(
         children: [
-          const ColoredBox(
-            color: AppColors.surface,
-            child: SizedBox.expand(),
+          FlutterMap(
+            options: MapOptions(
+              initialCenter: const LatLng(-23.550520, -46.633308), // São Paulo
+              initialZoom: 13.0,
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'br.com.roteirizadorpro.roteirizador_pro',
+              ),
+              RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution(
+                    'OpenStreetMap contributors',
+                    onTap: () => launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
+                  ),
+                ],
+              ),
+            ],
           ),
           Positioned(
             top: mq.padding.top + 12,
@@ -62,6 +80,7 @@ class RouteShellPage extends ConsumerWidget {
               ],
             ),
           ),
+          const _ActiveRouteSheet(),
         ],
       ),
     );
@@ -111,71 +130,122 @@ class _FloatingCircleButton extends StatelessWidget {
   }
 }
 
-class _SheetCollapsed extends StatelessWidget {
-  const _SheetCollapsed();
+class _ActiveRouteSheet extends StatelessWidget {
+  const _ActiveRouteSheet();
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        child: Material(
-          color: AppColors.bg,
-          elevation: 6,
-          shadowColor: const Color(0x296C3FC5),
-          borderRadius: BorderRadius.circular(AppRadii.btn),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(AppRadii.btn),
-            onTap: () => _comingSoon(context, 'Adicionar parada'),
-            child: Container(
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: AppColors.bg,
-                borderRadius: BorderRadius.circular(AppRadii.btn),
-                border: Border.all(color: AppColors.border),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.12,
+      minChildSize: 0.12,
+      maxChildSize: 0.9,
+      snap: true,
+      snapSizes: const [0.12, 0.5, 0.9],
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.bg,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 10,
+                offset: Offset(0, -2),
               ),
-              child: Row(
-                children: [
-                  const Icon(
-                    LucideIcons.search,
-                    color: AppColors.textMuted,
-                    size: 18,
+            ],
+          ),
+          child: Column(
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text(
-                      'Toque para adicionar',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 15,
+                ),
+              ),
+              // Search Input Simulation
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Material(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.btn),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppRadii.btn),
+                    onTap: () => _comingSoon(context, 'Adicionar parada'),
+                    child: Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(AppRadii.btn),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(LucideIcons.search, color: AppColors.textMuted, size: 18),
+                          const SizedBox(width: 10),
+                          const Expanded(
+                            child: Text(
+                              'Toque para adicionar',
+                              style: TextStyle(color: AppColors.textMuted, fontSize: 15),
+                            ),
+                          ),
+                          _SuffixIcon(
+                            semanticsLabel: 'Ler etiqueta de endereço',
+                            icon: LucideIcons.scanLine,
+                            onTap: () => _comingSoon(context, 'Ler etiqueta'),
+                          ),
+                          const SizedBox(width: 4),
+                          _SuffixIcon(
+                            semanticsLabel: 'Dite o endereço',
+                            icon: LucideIcons.mic,
+                            onTap: () => _comingSoon(context, 'Ditar endereço'),
+                          ),
+                          const SizedBox(width: 4),
+                          _SuffixIcon(
+                            semanticsLabel: 'Mais opções da rota',
+                            icon: LucideIcons.ellipsisVertical,
+                            onTap: () => _comingSoon(context, 'Opções da rota'),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  _SuffixIcon(
-                    semanticsLabel: 'Ler etiqueta de endereço',
-                    icon: LucideIcons.scanLine,
-                    onTap: () => _comingSoon(context, 'Ler etiqueta'),
-                  ),
-                  const SizedBox(width: 4),
-                  _SuffixIcon(
-                    semanticsLabel: 'Dite o endereço',
-                    icon: LucideIcons.mic,
-                    onTap: () => _comingSoon(context, 'Ditar endereço'),
-                  ),
-                  const SizedBox(width: 4),
-                  _SuffixIcon(
-                    semanticsLabel: 'Mais opções da rota',
-                    icon: LucideIcons.ellipsisVertical,
-                    onTap: () => _comingSoon(context, 'Opções da rota'),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const Divider(color: AppColors.border),
+              // Empty List Area
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    const SizedBox(height: 32),
+                    const Center(
+                      child: Text(
+                        'Nenhuma parada adicionada',
+                        style: TextStyle(color: AppColors.textMuted, fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _comingSoon(context, 'Importar planilha'),
+                        icon: const Icon(LucideIcons.fileSpreadsheet, color: AppColors.primary),
+                        label: const Text('Importar paradas', style: TextStyle(color: AppColors.primary)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

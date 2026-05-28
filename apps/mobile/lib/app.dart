@@ -8,6 +8,7 @@ import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/routes/presentation/route_shell_page.dart';
 import 'features/routes/presentation/wizard_route_page.dart';
+import 'features/routes/presentation/reuse_stops_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -48,6 +49,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'routes/create',
             builder: (_, __) => const WizardRoutePage(),
+          ),
+          GoRoute(
+            path: 'routes/reuse-stops',
+            builder: (_, __) => const ReuseStopsPage(),
           ),
         ],
       ),

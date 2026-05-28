@@ -61,16 +61,21 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
     }
 
     if (state.reuseStops) {
-      _showSnack('Reutilizar paradas será habilitado na Área 2.5');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/home');
+      }
+      // Wait for GoRouter to push then navigate to reuse-stops
+      Future.delayed(const Duration(milliseconds: 100), () {
+        context.push('/routes/reuse-stops');
+      });
       return;
     }
 
     // In a real app, we'd call routesProvider.notifier.createRoute(name: name, date: selectedDate)
     // For Slice 2, since Routes is just a seed list provider, we'll pretend it created
     // and just set an active mock route (or navigate).
-    // Actually, routesProvider is NOT a notifier in Slice 2. So we can't add to it directly.
-    // The spec says "Ao submeter... O GoRouter limpa a tela".
-    // For now, just navigate back.
     if (context.canPop()) {
       context.pop();
     } else {
