@@ -25,7 +25,8 @@ class RouteShellPage extends ConsumerStatefulWidget {
 }
 
 class _RouteShellPageState extends ConsumerState<RouteShellPage> {
-  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
+  final Completer<GoogleMapController> _controller =
+      Completer<GoogleMapController>();
   double? _sheetPosition; // Tracks the DraggableScrollableSheet size
 
   static const CameraPosition _initialPosition = CameraPosition(
@@ -37,13 +38,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     final bottomPadding = mq.padding.bottom;
-    
+
     // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
     final minHeightPx = 130.0 + bottomPadding;
     final minChildSize = (minHeightPx / mq.size.height).clamp(0.15, 0.35);
-    
+
     _sheetPosition ??= minChildSize;
-    
+
     // Convert sheet position to pixels and add margin to keep buttons above the sheet
     final sheetHeightPx = mq.size.height * _sheetPosition!;
     final buttonsBottom = sheetHeightPx + 48;
@@ -149,13 +150,14 @@ class _FloatingCircleButton extends StatelessWidget {
 
 class _ActiveRouteSheet extends StatelessWidget {
   const _ActiveRouteSheet({required this.minChildSize});
-  
+
   final double minChildSize;
 
   @override
   Widget build(BuildContext context) {
     // Use a fixed small minChildSize so it snaps to Search Pill only
-    final double smallSize = (110 / MediaQuery.sizeOf(context).height).clamp(0.12, 0.2);
+    final double smallSize =
+        (110 / MediaQuery.sizeOf(context).height).clamp(0.12, 0.2);
 
     return DraggableScrollableSheet(
       initialChildSize: smallSize,
@@ -169,113 +171,134 @@ class _ActiveRouteSheet extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             boxShadow: [
-              BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -2))
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 10, offset: Offset(0, -2))
             ],
           ),
-          child: ListView(
+          // CustomScrollView ao invés de ListView para que o gesto de arraste
+          // na área vazia ABAIXO do conteúdo expanda o sheet (e não scrolle
+          // conteúdo interno fantasma). O SliverFillRemaining no fim com
+          // `hasScrollBody: false` faz o filler NÃO consumir o gesto — ele
+          // chega no DraggableScrollableSheet pai, que arrasta o sheet.
+          // Já o conteúdo real (handle, pílula, botões) está em
+          // SliverToBoxAdapters — esses consomem o scroll só quando o sheet
+          // já está expandido, replicando o feel do Spoke / Google Maps.
+          // Referência: api.flutter.dev/flutter/widgets/SliverFillRemaining/
+          //   hasScrollBody.html + flutter/flutter#35758.
+          child: CustomScrollView(
             controller: scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            children: [
-              // Drag Handle
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              
-              // Top Action Row (Search Pill + Kebab)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    // Search Pill
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => context.push('/home/routes/add-stop'),
-                        borderRadius: BorderRadius.circular(30),
-                        child: Container(
-                          height: 48,
-                          padding: const EdgeInsets.only(left: 12, right: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            border: Border.all(color: AppColors.border),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(LucideIcons.search, color: AppColors.primary, size: 20),
-                              const SizedBox(width: 8),
-                              const Expanded(
-                                child: Text(
-                                  'Adicionar parada...',
-                                  style: TextStyle(color: AppColors.textMuted, fontSize: 14),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              _SearchInnerButton(
-                                icon: LucideIcons.camera,
-                                onTap: () => _comingSoon(context, 'Leitor OCR'),
-                              ),
-                              const SizedBox(width: 4),
-                              _SearchInnerButton(
-                                icon: LucideIcons.mic,
-                                onTap: () => _comingSoon(context, 'Comando de Voz'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Kebab Menu
-                    _GradientCircleButton(
-                      icon: LucideIcons.moreVertical,
-                      semanticsLabel: 'Opções da rota',
-                      onTap: () => _comingSoon(context, 'Opções da Rota'),
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // 2 Big Buttons (Medium state content)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  children: [
-                    _SheetBigButton(
-                      icon: LucideIcons.plusCircle,
-                      label: 'Adicionar paradas',
-                      onTap: () => context.push('/home/routes/add-stop'),
-                    ),
-                    const SizedBox(height: 12),
-                    _SheetBigButton(
-                      icon: LucideIcons.copy,
-                      label: 'Copiar paradas de uma rota anterior',
-                      onTap: () => _comingSoon(context, 'Copiar paradas'),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Filler container so dragging the empty space works
-              Container(
-                height: MediaQuery.sizeOf(context).height,
-                color: Colors.transparent,
+            slivers: [
+              SliverToBoxAdapter(child: _buildSheetContent(context)),
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                fillOverscroll: true,
+                child: SizedBox.shrink(),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  /// Real content of the sheet — drag handle + search pill + 2 big buttons.
+  /// Extraído para um método pra manter o `slivers:` legível e isolar a
+  /// estrutura de gesto (CustomScrollView + SliverFillRemaining) do layout.
+  Widget _buildSheetContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Drag Handle
+        const SizedBox(height: 12),
+        Center(
+          child: Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Top Action Row (Search Pill + Kebab)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              // Search Pill
+              Expanded(
+                child: InkWell(
+                  onTap: () => context.push('/home/routes/add-stop'),
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.only(left: 12, right: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(LucideIcons.search,
+                            color: AppColors.primary, size: 20),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Adicionar parada...',
+                            style: TextStyle(
+                                color: AppColors.textMuted, fontSize: 14),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        _SearchInnerButton(
+                          icon: LucideIcons.camera,
+                          onTap: () => _comingSoon(context, 'Leitor OCR'),
+                        ),
+                        const SizedBox(width: 4),
+                        _SearchInnerButton(
+                          icon: LucideIcons.mic,
+                          onTap: () => _comingSoon(context, 'Comando de Voz'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Kebab Menu
+              _GradientCircleButton(
+                icon: LucideIcons.moreVertical,
+                semanticsLabel: 'Opções da rota',
+                onTap: () => _comingSoon(context, 'Opções da Rota'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        // 2 Big Buttons (Medium state content)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              _SheetBigButton(
+                icon: LucideIcons.plusCircle,
+                label: 'Adicionar paradas',
+                onTap: () => context.push('/home/routes/add-stop'),
+              ),
+              const SizedBox(height: 12),
+              _SheetBigButton(
+                icon: LucideIcons.copy,
+                label: 'Copiar paradas de uma rota anterior',
+                onTap: () => _comingSoon(context, 'Copiar paradas'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
@@ -310,7 +333,8 @@ class _SearchInnerButton extends StatelessWidget {
 }
 
 class _SheetBigButton extends StatelessWidget {
-  const _SheetBigButton({required this.icon, required this.label, required this.onTap});
+  const _SheetBigButton(
+      {required this.icon, required this.label, required this.onTap});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -327,7 +351,8 @@ class _SheetBigButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
           boxShadow: const [
-            BoxShadow(color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2))
+            BoxShadow(
+                color: Color(0x0A000000), blurRadius: 4, offset: Offset(0, 2))
           ],
         ),
         child: Row(
@@ -337,7 +362,10 @@ class _SheetBigButton extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.text),
+                style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.text),
               ),
             ),
           ],
