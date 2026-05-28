@@ -36,9 +36,9 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
     
-    // Convert 0.12 of screen height + safe area to calculate button position
+    // Convert sheet position to pixels and add margin to keep buttons above the sheet
     final sheetHeightPx = mq.size.height * _sheetPosition;
-    final buttonsBottom = sheetHeightPx + 16;
+    final buttonsBottom = sheetHeightPx + 32;
 
     return Scaffold(
       body: Stack(
@@ -147,8 +147,7 @@ class _ActiveRouteSheet extends StatelessWidget {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
     
     // Ensure the sheet is tall enough to show the handle and search bar above the system nav bar
-    // ~72px for the search bar and handle + bottom nav bar padding
-    final minHeightPx = 72.0 + bottomPadding;
+    final minHeightPx = 110.0 + bottomPadding;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final minChildSize = (minHeightPx / screenHeight).clamp(0.12, 0.3);
 

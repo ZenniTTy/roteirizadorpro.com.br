@@ -24,7 +24,7 @@ Migrate the map provider from `flutter_map` to `google_maps_flutter` to ensure 1
 - Removed `flutter_map` and `latlong2` dependencies and added `google_maps_flutter`.
 - Modified `android/app/build.gradle.kts` and `AndroidManifest.xml` to load `MAPS_API_KEY` securely from `local.properties`.
 - Rewrote `route_shell_page.dart` using the `GoogleMap` widget.
-- Adjusted the `DraggableScrollableSheet` layout so that its `minChildSize` accounts for Android navigation bar padding, and anchored the map control buttons dynamically to stay above the sheet.
+- Adjusted the `DraggableScrollableSheet` layout so that its `minChildSize` accounts for Android navigation bar padding (increased base height from 72px to 110px), and anchored the map control buttons dynamically to stay higher above the sheet.
 - Emphasized a general guideline: whenever the agent gets stuck, rely on MCP tools (like Chrome DevTools, Context7, and Web Search) to debug and find modern best practices.
 
 ## Decisions Made
