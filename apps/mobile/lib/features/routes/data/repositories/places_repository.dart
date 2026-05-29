@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/env/app_env.dart';
@@ -18,7 +17,8 @@ class PlacesRepository {
   Future<List<PlaceAutocompletePrediction>> autocomplete(String query) async {
     if (query.isEmpty) return [];
     if (apiKey.isEmpty) {
-      throw Exception('Chave da API do Google Maps ausente. Inicie o app com --dart-define-from-file=.env');
+      throw Exception(
+          'Chave da API do Google Maps ausente. Inicie o app com --dart-define-from-file=.env');
     }
 
     try {
@@ -50,13 +50,15 @@ class PlacesRepository {
 
       return suggestions.map((json) {
         final prediction = json['placePrediction'] as Map<String, dynamic>;
-        final structuredFormat = prediction['structuredFormat'] as Map<String, dynamic>?;
-        
+        final structuredFormat =
+            prediction['structuredFormat'] as Map<String, dynamic>?;
+
         return PlaceAutocompletePrediction(
           placeId: prediction['placeId'] as String? ?? '',
           description: prediction['text']?['text'] as String? ?? '',
           mainText: structuredFormat?['mainText']?['text'] as String? ?? '',
-          secondaryText: structuredFormat?['secondaryText']?['text'] as String? ?? '',
+          secondaryText:
+              structuredFormat?['secondaryText']?['text'] as String? ?? '',
         );
       }).toList();
     } catch (e) {
@@ -66,7 +68,8 @@ class PlacesRepository {
 
   Future<PlaceDetails?> getPlaceDetails(String placeId) async {
     if (apiKey.isEmpty) {
-      throw Exception('Chave da API do Google Maps ausente. Inicie o app com --dart-define-from-file=.env');
+      throw Exception(
+          'Chave da API do Google Maps ausente. Inicie o app com --dart-define-from-file=.env');
     }
 
     try {

@@ -65,7 +65,9 @@ class _AddStopSearchBarState extends ConsumerState<AddStopSearchBar> {
                       ),
                       onChanged: (val) {
                         ref.read(searchQueryProvider.notifier).setQuery(val);
-                        ref.read(placeAutocompleteProvider.notifier).search(val);
+                        ref
+                            .read(placeAutocompleteProvider.notifier)
+                            .search(val);
                       },
                     ),
                   ),

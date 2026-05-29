@@ -90,7 +90,10 @@ class DrawerHeaderCard extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(AppRadii.btn),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x339BCC1F), blurRadius: 12, offset: Offset(0, 4)),
+                  BoxShadow(
+                      color: Color(0x339BCC1F),
+                      blurRadius: 12,
+                      offset: Offset(0, 4)),
                 ],
               ),
               child: Material(
@@ -98,9 +101,9 @@ class DrawerHeaderCard extends StatelessWidget {
                 child: InkWell(
                   onTap: onSubscribe,
                   borderRadius: BorderRadius.circular(AppRadii.btn),
-                  child: Row(
+                  child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(LucideIcons.gem, color: AppColors.neonInk, size: 18),
                       SizedBox(width: 8),
                       Text(

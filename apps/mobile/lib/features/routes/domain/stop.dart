@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 enum StopType { delivery, pickup }
+
 enum StopStatus { pending, delivered, failed, pickedUp }
 
 class Stop {
@@ -25,21 +26,21 @@ class Stop {
 
   final String id;
   final int? positionInRoute;
-  
+
   /// Formatted identifier like "A1" or "1"
   final String? deliveryId;
   final StopType type;
   final StopStatus status;
-  
+
   final double lat;
   final double lng;
   final String streetName;
   final String fullAddress;
-  
+
   final String? notes;
   final String? colorHex;
   final int packagesCount;
-  
+
   final DateTime? timeWindowStart;
   final DateTime? timeWindowEnd;
   final int? customDurationMinutes;
@@ -78,7 +79,8 @@ class Stop {
       packagesCount: packagesCount ?? this.packagesCount,
       timeWindowStart: timeWindowStart ?? this.timeWindowStart,
       timeWindowEnd: timeWindowEnd ?? this.timeWindowEnd,
-      customDurationMinutes: customDurationMinutes ?? this.customDurationMinutes,
+      customDurationMinutes:
+          customDurationMinutes ?? this.customDurationMinutes,
       priority: priority ?? this.priority,
     );
   }

@@ -57,7 +57,8 @@ class DrawerRouteList extends StatelessWidget {
                 child,
               ],
             ),
-          _SectionHeaderRow(:final label, :final isFirst) => _SectionHeader(label: label, isFirst: isFirst),
+          _SectionHeaderRow(:final label, :final isFirst) =>
+            _SectionHeader(label: label, isFirst: isFirst),
           _RouteRow(:final route) => DrawerRouteTile(
               route: route,
               activeRouteId: activeRouteId,
@@ -131,7 +132,7 @@ class _SectionHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppColors.neon.withOpacity(0.08),
+                    AppColors.neon.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),

@@ -16,5 +16,8 @@ List<Stop> currentRouteStops(Ref ref) {
   final id = ref.watch(activeRouteIdProvider);
   if (id == null) return const [];
   final routes = ref.watch(routesProvider);
-  return routes.where((r) => r.id == id).expand((r) => r.stops).toList(growable: false);
+  return routes
+      .where((r) => r.id == id)
+      .expand((r) => r.stops)
+      .toList(growable: false);
 }

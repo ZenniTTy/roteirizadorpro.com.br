@@ -12,7 +12,8 @@ class _FakePlaceAutocomplete extends PlaceAutocomplete {
   _FakePlaceAutocomplete(this._seed);
   final AsyncValue<List<PlaceAutocompletePrediction>> _seed;
   @override
-  Future<List<PlaceAutocompletePrediction>> build() async => _seed.value ?? const [];
+  Future<List<PlaceAutocompletePrediction>> build() async =>
+      _seed.value ?? const [];
   @override
   void search(String query) {}
 }
@@ -30,20 +31,25 @@ ProviderContainer makeContainer({
       const AsyncData<List<PlaceAutocompletePrediction>>([]),
   List<Stop> routeStops = const [],
 }) {
-  final c = ProviderContainer(overrides: [
-    searchQueryProvider.overrideWith(() => _FakeSearchQuery(query)),
-    placeAutocompleteProvider.overrideWith(() => _FakePlaceAutocomplete(predictions)),
-    currentRouteStopsProvider.overrideWith((ref) => routeStops),
-  ]);
+  final c = ProviderContainer(
+    overrides: [
+      searchQueryProvider.overrideWith(() => _FakeSearchQuery(query)),
+      placeAutocompleteProvider
+          .overrideWith(() => _FakePlaceAutocomplete(predictions)),
+      currentRouteStopsProvider.overrideWith((ref) => routeStops),
+    ],
+  );
   addTearDown(c.dispose);
   return c;
 }
 
 void main() {
   test('empty query → EmptyVariant with stopCount from currentRouteStops', () {
-    final c = makeContainer(routeStops: [
-      Stop(lat: 0, lng: 0, streetName: 'a', fullAddress: 'a'),
-    ]);
+    final c = makeContainer(
+      routeStops: [
+        Stop(lat: 0, lng: 0, streetName: 'a', fullAddress: 'a'),
+      ],
+    );
     final s = c.read(addStopUiStateProvider);
     expect(s, isA<EmptyVariant>());
     expect((s as EmptyVariant).stopCount, 1);
@@ -55,8 +61,10 @@ void main() {
     expect(c.read(addStopUiStateProvider), isA<ZeroResults>());
   });
 
-  test('query "Av" with matches → WithResults (Section A populated by substring)', () async {
-    final pred = PlaceAutocompletePrediction(
+  test(
+      'query "Av" with matches → WithResults (Section A populated by substring)',
+      () async {
+    const pred = PlaceAutocompletePrediction(
       placeId: 'p',
       description: 'd',
       mainText: 'Av Paulista',
@@ -64,9 +72,13 @@ void main() {
     );
     final c = makeContainer(
       query: 'paul',
-      predictions: AsyncData([pred]),
+      predictions: const AsyncData([pred]),
       routeStops: [
-        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'Av Paulista, 500'),
+        Stop(
+            lat: 0,
+            lng: 0,
+            streetName: 'Av Paulista, 500',
+            fullAddress: 'Av Paulista, 500'),
       ],
     );
     await c.read(placeAutocompleteProvider.future);

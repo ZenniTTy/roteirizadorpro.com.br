@@ -18,7 +18,8 @@ void main() {
     expect(find.byIcon(LucideIcons.mic), findsOneWidget);
   });
 
-  testWidgets('OCR + Voice icons hidden when query is non-empty', (tester) async {
+  testWidgets('OCR + Voice icons hidden when query is non-empty',
+      (tester) async {
     await tester.pumpWidget(_wrap(const AddStopSearchBar()));
     await tester.pump();
 

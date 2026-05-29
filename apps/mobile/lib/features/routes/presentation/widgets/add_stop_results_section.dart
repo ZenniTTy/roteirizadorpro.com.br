@@ -40,32 +40,40 @@ class AddStopResultsSection extends StatelessWidget {
     if (matchesInRoute.isNotEmpty) {
       children.add(_sectionHeader('Desta rota (${matchesInRoute.length})'));
       for (final stop in matchesInRoute) {
-        children.add(ListTile(
-          leading: const Icon(LucideIcons.mapPin, color: AppColors.primary),
-          title: Text(stop.streetName),
-          subtitle: stop.fullAddress.isNotEmpty ? Text(stop.fullAddress) : null,
-          onTap: () => onSectionATap(stop),
-        ));
+        children.add(
+          ListTile(
+            leading: const Icon(LucideIcons.mapPin, color: AppColors.primary),
+            title: Text(stop.streetName),
+            subtitle:
+                stop.fullAddress.isNotEmpty ? Text(stop.fullAddress) : null,
+            onTap: () => onSectionATap(stop),
+          ),
+        );
       }
     }
 
     children.add(_sectionHeader('Adicionar nova parada'));
     for (final p in newCandidates) {
-      children.add(ListTile(
-        leading: const Icon(LucideIcons.mapPin, color: AppColors.textMuted),
-        title: Text(p.mainText),
-        subtitle: p.secondaryText.isNotEmpty ? Text(p.secondaryText) : null,
-        onTap: () => onSectionBTap(p),
-      ));
+      children.add(
+        ListTile(
+          leading: const Icon(LucideIcons.mapPin, color: AppColors.textMuted),
+          title: Text(p.mainText),
+          subtitle: p.secondaryText.isNotEmpty ? Text(p.secondaryText) : null,
+          onTap: () => onSectionBTap(p),
+        ),
+      );
     }
 
     children.add(const Divider(height: 1));
-    children.add(ListTile(
-      leading: const Icon(LucideIcons.mapPinned, color: AppColors.primary),
-      title: const Text('Escolher no mapa'),
-      trailing: const Icon(LucideIcons.chevronRight, color: AppColors.textMuted),
-      onTap: () => context.push('/home/routes/add-stop/map'),
-    ));
+    children.add(
+      ListTile(
+        leading: const Icon(LucideIcons.mapPinned, color: AppColors.primary),
+        title: const Text('Escolher no mapa'),
+        trailing:
+            const Icon(LucideIcons.chevronRight, color: AppColors.textMuted),
+        onTap: () => context.push('/home/routes/add-stop/map'),
+      ),
+    );
 
     return ListView(
       padding: EdgeInsets.zero,

@@ -11,7 +11,8 @@ class AddStopMapPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Adicionar no Mapa', style: TextStyle(color: Colors.black)),
+        title: const Text('Adicionar no Mapa',
+            style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         leading: IconButton(
@@ -23,12 +24,12 @@ class AddStopMapPage extends StatelessWidget {
         children: [
           // Google Maps container (using Grey box as mock/stub until fully hooked up)
           Container(color: Colors.grey[200]),
-          
+
           // Fixed center pin
           const Center(
             child: Icon(LucideIcons.mapPin, size: 48, color: AppColors.primary),
           ),
-          
+
           // Bottom confirmation card
           Positioned(
             bottom: 32,
@@ -39,20 +40,26 @@ class AddStopMapPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                boxShadow: const [
+                  BoxShadow(color: Colors.black12, blurRadius: 10)
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
                     'Carregando endereço...',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.text),
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.text),
                   ),
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Parada do mapa adicionada (Stub)')),
+                        const SnackBar(
+                            content: Text('Parada do mapa adicionada (Stub)')),
                       );
                       context.pop();
                     },
@@ -71,7 +78,10 @@ class AddStopMapPage extends StatelessWidget {
                       ),
                       child: const Text(
                         'Adicionar esta parada',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

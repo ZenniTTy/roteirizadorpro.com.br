@@ -82,7 +82,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       await ref
           .read(authControllerProvider.notifier)
           .login(email: email, password: password);
-      
+
       final prefs = SharedPreferencesAsync();
       if (_rememberMe) {
         await prefs.setBool('rp.auth.remember_me', true);
@@ -219,7 +219,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ],
                       ),
                       GestureDetector(
-                        onTap: () => _showSnack('Recuperação de senha em breve.'),
+                        onTap: () =>
+                            _showSnack('Recuperação de senha em breve.'),
                         child: const Padding(
                           padding: EdgeInsets.only(right: 4),
                           child: Text(

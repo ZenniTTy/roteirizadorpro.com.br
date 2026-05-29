@@ -12,7 +12,9 @@ GoRouter _router(Widget home) => GoRouter(
       initialLocation: '/',
       routes: [
         GoRoute(path: '/', builder: (_, __) => home),
-        GoRoute(path: '/map', builder: (_, __) => const Scaffold(body: Text('MAP'))),
+        GoRoute(
+            path: '/map',
+            builder: (_, __) => const Scaffold(body: Text('MAP'))),
       ],
     );
 
@@ -27,7 +29,8 @@ Widget _wrap({required AddStopUiState state}) {
 }
 
 void main() {
-  testWidgets('EmptyVariant(0 stops) renders first-paradas microcopy + 3 method buttons',
+  testWidgets(
+      'EmptyVariant(0 stops) renders first-paradas microcopy + 3 method buttons',
       (tester) async {
     await tester.pumpWidget(_wrap(state: const EmptyVariant(stopCount: 0)));
     await tester.pumpAndSettle();
@@ -68,7 +71,8 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
-  testWidgets('WithResults renders Section A header + Section B header + Footer',
+  testWidgets(
+      'WithResults renders Section A header + Section B header + Footer',
       (tester) async {
     const pred = PlaceAutocompletePrediction(
       placeId: 'p1',
@@ -76,10 +80,13 @@ void main() {
       mainText: 'Av Paulista, 1000',
       secondaryText: 'Bela Vista, SP',
     );
-    final stop = Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
-    await tester.pumpWidget(_wrap(
-      state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
-    ));
+    final stop =
+        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Desta rota (1)'), findsOneWidget);
@@ -95,9 +102,11 @@ void main() {
       mainText: 'Av Paulista',
       secondaryText: 'SP',
     );
-    await tester.pumpWidget(_wrap(
-      state: const WithResults(matchesInRoute: [], newCandidates: [pred]),
-    ));
+    await tester.pumpWidget(
+      _wrap(
+        state: const WithResults(matchesInRoute: [], newCandidates: [pred]),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Desta rota'), findsNothing);
@@ -106,10 +115,13 @@ void main() {
 
   testWidgets('Section A tap shows SnackBar "Editar parada em breve"',
       (tester) async {
-    final stop = Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
-    await tester.pumpWidget(_wrap(
-      state: WithResults(matchesInRoute: [stop], newCandidates: const []),
-    ));
+    final stop =
+        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const []),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Av Paulista, 500'));
@@ -126,18 +138,23 @@ void main() {
       initialLocation: '/',
       routes: [
         GoRoute(path: '/', builder: (_, __) => const AddStopPage()),
-        GoRoute(path: '/home/routes/add-stop/map', builder: (_, __) =>
-            const Scaffold(body: Text('SENTINEL_MAP'))),
+        GoRoute(
+          path: '/home/routes/add-stop/map',
+          builder: (_, __) => const Scaffold(body: Text('SENTINEL_MAP')),
+        ),
       ],
     );
 
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        addStopUiStateProvider.overrideWith((ref) =>
-          const WithResults(matchesInRoute: [], newCandidates: [])),
-      ],
-      child: MaterialApp.router(routerConfig: router),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider.overrideWith(
+            (ref) => const WithResults(matchesInRoute: [], newCandidates: []),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Escolher no mapa'));

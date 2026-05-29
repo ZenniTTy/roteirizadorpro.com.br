@@ -45,7 +45,8 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
       builder: (context) {
         return Dialog(
           backgroundColor: AppColors.bg,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 400),
             child: Column(
@@ -115,7 +116,8 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
         ),
         title: const Text(
           'Reutilizar paradas',
-          style: TextStyle(color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              color: AppColors.text, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
@@ -134,21 +136,27 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
               ),
               child: Row(
                 children: [
-                  const Text('De: ', style: TextStyle(color: AppColors.textMuted, fontSize: 16)),
+                  const Text('De: ',
+                      style:
+                          TextStyle(color: AppColors.textMuted, fontSize: 16)),
                   Expanded(
                     child: Text(
                       _selectedRoute != null
                           ? '${_formatDate(_selectedRoute!.date)} - ${_selectedRoute!.displayName()}'
                           : 'Selecione uma rota...',
-                      style: const TextStyle(color: AppColors.text, fontSize: 16, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                          color: AppColors.text,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500),
                     ),
                   ),
-                  const Icon(LucideIcons.chevronDown, color: AppColors.textMuted),
+                  const Icon(LucideIcons.chevronDown,
+                      color: AppColors.textMuted),
                 ],
               ),
             ),
           ),
-          
+
           Expanded(
             child: ListView(
               children: [
@@ -176,7 +184,7 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
               ],
             ),
           ),
-          
+
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -187,15 +195,20 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.surface,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
                   ),
-                  onPressed: canCopy ? () {
-                    // Simular cópia
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Paradas copiadas com sucesso! (Simulação)')),
-                    );
-                    context.go('/home');
-                  } : null,
+                  onPressed: canCopy
+                      ? () {
+                          // Simular cópia
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Paradas copiadas com sucesso! (Simulação)')),
+                          );
+                          context.go('/home');
+                        }
+                      : null,
                   child: Text(
                     'Copiar paradas',
                     style: TextStyle(
@@ -234,7 +247,8 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
           children: [
             Icon(icon, size: 20, color: AppColors.textMuted),
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(color: AppColors.text, fontSize: 16)),
+            Text(title,
+                style: const TextStyle(color: AppColors.text, fontSize: 16)),
           ],
         ),
         children: [
@@ -242,7 +256,9 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 8),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(emptyText, style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
+              child: Text(emptyText,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 14)),
             ),
           ),
         ],

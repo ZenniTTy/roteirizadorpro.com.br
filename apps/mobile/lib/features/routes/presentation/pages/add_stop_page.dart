@@ -37,7 +37,8 @@ class AddStopPage extends ConsumerWidget {
             const AddStopSearchBar(),
             Expanded(
               child: switch (state) {
-                EmptyVariant(:final stopCount) => _EmptyState(stopCount: stopCount),
+                EmptyVariant(:final stopCount) =>
+                  _EmptyState(stopCount: stopCount),
                 Loading() => const Center(child: CircularProgressIndicator()),
                 ErrorState(:final error) =>
                   Center(child: Text('Erro ao buscar endereços: $error')),
@@ -78,7 +79,8 @@ class AddStopPage extends ConsumerWidget {
     }
 
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showSnackBar(const SnackBar(content: Text('Adicionando parada...')));
+    messenger
+        .showSnackBar(const SnackBar(content: Text('Adicionando parada...')));
 
     try {
       final repo = ref.read(placesRepositoryProvider);
@@ -119,7 +121,8 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(LucideIcons.plusCircle, size: 48, color: AppColors.textMuted),
+          const Icon(LucideIcons.plusCircle,
+              size: 48, color: AppColors.textMuted),
           const SizedBox(height: 16),
           Text(
             microcopy,
@@ -139,11 +142,11 @@ class _ZeroResultsState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(LucideIcons.searchX, size: 48, color: AppColors.textMuted),
           SizedBox(height: 16),
           Text(
@@ -158,7 +161,7 @@ class _ZeroResultsState extends StatelessWidget {
             style: TextStyle(fontSize: 14, color: AppColors.textMuted),
           ),
           SizedBox(height: 48),
-          const AddStopMethodButtons(),
+          AddStopMethodButtons(),
         ],
       ),
     );

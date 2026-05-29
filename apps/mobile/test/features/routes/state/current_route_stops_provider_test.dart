@@ -21,17 +21,21 @@ class _FakeActiveRouteId extends ActiveRouteId {
 }
 
 void main() {
-  final stopA = Stop(lat: -23.5, lng: -46.6, streetName: 'A', fullAddress: 'A full');
-  final stopB = Stop(lat: -23.5, lng: -46.6, streetName: 'B', fullAddress: 'B full');
+  final stopA =
+      Stop(lat: -23.5, lng: -46.6, streetName: 'A', fullAddress: 'A full');
+  final stopB =
+      Stop(lat: -23.5, lng: -46.6, streetName: 'B', fullAddress: 'B full');
 
   ProviderContainer makeContainer({
     String? activeId,
     List<domain.Route> routes = const [],
   }) {
-    final c = ProviderContainer(overrides: [
-      activeRouteIdProvider.overrideWith(() => _FakeActiveRouteId(activeId)),
-      routesProvider.overrideWith(() => _FakeRoutes(routes)),
-    ]);
+    final c = ProviderContainer(
+      overrides: [
+        activeRouteIdProvider.overrideWith(() => _FakeActiveRouteId(activeId)),
+        routesProvider.overrideWith(() => _FakeRoutes(routes)),
+      ],
+    );
     addTearDown(c.dispose);
     return c;
   }
@@ -45,7 +49,10 @@ void main() {
     final c = makeContainer(
       activeId: 'missing',
       routes: [
-        domain.Route(id: 'r1', date: DateTime(2026, 6, 1), status: domain.RouteStatus.draft),
+        domain.Route(
+            id: 'r1',
+            date: DateTime(2026, 6, 1),
+            status: domain.RouteStatus.draft),
       ],
     );
     expect(c.read(currentRouteStopsProvider), isEmpty);

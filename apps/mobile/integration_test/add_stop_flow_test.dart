@@ -20,7 +20,8 @@ void main() {
 
       // 1. From shell, tap the search pill.
       final pill = find.text('Adicionar parada...');
-      expect(pill, findsOneWidget, reason: 'shell should expose the search pill');
+      expect(pill, findsOneWidget,
+          reason: 'shell should expose the search pill');
       await tester.tap(pill);
       await tester.pumpAndSettle();
 
@@ -35,16 +36,25 @@ void main() {
       // The original icons (Icon(LucideIcons.scanLine) and Icon(LucideIcons.mic))
       // should no longer be on screen.
       // We assert by their tooltip-derived semantics labels.
-      expect(find.bySemanticsLabel('Ler etiqueta de endereço'), findsNothing,
-          reason: 'OCR icon must hide when query is non-empty');
-      expect(find.bySemanticsLabel('Dite o endereço'), findsNothing,
-          reason: 'Voice icon must hide when query is non-empty');
+      expect(
+        find.bySemanticsLabel('Ler etiqueta de endereço'),
+        findsNothing,
+        reason: 'OCR icon must hide when query is non-empty',
+      );
+      expect(
+        find.bySemanticsLabel('Dite o endereço'),
+        findsNothing,
+        reason: 'Voice icon must hide when query is non-empty',
+      );
 
       // 4. Android back.
       await tester.pageBack();
       await tester.pumpAndSettle();
-      expect(find.text('Adicionar parada...'), findsOneWidget,
-          reason: 'should return to shell (search pill visible again)');
+      expect(
+        find.text('Adicionar parada...'),
+        findsOneWidget,
+        reason: 'should return to shell (search pill visible again)',
+      );
     },
   );
 }

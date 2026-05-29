@@ -177,22 +177,30 @@ class AppDrawer extends ConsumerWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppColors.bg,
-            title: const Text('Excluir esta rota?',
-                style: TextStyle(color: AppColors.text)),
-            content: const Text('Esta ação não pode ser desfeita.',
-                style: TextStyle(color: AppColors.textMuted)),
+            title: const Text(
+              'Excluir esta rota?',
+              style: TextStyle(color: AppColors.text),
+            ),
+            content: const Text(
+              'Esta ação não pode ser desfeita.',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Cancelar',
-                    style: TextStyle(color: AppColors.text)),
+                child: const Text(
+                  'Cancelar',
+                  style: TextStyle(color: AppColors.text),
+                ),
               ),
               FilledButton(
                 style:
                     FilledButton.styleFrom(backgroundColor: AppColors.primary),
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('Excluir',
-                    style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  'Excluir',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),

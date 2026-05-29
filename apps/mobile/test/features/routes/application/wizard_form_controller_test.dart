@@ -16,7 +16,7 @@ void main() {
 
     test('initial state has today selected and reuseStops false', () {
       final state = container.read(wizardFormControllerProvider);
-      
+
       expect(state.dateOption, WizardDateOption.today);
       expect(state.reuseStops, false);
       expect(state.customName, null);
@@ -25,9 +25,9 @@ void main() {
 
     test('updateDateOption changes the date option', () {
       final controller = container.read(wizardFormControllerProvider.notifier);
-      
+
       controller.updateDateOption(WizardDateOption.tomorrow);
-      
+
       final state = container.read(wizardFormControllerProvider);
       expect(state.dateOption, WizardDateOption.tomorrow);
     });
@@ -35,9 +35,9 @@ void main() {
     test('updateCustomDate sets custom date', () {
       final controller = container.read(wizardFormControllerProvider.notifier);
       final testDate = DateTime(2026, 5, 27);
-      
+
       controller.updateCustomDate(testDate);
-      
+
       final state = container.read(wizardFormControllerProvider);
       expect(state.customDate, testDate);
       expect(state.dateOption, WizardDateOption.custom);
@@ -45,10 +45,10 @@ void main() {
 
     test('toggleReuseStops flips the boolean', () {
       final controller = container.read(wizardFormControllerProvider.notifier);
-      
+
       controller.toggleReuseStops();
       expect(container.read(wizardFormControllerProvider).reuseStops, true);
-      
+
       controller.toggleReuseStops();
       expect(container.read(wizardFormControllerProvider).reuseStops, false);
     });
