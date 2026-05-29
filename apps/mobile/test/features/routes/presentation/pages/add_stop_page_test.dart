@@ -93,26 +93,67 @@ void main() {
     expect(find.text('Desta rota (1)'), findsOneWidget);
     expect(find.text('Adicionar nova parada'), findsOneWidget);
     expect(find.text('Escolher no mapa'), findsOneWidget);
+  });
 
+  testWidgets('WithResults footer has no trailing chevron icon',
+      (tester) async {
     // §11.4 amendment 2026-05-29 item 7: Footer renders text-only, no chevron.
-    expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+    final stop =
+        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
+      ),
+    );
+    await tester.pumpAndSettle();
 
+    expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
+  });
+
+  testWidgets(
+      'WithResults Section B ListTile has no leading icon; Section A keeps leading icon',
+      (tester) async {
     // §11.4 amendment 2026-05-29 item 5: Section B ListTile has no leading
     // icon (text-only at x=208), differentiating it from Section A (which
     // keeps `leading` non-null per MS5 Task 2 scope).
-    final sectionBTile = tester.widget<ListTile>(
-      find.ancestor(
-        of: find.text('Av Paulista, 1000'),
-        matching: find.byType(ListTile),
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+    final stop =
+        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
       ),
+    );
+    await tester.pumpAndSettle();
+
+    final sectionBTile = tester.widget<ListTile>(
+      find
+          .ancestor(
+            of: find.text('Av Paulista, 1000'),
+            matching: find.byType(ListTile),
+          )
+          .first,
     );
     expect(sectionBTile.leading, isNull);
 
     final sectionATile = tester.widget<ListTile>(
-      find.ancestor(
-        of: find.text('Av Paulista, 500'),
-        matching: find.byType(ListTile),
-      ),
+      find
+          .ancestor(
+            of: find.text('Av Paulista, 500'),
+            matching: find.byType(ListTile),
+          )
+          .first,
     );
     expect(sectionATile.leading, isNotNull);
   });
