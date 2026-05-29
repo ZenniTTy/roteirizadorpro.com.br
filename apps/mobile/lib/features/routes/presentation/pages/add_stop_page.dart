@@ -101,6 +101,7 @@ class AddStopPage extends ConsumerWidget {
       }
     } catch (e) {
       if (context.mounted) {
+        messenger.hideCurrentSnackBar();
         messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
       }
     }
