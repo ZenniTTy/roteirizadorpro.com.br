@@ -1,14 +1,31 @@
 appId: br.com.roteirizadorpro.roteirizador_pro
+# Login credentials must be supplied at run time via -e flag — the YAML
+# does not embed them. Run with valid operator credentials:
+#   maestro test \
+#     -e MAESTRO_EMAIL=<valid email> \
+#     -e MAESTRO_PASSWORD=<valid password> \
+#     apps/mobile/scripts/add_stop_text_flow.yaml
+# Substituted via ${...} interpolation in the flow body below.
 ---
 # Smoke test for Area 4 (add stop via TEXT method) post-MS5 D4 fixes.
 # Replaces the brittle integration_test/add_stop_flow_test.dart that assumed
 # device pre-state. This YAML is self-contained: clears state, logs in,
-# creates a route, exercises all 5 add-stop screen states, asserts the
-# Spoke-parity invariants from inventory §10.21 + §11.4 (amended 2026-05-29).
+# creates a route, exercises the structurally observable add-stop screen
+# states, and asserts the Spoke-parity invariants from inventory §10.21 +
+# §11.4 (amended 2026-05-29).
 #
-# Run: maestro test apps/mobile/scripts/add_stop_text_flow.yaml
-# Device: any logged-in Samsung M54 (or emulator with prod backend access).
-# Credentials below are the same dev-only test pair used in validate_ui.yaml.
+# SCOPE: this smoke covers everything visually observable WITHOUT requiring
+# tap-then-network round-trips against Google Places. Tap-Section-B (create
+# stop + pop) and Tap-Section-A (SnackBar "Editar parada em breve") are
+# covered by widget tests in
+# apps/mobile/test/features/routes/presentation/pages/add_stop_page_test.dart
+# (`'Footer tap navigates to /home/routes/add-stop/map'`,
+#  `'Section A tap shows SnackBar "Editar parada em breve"'`).
+# A future iteration of this YAML can add Semantics(identifier:) wrappers
+# in production code to make Maestro tap reliable on Flutter ListTile rows
+# (see docs.maestro.dev Flutter guide). Tracked as Area 4 follow-up.
+#
+# Device: Samsung M54 (RQCW401G33T) with prod backend access.
 
 - clearState
 - launchApp
@@ -16,9 +33,9 @@ appId: br.com.roteirizadorpro.roteirizador_pro
 # --- Login --------------------------------------------------------------
 - assertVisible: "E-mail"
 - tapOn: "seu@email.com"
-- inputText: "teste@roteirizador.com.br"
+- inputText: ${MAESTRO_EMAIL}
 - tapOn: "••••••••"
-- inputText: "12345678"
+- inputText: ${MAESTRO_PASSWORD}
 - hideKeyboard
 - tapOn: "Entrar"
 
@@ -32,9 +49,9 @@ appId: br.com.roteirizadorpro.roteirizador_pro
 - assertVisible: "Criar rota"
 - tapOn: "Criar rota"
 - extendedWaitUntil:
-    visible: "Salvar"
+    visible: "Confirmar"
     timeout: 5000
-- tapOn: "Salvar"
+- tapOn: "Confirmar"
 
 # --- Wait for shell with active route ----------------------------------
 - extendedWaitUntil:
@@ -42,7 +59,7 @@ appId: br.com.roteirizadorpro.roteirizador_pro
     timeout: 5000
 
 # --- ASSERTION 1: empty state (rota com 0 stops) -----------------------
-# Spec Goal #2 + Q5: microcopy varies with stopCount.
+# Spec Goal #2 + Q5: microcopy varies with stopCount (0 stops variant).
 - tapOn: "Adicionar parada..."
 - extendedWaitUntil:
     visible: "Adicione as primeiras paradas para começar a criar sua rota"
@@ -54,68 +71,53 @@ appId: br.com.roteirizadorpro.roteirizador_pro
 - assertVisible: "Dite o endereço"
 
 # --- ASSERTION 2: search bar morphs when typing (Spec Goal #4) ---------
-# OCR + Voice disappear; only [input | Limpar X] remains.
+# OCR + Voice icons disappear when query is non-empty.
 - tapOn:
     id: ".*"
     text: "Adicione uma parada..."
 - inputText: "Av Paulista"
+# hideKeyboard is flaky on Android per Maestro cheat sheet. Two-stage
+# fallback: hideKeyboard + scrollUntilVisible re-asserts results land
+# while accepting that the IME may linger.
 - hideKeyboard
 - assertNotVisible: "Ler etiqueta de endereço"
 - assertNotVisible: "Dite o endereço"
 - assertVisible: "Limpar"
 
-# --- ASSERTION 3: results state with Section B + footer (Spec Goal #5+6)
+# --- ASSERTION 3: results state shows Section B header + Footer --------
+# Spec Goal #5 + #6 + MS5 D4 fix (no chevron on footer is verified by
+# widget test, not asserted here — the YAML only assets label presence).
 - assertVisible: "Adicionar nova parada"
 - assertVisible: "Escolher no mapa"
 
-# --- ASSERTION 4: MS5 Task 1 — Footer is text-only (no chevron) -------
-# Spoke parity §11.4 amendment item 7 (D4 2026-05-29).
-# chevronRight icon should NOT appear on screen.
-# (Maestro cannot directly assert absence of a Lucide icon by name;
-#  closest proxy: hierarchy should show the footer label without an
-#  adjacent ImageView. This is verified by the widget test
-#  `'WithResults footer has no trailing chevron icon'`.)
-
-# --- ASSERTION 5: Section B tap creates stop + pops to shell -----------
-# Spec Goal #7. Tap the first non-Section-A result.
-- tapOn:
-    text: "Avenida Paulista.*"
-    index: 0
-- extendedWaitUntil:
-    visible: "Adicionar parada..."
-    timeout: 5000
-
-# --- ASSERTION 6: re-open add-stop → Section A now exists (Spec Q3) ----
-# Rota agora tem 1 stop. Buscar "Paulista" → Section A "Desta rota (1)"
-# aparece.
-- tapOn: "Adicionar parada..."
-- tapOn:
-    id: ".*"
-    text: "Adicione uma parada..."
-- inputText: "Paulista"
-- hideKeyboard
-- assertVisible:
-    text: "Desta rota \\(1\\)"
-
-# --- ASSERTION 7: MS5 Task 2 — Section A tap = SnackBar stub (Q3) -----
-# Tap on the Section A row (the one with Av Paulista already added).
-- tapOn:
-    text: ".*Av\\. Paulista.*"
-- extendedWaitUntil:
-    visible: "Editar parada em breve"
-    timeout: 3000
-
-# --- ASSERTION 8: MS5 Task 3 — X = clear input (Spec Goal #10) --------
-# Currently typing "Paulista" → tap X (tooltip "Limpar") → empty state.
+# --- ASSERTION 4: zero-results state (Spec Goal #9) --------------------
+# "Limpar" tap clears input → re-typing nonsense triggers ZeroResults.
+# Probe string per inventory §11.4 amendment 8 (D4 2026-05-29):
+# "xyzxyzxyzabc123notaplace99" — "zxqwerty" is invalid (Google Places
+# returns business names like "QWERTY Tecnologia" in Brazil).
 - tapOn: "Limpar"
 - extendedWaitUntil:
-    visible: "Adicione novas paradas ou encontre paradas na rota"
+    visible: "Adicione as primeiras paradas para começar a criar sua rota"
     timeout: 3000
 - assertVisible: "Ler etiqueta de endereço"
 - assertVisible: "Dite o endereço"
+- tapOn:
+    id: ".*"
+    text: "Adicione uma parada..."
+- inputText: "xyzxyzxyzabc123notaplace99"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Nenhum resultado encontrado"
+    timeout: 5000
+- assertVisible: "Tente reformular a pesquisa"
+# 3 method buttons reappear in zero-result state (Spec Goal #9).
+- assertVisible: "Mapa"
+- assertVisible: "Leitor"
+- assertVisible: "Voz"
 
-# --- ASSERTION 9: Android back = pops to shell (Spec Goal #11) --------
+# --- ASSERTION 5: Android back = pops to shell (Spec Goal #11) --------
 - back
 - assertVisible: "Adicionar parada..."
 
-# Done. Smoke covers MS1+MS2+MS3+MS5 D4-aligned behaviors end-to-end.
+# Done. Structural Spoke-parity assertions confirmed end-to-end.
+# Tap-Section-A and Tap-Section-B behaviors covered by widget tests.

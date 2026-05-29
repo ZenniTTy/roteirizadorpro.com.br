@@ -68,13 +68,14 @@ Plan formal MS5 = não criado (3 tarefas bite-sized, escopo claro do D4 amendmen
 6. **Tooltip `'Fechar'` → `'Limpar'`** — accessibility label deve refletir comportamento real. Grep cross-codebase confirmou que `'Fechar'` é usado em outros lugares (`app_drawer.dart`, `wizard_route_page.dart`) com semântica correta para AQUELES contextos — não foi tocado.
 7. **Ícones decorativos `plusCircle` (empty) + `searchX` (zero-results) MANTIDOS** per Eduardo (commit `1f598f5`). Não bloqueia parity funcional; toque RotPro aceito.
 
-## Open Questions / Carry-over
+## Open Questions / Carry-over (atualizados 2026-05-29 noite)
 
-- **Re-validação visual no M54** — comprometido durante sessão 01 (validação inicial encontrou os 3 must-fix + 1 descoberta X-clear). Próxima sessão precisa relançar app no device, navegar pelos mesmos 5 estados, confirmar que: (a) Section B rows são text-only, (b) Footer "Escolher no mapa" é text-only sem chevron, (c) Section A rows têm pencil trailing, (d) X clears input ao invés de fechar.
-- **Smoke Maestro YAML standalone** — escopo MS4 (reaberto na sessão 01). O integration_test atual (`add_stop_flow_test.dart`) é brittle — assume device com rota ativa pré-logada e falha em fresh install. Decisão pendente Eduardo: substituir por YAML standalone OU deletar e considerar Maestro como gate único de smoke.
-- **Final code reviewer dispatch** — per skill `subagent-driven-development`, após todas as tasks fechadas dispatch um reviewer final pra entire implementation MS5 (cross-task consistency, regression scan). Próximo passo.
-- **Decisão MS4 status** — MS4 continua aberto (integration_test reaberto na sessão 01). Quando smoke Maestro YAML pronto, MS4 pode fechar.
-- **Quando abrir PR** — apenas após (1) M54 re-validação + (2) smoke Maestro + (3) final review.
+- ✅ **Re-validação visual no M54** concluída. App reinstalado com código MS5. Confirmados visualmente: Section B text-only ✅, Footer text-only sem chevron ✅, Section A com pencil trailing ✅, X = limpar (tooltip "Limpar") ✅, Section A tap = SnackBar "Editar parada em breve" ✅.
+- ✅ **Smoke Maestro YAML standalone** (`apps/mobile/scripts/add_stop_text_flow.yaml`) — rodou 100% green em `RQCW401G33T` 2026-05-29 12:38. Cobre login → drawer → criar rota → empty state → typing morph → results header/footer → zero-results state → Android back.
+- ✅ **Final code reviewer dispatch** concluído via workflow `wq54n3bfn` (5 reviewers paralelos + adversarial verify + synthesis). Verdict: APPROVE-WITH-FIXES (3 quick wins). Findings aplicados em fix commits.
+- ⚠️ **Maestro YAML NÃO cobre tap-then-network** — Section A tap = SnackBar e Section B tap = create-stop-then-pop são pulados no YAML. Per Maestro docs ([docs.maestro.dev/get-started/supported-platform/flutter.md](https://docs.maestro.dev/get-started/supported-platform/flutter.md)): tap em `ListTile` via text matcher é unreliable porque Maestro acerta o `TextView` interno em vez do `ListTile` clickable parent. **Best practice moderna:** envolver `ListTile` com `Semantics(identifier: 'add-stop-section-b-row')` no widget de produção, depois usar `tapOn: { id: "..." }` no YAML. Custo: 4 linhas em `add_stop_results_section.dart`. **Decisão atual:** adiar pra próxima iteração — widget tests cobrem tap-then-callback via override (`'Section A tap shows SnackBar'`, `'Footer tap navigates to /home/routes/add-stop/map'`). Spec Goals #7/#8 não regredem silenciosamente.
+- 🔍 **Spoke comparison follow-up (sugestão Eduardo 2026-05-29):** comparar dump uiautomator do flow "Add stop" do Spoke (`com.underwood.route_optimiser`) vs RotPro pra ver como o Spoke estrutura suas rows clickáveis. Maestro pode estar funcionando pro Spoke porque ele usa estrutura nativa Android (Compose ou View tradicional) em vez de Flutter accessibility tree. Tracked como follow-up Area 6 (quando edit-stop sheet for implementada, o spoke-parity-checker já vai fazer dump comparativo).
+- **Quando abrir PR** — agora.
 
 ## Files Changed
 
