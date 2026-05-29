@@ -28,4 +28,23 @@ Slices restantes (detalhe em [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md))
 - [x] Validar UI via emulador / build local (Requer hot-restart do usuário).
 - [x] Migrado: flutter_map para google_maps_flutter no Android, ajustado Safe Area e UI da bottom sheet (ADR-0039).
 - [x] UI Polish: Ajustes visuais no Menu Hambúrguer, correção do Remember-me via SharedPreferencesAsync e margens do Mapa.
-- [ ] Implementar a próxima etapa da Slice 2 (adicionar parada, reordenar, navegar).
+
+## Slice 2 — em andamento por área
+
+Spec autoritativa: [`docs/superpowers/specs/`](./docs/superpowers/specs/). Plan autoritativo: [`docs/superpowers/plans/`](./docs/superpowers/plans/). Status canônico desta lista, código canônico nos commits.
+
+- [x] **Area 1 (Auth)** — fora de escopo Slice 2; recuperação senha/Google sign-in vão pra Slice 3.
+- [x] **Area 2 (Drawer + Shell + Wizard + Popup 3-dot)** — shipped via `cd37a65` (branch `feat/m2-slice-2-area-2-drawer`, mergeada).
+- [ ] **Area 3 (Tela ativa de rota — mapa + sheet)** — já 80% pronta; polish + bug fixes ficam pra polish pass.
+- [ ] **Area 4 (Adicionar parada)** — TEXT method **em andamento** na branch `feat/m2-slice-2-area-4-add-stop-text`:
+  - [x] MS1 Domain (sealed `AddStopUiState` + 5-branch `from` factory) — commits `d0331a3`, `220479d`, `bc27ba7`, `19abe5e`. 14 unit tests pinning invariants.
+  - [ ] MS2 State (`searchQueryProvider` + `currentRouteStopsProvider` + `addStopUiStateProvider`).
+  - [ ] MS3 Widgets (refactor Stack→Column + 3 estados + 2 seções + footer + search bar reativo).
+  - [ ] MS4 Device validation (integration_test + Maestro punch list + D4 parity-checker).
+  - **Out of scope deste PR** (cada um vai pra PR isolado): Voz (Area 7), OCR (Area 7), tap-no-mapa (Area 5), CSV upload (Slice 3+), edit-stop sheet (Area 6 — BIG FIND auto-open per inventory §11.4 fica adiado, documentado no spec).
+- [ ] **Area 5 (Detalhes da rota — pré-flight Partida/Destino/Pausa)**.
+- [ ] **Area 6 (Editar parada — 14 campos)** — reverte o `context.pop()` deste PR e implementa inline DraggableScrollableSheet (BIG FIND §11.4).
+- [ ] **Area 7 (Otimizar rota — 3 estados + FTUE modals)**.
+- [ ] **Area 8 (Modo delivery — stop focused + status buttons)**.
+- [ ] **Area 9 (Conclusão de rota)**.
+- [ ] **Area 10 (Polish visual + microcopy final + transições)**.
