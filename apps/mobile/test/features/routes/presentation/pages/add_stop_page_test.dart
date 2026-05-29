@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/features/routes/application/add_stop_ui_state.dart';
 import 'package:roteirizador_pro/features/routes/domain/place_autocomplete_prediction.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
@@ -92,6 +93,28 @@ void main() {
     expect(find.text('Desta rota (1)'), findsOneWidget);
     expect(find.text('Adicionar nova parada'), findsOneWidget);
     expect(find.text('Escolher no mapa'), findsOneWidget);
+
+    // §11.4 amendment 2026-05-29 item 7: Footer renders text-only, no chevron.
+    expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
+
+    // §11.4 amendment 2026-05-29 item 5: Section B ListTile has no leading
+    // icon (text-only at x=208), differentiating it from Section A (which
+    // keeps `leading` non-null per MS5 Task 2 scope).
+    final sectionBTile = tester.widget<ListTile>(
+      find.ancestor(
+        of: find.text('Av Paulista, 1000'),
+        matching: find.byType(ListTile),
+      ),
+    );
+    expect(sectionBTile.leading, isNull);
+
+    final sectionATile = tester.widget<ListTile>(
+      find.ancestor(
+        of: find.text('Av Paulista, 500'),
+        matching: find.byType(ListTile),
+      ),
+    );
+    expect(sectionATile.leading, isNotNull);
   });
 
   testWidgets('WithResults with empty matchesInRoute hides Section A entirely',
