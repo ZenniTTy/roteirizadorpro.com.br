@@ -6,6 +6,11 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
+import 'features/routes/presentation/route_shell_page.dart';
+import 'features/routes/presentation/wizard_route_page.dart';
+import 'features/routes/presentation/reuse_stops_page.dart';
+import 'features/routes/presentation/pages/add_stop_page.dart';
+import 'features/routes/presentation/pages/add_stop_map_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -39,7 +44,38 @@ final _routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterPage()),
-      GoRoute(path: '/home', builder: (_, __) => const _HomePlaceholderPage()),
+      GoRoute(
+        path: '/home',
+        builder: (_, __) => const RouteShellPage(),
+        routes: [
+          GoRoute(
+            path: 'routes/create',
+            builder: (_, __) => const WizardRoutePage(),
+          ),
+          GoRoute(
+            // Edit metadata (name+date) for an existing route — opened from
+            // drawer popup 3-dot "Definir nome e data". Reuses WizardRoutePage
+            // parameterised by routeId. Spoke parity §10.3 (inventário).
+            path: 'routes/:routeId/edit',
+            builder: (_, state) =>
+                WizardRoutePage(routeId: state.pathParameters['routeId']),
+          ),
+          GoRoute(
+            path: 'routes/reuse-stops',
+            builder: (_, __) => const ReuseStopsPage(),
+          ),
+          GoRoute(
+            path: 'routes/add-stop',
+            builder: (_, __) => const AddStopPage(),
+            routes: [
+              GoRoute(
+                path: 'map',
+                builder: (_, __) => const AddStopMapPage(),
+              ),
+            ],
+          ),
+        ],
+      ),
     ],
   );
 });
@@ -53,49 +89,4 @@ class _AuthListenable extends ChangeNotifier {
     );
   }
   final Ref _ref;
-}
-
-/// Placeholder após login bem-sucedido. O M2 está em reset (2026-05-26) —
-/// as telas reais (white-label Spoke) começam a ser implementadas na próxima
-/// branch. Esta tela existe só pra o redirect de auth ter destino válido.
-class _HomePlaceholderPage extends ConsumerWidget {
-  const _HomePlaceholderPage();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Roteirizador Pro'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sair',
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).signOut(),
-          ),
-        ],
-      ),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.construction, size: 64),
-              SizedBox(height: 16),
-              Text(
-                'Em breve',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'As telas reais do app estão sendo reconstruídas a partir do baseline. Em breve, novidades.',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

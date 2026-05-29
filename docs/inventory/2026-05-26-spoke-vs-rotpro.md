@@ -236,7 +236,7 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 **3-dot overflow de qualquer linha de rota:** (a) "Definir nome e data" (abre form de edição estrutura idêntica ao wizard mas sem zona C), (b) "Duplicar rota", (c) "Excluir rota" — sem confirm dialog observado (verificar com rota não-vazia).
 
 **Wizard "Criar rota" (tela cheia, NÃO bottom sheet):**
-1. Tap em "Criar rota" no rodapé do drawer → push de tela cheia com back-arrow no top-left (não X close)
+1. Tap em "Criar rota" no rodapé do drawer → push de tela cheia com **X close no top-left** — CORRIGIDO 2026-05-28 via D4 spoke-parity-checker. Audit original 2026-05-26 documentava back-arrow; inspeção Maestro live em 2026-05-28 confirmou X em AMBOS create e edit. RotPro alinhado em commit do mesmo dia.
 2. **Zona A** — "Nome da rota (opcional)" + EditText. Placeholder = nome auto-gerado, pattern "[dia-da-semana] Rota [N]" onde N incrementa por rota do mesmo dia. Se o usuário não editar, o placeholder vira o nome salvo.
 3. **Zona B** — "Selecione a data" + 3 radio-rows:
    - "Hoje" + data abreviada inline ("ter., 26 de mai."), pré-selecionado
@@ -255,17 +255,22 @@ Mapeamento estrutural dos fluxos observados durante a inspeção. Cada flow desc
 
 **Pós-criação:** navega imediatamente pra **tela ativa de rota** — ver §6.2bis.
 
-### 6.2bis — Tela ativa de rota (mapa + sheet) — deep-inspecionada 2026-05-26 via spoke-parity-checker
+### 6.2bis — Tela ativa de rota (mapa + sheet) — deep-inspecionada 2026-05-26 via spoke-parity-checker; **arquitetura corrigida 2026-05-28 via Maestro live**
 
 > **⚠️ Audit 2026-05-26:** esta seção descreve estado VAZIO da rota (sheet collapsed default). Para estado COM paradas (sheet auto-expanded), ver §10.5 — comportamento divergente.
+>
+> **🔄 Correção arquitetural 2026-05-28:** inspeção Maestro confirmou que Spoke usa **layout Column (mapa Expanded + sheet pinado)**, NÃO Stack com sheet por cima. Snap points = **3** (collapsed / medium / expanded), não 2. Imagens client-fornecidas + dumps Maestro pré/pós-swipe são a fonte autoritativa.
 
-**Arquitetura confirmada:** Spoke usa **Google Maps SDK** apenas como **base layer de mapa** (TextureView + fragment_container) full-screen; toda UI Spoke é overlay Compose por cima. A **navegação turn-by-turn default é proprietária Spoke** ("Navegação do Spoke" — picker §10.19.1 opção #1, *Google-powered* por baixo mas UI custom Spoke), NÃO Google Maps direto. Autocomplete provavelmente usa Google Places API por trás dos panos (Spoke é cliente Google Maps Platform), mas a UI de resultados é Compose Spoke. Sem Activity transitions dentro da rota.
+**Arquitetura confirmada (corrigida 2026-05-28):** Spoke usa **Google Maps SDK** como TextureView, mas o mapa **NÃO é full-screen overlayed** — ele ocupa só a fatia da tela acima do sheet (`[0,0][1080,1899]` collapsed → `[0,0][1080,240]` expanded). Equivale a um layout `Column { Expanded(map), DraggableContainer(sheet) }`: quando o sheet expande, o mapa encolhe dinamicamente; nunca há sobreposição. Isso elimina o conflito de hit-test entre o EagerGestureRecognizer interno do GoogleMap PlatformView e os gestos do sheet (Flutter issues #105994 / #28655 / #123394). **Decisão de implementação RotPro replicada em `route_shell_page.dart` commit `ad51fbb` (2026-05-28).**
 
-**Estrutura geral do sheet (CRÍTICO):** os IDs `stepListHeader` (collapsed) e `stepList` (expanded) são a mesma view com Y diferente — equivalente a um `DraggableScrollableSheet`. **Exatamente 2 snap points confirmados:**
-- **Collapsed:** y=[2013, 2265], ~14% da altura da tela. Só uma barra (bottom bar) visível; mapa ocupa o resto.
-- **Expanded:** y=[160, 2400], full-screen abaixo da status bar. Cobre o mapa inteiro (mapa continua renderizado por baixo mas invisível).
-- **Sem snap point intermediário.** Swipe de collapsed vai direto pra expanded.
-- **Drag handle:** ~y=1985, centered, horizontal pill curto.
+A **navegação turn-by-turn default é proprietária Spoke** ("Navegação do Spoke" — picker §10.19.1 opção #1, *Google-powered* por baixo mas UI custom Spoke), NÃO Google Maps direto. Autocomplete provavelmente usa Google Places API por trás dos panos (Spoke é cliente Google Maps Platform), mas a UI de resultados é Compose Spoke. Sem Activity transitions dentro da rota.
+
+**Estrutura geral do sheet (CRÍTICO):** os IDs `stepListHeader` (collapsed) e `stepList` (expanded) são a mesma view com Y diferente — equivalente a um sheet drag-controlled manual. **3 snap points confirmados (corrigido 2026-05-28 via imagens iPhone client + Maestro Android live):**
+- **Collapsed:** y=[~2013, 2400], ~14% da altura. Só uma barra (search pill + ícones OCR/mic/kebab) visível; mapa ocupa o resto. **Big buttons "Adicionar parada" + "Copiar paradas..." NÃO aparecem nesse estado** (vão estourar dos limites se renderizados — pinados são, mas escondidos por bound).
+- **Medium:** ~40% da altura. Mapa visível em ~50% topo; sheet mostra search + empty state ("Adicione as primeiras paradas...") + big buttons pinados no rodapé.
+- **Expanded:** ~90% da altura. Mapa só uma faixa fina no topo; sheet domina a tela; big buttons **continuam pinados no rodapé** (não scrollam com conteúdo).
+- **Snap behavior:** **direction-based**, não snap-to-nearest. Qualquer flick pra cima a partir do collapsed/medium promove ao próximo snap maior; qualquer flick pra baixo recolhe ao próximo menor; só na ausência de flick claro o snap usa "mais próximo". RotPro implementa em `_RouteShellPageState._snapTo` (threshold 50 px/s) — commit `80902ed` (2026-05-28).
+- **Drag handle:** ~y=1985, centered, horizontal pill curto. **Apenas 1 handle** (não duplicado).
 
 **Elementos da bottom bar collapsed (esquerda → direita):**
 | Elemento | Bounds | Content-desc | Função |
@@ -547,6 +552,15 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 - **Card de perfil clickable inteiro** (`[46,261][921,441]`) — tap navega pra tela de account (não inspecionada nesta passada). Bounds dos textos: nome `[260,271][668,329]` (height 58 ≈ 18sp), email `[260,329][757,377]` (height 48 ≈ 14sp), plano `[260,383][498,431]`.
 - **Avatar do usuário:** bounds `[46,261][226,441]` (180×180px, ~9% da largura). É um ImageView circular (renderizado como View no dump — provavelmente Compose AsyncImage).
 
+**Amendments 2026-05-27 (D1 parity-check pré-implementação RotPro drawer):**
+- **Botão "Assinar" é condicional ao status de assinatura.** Não aparece pra usuário com assinatura ativa (Standard). Estruturalmente, quando ausente, o espaço entre profile card (y=441) e primeira seção de rotas (y=554) é padding vazio de ~113px. Implementação: `Visibility(visible: !user.hasActiveSubscription)`.
+- **Help icon NÃO abre tela.** Abre `PopupMenu` dropdown com 2 itens: "Ajuda e suporte" (→ Intercom in-app chat widget) + "Compartilhar feedback" (não inspecionado nesta passada).
+- **Settings icon abre tela "Configurações" completa** (Área 10 do ROADMAP-v2) — 3 sections + Sair. Título "Configurações" centralizado na top bar.
+- **Swipe-from-left-edge NÃO abre o drawer.** Testado 3 velocidades; nenhuma abre. Em Spoke v3.65.1 o drawer só abre via tap no hamburger. Implementação RotPro: `Scaffold(drawerEnableOpenDragGesture: false)`.
+- **Active route = rota cujo sheet está visível por trás do drawer** (não "última acessada" persistida). Indicador puramente visual via `TextStyle(color: ...)` condicional, sem atributo `selected`/`checked` na a11y tree. Implementação: estado reativo `activeRouteIdProvider`.
+- **Profile card tap não-confirmado funcional em v3.65.1 com conta Standard ativa** — 14 tentativas de tap em diferentes coordenadas dentro de `[46,261][921,441]` não produziram navegação observável, apesar do card ser `clickable=true`. Possíveis hipóteses: navegação só pra non-subscriber (upsell), destino é tela de assinatura já acessível via Settings, ou ação não-implementada em v3.65.1. RotPro decision: implementar `onTap` apontando pra tela de perfil stub; conectar a flow real quando paywall (Slice 4) ficar pronto.
+- **Hamburger fica no `stepListHeader` da rota ativa, não em AppBar separada.** Bounds observados: `[79,171][147,239]` (~24dp icon dentro de container ~48dp tappable). Implementação RotPro: `IconButton` no header do sheet do route shell, à esquerda do TextField "Toque para adicionar".
+
 **Hierarquia compactada (delta):**
 ```
 nav_host (FrameLayout)
@@ -607,7 +621,7 @@ nav_host (FrameLayout)
 | Elemento | Bounds | Notas |
 |---|---|---|
 | Topbar | `[0,92][1080,250]` | Background azul-escuro full-width |
-| Botão close (X) | `[12,105][147,240]` | a11y `"Voltar"` — RENDERIZADO COMO X, NÃO BACK-ARROW. §6.2 diz "back-arrow no top-left" mas o **edit usa X close** (diferença vs Create) |
+| Botão close (X) | `[12,105][147,240]` | a11y `"Voltar"` — RENDERIZADO COMO X. **CORRIGIDO 2026-05-28 via D4:** §6.2 também usa X (audit original errou ao dizer "back-arrow" pro create); AMBOS modos usam X close. |
 | Title text | `[45,295][331,371]` | `"Editar rota"` (não "Criar rota") |
 | Label "Nome da rota (opcional)" | `[45,439][455,487]` | Mesma label do create |
 | EditText nome | `[79,522][1001,657]` | **Pré-populado com o nome atual** ("terça-feira Rota 2"). Diferença vs create onde é placeholder cinza |
@@ -620,7 +634,7 @@ nav_host (FrameLayout)
 | CTA primary "Salvar alterações" | `[45,2062][1035,2220]` | **DIFERE do create que é "Confirmar"** |
 
 **Diferenças confirmadas vs Wizard "Criar rota" (§6.2):**
-- Topbar usa **X close** (não back-arrow) — divergência com §6.2 que dizia "back-arrow no top-left"
+- Topbar usa **X close** — CONFIRMADO 2026-05-28 que create também usa X (§6.2 atualizado neste PR; não há mais divergência entre create e edit nesta dimensão)
 - Title: "Editar rota" vs "Criar rota"
 - EditText pré-populado com nome atual vs placeholder auto-gerado
 - **Sem "Zona C" (Opções de início rápido / Reutilizar paradas)** — confirmado per §6.2
@@ -628,7 +642,7 @@ nav_host (FrameLayout)
 
 **Implementação RotPro:**
 - Reuse wizard widget parametrizado por `Route?` (null=create, non-null=edit)
-- Conditional: render X-button se `route != null` (back-arrow se null), title via switch, EditText `controller.text = route?.name ?? ""` (sem hint quando edit), Zona C `Visibility(visible: route == null, ...)`, CTA label via switch.
+- Conditional: **X close em AMBOS** modos (a11y "Fechar" em edit, "Voltar" em create), title via switch, EditText `controller.text = route?.name ?? <computed-autoname>` (pré-popula display name mesmo quando rota usa auto-name, hint suprimido quando edit), Zona C `Visibility(visible: route == null, ...)`, CTA label via switch. Save logic: name salvo como `null` quando texto digitado == autoName computado, do contrário usa texto. **Atualizado 2026-05-28 via D4 spoke-parity-checker.**
 
 ### 10.4 — Tela "Detalhes da rota" (ACHADO NOVO — NÃO está em §6.x)
 
@@ -1374,6 +1388,37 @@ Scaffold(
 - Digitar texto e ver autocomplete results layout (provavelmente lista vertical de results scroll + tap pra select)
 - "Outro" / custom location entry (provavelmente acessível por scroll/empty results state)
 
+#### Audit amendments 2026-05-28 (D1 upfront via spoke-parity-checker — `feat/m2-slice-2-area-4` microsprint)
+
+Inspeção Maestro live em Spoke v3.65.1 revelou estrutura mais rica que a passada original de 2026-05-26. Diffs factuais (não reescrita — anexo):
+
+1. **3 estados de conteúdo distintos** (não 2). Visual flow:
+   - **Empty (`query.isEmpty`):** topbar + microcopy + 3 method shortcut buttons centrais (já documentado).
+   - **Zero-result (`query.isNotEmpty && results.isEmpty`):** *"Nenhum resultado encontrado / Tente reformular a pesquisa"* centralizado + **os 3 method buttons REAPARECEM** (fallback pra escolher outro método).
+   - **Results (`query.isNotEmpty && results.isNotEmpty`):** lista (split em 2 seções — ver §11.4 amendment) + footer.
+
+2. **Microcopy do empty state varia** com `route.stops.length`:
+   - Rota com **0 stops**: `"Adicione as primeiras paradas para começar a criar sua rota"` (já documentado).
+   - Rota com **≥1 stop**: `"Adicione novas paradas ou encontre paradas na rota"` ← novo, não documentado antes.
+
+3. **Footer persistente "Escolher no mapa"** no fim da lista de results — row clickable com map icon esquerda + label + chevron `>` direita. **Substitui** os 3 method buttons enquanto results estão visíveis. Destino: mesmo flow do button "Mapa" (tap-on-map). Estrutural — qualquer método dispara aqui.
+
+4. **Os 3 method buttons collapsam ao começar digitar** (confirmação da hipótese do audit original). Detalhe: visualmente eles ficam visíveis no empty E no zero-result, mas SOMEM completamente no results state (footer "Escolher no mapa" assume o lugar).
+
+5. **Confirmação do shortcut redundancy:** OCR + Voice estão tanto no topbar (sticky) quanto como big buttons centrais (já documentado). **NOVO:** o behavior do typing em §11.4 explica como o topbar morfa visualmente quando user digita (search bar reativa).
+
+#### Audit amendments 2026-05-29 (D4 closing via spoke-parity-checker — `feat/m2-slice-2-area-4-add-stop-text` microsprint)
+
+Inspection path: bash fallback (`adb shell uiautomator dump` + `screencap`), porque `mcp__maestro__inspect_view_hierarchy` retornou `UNAVAILABLE` mid-session (Maestro driver desconectou após `flutter test integration_test/`). Per ADR-0037 documented fallback. Inspeção contra Spoke v3.65.1 ao vivo no M54 (`RQCW401G33T`). RotPro debug build estava deletado no momento desta dispatch → comparação Spoke ao vivo vs spec + amendments D1 (não live side-by-side).
+
+Diffs adicionais que o D1 (28 amendment) não capturou:
+
+6. **Zero-results state: zero ícones decorativos.** Spoke renderiza apenas 2 TextViews ("Nenhum resultado encontrado" + "Tente reformular a pesquisa") + 3 method buttons. Nenhum node `[Icon]` antes do texto na hierarquia. RotPro adicionou `LucideIcons.searchX (size: 48) + SizedBox(16)` por antecipação visual. **Decisão Eduardo 2026-05-29: MANTER como "RotPro additive"** — diferenciação visual aceita; não bloqueia parity funcional.
+
+7. **Empty state: zero ícones decorativos** (mesmo padrão do 6). Spoke renderiza só microcopy + 3 method buttons. Sem `[Icon]` node. RotPro adicionou `LucideIcons.plusCircle (size: 48)`. **Decisão Eduardo 2026-05-29: MANTER como "RotPro additive"** (mesma natureza do item 6).
+
+8. **Probe "zxqwerty" NÃO produz zero-results** em Google Places no Brasil — retorna business names "QWERTY Tecnologia", "Qwerty Escola de Educacao Profissional", etc. Probe válido empiricamente 2026-05-29: `xyzxyzxyzabc123notaplace99`. Atualizar qualquer smoke test ou doc que mencione "zxqwerty" como probe pra zero-results.
+
 ### 10.22 — Conclusão da Fase B (mapa de cobertura final)
 
 **Total: 22 sub-sections (§10.1-10.21) cobrindo o ciclo completo de uso do Spoke:**
@@ -1612,9 +1657,65 @@ Tap no dropdown abre dialog (sem header):
 - Não há "buscar" button — autocomplete é sempre live
 
 **Implicação pro RotPro:**
-- Slice 2 stub: lista fake hardcoded 4-5 endereços quando input >= 3 chars (per ROADMAP-v2 Slice 2)
+- Slice 2 stub: lista fake hardcoded 4-5 endereços quando input >= 3 chars (per ROADMAP-v2 Slice 2) — **superseded por audit 2026-05-28**: codebase atual já usa Google Places real desde antes do reset; decisão deste PR Area 4 é **manter Google Places real** (custo aceito até Slice 3 trocar por Nominatim).
 - Slice 3 real: Nominatim SP query com debounce 300ms; resultado em `ListView.builder`
 - Adicionar parada: criar `Stop` com `address`, `lat`, `lng` do resultado + invalidate provider `currentRouteStopsProvider`
+
+#### Audit amendments 2026-05-28 (D1 upfront via spoke-parity-checker — `feat/m2-slice-2-area-4` microsprint)
+
+Reinspeção do flow texto via Maestro live em Spoke v3.65.1. Diffs factuais (não reescrita — anexo):
+
+1. **Threshold de autocomplete: 2 chars** (confirmado com "Av" disparando results) — **NÃO 3+ chars** como o "Slice 2 stub" antigo dizia. Próximo PR usa Google Places real; debounce do `placeAutocompleteProvider` atual = 500ms (Slice 3 pode rebaixar pra 300ms).
+
+2. **Resultados split em 2 seções** quando há matches:
+   - **Section A: "Desta rota (N)"** — condicional, só aparece se query bate em stops da rota ativa. Tap em row **NÃO adiciona stop**; abre o edit-stop sheet (§11.5/§10.6) daquela stop existente. Permite navegação rápida pra parada já criada.
+   - **Section B: "Adicionar nova parada"** — autocomplete candidates externos (Google Places no estado atual; Nominatim no Slice 3). Tap cria stop novo.
+   - **Section A é a seção #1** quando ambas existem (precede "Adicionar nova").
+
+3. **Search bar é reativa ao typing:** quando `query.isEmpty`, mostra `[input | OCR | Voice | X]`. Quando `query.isNotEmpty`, **os ícones OCR e Voice SOMEM** — sobra `[input | X]`. Pista visual: usuário em modo "tipagem" não precisa dos shortcuts secundários.
+
+4. **BIG FIND §11.4 clarificado:** o "Tela 'Editar parada' auto-abre via swipe-up" da passada original deu impressão de navigation push. **Não é.** O comportamento real:
+   - Tap em result da Section B → stop é criada **instantaneamente** no provider (sem dialog, sem snackbar).
+   - **Edit-stop sheet desliza INLINE** por baixo da search bar (que continua sticky no topo) — é uma transformação dentro da MESMA route Flutter, não um `context.push`.
+   - User pode digitar próxima parada sem voltar (search bar permanece interactiva).
+   - **Implicação:** RotPro Area 4 (este PR) e Area 6 (edit-stop sheet, próximo PR) compartilham a MESMA route `/home/routes/add-stop` — Area 6 monta um `DraggableScrollableSheet` em cima do conteúdo de Area 4. Este PR Area 4 **adia esse mecanismo** (decisão registrada no spec do PR) e usa `context.pop()` voltando ao shell como gap-temporário-documentado; Area 6 implementa Option A inline + reverte o pop.
+
+#### Audit amendments 2026-05-29 (D4 closing via spoke-parity-checker — `feat/m2-slice-2-area-4-add-stop-text` microsprint)
+
+Inspection path: bash fallback (`adb shell uiautomator dump` + `screencap`) per ADR-0037 — Maestro MCP indisponível mid-session. Inspeção do flow texto em Spoke v3.65.1 no M54.
+
+Diffs estruturais que o D1 (28 amendment) não capturou na granularidade de bounds das rows:
+
+5. **[INVALIDATED 2026-05-29 13:38]** ~~Section B rows ("Adicionar nova parada"): text-only em x=208, SEM leading icon, SEM trailing.~~ Live side-by-side Spoke v3.65.1 vs RotPro confirmou que Spoke **TEM** leading icon (`+` em quadrado pontilhado, Compose ImageVector) em cada Section B row. Original finding causado por uiautomator XML blindspot — ImageVectors do Compose não emitem nós de acessibilidade. Causa raiz: ver `lesson_uiautomator_blindspot_compose_imagevectors`. Reverter MS5 Task 1: restaurar `leading: LucideIcons.plusCircle` em Section B `ListTile`. Dump empírico (mantido pra histórico):
+   ```
+   [View] [TAP] [0,794][1080,946]
+     [TextView] "Avenida Paulista " [208,841][1046,899]
+     ← no icon node at [36,*][171,*], no trailing node at [939,*][1074,*]
+   ```
+   Resolve gap originalmente listado como "pending" em §10.21 item 8 (audit 2026-05-26 não tinha empírico). RotPro Area 4 adicionou `leading: const Icon(LucideIcons.mapPin, color: AppColors.textMuted)` em `add_stop_results_section.dart:59` por antecipação. **Must-fix MS5:** remover `leading:` em Section B `ListTile` — diferenciação visual entre "novo candidato" (texto-only leve) e "stop existente" (Section A com icon + edit affordance) é load-bearing.
+
+6. **Section A rows ("Desta rota (N)"): leading icon na esquerda + trailing edit affordance na direita.** Dump empírico:
+   ```
+   [View] [TAP] [0,493][1080,667]
+     [View] [36,499][171,634]          ← left icon area
+     [TextView] "Av paulista, 1230 Avenida Paulista" [208,527][901,585]
+     [TextView] "Bela Vista, 01310-100" [208,585][568,633]
+     [View] [939,499][1074,634]        ← RIGHT SIDE icon/button zone
+       [View] [967,527][1046,606]
+   ```
+   O `[View][939,499][1074,634]` é uma zona interativa não-null à direita; presume affordance de edit. RotPro Area 4 não tem `trailing:` em Section A `ListTile` (linha 43-52). **Must-fix MS5:** adicionar `trailing: const Icon(LucideIcons.pencil, size: 16, color: AppColors.textMuted)` pra sinalizar "tap abre edit, não add".
+
+7. **[INVALIDATED 2026-05-29 13:38]** ~~Footer "Escolher no mapa": text-only em x=208, SEM leading icon, SEM trailing chevron.~~ Live side-by-side confirmou Spoke renderiza leading map+pin icon + trailing chevron `>` no footer. Mesma causa raiz do item 5 (uiautomator XML blindspot em Compose). Reverter MS5 Task 1: manter `leading: LucideIcons.mapPinned` + `trailing: LucideIcons.chevronRight` em footer `ListTile`. Dump empírico (mantido pra histórico):
+   ```
+   [View] [TAP] [0,1610][1080,1801]
+     [TextView] "Escolher no mapa" [208,1677][944,1735]
+     ← no leading icon at [36,*], no trailing icon at [939,*]
+   ```
+   Estruturalmente consistente com Section B rows — rows leves text-only com left padding em vez de icon+text layout. RotPro Area 4 adicionou `leading: LucideIcons.mapPinned` + `trailing: LucideIcons.chevronRight` em `add_stop_results_section.dart:70-73`. **Must-fix MS5:** remover ambos — chevron especialmente cria falso affordance de submenu.
+
+8. **Probe "zxqwerty" inválido pra zero-results** (mesma observação anexa ao §10.21 amendment 8 — replicada aqui pra reduzir risco de leitor consultar só uma seção).
+
+9. **Footer height empírico: 191dp (Spoke).** `ListTile` padrão Flutter = 56-72dp. Se RotPro polish pass quiser parity exato, adicionar padding/divider acima do footer. Nit, não bloqueante.
 
 ### 11.5 — Editar parada em rota NÃO-otimizada (estado completamente editável)
 
@@ -1662,21 +1763,27 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 
 **Inspecionado:** 2026-05-26 via Maestro MCP
 
-**Achados delta:**
+**Achados delta (revisados 2026-05-27 — D1 parity-check):**
 
-- Drawer agrupa rotas em **3 períodos** (não-fixos, dinâmicos por data):
+- Drawer agrupa rotas em **4 períodos** (não 3 como originalmente documentado; correção pós-inspeção 2026-05-27), dinâmicos por data:
   - "Próximas rotas" (data > hoje) — ex: "27 de mai. quarta-feira"
   - "Hoje" (data == hoje) — todas as rotas do dia (incluindo recém-concluídas com badge "1 parada perdida")
-  - "Início deste mês" (semana anterior) — ex: "18 de mai. Segunda-Feira"
-- Cada item: data (esq) + nome opcional (centro, ex: "terça-feira Rota 3") + kebab 3-dot (dir)
-- Header user: foto + "Eduardo Rodrigues" + "eduardoteishoku@gmail.com" + "Standard • Renova-se em ter. 09 de jun."
+  - **"Início desta semana"** (data está na semana corrente mas é anterior a hoje, ex: hoje qua, rotas de seg/ter aparecem aqui)
+  - "Início deste mês" (data está no mês corrente mas fora da semana corrente)
+- **Sort entre buckets:** ordem fixa top→bottom: Próximas → Hoje → Início desta semana → Início deste mês.
+- **Sort interno de cada bucket:** rotas mais recentes primeiro (descendente por data; rotas do mesmo dia agrupadas).
+- Cada item: data abreviada (esq) + nome opcional (centro, ex: "terça-feira Rota 3") + kebab 3-dot (dir)
+- Header user: foto + "Eduardo Rodrigues" + "eduardoteishoku@gmail.com" + "Standard • Renova-se em ter. 09 de jun." (linha plano só pra assinante ativo)
 - CTAs topo: Ajuda e suporte (?) + Configurações (⚙️)
 - CTA rodapé fixo: "Criar rota" full-width
 
 **Implicação pro RotPro:**
-- Agrupador dinâmico: function `groupRoutesByPeriod(routes)` → Map<String, List<Route>> com keys "Próximas", "Hoje", "Início deste mês" (calcular semanas)
-- Header: avatar do user + nome + email + linha de assinatura (slice 4)
-- Settings entry no topo (não no rodapé como o RotPro atual)
+- Agrupador dinâmico: function `groupRoutesByPeriod(routes, now)` → `Map<RoutePeriod, List<Route>>` com 4 keys; ordem do Map é a ordem canônica top→bottom.
+- Header: avatar do user + nome + email + linha de assinatura condicional (slice 4 plumbing).
+- Settings entry no topo (não no rodapé como o RotPro pré-reset tinha).
+- Sort interno descendente por `Route.date` dentro de cada bucket.
+
+**Gap pendente (Eduardo manual):** confirmar empiricamente que "Próximas rotas" aparece NO TOPO da lista. Tentativa via Maestro bloqueou na criação de rota futura na conta real do Eduardo. Workaround: Eduardo cria 1 rota com data > hoje no Spoke, abre drawer, screenshota.
 
 ### 11.7 — Coverage map atualizado pós-§11
 

@@ -1,3 +1,7 @@
+---
+trigger: glob
+---
+
 <!--
 Activation: Glob (intended) — pattern: apps/mobile/**/*.dart
 Confirm in Antigravity UI: Customizations → Rules → this file → set "Glob" with the pattern above.
@@ -47,11 +51,11 @@ A change to a TypeBox schema and its Dart mirror travel in the **same commit**.
 
 Do not kill `flutter run` for changes inside `lib/**`. Three levels, cheapest first:
 
-| Level | Trigger | Cost | When |
-|---|---|---|---|
-| Hot reload | `r` in terminal, or VS Code save | sub-second, preserves state | Widget edit, color/copy, method body |
-| Hot restart | `R` in terminal | ~2s, loses state | New top-level provider, new route, change to `main()` |
-| Full restart | kill + `flutter run` | 2–7 min | `pubspec.yaml` deps, native (Kotlin/Swift), AndroidManifest |
+| Level        | Trigger                          | Cost                        | When                                                        |
+| ------------ | -------------------------------- | --------------------------- | ----------------------------------------------------------- |
+| Hot reload   | `r` in terminal, or VS Code save | sub-second, preserves state | Widget edit, color/copy, method body                        |
+| Hot restart  | `R` in terminal                  | ~2s, loses state            | New top-level provider, new route, change to `main()`       |
+| Full restart | kill + `flutter run`             | 2–7 min                     | `pubspec.yaml` deps, native (Kotlin/Swift), AndroidManifest |
 
 If `flutter run` is alive, prefer hot reload over restart over full relaunch. Codified in ADR-0012.
 

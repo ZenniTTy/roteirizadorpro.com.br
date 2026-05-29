@@ -1,0 +1,23 @@
+appId: br.com.roteirizadorpro.roteirizador_pro
+---
+- clearState
+- launchApp
+# Wait for Login Page
+- assertVisible: "E-mail"
+- tapOn: "seu@email.com"
+- inputText: "teste@roteirizador.com.br"
+- tapOn: "••••••••"
+- inputText: "12345678"
+- hideKeyboard
+- tapOn: "Entrar"
+
+# Wait for Map to load (Route Shell Page)
+- extendedWaitUntil:
+    visible: "Alternar para o mapa"
+    timeout: 10000
+
+# Open App Drawer
+- tapOn: "Abrir menu" # Hamburger menu or X close? Let's check semantics.
+
+# Verify Criar Rota button exists
+- assertVisible: "Criar rota"

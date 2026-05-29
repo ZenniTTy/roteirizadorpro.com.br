@@ -12,4 +12,11 @@ A partir daqui, sessions são opcionais — só vale criar uma quando o trabalho
 
 ## Sessions
 
-(nenhuma sessão ainda no novo regime — primeira tela white-label provavelmente terá uma)
+- [2026-05-27-01-slice-2-area-2-wizard.md](./2026-05-27-01-slice-2-area-2-wizard.md) — Wizard Criar Rota (Área 2)
+- [2026-05-27-02-slice-2-area-2-wizard-ui.md](./2026-05-27-02-slice-2-area-2-wizard-ui.md) — Wizard UI Polish and Harness Best Practices
+- [2026-05-28-01-slice-2-area-25-3-map.md](./2026-05-28-01-slice-2-area-25-3-map.md) — Área 2.5/3 (Reutilizar Paradas/Mapa) e Route import pattern
+- [2026-05-28-02-google-maps-migration-and-mcp.md](./2026-05-28-02-google-maps-migration-and-mcp.md) — Google Maps Migration & MCP Usage
+- [2026-05-28-03-ui-polish-and-remember-me.md](./2026-05-28-03-ui-polish-and-remember-me.md) — UI Polish & Remember Me
+- [2026-05-28-04-area4-add-stop-ms1.md](./2026-05-28-04-area4-add-stop-ms1.md) — Area 4 add-stop TEXT: discovery + spec + plan + MS1 Domain layer (sealed AddStopUiState + factory)
+- [2026-05-29-01-area4-add-stop-ms2-ms3-ms4.md](./2026-05-29-01-area4-add-stop-ms2-ms3-ms4.md) — Area 4 add-stop TEXT: MS2 (State) + MS3 (Widgets) + MS4 (Device validation) + audit pós-implementação + D4 spoke-parity-checker retroativo (3 must-fix + 2 should-fix descobertos)
+- [2026-05-29-02-area4-add-stop-ms5.md](./2026-05-29-02-area4-add-stop-ms5.md) — Area 4 add-stop TEXT: MS5 D4 fixes (Section B icon-free, Footer text-only, Section A pencil trailing, X=limpar input) — 7 commits + 4 reviewer fix loops

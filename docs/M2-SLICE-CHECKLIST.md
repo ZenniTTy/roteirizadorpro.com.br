@@ -11,10 +11,24 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 ## Implementação
 
 - [ ] **Tela por tela.** Cada tela do Spoke vira um ciclo curto: olha como Spoke faz → implementa com nossa stack → testa no M54 → commit. Sem subdividir em microsprints A/B.
-- [ ] **Em qualquer dúvida estrutural** → dispatch [`spoke-parity-checker`](../.claude/agents/spoke-parity-checker.md) subagent ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md)) upfront. É a fonte de verdade pra "como Spoke faz isso".
+- [ ] **Inventário descreve, Spoke decide.** Antes de escrever spec de QUALQUER tela Spoke-aligned, dump live obrigatório do Spoke no estado-alvo (collapsed/expanded/empty/populated). Comando padrão:
+  ```bash
+  adb -s RQCW401G33T shell uiautomator dump /sdcard/spoke-<state>.xml
+  adb -s RQCW401G33T pull /sdcard/spoke-<state>.xml /tmp/
+  adb -s RQCW401G33T exec-out screencap -p > /tmp/spoke-<state>.png
+  ```
+  Extrair tabela `bounds | content-desc/text | padrão visual | widget Flutter`. Quotes verbatim dos bounds — não paraphraseia. Coluna do widget Flutter precisa nomear widget específico (`Positioned(top: X, left: Y) FloatingActionButton.small`, `DraggableScrollableSheet`, `showModalBottomSheet(isScrollControlled: true)`), não família genérica ("um drawer", "um sheet"). Se inventário e dump conflitarem, dump ganha; inventário é amendado no mesmo commit do spec.
+- [ ] **Em qualquer dúvida estrutural** → dispatch [`spoke-parity-checker`](../.claude/agents/spoke-parity-checker.md) subagent ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md)) upfront. É a fonte de verdade pra "como Spoke faz isso". **Dispatch description deve pedir explicitamente a tabela `bounds | desc | padrão | widget`** — não só "edge cases". Edge cases vêm depois da baseline estrutural.
 - [ ] **Em qualquer dúvida visual** → consultar `prototipo/tokens.js` + `prototipo/ui.jsx` (cores, ícones Lucide, tipografia). Sem dispatch de `prototype-fidelity-checker` durante implementação — só no polish final (ver §"Polish visual" abaixo).
 - [ ] **TDD opcional.** Use [`flutter-test-author`](../.claude/agents/flutter-test-author.md) ([ADR-0025](./decisions/0025-flutter-test-author-subagent.md)) pra lógica complexa; widget tests opcionais. Não bloqueante — não atrasar entrega por test.
 - [ ] **DTO mirror obrigatório** ([ADR-0013](./decisions/0013-api-contract-source-of-truth.md)): qualquer edit em `apps/backend/src/<feature>/schemas.ts` requer mirror Dart em `apps/mobile/lib/features/<feature>/data/dto/` no mesmo commit.
+
+## Regras gerais de qualidade (estabelecidas 2026-05-27 pós-auditoria do drawer)
+
+- **Sem `onTap: () {}` silenciosos.** Affordance visível precisa de callback que dispara algo observável — mesmo que seja só `SnackBar` "em breve" stub. Botão "vazio" parece app quebrado.
+- **`AsyncValue` sempre branch 3 estados.** Provider que deriva de `AsyncValue<T>` NÃO usa `.value` direto (colapsa loading/error/null). Use `if (asyncVal.hasError) ... if (asyncVal.isLoading) ... final v = asyncVal.value; if (v == null) ...`. ViewModels com sentinelas distintas: `empty()` vs `unavailable()`. UI renderiza visualmente distinto.
+- **`ListView` em UI com lista de dados → sempre `ListView.builder`.** Para listas que vêm de provider. Achata pra `List<_Row>` (sealed class) com headers + tiles como linhas únicas. Sem nested `ListView`, sem `shrinkWrap`.
+- **Sem fluxo morto.** Toda feature em que o usuário pode "entrar" precisa de caminho de "saída" — mesmo que temporário/debug. Ex: enquanto Settings real (Área 10) não chega, logout fica num PopupMenu temporário.
 
 ## Antes de PR
 

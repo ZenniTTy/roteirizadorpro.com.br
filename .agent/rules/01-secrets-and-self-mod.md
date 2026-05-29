@@ -1,3 +1,7 @@
+---
+trigger: always_on
+---
+
 <!--
 Activation: Always On (intended). Confirm in Antigravity UI.
 Antigravity has NO equivalent of Claude Code's PreToolUse hook (block-env.sh).
@@ -26,6 +30,7 @@ If a secret leaks, the user must rotate it immediately and scrub history with `g
 The locked stack lives in `CLAUDE.md` §"Stack — Locked Versions". Any change to `package.json`, `pubspec.yaml`, `apps/backend/prisma/schema.prisma`, `docker-compose*.yml`, or anything under `infra/` requires a new ADR in `docs/decisions/` in the SAME commit set.
 
 If asked to add a dependency or bump a version without an ADR:
+
 1. Refuse the unscoped edit.
 2. Offer to draft the ADR first.
 3. Only proceed once the ADR exists.

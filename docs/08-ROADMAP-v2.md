@@ -34,7 +34,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 
 ### Área 2 — Rotas (drawer + lista + wizard) — base de tudo
 
-- [ ] **Drawer lateral** — width 90% da tela, scrim 10% direita ("Fechar menu de navegação"). Body com 3 zonas: (a) header user card (avatar + nome + email + plano "Standard · Renova-se em DD/MM/AAAA") + 2 IconButtons topo-direito (Help, Settings) + CTA secundário "Assinar"; (b) lista de rotas agrupadas por período dinâmico ("Próximas rotas" / "Hoje" / "Início deste mês" — ver §11.6); cada item = data abreviada + nome opcional + 3-dot kebab; rota ativa em cor primary (azul); (c) CTA filled primary "Criar rota" pinned no rodapé. Detalhe em inventory §6.2 + §10.1 + §11.6.
+- [ ] **Drawer lateral** — width 90% da tela, scrim 10% direita ("Fechar menu de navegação"), `drawerEnableOpenDragGesture: false` (Spoke não habilita swipe-from-edge). Body com 3 zonas: (a) header user card (avatar + nome + email + plano "Standard · Renova-se em DD/MM/AAAA" — linha plano só pra assinante ativo) + 2 IconButtons topo-direito (Help abre `PopupMenu`, Settings abre tela) + CTA secundário "Assinar" condicional (só visível pra non-subscriber); (b) lista de rotas agrupadas por **4 períodos dinâmicos** ("Próximas rotas" / "Hoje" / "Início desta semana" / "Início deste mês" — ver §11.6 corrigido 2026-05-27); cada item = data abreviada + nome opcional + 3-dot kebab; rota ativa em cor primary (azul); (c) CTA filled primary "Criar rota" pinned no rodapé. Detalhe em inventory §6.2 + §10.1 + §11.6.
 
 - [ ] **Popup 3-dot por rota** — PopupMenu ancorado (não bottom sheet) com 3 ações: "Definir nome e data" / "Duplicar rota" / "Excluir rota". Sem ícones, sem cor destrutiva diferenciada pra "Excluir". Detalhe em inventory §6.2 + §10.2.
 

@@ -1,0 +1,65 @@
+# Session Log
+
+> Copy this file when starting a new session log. Rename to `YYYY-MM-DD-NN-<topic>.md`.
+
+## Metadata
+
+- **Date**: 2026-05-27 (America/Sao_Paulo)
+- **Sequence**: 02
+- **Agent**: Antigravity
+- **Human**: Eduardo
+- **Topic**: Google Maps Migration & MCP Usage
+- **Duration**: ~2h00m
+- **Related ADRs**: ADR-0039
+- **Related TODO items**: Slice 2 UI (Route Shell)
+
+## Goal of the Session
+
+Migrate the map provider from `flutter_map` to `google_maps_flutter` to ensure 100% Spoke parity, adjust UI layouts (BottomSheet safe area and floating controls), and document the importance of using MCP tools when stuck.
+
+## What Was Done
+
+- Audited the discrepancy between Spoke's map behavior and RotPro's `flutter_map` implementation.
+- Created `ADR-0039` to formalize the adoption of the Google Maps SDK over OpenStreetMap.
+- Removed `flutter_map` and `latlong2` dependencies and added `google_maps_flutter`.
+- Modified `android/app/build.gradle.kts` and `AndroidManifest.xml` to load `MAPS_API_KEY` securely from `local.properties`.
+- Rewrote `route_shell_page.dart` using the `GoogleMap` widget.
+- Adjusted the `DraggableScrollableSheet` layout so that its `minChildSize` accounts for Android navigation bar padding (increased base height from 72px to 110px), and anchored the map control buttons dynamically to stay higher above the sheet.
+- Emphasized a general guideline: whenever the agent gets stuck, rely on MCP tools (like Chrome DevTools, Context7, and Web Search) to debug and find modern best practices.
+- **Lesson Learned (Refactoring)**: When extracting logic out of a build method (e.g., `minChildSize` calculation), verify if intermediate variables like `bottomPadding` are still referenced further down in the widget tree before deleting them. Always run `flutter build apk` or `flutter analyze` after layout refactoring before assuming success.
+- **Lesson Learned (Maestro input selectors)**: Static `Text` column labels shouldn't be targeted for `tapOn` in Maestro/Accessibility testing when they are separate widgets from the actual input container. Instead, targeting unique placeholder text (like `seu@email.com` and `••••••••`) is the bulletproof way to guarantee that keyboard focus is properly directed before typing credentials.
+- **Lesson Learned (Remember-me integration)**: Do not remove user-facing checkboxes or rely entirely on implicit, always-on session persistence when the user expects explicit credentials caching. Wiring the checkbox to a lightweight `SharedPreferencesAsync` envelope ensures that emails and passwords can be securely cached and pre-filled upon next cold start, dramatically enhancing developer and user onboarding flows.
+
+## Decisions Made
+
+1. Use `google_maps_flutter` (ADR-0039) — To guarantee 100% parity with Spoke and leverage its UI fluidity and points of interest logic.
+2. Read API keys from `local.properties` via Gradle — Standard, safe mechanism that prevents committing keys to version control.
+3. Fallback to MCP tools — Enforced a global memory rule that the agent should proactively consult MCP/context tools to unblock issues or learn best practices instead of guessing.
+
+## Open Questions Left
+
+- [ ] Will the iOS setup require a similar `local.properties` or `.env` injection for Google Maps?
+- [ ] Implement the map layer toggle and recenter functionalities that are currently stubbed.
+
+## Files Changed
+
+**Created**:
+- `docs/decisions/0039-google-maps-adoption.md`
+- `apps/mobile/android/local.properties` (Modified by user/agent manually)
+
+**Modified**:
+- `pubspec.yaml`
+- `apps/mobile/android/app/build.gradle.kts`
+- `apps/mobile/android/app/src/main/AndroidManifest.xml`
+- `apps/mobile/lib/features/routes/presentation/route_shell_page.dart`
+- `TODO.md`
+
+## Hand-off Notes for Next Session
+
+The app now uses Google Maps on Android and is installed on the user's M54 device. The UI should have the search bar correctly positioned above the Android navbar and the map control buttons correctly hovering above the sheet. 
+
+**Next step**: Move forward with Slice 2 features (Add Stops using the 3 methods).
+
+## Reference Material Used
+
+- User guidance and manual Android M54 screen verifications.
