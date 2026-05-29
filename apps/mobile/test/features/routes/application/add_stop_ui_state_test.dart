@@ -82,6 +82,15 @@ void main() {
       expect((s as EmptyVariant).stopCount, 3);
     });
 
+    test('empty query overrides in-flight loading → EmptyVariant', () {
+      final s = AddStopUiState.from(
+        query: '',
+        predictions: const AsyncLoading(),
+        routeStops: const [],
+      );
+      expect(s, isA<EmptyVariant>());
+    });
+
     test('non-empty query while loading → Loading', () {
       final s = AddStopUiState.from(
         query: 'Av',
@@ -135,6 +144,28 @@ void main() {
       final w = s as WithResults;
       expect(w.matchesInRoute.length, 1);
       expect(w.matchesInRoute.first.streetName, 'Av Paulista, 500');
+    });
+
+    test('substring match falls through to fullAddress when streetName misses',
+        () {
+      final stopWithDifferentAddress = Stop(
+        lat: -23.5,
+        lng: -46.6,
+        streetName: 'Rua X',
+        fullAddress: 'Rua X, Paulista District',
+      );
+      final s = AddStopUiState.from(
+        query: 'paulista',
+        predictions: const AsyncData([pred]),
+        routeStops: [stopWithDifferentAddress],
+      );
+      expect(s, isA<WithResults>());
+      final w = s as WithResults;
+      expect(
+        w.matchesInRoute.length,
+        1,
+        reason: 'fullAddress branch of OR must match when streetName misses',
+      );
     });
   });
 }
