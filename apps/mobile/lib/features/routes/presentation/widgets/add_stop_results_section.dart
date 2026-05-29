@@ -46,6 +46,11 @@ class AddStopResultsSection extends StatelessWidget {
             title: Text(stop.streetName),
             subtitle:
                 stop.fullAddress.isNotEmpty ? Text(stop.fullAddress) : null,
+            trailing: const Icon(
+              LucideIcons.pencil,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
             onTap: () => onSectionATap(stop),
           ),
         );

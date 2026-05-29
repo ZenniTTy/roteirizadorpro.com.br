@@ -176,6 +176,37 @@ void main() {
     expect(sectionATile.leading, isNotNull);
   });
 
+  testWidgets('WithResults Section A ListTile has trailing pencil icon',
+      (tester) async {
+    // §11.4 amendment 2026-05-29 item 6: Section A has a trailing edit
+    // affordance (pencil) at the right edge, differentiating tap-to-edit
+    // (Section A) from tap-to-create (Section B).
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+    final stop =
+        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sectionATile = tester.widget<ListTile>(
+      find
+          .ancestor(
+            of: find.text('Av Paulista, 500'),
+            matching: find.byType(ListTile),
+          )
+          .first,
+    );
+    expect(sectionATile.trailing, isNotNull);
+  });
+
   testWidgets('WithResults with empty matchesInRoute hides Section A entirely',
       (tester) async {
     const pred = PlaceAutocompletePrediction(
