@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../state/place_autocomplete_provider.dart';
+import '../../state/search_query_provider.dart';
 
 class AddStopSearchBar extends ConsumerStatefulWidget {
   const AddStopSearchBar({super.key});
@@ -30,9 +31,15 @@ class _AddStopSearchBarState extends ConsumerState<AddStopSearchBar> {
 
   @override
   Widget build(BuildContext context) {
+    // Spoke parity §11.4 amendment 3: OCR + Voice icons disappear when the
+    // user is actively typing — visual cue that secondary methods are not
+    // needed in "typing mode".
+    final query = ref.watch(searchQueryProvider);
+    final showShortcuts = query.isEmpty;
+
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(16, 48, 16, 16), // Account for status bar
+      padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
       child: Row(
         children: [
           Expanded(
@@ -51,25 +58,37 @@ class _AddStopSearchBarState extends ConsumerState<AddStopSearchBar> {
                       autofocus: true,
                       decoration: const InputDecoration(
                         hintText: 'Adicione uma parada...',
-                        hintStyle: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                        hintStyle:
+                            TextStyle(fontSize: 14, color: AppColors.textMuted),
                         border: InputBorder.none,
                         isDense: true,
                       ),
                       onChanged: (val) {
+                        ref.read(searchQueryProvider.notifier).setQuery(val);
                         ref.read(placeAutocompleteProvider.notifier).search(val);
                       },
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(LucideIcons.scanLine, color: AppColors.textMuted, size: 20),
-                    onPressed: () => _onShowStub('Ler etiqueta de endereço'),
-                    tooltip: 'Ler etiqueta de endereço',
-                  ),
-                  IconButton(
-                    icon: const Icon(LucideIcons.mic, color: AppColors.textMuted, size: 20),
-                    onPressed: () => _onShowStub('Dite o endereço'),
-                    tooltip: 'Dite o endereço',
-                  ),
+                  if (showShortcuts) ...[
+                    IconButton(
+                      icon: const Icon(
+                        LucideIcons.scanLine,
+                        color: AppColors.textMuted,
+                        size: 20,
+                      ),
+                      onPressed: () => _onShowStub('Ler etiqueta de endereço'),
+                      tooltip: 'Ler etiqueta de endereço',
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        LucideIcons.mic,
+                        color: AppColors.textMuted,
+                        size: 20,
+                      ),
+                      onPressed: () => _onShowStub('Dite o endereço'),
+                      tooltip: 'Dite o endereço',
+                    ),
+                  ],
                 ],
               ),
             ),
