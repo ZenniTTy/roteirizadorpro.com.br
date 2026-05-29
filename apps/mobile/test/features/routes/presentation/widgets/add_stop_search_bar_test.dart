@@ -47,4 +47,37 @@ void main() {
 
     expect(container.read(searchQueryProvider), 'Av Paulista');
   });
+
+  // Spec Goal #10 + §11.4 amendment 2026-05-29 (D4 finding #5)
+  testWidgets('tapping X clears input and restores OCR+Voice icons',
+      (tester) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: Scaffold(body: AddStopSearchBar())),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), 'Av Paulista');
+    await tester.pump();
+
+    // Sanity: while query is non-empty, OCR + Voice are hidden.
+    expect(find.byIcon(LucideIcons.scanLine), findsNothing);
+    expect(find.byIcon(LucideIcons.mic), findsNothing);
+
+    await tester.tap(find.byTooltip('Limpar'));
+    await tester.pump();
+
+    expect(container.read(searchQueryProvider), '');
+    expect(find.byIcon(LucideIcons.scanLine), findsOneWidget);
+    expect(find.byIcon(LucideIcons.mic), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '',
+    );
+  });
 }
