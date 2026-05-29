@@ -17,3 +17,4 @@ A partir daqui, sessions são opcionais — só vale criar uma quando o trabalho
 - [2026-05-28-01-slice-2-area-25-3-map.md](./2026-05-28-01-slice-2-area-25-3-map.md) — Área 2.5/3 (Reutilizar Paradas/Mapa) e Route import pattern
 - [2026-05-28-02-google-maps-migration-and-mcp.md](./2026-05-28-02-google-maps-migration-and-mcp.md) — Google Maps Migration & MCP Usage
 - [2026-05-28-03-ui-polish-and-remember-me.md](./2026-05-28-03-ui-polish-and-remember-me.md) — UI Polish & Remember Me
+- [2026-05-28-04-area4-add-stop-ms1.md](./2026-05-28-04-area4-add-stop-ms1.md) — Area 4 add-stop TEXT: discovery + spec + plan + MS1 Domain layer (sealed AddStopUiState + factory)
