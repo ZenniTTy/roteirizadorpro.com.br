@@ -116,12 +116,10 @@ void main() {
     expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
   });
 
-  testWidgets(
-      'WithResults Section B ListTile has no leading icon; Section A keeps leading icon',
+  testWidgets('WithResults Section B ListTile has no leading icon',
       (tester) async {
     // §11.4 amendment 2026-05-29 item 5: Section B ListTile has no leading
-    // icon (text-only at x=208), differentiating it from Section A (which
-    // keeps `leading` non-null per MS5 Task 2 scope).
+    // icon (text-only at x=208).
     const pred = PlaceAutocompletePrediction(
       placeId: 'p1',
       description: 'Av Paulista, 1000',
@@ -146,6 +144,26 @@ void main() {
           .first,
     );
     expect(sectionBTile.leading, isNull);
+  });
+
+  testWidgets('WithResults Section A ListTile keeps leading icon',
+      (tester) async {
+    // §11.4 amendment 2026-05-29 item 5: Section A keeps `leading` non-null
+    // per MS5 Task 2 scope, differentiating it from Section B.
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+    final stop =
+        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
+      ),
+    );
+    await tester.pumpAndSettle();
 
     final sectionATile = tester.widget<ListTile>(
       find
