@@ -18,4 +18,4 @@ A partir daqui, sessions são opcionais — só vale criar uma quando o trabalho
 - [2026-05-28-02-google-maps-migration-and-mcp.md](./2026-05-28-02-google-maps-migration-and-mcp.md) — Google Maps Migration & MCP Usage
 - [2026-05-28-03-ui-polish-and-remember-me.md](./2026-05-28-03-ui-polish-and-remember-me.md) — UI Polish & Remember Me
 - [2026-05-28-04-area4-add-stop-ms1.md](./2026-05-28-04-area4-add-stop-ms1.md) — Area 4 add-stop TEXT: discovery + spec + plan + MS1 Domain layer (sealed AddStopUiState + factory)
-- [2026-05-29-01-area4-add-stop-ms2-ms3-ms4.md](./2026-05-29-01-area4-add-stop-ms2-ms3-ms4.md) — Area 4 add-stop TEXT: MS2 (State), MS3 (Widgets), MS4 (Device validation)
+- [2026-05-29-01-area4-add-stop-ms2-ms3-ms4.md](./2026-05-29-01-area4-add-stop-ms2-ms3-ms4.md) — Area 4 add-stop TEXT: MS2 (State) + MS3 (Widgets) + MS4 (Device validation) + audit pós-implementação + D4 spoke-parity-checker retroativo (3 must-fix + 2 should-fix descobertos)

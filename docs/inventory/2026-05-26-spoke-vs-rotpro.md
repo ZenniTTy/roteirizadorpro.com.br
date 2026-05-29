@@ -1407,6 +1407,18 @@ Inspeção Maestro live em Spoke v3.65.1 revelou estrutura mais rica que a passa
 
 5. **Confirmação do shortcut redundancy:** OCR + Voice estão tanto no topbar (sticky) quanto como big buttons centrais (já documentado). **NOVO:** o behavior do typing em §11.4 explica como o topbar morfa visualmente quando user digita (search bar reativa).
 
+#### Audit amendments 2026-05-29 (D4 closing via spoke-parity-checker — `feat/m2-slice-2-area-4-add-stop-text` microsprint)
+
+Inspection path: bash fallback (`adb shell uiautomator dump` + `screencap`), porque `mcp__maestro__inspect_view_hierarchy` retornou `UNAVAILABLE` mid-session (Maestro driver desconectou após `flutter test integration_test/`). Per ADR-0037 documented fallback. Inspeção contra Spoke v3.65.1 ao vivo no M54 (`RQCW401G33T`). RotPro debug build estava deletado no momento desta dispatch → comparação Spoke ao vivo vs spec + amendments D1 (não live side-by-side).
+
+Diffs adicionais que o D1 (28 amendment) não capturou:
+
+6. **Zero-results state: zero ícones decorativos.** Spoke renderiza apenas 2 TextViews ("Nenhum resultado encontrado" + "Tente reformular a pesquisa") + 3 method buttons. Nenhum node `[Icon]` antes do texto na hierarquia. RotPro adicionou `LucideIcons.searchX (size: 48) + SizedBox(16)` por antecipação visual. **Decisão Eduardo pendente:** remover pra parity OU manter como "RotPro additive".
+
+7. **Empty state: zero ícones decorativos** (mesmo padrão do 6). Spoke renderiza só microcopy + 3 method buttons. Sem `[Icon]` node. RotPro adicionou `LucideIcons.plusCircle (size: 48)`. **Decisão Eduardo pendente** (mesma natureza do item 6).
+
+8. **Probe "zxqwerty" NÃO produz zero-results** em Google Places no Brasil — retorna business names "QWERTY Tecnologia", "Qwerty Escola de Educacao Profissional", etc. Probe válido empiricamente 2026-05-29: `xyzxyzxyzabc123notaplace99`. Atualizar qualquer smoke test ou doc que mencione "zxqwerty" como probe pra zero-results.
+
 ### 10.22 — Conclusão da Fase B (mapa de cobertura final)
 
 **Total: 22 sub-sections (§10.1-10.21) cobrindo o ciclo completo de uso do Spoke:**
@@ -1667,6 +1679,43 @@ Reinspeção do flow texto via Maestro live em Spoke v3.65.1. Diffs factuais (n�
    - **Edit-stop sheet desliza INLINE** por baixo da search bar (que continua sticky no topo) — é uma transformação dentro da MESMA route Flutter, não um `context.push`.
    - User pode digitar próxima parada sem voltar (search bar permanece interactiva).
    - **Implicação:** RotPro Area 4 (este PR) e Area 6 (edit-stop sheet, próximo PR) compartilham a MESMA route `/home/routes/add-stop` — Area 6 monta um `DraggableScrollableSheet` em cima do conteúdo de Area 4. Este PR Area 4 **adia esse mecanismo** (decisão registrada no spec do PR) e usa `context.pop()` voltando ao shell como gap-temporário-documentado; Area 6 implementa Option A inline + reverte o pop.
+
+#### Audit amendments 2026-05-29 (D4 closing via spoke-parity-checker — `feat/m2-slice-2-area-4-add-stop-text` microsprint)
+
+Inspection path: bash fallback (`adb shell uiautomator dump` + `screencap`) per ADR-0037 — Maestro MCP indisponível mid-session. Inspeção do flow texto em Spoke v3.65.1 no M54.
+
+Diffs estruturais que o D1 (28 amendment) não capturou na granularidade de bounds das rows:
+
+5. **Section B rows ("Adicionar nova parada"): text-only em x=208, SEM leading icon, SEM trailing.** Dump empírico:
+   ```
+   [View] [TAP] [0,794][1080,946]
+     [TextView] "Avenida Paulista " [208,841][1046,899]
+     ← no icon node at [36,*][171,*], no trailing node at [939,*][1074,*]
+   ```
+   Resolve gap originalmente listado como "pending" em §10.21 item 8 (audit 2026-05-26 não tinha empírico). RotPro Area 4 adicionou `leading: const Icon(LucideIcons.mapPin, color: AppColors.textMuted)` em `add_stop_results_section.dart:59` por antecipação. **Must-fix MS5:** remover `leading:` em Section B `ListTile` — diferenciação visual entre "novo candidato" (texto-only leve) e "stop existente" (Section A com icon + edit affordance) é load-bearing.
+
+6. **Section A rows ("Desta rota (N)"): leading icon na esquerda + trailing edit affordance na direita.** Dump empírico:
+   ```
+   [View] [TAP] [0,493][1080,667]
+     [View] [36,499][171,634]          ← left icon area
+     [TextView] "Av paulista, 1230 Avenida Paulista" [208,527][901,585]
+     [TextView] "Bela Vista, 01310-100" [208,585][568,633]
+     [View] [939,499][1074,634]        ← RIGHT SIDE icon/button zone
+       [View] [967,527][1046,606]
+   ```
+   O `[View][939,499][1074,634]` é uma zona interativa não-null à direita; presume affordance de edit. RotPro Area 4 não tem `trailing:` em Section A `ListTile` (linha 43-52). **Must-fix MS5:** adicionar `trailing: const Icon(LucideIcons.pencil, size: 16, color: AppColors.textMuted)` pra sinalizar "tap abre edit, não add".
+
+7. **Footer "Escolher no mapa": text-only em x=208, SEM leading icon, SEM trailing chevron.** Dump empírico:
+   ```
+   [View] [TAP] [0,1610][1080,1801]
+     [TextView] "Escolher no mapa" [208,1677][944,1735]
+     ← no leading icon at [36,*], no trailing icon at [939,*]
+   ```
+   Estruturalmente consistente com Section B rows — rows leves text-only com left padding em vez de icon+text layout. RotPro Area 4 adicionou `leading: LucideIcons.mapPinned` + `trailing: LucideIcons.chevronRight` em `add_stop_results_section.dart:70-73`. **Must-fix MS5:** remover ambos — chevron especialmente cria falso affordance de submenu.
+
+8. **Probe "zxqwerty" inválido pra zero-results** (mesma observação anexa ao §10.21 amendment 8 — replicada aqui pra reduzir risco de leitor consultar só uma seção).
+
+9. **Footer height empírico: 191dp (Spoke).** `ListTile` padrão Flutter = 56-72dp. Se RotPro polish pass quiser parity exato, adicionar padding/divider acima do footer. Nit, não bloqueante.
 
 ### 11.5 — Editar parada em rota NÃO-otimizada (estado completamente editável)
 

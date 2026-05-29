@@ -38,9 +38,10 @@ Spec autoritativa: [`docs/superpowers/specs/`](./docs/superpowers/specs/). Plan 
 - [ ] **Area 3 (Tela ativa de rota — mapa + sheet)** — já 80% pronta; polish + bug fixes ficam pra polish pass.
 - [ ] **Area 4 (Adicionar parada)** — TEXT method **em andamento** na branch `feat/m2-slice-2-area-4-add-stop-text`:
   - [x] MS1 Domain (sealed `AddStopUiState` + 5-branch `from` factory) — commits `d0331a3`, `220479d`, `bc27ba7`, `19abe5e`. 14 unit tests pinning invariants.
-  - [x] MS2 State (`searchQueryProvider` + `currentRouteStopsProvider` + `addStopUiStateProvider`).
-  - [x] MS3 Widgets (refactor Stack→Column + 3 estados + 2 seções + footer + search bar reativo).
-  - [x] MS4 Device validation (integration_test + Maestro punch list + D4 parity-checker).
+  - [x] MS2 State (`searchQueryProvider` + `currentRouteStopsProvider` + `addStopUiStateProvider`) — commits `3a603af`, `fe6d05d`, `0672635`. +9 unit tests.
+  - [x] MS3 Widgets (refactor Stack→Column + 3 estados + 2 seções + footer + search bar reativo) — commits `db0600a`, `6804615`, `f9a0f72`. +11 widget tests.
+  - [ ] **MS4 (REABERTO 2026-05-29 pós-audit)** — integration_test atual é brittle (assume device com rota ativa pré-logada; confirmado falhando em fresh install). D4 spoke-parity-checker dispatched retroativo: **3 must-fix + 2 should-fix** estruturais descobertos. Ver session log `2026-05-29-01`. MS4 não fecha até MS5 aplicar D4 fixes + rerun verification.
+  - [ ] **MS5 (novo, fruto do D4 retro)** — Section B: remover leading `mapPin` icon (Spoke text-only). Footer: remover leading `mapPinned` + trailing `chevronRight` (Spoke text-only). Section A: adicionar `trailing: Icon(pencil)` (Spoke right-side affordance). Decisão Eduardo: empty/zero-results decorative icons (manter como "RotPro additive" OU remover pra Spoke parity). Rerun D4 + smoke Maestro YAML standalone antes de fechar.
   - **Out of scope deste PR** (cada um vai pra PR isolado): Voz (Area 7), OCR (Area 7), tap-no-mapa (Area 5), CSV upload (Slice 3+), edit-stop sheet (Area 6 — BIG FIND auto-open per inventory §11.4 fica adiado, documentado no spec).
 - [ ] **Area 5 (Detalhes da rota — pré-flight Partida/Destino/Pausa)**.
 - [ ] **Area 6 (Editar parada — 14 campos)** — reverte o `context.pop()` deste PR e implementa inline DraggableScrollableSheet (BIG FIND §11.4).
