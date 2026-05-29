@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:roteirizador_pro/features/routes/domain/place_autocomplete_prediction.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/add_stop_search_bar.dart';
+import 'package:roteirizador_pro/features/routes/state/place_autocomplete_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/search_query_provider.dart';
 
 Widget _wrap(Widget child) => ProviderScope(
@@ -79,5 +81,11 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       '',
     );
+    final autocompleteState = container.read(placeAutocompleteProvider);
+    expect(
+      autocompleteState,
+      isA<AsyncData<List<PlaceAutocompletePrediction>>>(),
+    );
+    expect(autocompleteState.value, isEmpty);
   });
 }
