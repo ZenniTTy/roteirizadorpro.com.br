@@ -1413,9 +1413,9 @@ Inspection path: bash fallback (`adb shell uiautomator dump` + `screencap`), por
 
 Diffs adicionais que o D1 (28 amendment) não capturou:
 
-6. **Zero-results state: zero ícones decorativos.** Spoke renderiza apenas 2 TextViews ("Nenhum resultado encontrado" + "Tente reformular a pesquisa") + 3 method buttons. Nenhum node `[Icon]` antes do texto na hierarquia. RotPro adicionou `LucideIcons.searchX (size: 48) + SizedBox(16)` por antecipação visual. **Decisão Eduardo pendente:** remover pra parity OU manter como "RotPro additive".
+6. **Zero-results state: zero ícones decorativos.** Spoke renderiza apenas 2 TextViews ("Nenhum resultado encontrado" + "Tente reformular a pesquisa") + 3 method buttons. Nenhum node `[Icon]` antes do texto na hierarquia. RotPro adicionou `LucideIcons.searchX (size: 48) + SizedBox(16)` por antecipação visual. **Decisão Eduardo 2026-05-29: MANTER como "RotPro additive"** — diferenciação visual aceita; não bloqueia parity funcional.
 
-7. **Empty state: zero ícones decorativos** (mesmo padrão do 6). Spoke renderiza só microcopy + 3 method buttons. Sem `[Icon]` node. RotPro adicionou `LucideIcons.plusCircle (size: 48)`. **Decisão Eduardo pendente** (mesma natureza do item 6).
+7. **Empty state: zero ícones decorativos** (mesmo padrão do 6). Spoke renderiza só microcopy + 3 method buttons. Sem `[Icon]` node. RotPro adicionou `LucideIcons.plusCircle (size: 48)`. **Decisão Eduardo 2026-05-29: MANTER como "RotPro additive"** (mesma natureza do item 6).
 
 8. **Probe "zxqwerty" NÃO produz zero-results** em Google Places no Brasil — retorna business names "QWERTY Tecnologia", "Qwerty Escola de Educacao Profissional", etc. Probe válido empiricamente 2026-05-29: `xyzxyzxyzabc123notaplace99`. Atualizar qualquer smoke test ou doc que mencione "zxqwerty" como probe pra zero-results.
 
