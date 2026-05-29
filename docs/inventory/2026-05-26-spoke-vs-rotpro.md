@@ -1388,6 +1388,25 @@ Scaffold(
 - Digitar texto e ver autocomplete results layout (provavelmente lista vertical de results scroll + tap pra select)
 - "Outro" / custom location entry (provavelmente acessível por scroll/empty results state)
 
+#### Audit amendments 2026-05-28 (D1 upfront via spoke-parity-checker — `feat/m2-slice-2-area-4` microsprint)
+
+Inspeção Maestro live em Spoke v3.65.1 revelou estrutura mais rica que a passada original de 2026-05-26. Diffs factuais (não reescrita — anexo):
+
+1. **3 estados de conteúdo distintos** (não 2). Visual flow:
+   - **Empty (`query.isEmpty`):** topbar + microcopy + 3 method shortcut buttons centrais (já documentado).
+   - **Zero-result (`query.isNotEmpty && results.isEmpty`):** *"Nenhum resultado encontrado / Tente reformular a pesquisa"* centralizado + **os 3 method buttons REAPARECEM** (fallback pra escolher outro método).
+   - **Results (`query.isNotEmpty && results.isNotEmpty`):** lista (split em 2 seções — ver §11.4 amendment) + footer.
+
+2. **Microcopy do empty state varia** com `route.stops.length`:
+   - Rota com **0 stops**: `"Adicione as primeiras paradas para começar a criar sua rota"` (já documentado).
+   - Rota com **≥1 stop**: `"Adicione novas paradas ou encontre paradas na rota"` ← novo, não documentado antes.
+
+3. **Footer persistente "Escolher no mapa"** no fim da lista de results — row clickable com map icon esquerda + label + chevron `>` direita. **Substitui** os 3 method buttons enquanto results estão visíveis. Destino: mesmo flow do button "Mapa" (tap-on-map). Estrutural — qualquer método dispara aqui.
+
+4. **Os 3 method buttons collapsam ao começar digitar** (confirmação da hipótese do audit original). Detalhe: visualmente eles ficam visíveis no empty E no zero-result, mas SOMEM completamente no results state (footer "Escolher no mapa" assume o lugar).
+
+5. **Confirmação do shortcut redundancy:** OCR + Voice estão tanto no topbar (sticky) quanto como big buttons centrais (já documentado). **NOVO:** o behavior do typing em §11.4 explica como o topbar morfa visualmente quando user digita (search bar reativa).
+
 ### 10.22 — Conclusão da Fase B (mapa de cobertura final)
 
 **Total: 22 sub-sections (§10.1-10.21) cobrindo o ciclo completo de uso do Spoke:**
@@ -1626,9 +1645,28 @@ Tap no dropdown abre dialog (sem header):
 - Não há "buscar" button — autocomplete é sempre live
 
 **Implicação pro RotPro:**
-- Slice 2 stub: lista fake hardcoded 4-5 endereços quando input >= 3 chars (per ROADMAP-v2 Slice 2)
+- Slice 2 stub: lista fake hardcoded 4-5 endereços quando input >= 3 chars (per ROADMAP-v2 Slice 2) — **superseded por audit 2026-05-28**: codebase atual já usa Google Places real desde antes do reset; decisão deste PR Area 4 é **manter Google Places real** (custo aceito até Slice 3 trocar por Nominatim).
 - Slice 3 real: Nominatim SP query com debounce 300ms; resultado em `ListView.builder`
 - Adicionar parada: criar `Stop` com `address`, `lat`, `lng` do resultado + invalidate provider `currentRouteStopsProvider`
+
+#### Audit amendments 2026-05-28 (D1 upfront via spoke-parity-checker — `feat/m2-slice-2-area-4` microsprint)
+
+Reinspeção do flow texto via Maestro live em Spoke v3.65.1. Diffs factuais (não reescrita — anexo):
+
+1. **Threshold de autocomplete: 2 chars** (confirmado com "Av" disparando results) — **NÃO 3+ chars** como o "Slice 2 stub" antigo dizia. Próximo PR usa Google Places real; debounce do `placeAutocompleteProvider` atual = 500ms (Slice 3 pode rebaixar pra 300ms).
+
+2. **Resultados split em 2 seções** quando há matches:
+   - **Section A: "Desta rota (N)"** — condicional, só aparece se query bate em stops da rota ativa. Tap em row **NÃO adiciona stop**; abre o edit-stop sheet (§11.5/§10.6) daquela stop existente. Permite navegação rápida pra parada já criada.
+   - **Section B: "Adicionar nova parada"** — autocomplete candidates externos (Google Places no estado atual; Nominatim no Slice 3). Tap cria stop novo.
+   - **Section A é a seção #1** quando ambas existem (precede "Adicionar nova").
+
+3. **Search bar é reativa ao typing:** quando `query.isEmpty`, mostra `[input | OCR | Voice | X]`. Quando `query.isNotEmpty`, **os ícones OCR e Voice SOMEM** — sobra `[input | X]`. Pista visual: usuário em modo "tipagem" não precisa dos shortcuts secundários.
+
+4. **BIG FIND §11.4 clarificado:** o "Tela 'Editar parada' auto-abre via swipe-up" da passada original deu impressão de navigation push. **Não é.** O comportamento real:
+   - Tap em result da Section B → stop é criada **instantaneamente** no provider (sem dialog, sem snackbar).
+   - **Edit-stop sheet desliza INLINE** por baixo da search bar (que continua sticky no topo) — é uma transformação dentro da MESMA route Flutter, não um `context.push`.
+   - User pode digitar próxima parada sem voltar (search bar permanece interactiva).
+   - **Implicação:** RotPro Area 4 (este PR) e Area 6 (edit-stop sheet, próximo PR) compartilham a MESMA route `/home/routes/add-stop` — Area 6 monta um `DraggableScrollableSheet` em cima do conteúdo de Area 4. Este PR Area 4 **adia esse mecanismo** (decisão registrada no spec do PR) e usa `context.pop()` voltando ao shell como gap-temporário-documentado; Area 6 implementa Option A inline + reverte o pop.
 
 ### 11.5 — Editar parada em rota NÃO-otimizada (estado completamente editável)
 
