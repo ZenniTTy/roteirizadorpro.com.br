@@ -196,15 +196,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final sectionATile = tester.widget<ListTile>(
-      find
-          .ancestor(
-            of: find.text('Av Paulista, 500'),
-            matching: find.byType(ListTile),
-          )
-          .first,
+    expect(
+      find.descendant(
+        of: find
+            .ancestor(
+              of: find.text('Av Paulista, 500'),
+              matching: find.byType(ListTile),
+            )
+            .first,
+        matching: find.byIcon(LucideIcons.pencil),
+      ),
+      findsOneWidget,
     );
-    expect(sectionATile.trailing, isNotNull);
   });
 
   testWidgets('WithResults with empty matchesInRoute hides Section A entirely',
