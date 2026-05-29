@@ -1686,7 +1686,7 @@ Inspection path: bash fallback (`adb shell uiautomator dump` + `screencap`) per 
 
 Diffs estruturais que o D1 (28 amendment) não capturou na granularidade de bounds das rows:
 
-5. **Section B rows ("Adicionar nova parada"): text-only em x=208, SEM leading icon, SEM trailing.** Dump empírico:
+5. **[INVALIDATED 2026-05-29 13:38]** ~~Section B rows ("Adicionar nova parada"): text-only em x=208, SEM leading icon, SEM trailing.~~ Live side-by-side Spoke v3.65.1 vs RotPro confirmou que Spoke **TEM** leading icon (`+` em quadrado pontilhado, Compose ImageVector) em cada Section B row. Original finding causado por uiautomator XML blindspot — ImageVectors do Compose não emitem nós de acessibilidade. Causa raiz: ver `lesson_uiautomator_blindspot_compose_imagevectors`. Reverter MS5 Task 1: restaurar `leading: LucideIcons.plusCircle` em Section B `ListTile`. Dump empírico (mantido pra histórico):
    ```
    [View] [TAP] [0,794][1080,946]
      [TextView] "Avenida Paulista " [208,841][1046,899]
@@ -1705,7 +1705,7 @@ Diffs estruturais que o D1 (28 amendment) não capturou na granularidade de boun
    ```
    O `[View][939,499][1074,634]` é uma zona interativa não-null à direita; presume affordance de edit. RotPro Area 4 não tem `trailing:` em Section A `ListTile` (linha 43-52). **Must-fix MS5:** adicionar `trailing: const Icon(LucideIcons.pencil, size: 16, color: AppColors.textMuted)` pra sinalizar "tap abre edit, não add".
 
-7. **Footer "Escolher no mapa": text-only em x=208, SEM leading icon, SEM trailing chevron.** Dump empírico:
+7. **[INVALIDATED 2026-05-29 13:38]** ~~Footer "Escolher no mapa": text-only em x=208, SEM leading icon, SEM trailing chevron.~~ Live side-by-side confirmou Spoke renderiza leading map+pin icon + trailing chevron `>` no footer. Mesma causa raiz do item 5 (uiautomator XML blindspot em Compose). Reverter MS5 Task 1: manter `leading: LucideIcons.mapPinned` + `trailing: LucideIcons.chevronRight` em footer `ListTile`. Dump empírico (mantido pra histórico):
    ```
    [View] [TAP] [0,1610][1080,1801]
      [TextView] "Escolher no mapa" [208,1677][944,1735]

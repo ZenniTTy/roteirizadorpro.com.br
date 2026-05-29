@@ -95,9 +95,10 @@ void main() {
     expect(find.text('Escolher no mapa'), findsOneWidget);
   });
 
-  testWidgets('WithResults footer has no trailing chevron icon',
-      (tester) async {
-    // §11.4 amendment 2026-05-29 item 7: Footer renders text-only, no chevron.
+  testWidgets('WithResults footer has trailing chevron icon', (tester) async {
+    // §11.4 amendment 2026-05-29 item 7 (INVALIDATED): live side-by-side at
+    // 2026-05-29 13:38 confirmed Spoke renders mapPinned + chevronRight.
+    // Original D4 inference was uiautomator XML blindspot (Compose Icons).
     const pred = PlaceAutocompletePrediction(
       placeId: 'p1',
       description: 'Av Paulista, 1000',
@@ -113,13 +114,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(LucideIcons.chevronRight), findsNothing);
+    expect(find.byIcon(LucideIcons.chevronRight), findsOneWidget);
   });
 
-  testWidgets('WithResults Section B ListTile has no leading icon',
+  testWidgets('WithResults Section B ListTile has leading icon',
       (tester) async {
-    // §11.4 amendment 2026-05-29 item 5: Section B ListTile has no leading
-    // icon (text-only at x=208).
+    // §11.4 amendment 2026-05-29 item 5 (INVALIDATED): live side-by-side
+    // confirmed Spoke renders + icon at left of every Section B row.
     const pred = PlaceAutocompletePrediction(
       placeId: 'p1',
       description: 'Av Paulista, 1000',
@@ -143,7 +144,7 @@ void main() {
           )
           .first,
     );
-    expect(sectionBTile.leading, isNull);
+    expect(sectionBTile.leading, isNotNull);
   });
 
   testWidgets('WithResults Section A ListTile keeps leading icon',

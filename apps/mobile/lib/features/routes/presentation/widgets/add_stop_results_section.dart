@@ -61,6 +61,8 @@ class AddStopResultsSection extends StatelessWidget {
     for (final p in newCandidates) {
       children.add(
         ListTile(
+          leading:
+              const Icon(LucideIcons.plusCircle, color: AppColors.textMuted),
           title: Text(p.mainText),
           subtitle: p.secondaryText.isNotEmpty ? Text(p.secondaryText) : null,
           onTap: () => onSectionBTap(p),
@@ -71,7 +73,10 @@ class AddStopResultsSection extends StatelessWidget {
     children.add(const Divider(height: 1));
     children.add(
       ListTile(
+        leading: const Icon(LucideIcons.mapPinned, color: AppColors.primary),
         title: const Text('Escolher no mapa'),
+        trailing:
+            const Icon(LucideIcons.chevronRight, color: AppColors.textMuted),
         onTap: () => context.push('/home/routes/add-stop/map'),
       ),
     );
