@@ -18,6 +18,7 @@ GoRouter _router(Widget home) => GoRouter(
 Widget _wrap({
   required String routeId,
   RouteConfig? initialConfig,
+  bool? validOverride,
 }) {
   final router = _router(RouteDetailsPage(routeId: routeId));
   return ProviderScope(
@@ -25,6 +26,9 @@ Widget _wrap({
       if (initialConfig != null)
         routeConfigControllerProvider(routeId)
             .overrideWith(() => _TestController(initialConfig)),
+      if (validOverride != null)
+        isRouteConfigValidProvider(routeId)
+            .overrideWith((ref) => validOverride),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -54,7 +58,10 @@ void main() {
 
   testWidgets('AppBar action "Concluído" is disabled when config is invalid',
       (tester) async {
-    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    // Override isRouteConfigValidProvider directly so this widget test does
+    // not depend on the MS1 validity semantics (which could change without
+    // breaking this assertion via indirection).
+    await tester.pumpWidget(_wrap(routeId: 'r1', validOverride: false));
     await tester.pumpAndSettle();
 
     final btn = tester.widget<TextButton>(
@@ -68,13 +75,10 @@ void main() {
 
   testWidgets('AppBar action "Concluído" is enabled when config is valid',
       (tester) async {
-    const validConfig = RouteConfig(
-      timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
-      timeEnd: TimeEnd(time: TimeOfDay(hour: 18, minute: 0)),
-    );
-    await tester.pumpWidget(
-      _wrap(routeId: 'r1', initialConfig: validConfig),
-    );
+    // Override isRouteConfigValidProvider directly so this widget test does
+    // not depend on the MS1 validity semantics (which could change without
+    // breaking this assertion via indirection).
+    await tester.pumpWidget(_wrap(routeId: 'r1', validOverride: true));
     await tester.pumpAndSettle();
 
     final btn = tester.widget<TextButton>(
@@ -128,12 +132,36 @@ void main() {
     expect(find.text('Voltar ao local de início'), findsOneWidget);
   });
 
+  testWidgets('Destino BackToStart() also renders "Voltar ao local de início"',
+      (tester) async {
+    // Locks the BackToStart -> string mapping independently of the null arm,
+    // so that if _destinationLabel later splits null and BackToStart() into
+    // distinct branches, a regression on either one surfaces here.
+    const config = RouteConfig(destination: BackToStart());
+    await tester.pumpWidget(_wrap(routeId: 'r1', initialConfig: config));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Voltar ao local de início'), findsOneWidget);
+  });
+
   testWidgets('Pausas section shows "+ Adicionar pausa" CTA when empty',
       (tester) async {
     await tester.pumpWidget(_wrap(routeId: 'r1'));
     await tester.pumpAndSettle();
 
     expect(find.text('+ Adicionar pausa'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Adicionar pausa row exposes Semantics identifier '
+      '"route_details_row_adicionar_pausa" for Maestro', (tester) async {
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.bySemanticsIdentifier('route_details_row_adicionar_pausa'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Destino RoundTrip renders "Ida e volta" as trailing value',
