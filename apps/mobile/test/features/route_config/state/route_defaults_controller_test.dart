@@ -59,14 +59,12 @@ void main() {
       await c.read(routeDefaultsControllerProvider.future);
 
       const patch = RouteDefaults(
-        firstRoute: false,
         timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
       );
       await c.read(routeDefaultsControllerProvider.notifier).merge(patch);
 
       final result = await c.read(routeDefaultsControllerProvider.future);
       expect(result.timeStart?.time.hour, 8);
-      expect(result.firstRoute, isFalse);
       // Other fields stay empty.
       expect(result.startLocation, isNull);
       expect(result.destination, isNull);
@@ -74,8 +72,68 @@ void main() {
       // And the repo has the same value persisted.
       final fromRepo = await c.read(routeDefaultsRepositoryProvider).read();
       expect(fromRepo.timeStart?.time.hour, 8);
-      expect(fromRepo.firstRoute, isFalse);
     });
+
+    test(
+      'merge() does NOT clobber firstRoute back to true (regression)',
+      () async {
+        // Reproduces the MS1 review must-fix: a partial patch built via the
+        // default RouteDefaults constructor carries firstRoute=true by default,
+        // which used to flip the persisted firstRoute=false back to true on
+        // every Concluido save — breaking the MS8 FTUE flag.
+        final c = _container();
+        await c.read(routeDefaultsControllerProvider.future);
+
+        // Mark first-route done first (MS8 will call this on initial save).
+        await c
+            .read(routeDefaultsControllerProvider.notifier)
+            .markFirstRouteComplete();
+        expect(
+          (await c.read(routeDefaultsControllerProvider.future)).firstRoute,
+          isFalse,
+        );
+
+        // Now a downstream MS8-style partial-patch save (only timeStart).
+        // The patch carries firstRoute=true (ctor default) — must NOT clobber.
+        const patch = RouteDefaults(
+          timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
+        );
+        await c.read(routeDefaultsControllerProvider.notifier).merge(patch);
+
+        final state = await c.read(routeDefaultsControllerProvider.future);
+        expect(
+          state.firstRoute,
+          isFalse,
+          reason: 'merge() preserves prior firstRoute=false',
+        );
+        expect(state.timeStart?.time.hour, 8);
+
+        // Also persisted to the repo.
+        final fromRepo = await c.read(routeDefaultsRepositoryProvider).read();
+        expect(fromRepo.firstRoute, isFalse);
+      },
+    );
+
+    test(
+      'merge() does NOT downgrade schemaVersion from a future-state envelope',
+      () async {
+        // The schemaVersion field is preserved from the current envelope
+        // across merges. A patch built via the default ctor (schemaVersion=1)
+        // must not pin nor mutate the persisted version. (We can only assert
+        // it stays at 1 in MS1 since v2 doesn't exist yet — but the
+        // pre-fix code would have read patch.schemaVersion unconditionally.)
+        final c = _container();
+        await c.read(routeDefaultsControllerProvider.future);
+
+        const patch = RouteDefaults(
+          timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
+        );
+        await c.read(routeDefaultsControllerProvider.notifier).merge(patch);
+
+        final state = await c.read(routeDefaultsControllerProvider.future);
+        expect(state.schemaVersion, 1);
+      },
+    );
 
     test('patch with breaks replaces breaks list when non-empty', () async {
       final c = _container();

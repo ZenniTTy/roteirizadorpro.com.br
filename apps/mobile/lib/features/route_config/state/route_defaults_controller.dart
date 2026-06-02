@@ -28,13 +28,14 @@ class RouteDefaultsController extends _$RouteDefaultsController {
   }
 
   /// Merges [patch] into the current state — only non-null sub-states from
-  /// [patch] override; `firstRoute` and `schemaVersion` always come from
-  /// [patch]. Persists the result through the repository.
+  /// [patch] override. [RouteDefaults.firstRoute] and
+  /// [RouteDefaults.schemaVersion] are preserved from the current envelope;
+  /// they are NOT readable from [patch] (defaults of the bool/int ctor params
+  /// would silently clobber `markFirstRouteComplete()` and pin the schema
+  /// forever). Use [markFirstRouteComplete] to mutate `firstRoute`.
   Future<void> merge(RouteDefaults patch) async {
     final current = await future;
     final next = current.copyWith(
-      firstRoute: patch.firstRoute,
-      schemaVersion: patch.schemaVersion,
       startLocation: patch.startLocation ?? current.startLocation,
       timeStart: patch.timeStart ?? current.timeStart,
       timeEnd: patch.timeEnd ?? current.timeEnd,
