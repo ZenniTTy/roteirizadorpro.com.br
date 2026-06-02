@@ -111,12 +111,17 @@ void main() {
   });
 
   group('RouteConfig', () {
-    test('empty() has all-null + empty breaks list', () {
+    test(
+        'empty() defaults destination to RoundTrip (Spoke parity); '
+        'other fields null + breaks empty', () {
       final c = RouteConfig.empty();
       expect(c.startLocation, isNull);
       expect(c.timeStart, isNull);
       expect(c.timeEnd, isNull);
-      expect(c.destination, isNull);
+      // Spoke shows "Ida e volta" as the default mode on a brand-new route —
+      // the domain must reflect that, not leave destination null and rely on
+      // the presentation layer to mask it.
+      expect(c.destination, const RoundTrip());
       expect(c.breaks, isEmpty);
     });
 

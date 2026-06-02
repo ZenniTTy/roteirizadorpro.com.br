@@ -144,9 +144,14 @@ final class BreakConfig extends RouteConfigPart {
 
 /// Aggregate of one route's user-configurable state.
 ///
-/// All sub-states except [breaks] are nullable to model "not yet set". Use the
-/// per-field `with*` updaters to mutate — they accept `null` explicitly to
-/// clear, side-stepping the [copyWith] nullable-pitfall.
+/// All sub-states except [breaks] and [destination] are nullable to model
+/// "not yet set". [destination] is nullable so [withDestination] can clear it
+/// explicitly, but the bootstrap [RouteConfig.empty] ships
+/// `destination: const RoundTrip()` because Spoke's brand-new-route default is
+/// "Ida e volta" — the domain encodes that contract directly, instead of
+/// letting the presentation layer mask null. Use the per-field `with*`
+/// updaters to mutate — they accept `null` explicitly to clear, side-stepping
+/// the [copyWith] nullable-pitfall.
 class RouteConfig {
   const RouteConfig({
     this.startLocation,
@@ -156,8 +161,9 @@ class RouteConfig {
     this.breaks = const [],
   });
 
-  /// Bootstrap value: nothing configured, no breaks.
-  factory RouteConfig.empty() => const RouteConfig();
+  /// Bootstrap value: only [destination] pre-populated to Spoke's default
+  /// ("Ida e volta"); every other field unset; no breaks.
+  factory RouteConfig.empty() => const RouteConfig(destination: RoundTrip());
 
   final StartLocation? startLocation;
   final TimeStart? timeStart;

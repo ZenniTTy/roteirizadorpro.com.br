@@ -102,8 +102,12 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   }
 
   RouteDetailsSection _destinoSection(RouteConfig config) {
-    // The Destino row is always rendered as "configured" (blue icon) because
-    // null === default RoundTrip per Spoke; there is no "empty" Destino state.
+    // The Destino row is always rendered as "configured" (blue icon).
+    // `RouteConfig.empty()` ships `destination: RoundTrip()` per Spoke parity,
+    // so the row's primary text is "Ida e volta" out of the box. The null
+    // branch in the `_destination*` helpers below is defense-in-depth for the
+    // public `withDestination(null)` updater — it renders the same Spoke
+    // default rather than blanking the row.
     return RouteDetailsSection(
       title: 'Destino',
       children: [
@@ -154,10 +158,12 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
 
   /// Maps a [Destination] subtype to its primary display string.
   ///
-  /// Spoke's default Destino is "Ida e volta" — so `null` (not yet
-  /// configured) renders as "Ida e volta" too, matching the out-of-box
-  /// state. `BackToStart()` (a distinct, explicit choice from the picker)
-  /// renders as "Voltar ao local de início".
+  /// `RouteConfig.empty()` ships `destination: RoundTrip()`, so the default
+  /// Destino label is "Ida e volta" via the [RoundTrip] arm. The `null` arm
+  /// is defensive: [RouteConfig.withDestination] accepts `null` to clear, so
+  /// the UI keeps rendering the Spoke default in that edge case rather than
+  /// blanking the row. `BackToStart()` (a distinct, explicit choice from the
+  /// picker) renders as "Voltar ao local de início".
   String _destinationLabel(Destination? destination) {
     return switch (destination) {
       null || RoundTrip() => 'Ida e volta',
