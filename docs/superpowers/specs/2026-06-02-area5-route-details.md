@@ -158,14 +158,14 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 
 | Purpose | Package | Version | Cost | Context7 ID |
 |---|---|---|---|---|
-| Custom scroll wheel time picker | `wheel_picker` | `^0.3.0` | 0 | `/jaweii/flutter_wheel_picker` (queried 2026-06-01) |
+| Custom scroll wheel time picker | `wheel_picker` | `^0.3.0` (resolved 0.3.0) | 0 | `/jaweii/flutter_wheel_picker` (queried 2026-06-01) |
 | Radio screen / chips | (Material 3 stdlib) | n/a | 0 | stdlib exception per CLAUDE.md |
 
-**Resolved at install time** (`flutter pub add wheel_picker`). Will record exact resolved version in MS1 commit + ADR-0040 amendment.
+**Resolved at install time** (`flutter pub add wheel_picker`). Resolved version `0.3.0` recorded in ADR-0041 (renumbered from 0040 during MS1 — 0040 was already taken by Area 4 google-places autocomplete).
 
 ## ADRs filed during this Area
 
-- **ADR-0040** — `wheel_picker ^0.3.0` adopted for time picker drum widget. Cost 0. Filed in MS1.
+- **ADR-0041** — `wheel_picker ^0.3.0` adopted for time picker drum widget. Cost 0. Filed in MS1 commit `b10faf4` (renumbered from 0040; 0040 belongs to Area 4 google-places autocomplete).
 
 ## Risks and mitigations
 
@@ -224,7 +224,7 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 - `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §11.4 (Detalhes da rota) + §13.C.2 (FTUE confirmation).
 - `prototipo/tokens.js` — visual identity.
 - `prototipo/screens-route-config.jsx` — visual reference.
-- ADR-0010 (functional fork), ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ADR-0040 (wheel_picker — filed MS1).
+- ADR-0010 (functional fork), ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ADR-0041 (wheel_picker — filed MS1; renumbered from 0040 because 0040 was Area 4 google-places).
 - `/tmp/spoke-a5-*` 21 artefatos baseline captured 2026-06-01.
 - Memory: `lesson_uiautomator_blindspot_compose_imagevectors`, `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`, `lesson_copywith_nullable_field_pitfall`, `lesson_maestro_flutter_listtile_tap_needs_semantics`, `lesson_slice_checklist_integration_test_gate`, `lesson_checkpoint_discipline_between_microsprints`, `lesson_git_diff_head_before_commit_after_workflows`.
 - Context7: `/jaweii/flutter_wheel_picker` (queried 2026-06-01 — version `^0.3.0` confirmed current).

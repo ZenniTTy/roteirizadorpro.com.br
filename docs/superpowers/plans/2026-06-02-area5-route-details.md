@@ -4,7 +4,7 @@
 
 **Goal:** Ship the Spoke-aligned "Detalhes da rota" screen with 5 sub-pickers + Area 3 sheet wiring + SharedPreferencesAsync persistence + FTUE trigger; total 14 testable acceptance steps on Samsung M54.
 
-**Architecture:** New `apps/mobile/lib/features/route_config/` module with sealed `RouteConfig` + 3 pages + 4 widgets + 2 Riverpod controllers + 1 repository. Extend `AddStopPage` (Area 4) with `PickerMode` nullable enum to reuse search pipeline for Partida + Destino pickers. Wire Area 3 sheet rows. New `wheel_picker ^0.3.0` dependency (ADR-0040).
+**Architecture:** New `apps/mobile/lib/features/route_config/` module with sealed `RouteConfig` + 3 pages + 4 widgets + 2 Riverpod controllers + 1 repository. Extend `AddStopPage` (Area 4) with `PickerMode` nullable enum to reuse search pipeline for Partida + Destino pickers. Wire Area 3 sheet rows. New `wheel_picker ^0.3.0` dependency (ADR-0041).
 
 **Tech Stack:** Flutter 3.44 + Dart 3.12, Riverpod 3 (`@riverpod` codegen), GoRouter, Material 3, `wheel_picker ^0.3.0`, `SharedPreferencesAsync`.
 
@@ -23,7 +23,7 @@
 1. **One MS = one logical group of commits.** Each MS ends with both spec-reviewer ✅ + code-quality-reviewer ✅ before next MS starts.
 2. **TDD red→green→commit** per task within MS.
 3. **No `--no-verify`.**
-4. **Riverpod codegen** — `dart run build_runner build --delete-conflicting-outputs` after every `@riverpod` edit; PostToolUse hook runs it automatically.
+4. **Riverpod codegen** — `dart run build_runner build --delete-conflicting-outputs` after every `@riverpod` edit; PostToolUse hook runs it automatically. **Do NOT commit `.g.dart` files** — `apps/mobile/.gitignore` excludes them per ADR-0005 (regenerate on every build is the codebase policy).
 5. **Hot reload first** (`r` in `flutter run`). Hot restart only for new providers / new routes.
 6. **Surgical edits only.** Touching `add_stop_page.dart` is in-scope for MS3; touching `route_sheet.dart` is in-scope for MS7. Nothing else outside `lib/features/route_config/` should change.
 7. **Schema source-of-truth** — no backend changes in Area 5; field names of `RouteDefaults` JSON must mirror future TypeBox names (`startTime`/`endTime`/`destination` in camelCase).
@@ -145,7 +145,7 @@ No commit.
 **Steps grouped — implementer subagent will TDD each:**
 
 - [ ] **Step MS1.1:** Add `wheel_picker: ^0.3.0` to pubspec, `flutter pub get`.
-- [ ] **Step MS1.2:** Write ADR-0040 (decision + alternatives + rationale + Context7 ID).
+- [ ] **Step MS1.2:** Write ADR-0041 (renumbered — 0040 belongs to Area 4 google-places).
 - [ ] **Step MS1.3:** Create `picker_mode.dart` enum (2 values: `startLocation`, `endLocation`).
 - [ ] **Step MS1.4:** TDD `RouteConfig` sealed family — write failing tests for all 5 sub-types + invariants (e.g. `TimeStart.before(TimeEnd)`), then implement.
 - [ ] **Step MS1.5:** TDD `RouteDefaults` envelope — schema v1 JSON roundtrip + nullable field handling (NO `copyWith` for nullable — build manually per `lesson_copywith_nullable_field_pitfall`).
