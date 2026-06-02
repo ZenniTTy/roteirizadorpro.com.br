@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
+import 'features/route_config/presentation/pages/route_details_page.dart';
 import 'features/routes/presentation/route_shell_page.dart';
 import 'features/routes/presentation/wizard_route_page.dart';
 import 'features/routes/presentation/reuse_stops_page.dart';
@@ -73,6 +74,15 @@ final _routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) => const AddStopMapPage(),
               ),
             ],
+          ),
+          GoRoute(
+            // Full-screen "Detalhes da rota" — opened from active-route
+            // sheet (Area 3, wired in MS7) and from wizard complete FTUE
+            // (wired in MS8). Slice 2 Area 5 spec §Architecture.
+            path: 'routes/active/:routeId/details',
+            builder: (_, state) => RouteDetailsPage(
+              routeId: state.pathParameters['routeId']!,
+            ),
           ),
         ],
       ),
