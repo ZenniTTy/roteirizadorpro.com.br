@@ -1,25 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
 
 Widget _wrap(Widget child) =>
     MaterialApp(home: Scaffold(body: SafeArea(child: child)));
 
 void main() {
-  testWidgets('renders label + trailing value', (tester) async {
+  testWidgets('renders single-column primary label + leading icon',
+      (tester) async {
     await tester.pumpWidget(
       _wrap(
         const RouteConfigRow(
           semanticsKey: 'partida_local',
-          label: 'Local de início',
-          trailingValue: 'Usar local atual',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
         ),
       ),
     );
 
-    expect(find.text('Local de início'), findsOneWidget);
     expect(find.text('Usar local atual'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.locateFixed), findsOneWidget);
+  });
+
+  testWidgets('renders subtitle line when provided', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const RouteConfigRow(
+          semanticsKey: 'destino',
+          label: 'Ida e volta',
+          subtitle: 'Viagem de ida e volta a partir do local atual',
+          leading: LucideIcons.repeat,
+        ),
+      ),
+    );
+
+    expect(find.text('Ida e volta'), findsOneWidget);
+    expect(
+      find.text('Viagem de ida e volta a partir do local atual'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('omits subtitle widget when subtitle is null', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const RouteConfigRow(
+          semanticsKey: 'partida_local',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
+        ),
+      ),
+    );
+
+    // No secondary text in the tree means only the primary label Text exists
+    // within this row (chevron is an Icon, not a Text).
+    final texts = tester.widgetList<Text>(
+      find.descendant(
+        of: find.byType(RouteConfigRow),
+        matching: find.byType(Text),
+      ),
+    );
+    expect(texts.length, 1);
+    expect(texts.first.data, 'Usar local atual');
   });
 
   testWidgets('renders trailing chevron icon', (tester) async {
@@ -27,13 +71,69 @@ void main() {
       _wrap(
         const RouteConfigRow(
           semanticsKey: 'partida_local',
-          label: 'Local de início',
-          trailingValue: 'Usar local atual',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
         ),
       ),
     );
 
     expect(find.byIcon(LucideIcons.chevronRight), findsOneWidget);
+  });
+
+  testWidgets('renders inside Card.outlined (independent bordered card)',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const RouteConfigRow(
+          semanticsKey: 'partida_local',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
+        ),
+      ),
+    );
+
+    // Card.outlined hands back a Card widget; the discriminator is non-null
+    // BorderSide on the shape. We assert presence of the Card.
+    expect(
+      find.descendant(
+        of: find.byType(RouteConfigRow),
+        matching: find.byType(Card),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('leading icon uses primary color when active=true',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const RouteConfigRow(
+          semanticsKey: 'partida_local',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
+        ),
+      ),
+    );
+
+    final icon = tester.widget<Icon>(find.byIcon(LucideIcons.locateFixed));
+    expect(icon.color, AppColors.primary);
+  });
+
+  testWidgets('leading icon uses muted color when active=false',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const RouteConfigRow(
+          semanticsKey: 'adicionar_pausa',
+          label: 'Adicionar pausa',
+          leading: LucideIcons.coffee,
+          active: false,
+        ),
+      ),
+    );
+
+    final icon = tester.widget<Icon>(find.byIcon(LucideIcons.coffee));
+    expect(icon.color, AppColors.textMuted);
   });
 
   testWidgets('Semantics identifier matches "route_details_row_<key>"',
@@ -42,8 +142,8 @@ void main() {
       _wrap(
         const RouteConfigRow(
           semanticsKey: 'partida_local',
-          label: 'Local de início',
-          trailingValue: 'Usar local atual',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
         ),
       ),
     );
@@ -58,14 +158,14 @@ void main() {
       _wrap(
         RouteConfigRow(
           semanticsKey: 'partida_local',
-          label: 'Local de início',
-          trailingValue: 'Usar local atual',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
           onTap: () => taps++,
         ),
       ),
     );
 
-    await tester.tap(find.text('Local de início'));
+    await tester.tap(find.text('Usar local atual'));
     await tester.pumpAndSettle();
 
     expect(taps, 1);
@@ -76,23 +176,20 @@ void main() {
       _wrap(
         const RouteConfigRow(
           semanticsKey: 'partida_local',
-          label: 'Local de início',
-          trailingValue: 'Usar local atual',
+          label: 'Usar local atual',
+          leading: LucideIcons.locateFixed,
         ),
       ),
     );
 
-    await tester.tap(find.text('Local de início'));
+    await tester.tap(find.text('Usar local atual'));
     await tester.pumpAndSettle();
     // no exception thrown — pass
   });
 
-  testWidgets('long trailingValue does not overflow on narrow constraints',
+  testWidgets('long label does not overflow on narrow constraints',
       (tester) async {
     // 360dp is roughly the logical width of Samsung M54 (1080px @ 3x DPR).
-    // The previous (non-Flexible) implementation overflowed by 100px here
-    // when the trailingValue was a long Spoke label like "Voltar ao local
-    // de início".
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -102,14 +199,13 @@ void main() {
       _wrap(
         const RouteConfigRow(
           semanticsKey: 'destino',
-          label: 'Destino',
-          trailingValue: 'Voltar ao local de início',
+          label: 'Voltar ao local de início que é muito longo de verdade',
+          leading: LucideIcons.cornerDownLeft,
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // tester.takeException() returns null when no overflow / exception fired.
     expect(tester.takeException(), isNull);
   });
 }

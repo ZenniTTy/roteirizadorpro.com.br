@@ -9,15 +9,18 @@ import '../../state/route_config_controller.dart';
 import '../widgets/route_config_row.dart';
 import '../widgets/route_details_section.dart';
 
-/// Full-screen "Detalhes da rota" — shell only (MS2). Wires no real
-/// sub-pickers yet (MS3–MS8 do that); each row's onTap is a debugPrint
-/// stub so manual exploration still confirms the wiring is intact.
+/// Full-screen "Detalhes da rota" — Spoke white-label layout (MS2).
 ///
-/// Concluído is enabled iff [isRouteConfigValidProvider] is true. In MS2
-/// it pops the page with no side-effects — MS8 wires the real save.
+/// Visual shell only: each row's onTap is a debugPrint stub (MS3–MS8 wire
+/// the real sub-pickers). "Concluído" is enabled iff
+/// [isRouteConfigValidProvider] is true; in MS2 it pops with no
+/// side-effects — MS8 wires the real save + the "Salvar como padrão"
+/// persistence.
 ///
-/// "Salvar como padrão para próximas rotas" checkbox state is local to
-/// the page (per-section). MS8 wires it to RouteDefaults persistence.
+/// Per Spoke (live inspection 2026-06-01): there is NO AppBar — the close X
+/// floats top-left inside the scrollable content, the title is a body-level
+/// h1, "Concluído" is a full-width filled button pinned at the bottom, and
+/// the single "Salvar como padrão" checkbox sits below it.
 class RouteDetailsPage extends ConsumerStatefulWidget {
   const RouteDetailsPage({super.key, required this.routeId});
 
@@ -28,9 +31,9 @@ class RouteDetailsPage extends ConsumerStatefulWidget {
 }
 
 class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
-  bool _savePartidaAsDefault = true;
-  bool _saveDestinoAsDefault = true;
-  bool _savePausasAsDefault = true;
+  /// Single global "Salvar como padrão" flag — Spoke uses one screen-level
+  /// checkbox, NOT one per section. Default is UNCHECKED (per Spoke).
+  bool _saveAsDefault = false;
 
   @override
   Widget build(BuildContext context) {
@@ -39,78 +42,59 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        backgroundColor: AppColors.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(LucideIcons.x, color: AppColors.text),
-          tooltip: 'Fechar',
-          onPressed: () => context.pop(),
-        ),
-        title: const Text(
-          'Detalhes da rota',
-          style: TextStyle(
-            color: AppColors.text,
-            fontWeight: FontWeight.w600,
-            fontSize: 17,
-          ),
-        ),
-        actions: [
-          Semantics(
-            identifier: 'route_details_confirm',
-            button: true,
-            child: TextButton(
-              onPressed: isValid ? () => context.pop() : null,
-              child: Text(
-                'Concluído',
-                style: TextStyle(
-                  color: isValid ? AppColors.primary : AppColors.textMuted,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            _partidaSection(config),
-            _destinoSection(config),
-            _pausasSection(config),
-          ],
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _Header(onClose: () => context.pop()),
+              const SizedBox(height: 8),
+              _partidaSection(config),
+              _destinoSection(config),
+              _pausaSection(config),
+              const SizedBox(height: 24),
+              _ConcluidoButton(
+                enabled: isValid,
+                onPressed: () => context.pop(),
+              ),
+              const SizedBox(height: 8),
+              _SalvarComoPadraoCheckbox(
+                value: _saveAsDefault,
+                onChanged: (v) => setState(() => _saveAsDefault = v),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   RouteDetailsSection _partidaSection(RouteConfig config) {
-    final localValue = config.startLocation == null
-        ? 'Usar local atual'
-        : config.startLocation!.address;
-    final timeValue = config.timeStart == null
-        ? '08:00'
-        : _formatTimeOfDay(config.timeStart!.time);
+    final hasCustomLocation = config.startLocation != null &&
+        !config.startLocation!.isUserCurrentLocation;
+    final localLabel =
+        hasCustomLocation ? config.startLocation!.address : 'Usar local atual';
+    final startConfigured = config.timeStart != null;
+    final startSuffix = startConfigured
+        ? _formatTimeOfDay(config.timeStart!.time)
+        : _formatTimeOfDay(TimeOfDay.now());
 
     return RouteDetailsSection(
       title: 'Partida',
-      saveAsDefault: _savePartidaAsDefault,
-      onSaveAsDefaultChanged: (v) => setState(() => _savePartidaAsDefault = v),
       children: [
         RouteConfigRow(
           semanticsKey: 'partida_local',
-          label: 'Local de início',
-          trailingValue: localValue,
+          label: localLabel,
+          leading: LucideIcons.locateFixed,
+          active: true,
           onTap: () => debugPrint('[MS2] partida_local tap (wires MS3)'),
         ),
         RouteConfigRow(
           semanticsKey: 'partida_inicio',
-          label: 'Início',
-          trailingValue: timeValue,
+          label: 'Iniciar agora mesmo  $startSuffix',
+          leading: LucideIcons.clock,
+          active: true,
           onTap: () => debugPrint('[MS2] partida_inicio tap (wires MS4)'),
         ),
       ],
@@ -118,51 +102,84 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   }
 
   RouteDetailsSection _destinoSection(RouteConfig config) {
+    // The Destino row is always rendered as "configured" (blue icon) because
+    // null === default RoundTrip per Spoke; there is no "empty" Destino state.
     return RouteDetailsSection(
       title: 'Destino',
-      saveAsDefault: _saveDestinoAsDefault,
-      onSaveAsDefaultChanged: (v) => setState(() => _saveDestinoAsDefault = v),
       children: [
         RouteConfigRow(
           semanticsKey: 'destino',
-          label: 'Destino',
-          trailingValue: _destinationLabel(config.destination),
+          label: _destinationLabel(config.destination),
+          subtitle: _destinationSubtitle(config.destination),
+          leading: _destinationIcon(config.destination),
+          active: true,
           onTap: () => debugPrint('[MS2] destino tap (wires MS5)'),
+        ),
+        RouteConfigRow(
+          semanticsKey: 'destino_horario_termino',
+          label: config.timeEnd == null
+              ? 'Definir horário de término'
+              : _formatTimeOfDay(config.timeEnd!.time),
+          leading: LucideIcons.clock,
+          active: config.timeEnd != null,
+          onTap: () =>
+              debugPrint('[MS2] destino_horario_termino tap (wires MS5)'),
         ),
       ],
     );
   }
 
-  RouteDetailsSection _pausasSection(RouteConfig config) {
+  RouteDetailsSection _pausaSection(RouteConfig config) {
     final rows = <Widget>[
       for (var i = 0; i < config.breaks.length; i++)
         RouteConfigRow(
           semanticsKey: 'pausa_$i',
-          label: 'Pausa ${i + 1}',
-          trailingValue:
+          label:
               '${_formatTimeOfDay(config.breaks[i].startTime)} • ${config.breaks[i].durationMinutes}min',
+          leading: LucideIcons.coffee,
+          active: true,
           onTap: () => debugPrint('[MS2] pausa_$i tap (wires MS6)'),
         ),
-      _AdicionarPausaRow(
+      RouteConfigRow(
+        semanticsKey: 'adicionar_pausa',
+        label: 'Adicionar pausa',
+        leading: LucideIcons.coffee,
+        active: false,
         onTap: () => debugPrint('[MS2] adicionar_pausa tap (wires MS6)'),
       ),
     ];
 
-    return RouteDetailsSection(
-      title: 'Pausas',
-      saveAsDefault: _savePausasAsDefault,
-      onSaveAsDefaultChanged: (v) => setState(() => _savePausasAsDefault = v),
-      children: rows,
-    );
+    return RouteDetailsSection(title: 'Pausa', children: rows);
   }
 
-  /// Maps a [Destination] subtype to its display string. `null` and
-  /// `BackToStart` both render "Voltar ao local de início" per spec §Goals 5.
+  /// Maps a [Destination] subtype to its primary display string.
+  ///
+  /// Spoke's default Destino is "Ida e volta" — so `null` (not yet
+  /// configured) renders as "Ida e volta" too, matching the out-of-box
+  /// state. `BackToStart()` (a distinct, explicit choice from the picker)
+  /// renders as "Voltar ao local de início".
   String _destinationLabel(Destination? destination) {
     return switch (destination) {
-      null || BackToStart() => 'Voltar ao local de início',
-      RoundTrip() => 'Ida e volta',
+      null || RoundTrip() => 'Ida e volta',
+      BackToStart() => 'Voltar ao local de início',
       SpecificAddress(:final address) => address,
+    };
+  }
+
+  /// Spoke shows a small subtitle under "Ida e volta" explaining the mode.
+  /// Other destination variants have no subtitle.
+  String? _destinationSubtitle(Destination? destination) {
+    return switch (destination) {
+      null || RoundTrip() => 'Viagem de ida e volta a partir do local atual',
+      _ => null,
+    };
+  }
+
+  IconData _destinationIcon(Destination? destination) {
+    return switch (destination) {
+      null || RoundTrip() => LucideIcons.repeat,
+      BackToStart() => LucideIcons.cornerDownLeft,
+      SpecificAddress() => LucideIcons.mapPin,
     };
   }
 
@@ -173,36 +190,103 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   }
 }
 
-/// CTA row used at the bottom of the Pausas section. Distinct visual from
-/// [RouteConfigRow] — leading "+" icon, primary color, no trailing
-/// chevron — so it reads as an action rather than a status row.
-class _AdicionarPausaRow extends StatelessWidget {
-  const _AdicionarPausaRow({required this.onTap});
-  final VoidCallback onTap;
+class _Header extends StatelessWidget {
+  const _Header({required this.onClose});
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          identifier: 'route_details_close',
+          button: true,
+          child: IconButton(
+            icon: const Icon(LucideIcons.x, color: AppColors.text),
+            tooltip: 'Fechar',
+            onPressed: onClose,
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Padding(
+          padding: EdgeInsets.only(left: 4),
+          child: Text(
+            'Detalhes da rota',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: AppColors.text,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ConcluidoButton extends StatelessWidget {
+  const _ConcluidoButton({required this.enabled, required this.onPressed});
+  final bool enabled;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      identifier: 'route_details_row_adicionar_pausa',
+      identifier: 'route_details_confirm',
       button: true,
-      child: InkWell(
-        onTap: onTap,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(LucideIcons.plus, size: 18, color: AppColors.primary),
-              SizedBox(width: 8),
-              Text(
-                '+ Adicionar pausa',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            disabledBackgroundColor: AppColors.disabledBg,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.btn),
+            ),
           ),
+          onPressed: enabled ? onPressed : null,
+          child: const Text(
+            'Concluído',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SalvarComoPadraoCheckbox extends StatelessWidget {
+  const _SalvarComoPadraoCheckbox({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: 'route_details_salvar_como_padrao',
+      child: CheckboxListTile(
+        value: value,
+        onChanged: (v) {
+          if (v != null) onChanged(v);
+        },
+        controlAffinity: ListTileControlAffinity.leading,
+        contentPadding: EdgeInsets.zero,
+        dense: true,
+        activeColor: AppColors.primary,
+        title: const Text(
+          'Salvar como padrão',
+          style: TextStyle(fontSize: 14, color: AppColors.text),
         ),
       ),
     );
