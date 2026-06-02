@@ -9,13 +9,7 @@ import '../../state/route_config_controller.dart';
 import '../widgets/route_config_row.dart';
 import '../widgets/route_details_section.dart';
 
-/// Full-screen "Detalhes da rota" — Spoke white-label layout (MS2).
-///
-/// Visual shell only: each row's onTap is a debugPrint stub (MS3–MS8 wire
-/// the real sub-pickers). "Concluído" is enabled iff
-/// [isRouteConfigValidProvider] is true; in MS2 it pops with no
-/// side-effects — MS8 wires the real save + the "Salvar como padrão"
-/// persistence.
+/// Full-screen "Detalhes da rota" — Spoke white-label layout.
 ///
 /// Per Spoke (live inspection 2026-06-01): there is NO AppBar — the close X
 /// floats top-left inside the scrollable content, the title is a body-level
@@ -88,14 +82,14 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
           label: localLabel,
           leading: LucideIcons.locateFixed,
           active: true,
-          onTap: () => debugPrint('[MS2] partida_local tap (wires MS3)'),
+          onTap: null,
         ),
         RouteConfigRow(
           semanticsKey: 'partida_inicio',
           label: 'Iniciar agora mesmo  $startSuffix',
           leading: LucideIcons.clock,
           active: true,
-          onTap: () => debugPrint('[MS2] partida_inicio tap (wires MS4)'),
+          onTap: null,
         ),
       ],
     );
@@ -117,7 +111,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
           subtitle: _destinationSubtitle(config.destination),
           leading: _destinationIcon(config.destination),
           active: true,
-          onTap: () => debugPrint('[MS2] destino tap (wires MS5)'),
+          onTap: null,
         ),
         RouteConfigRow(
           semanticsKey: 'destino_horario_termino',
@@ -126,8 +120,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
               : _formatTimeOfDay(config.timeEnd!.time),
           leading: LucideIcons.clock,
           active: config.timeEnd != null,
-          onTap: () =>
-              debugPrint('[MS2] destino_horario_termino tap (wires MS5)'),
+          onTap: null,
         ),
       ],
     );
@@ -142,14 +135,14 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
               '${_formatTimeOfDay(config.breaks[i].startTime)} • ${config.breaks[i].durationMinutes}min',
           leading: LucideIcons.coffee,
           active: true,
-          onTap: () => debugPrint('[MS2] pausa_$i tap (wires MS6)'),
+          onTap: null,
         ),
-      RouteConfigRow(
+      const RouteConfigRow(
         semanticsKey: 'adicionar_pausa',
         label: 'Adicionar pausa',
         leading: LucideIcons.coffee,
         active: false,
-        onTap: () => debugPrint('[MS2] adicionar_pausa tap (wires MS6)'),
+        onTap: null,
       ),
     ];
 
