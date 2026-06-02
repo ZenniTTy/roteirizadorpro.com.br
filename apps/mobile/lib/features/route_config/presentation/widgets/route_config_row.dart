@@ -46,6 +46,7 @@ class RouteConfigRow extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
+                flex: 5,
                 child: Text(
                   label,
                   style: const TextStyle(
@@ -56,11 +57,17 @@ class RouteConfigRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                trailingValue,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textMuted,
+              Flexible(
+                flex: 6,
+                child: Text(
+                  trailingValue,
+                  textAlign: TextAlign.end,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
