@@ -4,9 +4,9 @@
 
 **Goal:** Ship the Spoke-aligned "Detalhes da rota" screen with 5 sub-pickers + Area 3 sheet wiring + SharedPreferencesAsync persistence + FTUE trigger; total 14 testable acceptance steps on Samsung M54.
 
-**Architecture:** New `apps/mobile/lib/features/route_config/` module with sealed `RouteConfig` + 3 pages + 4 widgets + 2 Riverpod controllers + 1 repository. Extend `AddStopPage` (Area 4) with `PickerMode` nullable enum to reuse search pipeline for Partida + Destino pickers. Wire Area 3 sheet rows. New `wheel_picker ^0.3.0` dependency (ADR-0041).
+**Architecture:** New `apps/mobile/lib/features/route_config/` module with sealed `RouteConfig` + 3 pages + 4 widgets + 2 Riverpod controllers + 1 repository. Extend `AddStopPage` (Area 4) with `PickerMode` nullable enum to reuse search pipeline for Partida + Destino pickers. Wire Area 3 sheet rows. Time picker = custom numeric keypad widget (no external package) per ADR-0042 — supersedes the earlier wheel_picker plan after live Spoke re-inspection 2026-06-03 confirmed Spoke uses a numpad.
 
-**Tech Stack:** Flutter 3.44 + Dart 3.12, Riverpod 3 (`@riverpod` codegen), GoRouter, Material 3, `wheel_picker ^0.3.0`, `SharedPreferencesAsync`.
+**Tech Stack:** Flutter 3.44 + Dart 3.12, Riverpod 3 (`@riverpod` codegen), GoRouter, Material 3, `SharedPreferencesAsync`. (No `wheel_picker` — removed 2026-06-03 per ADR-0042.)
 
 **Spec:** `docs/superpowers/specs/2026-06-02-area5-route-details.md`
 
@@ -54,7 +54,7 @@ apps/mobile/lib/features/route_config/
     └── widgets/
         ├── route_details_section.dart     (CREATE, ~80 LOC)
         ├── route_config_row.dart          (CREATE, ~60 LOC)
-        ├── time_picker_sheet.dart         (CREATE, ~200 LOC wheel_picker wrap)
+        ├── time_picker_sheet.dart         (CREATE, ~120 LOC stateful numpad — 4×3 GridView + FAB + backspace + buffer String, per ADR-0042)
         └── break_chip_groups.dart         (CREATE, ~100 LOC)
 ```
 
@@ -65,7 +65,7 @@ apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart  (MODIFY: 
 apps/mobile/lib/features/routes/presentation/widgets/route_sheet.dart  (MODIFY: 3 rows → onTap push)
 apps/mobile/lib/features/routes/state/route_creation_controller.dart   (MODIFY: FTUE push after complete())
 apps/mobile/lib/app_router.dart                                        (MODIFY: +6 GoRoutes)
-apps/mobile/pubspec.yaml                                                (MODIFY: +wheel_picker ^0.3.0)
+apps/mobile/pubspec.yaml                                                (no time-picker deps — wheel_picker removed 2026-06-03 per ADR-0042)
 apps/mobile/scripts/area5_route_details_flow.yaml                       (CREATE: Maestro smoke)
 ```
 
@@ -98,7 +98,7 @@ apps/mobile/integration_test/area5_route_details_flow_test.dart  (CREATE MS9)
 ### Docs
 
 ```
-docs/decisions/0040-wheel-picker-time-drum.md  (CREATE MS1)
+docs/decisions/0042-time-picker-numpad-spoke-fidelity.md  (CREATE 2026-06-03 — supersedes ADR-0041)
 docs/sessions/2026-06-XX-area5-*.md            (CREATE per-MS as needed)
 TODO.md                                         (UPDATE MS9)
 ```
@@ -139,12 +139,12 @@ No commit.
 - Create: `apps/mobile/test/features/route_config/data/route_defaults_repository_test.dart`
 - Create: `apps/mobile/test/features/route_config/state/route_config_controller_test.dart`
 - Create: `apps/mobile/test/features/route_config/state/route_defaults_controller_test.dart`
-- Modify: `apps/mobile/pubspec.yaml` (+ `wheel_picker: ^0.3.0`)
-- Create: `docs/decisions/0040-wheel-picker-time-drum.md`
+- (MS1 originally added `wheel_picker: ^0.3.0` to pubspec — removed in the 2026-06-03 reset commit alongside ADR-0042. MS1 history preserved in git log; this plan reflects the post-reset state.)
+- Create: `docs/decisions/0042-time-picker-numpad-spoke-fidelity.md` (2026-06-03)
 
 **Steps grouped — implementer subagent will TDD each:**
 
-- [ ] **Step MS1.1:** Add `wheel_picker: ^0.3.0` to pubspec, `flutter pub get`.
+- [ ] **Step MS1.1:** (Historical: MS1 added `wheel_picker: ^0.3.0`. Removed 2026-06-03 per ADR-0042. New MS1 does NOT add it.)
 - [ ] **Step MS1.2:** Write ADR-0041 (renumbered — 0040 belongs to Area 4 google-places).
 - [ ] **Step MS1.3:** Create `picker_mode.dart` enum (2 values: `startLocation`, `endLocation`).
 - [ ] **Step MS1.4:** TDD `RouteConfig` sealed family — write failing tests for all 5 sub-types + invariants (e.g. `TimeStart.before(TimeEnd)`), then implement.
@@ -153,7 +153,7 @@ No commit.
 - [ ] **Step MS1.7:** TDD `routeConfigControllerProvider` (`@riverpod` family per routeId, autoDispose) — updates startLocation/timeStart/timeEnd/destination/breaks independently; `isValid` derived (endTime > startTime); autoDispose isolation across route IDs.
 - [ ] **Step MS1.8:** TDD `routeDefaultsControllerProvider` (`@riverpod`) — emits from repository; `merge(patch)` writes + emits new value; `markFirstRouteComplete()` mutates `firstRoute` flag.
 - [ ] **Step MS1.9:** `flutter analyze` clean, `flutter test test/features/route_config/` all passing.
-- [ ] **Step MS1.10:** Commit (1 or multiple Conventional Commits — `feat(route-config): add domain RouteConfig sealed family`, `feat(route-config): add RouteDefaults envelope + repository`, `feat(route-config): add Riverpod controllers`, `chore(deps): add wheel_picker ^0.3.0`, `docs(adr-0040): wheel_picker ^0.3.0 adoption`).
+- [ ] **Step MS1.10:** Commit (1 or multiple Conventional Commits — `feat(route-config): add domain RouteConfig sealed family`, `feat(route-config): add RouteDefaults envelope + repository`, `feat(route-config): add Riverpod controllers`. The historical `wheel_picker`/ADR-0041 commits were superseded by ADR-0042 on 2026-06-03.)
 
 **Spec compliance review focuses:** sealed exhaustiveness, JSON envelope field names match Q4 names, autoDispose family pattern, no UI imports leaking into domain.
 
@@ -212,11 +212,11 @@ No commit.
 
 ---
 
-## Phase 4 — Time pickers (MS4)
+## Phase 4 — Time pickers (MS4) — numpad per ADR-0042
 
-**Delivers:** `TimePickerSheet` widget using `wheel_picker ^0.3.0` with HH:MM drum + chips :00/:30; wired to Início + Término rows.
+**Delivers:** `TimePickerSheet` widget — Material `showModalBottomSheet` containing a 4×3 numeric keypad (`GridView.count`), live-text header showing buffer or placeholder, FAB confirm (enabled only when buffer represents a valid 24h `HH:MM`), backspace key, tap-outside dismisses without saving. Two instances: Início (title `Definir horário de início`) and Término (title `Definir horário de término`). Same widget, different title param. Wired to Detalhes da rota rows `partida_inicio` and `destino_horario_termino`. No external package — pure stdlib.
 
-### Task MS4: TimePickerSheet (wheel_picker)
+### Task MS4: TimePickerSheet (numpad)
 
 **Files:**
 - Create: `apps/mobile/lib/features/route_config/presentation/widgets/time_picker_sheet.dart`
@@ -226,12 +226,13 @@ No commit.
 
 **Steps:**
 
-- [ ] MS4.1: TDD: `TimePickerSheet` widget renders 2 wheels (hours 0-23 + minutes 0-59) + chips ":00", ":30", "Personalizar". Sheet pop returns `TimeOfDay`.
-- [ ] MS4.2: Implement using `wheel_picker` `WheelPicker` × 2 side-by-side + `Wrap` of `ChoiceChip`.
-- [ ] MS4.3: Wire Início + Término rows.
-- [ ] MS4.4: D-mid screenshot drum feel side-by-side with `/tmp/spoke-a5-iniciar-time.png` — pixel comparison wheel design.
-- [ ] MS4.5: `flutter-perf-auditor` dispatch — check no jank in scroll wheel.
-- [ ] MS4.6: Commit.
+- [ ] MS4.1: TDD: `TimePickerSheet` renders header (`Text` showing title or buffer) + 4×3 `GridView.count` (children: digits 1-9, `:00`, 0, `:30`) + backspace (`IconButton(LucideIcons.delete)`) + FAB (`FloatingActionButton(LucideIcons.check)`). Sheet pop returns `TimeOfDay` or null on tap-outside.
+- [ ] MS4.2: Buffer logic — `String _buffer = ''` in `_TimePickerSheetState`. Digit key appends if buffer length < 4 (no more than HHMM). `:00` / `:30` shortcuts are enabled only when buffer length ∈ {1, 2} AND result would be valid (e.g. hour 9 + `:30` → `9:30`; hour 25 invalid → key disabled). Backspace removes last char. FAB enabled when `_buffer` parses to a valid 24h `HH:MM`.
+- [ ] MS4.3: Implement `showModalBottomSheet` config: `isScrollControlled: true, useSafeArea: true, useRootNavigator: true, barrierColor: Colors.black54, shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.sheet)))`.
+- [ ] MS4.4: Wire Início + Término rows in `route_details_page.dart`. On confirm: `ref.read(routeConfigControllerProvider(routeId).notifier).setTimeStart(TimeStart(time: picked))` / `setTimeEnd(TimeEnd(time: picked))`. Buffer always opens empty (Spoke confirmed via step9-reinspect-inicio.png).
+- [ ] MS4.5: D-mid screenshot — side-by-side keypad layout + FAB enable/disable + header live-text vs `/tmp/spoke-a5-inspection/step2..step9.png`. Spec/plan/code cite the EXACT baseline file paths, not inferred placeholders.
+- [ ] MS4.6: `flutter-perf-auditor` dispatch — confirm no rebuild storms on rapid digit taps; buffer is local `StatefulWidget` state, not Riverpod global.
+- [ ] MS4.7: Commit per Conventional Commits — atomic per Karpathy 3 surgical.
 
 ---
 
@@ -364,7 +365,7 @@ No commit.
 **Spec coverage:**
 - §Decisions Q1 (FTUE) → MS8
 - §Decisions Q2 (Area 3 rows) → MS7
-- §Decisions Q3 (wheel_picker) → MS1 + MS4
+- §Decisions Q3 (numpad per ADR-0042 supersedes ADR-0041 wheel_picker) → MS4 only (MS1 no longer touches pubspec for time-picker deps)
 - §Decisions Q4 (SharedPrefs envelope) → MS1 + MS8
 - §Decisions Q5 (wire agora) → MS7
 - §Decisions Q6 (reuse AddStopPage) → MS3 + MS5

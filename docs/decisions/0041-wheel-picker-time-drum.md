@@ -1,9 +1,11 @@
 # ADR-0041: wheel_picker ^0.3.0 adopted for time picker drum widget
 
-- **Status:** Accepted
+- **Status:** Superseded by [ADR-0042](./0042-time-picker-numpad-spoke-fidelity.md) on 2026-06-03
 - **Date:** 2026-06-02
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (functional fork), ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates)
+- **Related ADRs:** ADR-0010 (functional fork), ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0042 (supersedes this)
+
+> **2026-06-03 amendment:** This ADR was based on an inferred Spoke baseline (the cited `/tmp/spoke-a5-iniciar-time.png` was a 0-byte truncated file at the time of writing, not actually inspected). A live re-inspection on 2026-06-03 (workflow `wrqvzoso8`, baselines at `/tmp/spoke-a5-inspection/step2..step9.png`) revealed Spoke uses a numeric keypad (`bsp_time_picker`), not a drum/wheel. See [ADR-0042](./0042-time-picker-numpad-spoke-fidelity.md) for the corrective decision and the inference-vs-measurement protocol amendment.
 
 > Note: spec `docs/superpowers/specs/2026-06-02-area5-route-details.md` references this decision as "ADR-0040". ADR-0040 was already taken by `google_maps_webservice` / Places Autocomplete during Area 4 (filed earlier in Slice 2). This ADR is filed as 0041 to keep the numbering monotonic; the spec text is left as-is for archival fidelity but every commit/log from MS1 onward references 0041.
 

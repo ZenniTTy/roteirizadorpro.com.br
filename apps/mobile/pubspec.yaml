@@ -31,7 +31,6 @@ dependencies:
   font_awesome_flutter: ^10.12.0
   qr_flutter: ^4.1.0
   google_maps_flutter: ^2.17.1
-  wheel_picker: ^0.3.0
 
 dev_dependencies:
   flutter_test:

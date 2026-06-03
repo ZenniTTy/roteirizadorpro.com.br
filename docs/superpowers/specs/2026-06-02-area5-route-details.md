@@ -29,11 +29,11 @@ Slice 2 Area 4 (Add Stop via TEXT) shipped via PR #24 (squash merge 2026-06-01).
 |---|---|---|---|
 | Q1 | FTUE — abrir Detalhes da rota automático após primeira rota concluída? | **A — Implementar** | Spoke faz exatamente isso (validado §13.C.2). Aceitação rider: 1 toque a mais na 1ª rota da vida do usuário, 0 toques nas subsequentes. |
 | Q2 | Re-entrada via 3 rows do Area 3 sheet? | **A — Tornar clickable** | Spoke usa essas mesmas rows como gatilho secundário. Boundary tocando Area 3 (3 linhas de código por row). |
-| Q3 | Time picker — custom scroll wheel ou Material 3 nativo? | **B — Custom scroll wheel via `wheel_picker ^0.3.0`** | Paridade Spoke (drum picker vertical). Material 3 dial picker afasta visual+UX. Package validado em Context7 (pub.dev `/jaweii/flutter_wheel_picker`, queried 2026-06-01). |
+| Q3 | Time picker — qual shape? | **D — Numeric keypad (4×3 grid) via custom Flutter widget, sem package externo** | Paridade Spoke 1:1 (`bsp_time_picker` BottomSheetDialog: 4 linhas × 3 colunas com dígitos 1-9 + `:00` + 0 + `:30` + FAB confirm + backspace + header live-text). Decisão B/C/A (drum/dial/3rd-party) anteriores foram baseadas em inferência; live re-inspection 2026-06-03 (workflow `wrqvzoso8`) provou que Spoke não usa wheel. Ver ADR-0042 (supersedes ADR-0041) e baselines `/tmp/spoke-a5-inspection/step2..step9.png`. |
 | Q4 | Persistência defaults | **A — `SharedPreferencesAsync` com JSON envelope `schemaVersion: 1`** | Mesmo padrão Area 3 (remember-me) e Area 4 (search history). Schema forward-compat com Slice 3 backend RouteDefaults table. |
 | Q5 | Wire 3 rows Area 3 — agora ou polish depois? | **A — Agora (MS7)** | ~3 linhas por row, custo zero. Postergar = risco de esquecer + Eduardo vê app "quebrado" durante demo. |
 | Q6 | Sub-picker Partida — reusar `AddStopPage` ou nova rota? | **A — Reusar com `PickerMode` enum** | Spoke literalmente faz isso (mesma tela de search). Economia ~3h. |
-| Q7 | Pausa — chips de duração hardcoded? | **A — 15/30/60min + "Personalizar..."** | Paridade Spoke. Personalizar abre numeric picker mesmo wheel_picker. |
+| Q7 | Pausa — chips de duração hardcoded? | **A — 15/30/60min + "Personalizar..."** | Paridade Spoke. "Personalizar" abre o mesmo numeric keypad (`TimePickerSheet`) usado em Início/Término — reaproveitamento direto, sem widget novo. |
 | Q8 | Checkbox "Salvar como padrão" — checked default? | **A — Replicar 1:1 (true)** | Spoke marca checked por default. Muscle memory rider. |
 | Q9 | Back gesture de Detalhes da rota? | **A — GoRouter padrão (sem lógica custom)** | Spoke usa back nativo Android = pop route. Custom orchestration = risco. |
 | Q10 | Validação "Concluído" — apenas tempo coerente? | **C — Validar só `endTime > startTime`** | Validações de capacidade temporal (drive time vs paradas) deferidas pro Slice 3 solver (não é responsabilidade do client). |
@@ -90,7 +90,7 @@ apps/mobile/lib/features/route_config/
 │   └── widgets/
 │       ├── route_details_section.dart     // section card with title + rows + checkbox
 │       ├── route_config_row.dart          // ListTile-equivalent label + trailing value
-│       ├── time_picker_sheet.dart         // wheel_picker drum + chips
+│       ├── time_picker_sheet.dart         // numpad 4×3 (digits + :00/:30 shortcuts + FAB) per ADR-0042
 │       └── break_chip_groups.dart         // 2 ChoiceChip Wraps
 ```
 
@@ -145,7 +145,7 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 | **MS1** | Domain (`RouteConfig` sealed + `RouteDefaults`) + Riverpod controllers + tests | 4h | None (zero UI) |
 | **MS2** | Shell tela `RouteDetailsPage` (topbar + 3 sections + 5 rows + checkboxes + Concluído) | 6h | Screenshot side-by-side `shell.png` |
 | **MS3** | `PickerMode` enum + extend `AddStopPage` (Partida + Destino-select) | 4h | Toolbar OCR side-by-side `partida.png` |
-| **MS4** | `TimePickerSheet` (wheel_picker + chips :00/:30) — 2 sub-pickers (Início + Término) | 6h | Drum picker feel + chips `iniciar-time.png` |
+| **MS4** | `TimePickerSheet` (numpad 4×3 + FAB + backspace) — 2 sub-pickers (Início + Término) reusando o mesmo widget só com título diferente. | 4h | Side-by-side keypad layout + FAB enable/disable vs `/tmp/spoke-a5-inspection/step2..step9.png` |
 | **MS5** | `DestinationPickerPage` (3 RadioListTile + Confirmar) | 4h | Strings + radio order `destino.png` |
 | **MS6** | `BreakPickerPage` (2 ChoiceChip Wraps + Confirmar) | 5h | Chips horário + duração `pause.png` |
 | **MS7** | Wire Area 3 sheet rows → clickable + show config values | 3h | Row clickable feel |
@@ -158,14 +158,15 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 
 | Purpose | Package | Version | Cost | Context7 ID |
 |---|---|---|---|---|
-| Custom scroll wheel time picker | `wheel_picker` | `^0.3.0` (resolved 0.3.0) | 0 | `/jaweii/flutter_wheel_picker` (queried 2026-06-01) |
+| Numeric keypad time picker | (custom widget — nenhum package externo) | n/a | 0 | stdlib (`GridView` + `StatefulWidget`); ADR-0042 explica por que removemos `wheel_picker` |
 | Radio screen / chips | (Material 3 stdlib) | n/a | 0 | stdlib exception per CLAUDE.md |
 
-**Resolved at install time** (`flutter pub add wheel_picker`). Resolved version `0.3.0` recorded in ADR-0041 (renumbered from 0040 during MS1 — 0040 was already taken by Area 4 google-places autocomplete).
+No external time-picker package. The numeric keypad is implemented inline as a `StatefulWidget` (~80 LOC) in `time_picker_sheet.dart`.
 
 ## ADRs filed during this Area
 
-- **ADR-0041** — `wheel_picker ^0.3.0` adopted for time picker drum widget. Cost 0. Filed in MS1 commit `b10faf4` (renumbered from 0040; 0040 belongs to Area 4 google-places autocomplete).
+- ~~**ADR-0041** — `wheel_picker ^0.3.0` adopted for time picker drum widget.~~ Superseded by ADR-0042 on 2026-06-03 (baseline was inferred, not measured; Spoke is numpad).
+- **ADR-0042** — Time picker = numeric keypad, custom widget, no external dependency. Filed 2026-06-03 after live Spoke re-inspection.
 
 ## Risks and mitigations
 
@@ -186,7 +187,7 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 
 1. **Semantics labels** — `Semantics(identifier: 'route_details_row_<key>')` em todos rows. `Semantics(identifier: 'route_details_confirm')` no botão Concluído.
 2. **Tap targets ≥ 48×48dp** — ChoiceChip + RadioListTile já cumprem por default; rows com `ListTile` (height = 56dp).
-3. **WCAG AA contrast** — usar `prototipo/tokens.js` colors (já validado em Areas 2-4); novos pontos só em time picker drum (verificar contrast text-on-background AA).
+3. **WCAG AA contrast** — usar `prototipo/tokens.js` colors (já validado em Areas 2-4); novos pontos só no numeric keypad (verificar contrast digit-text-on-key-background AA + FAB icon-on-primary-fill AA).
 
 ## Test strategy
 
@@ -211,7 +212,7 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 - [ ] `bun run typecheck` clean (backend não muda, mas slice 3 contract field names devem espelhar nomes Q4).
 - [ ] Real-device golden path (14 steps §Goals) capturado screenshot por screen.
 - [ ] `spoke-parity-checker` D4 dispatch reports clean (screenshot pixel evidence rule observado).
-- [ ] `flutter-perf-auditor` dispatch reports clean (time picker drum specifically).
+- [ ] `flutter-perf-auditor` dispatch reports clean (numeric keypad — no rebuild storms on digit tap; buffer state local; no `setState` from outside the widget tree).
 - [ ] `adr-guardian` reports clean.
 - [ ] `/verify-slice` GO verdict.
 - [ ] Maestro `area5_route_details_flow.yaml` PASS on M54.
@@ -224,7 +225,8 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 - `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §11.4 (Detalhes da rota) + §13.C.2 (FTUE confirmation).
 - `prototipo/tokens.js` — visual identity.
 - `prototipo/screens-route-config.jsx` — visual reference.
-- ADR-0010 (functional fork), ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ADR-0041 (wheel_picker — filed MS1; renumbered from 0040 because 0040 was Area 4 google-places).
+- ADR-0010 (functional fork), ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ~~ADR-0041 (wheel_picker — superseded)~~, ADR-0042 (numpad supersedes 0041 — Spoke fidelity after live re-inspection 2026-06-03).
 - `/tmp/spoke-a5-*` 21 artefatos baseline captured 2026-06-01.
 - Memory: `lesson_uiautomator_blindspot_compose_imagevectors`, `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`, `lesson_copywith_nullable_field_pitfall`, `lesson_maestro_flutter_listtile_tap_needs_semantics`, `lesson_slice_checklist_integration_test_gate`, `lesson_checkpoint_discipline_between_microsprints`, `lesson_git_diff_head_before_commit_after_workflows`.
-- Context7: `/jaweii/flutter_wheel_picker` (queried 2026-06-01 — version `^0.3.0` confirmed current).
+- Context7: `/jaweii/flutter_wheel_picker` (queried 2026-06-01 — irrelevant after ADR-0042; dependency removed 2026-06-03).
+- Live Spoke baseline for time picker (numpad): `/tmp/spoke-a5-inspection/step2-time-iniciar.png` (empty state), `step3-type1.png` (digit `1` typed), `step4-typed-1030.png` (`10:30` formed), `step5-after-confirm-iniciar.png` (Detalhes da rota row updated), `step6-time-termino.png` (Término picker — same widget, different title), `step9-reinspect-inicio.png` (confirms picker reopens empty, not pre-filled).
