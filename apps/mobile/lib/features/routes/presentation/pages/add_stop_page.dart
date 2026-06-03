@@ -17,33 +17,43 @@ import '../widgets/add_stop_method_buttons.dart';
 import '../widgets/add_stop_results_section.dart';
 import '../widgets/add_stop_search_bar.dart';
 
-/// Search-driven address picker. Two operating modes:
+/// Search-driven address picker. Three operating modes, all expressed via
+/// [PickerMode]:
 ///
-/// 1. **Add-stop flow** (`mode == null`) — Spoke parity §10.21 + §11.4
-///    (amended 2026-05-28). Body branches on `addStopUiStateProvider`
-///    (sealed `AddStopUiState`). Section A tap → SnackBar stub (Area 6
-///    implements edit-stop sheet). Section B tap → create Stop +
-///    `context.pop()`. Footer tap → push `/home/routes/add-stop/map`.
+/// 1. **Add-stop flow** (`mode == PickerMode.addStop`, the default) —
+///    Spoke parity §10.21 + §11.4 (amended 2026-05-28). Body branches on
+///    `addStopUiStateProvider` (sealed `AddStopUiState`). Section A tap →
+///    SnackBar stub (Area 6 implements edit-stop sheet). Section B tap →
+///    create Stop + `context.pop()`. Footer tap → push
+///    `/home/routes/add-stop/map`.
 ///
-/// 2. **Sub-picker flow** (`mode == PickerMode.startLocation`) — pushed
-///    by Detalhes da rota's Partida row. Empty body (no method buttons),
-///    single results section, no map footer; selecting a row pops with a
-///    [StartLocation] for the caller to persist via
+/// 2. **Partida sub-picker** (`mode == PickerMode.startLocation`) —
+///    pushed by Detalhes da rota's Partida row. Empty body (no method
+///    buttons), single results section, no map footer; selecting a row
+///    pops with a [StartLocation] for the caller to persist via
 ///    `routeConfigController.setStartLocation`.
-///    `PickerMode.endLocation` reuses the same shell but currently throws
-///    [UnsupportedError] on selection — `_onSectionBTap` will translate
-///    the picked address into a `SpecificAddress` destination once
-///    `DestinationPickerPage` is wired.
+///
+/// 3. **Destino sub-picker** (`mode == PickerMode.endLocation`) — reuses
+///    the same shell but currently throws [UnsupportedError] on selection.
+///    `_onSectionBTap` will translate the picked address into a
+///    `SpecificAddress` destination once `DestinationPickerPage` is wired.
+///
+/// [PickerMode] also keys the search-state providers
+/// (`searchQueryProvider`, `placeAutocompleteProvider`,
+/// `addStopUiStateProvider`), so each mode keeps its own typed text and
+/// autocomplete results — switching modes mid-flow cannot leak state from
+/// one picker into another.
 class AddStopPage extends ConsumerWidget {
-  const AddStopPage({super.key, this.mode});
+  const AddStopPage({super.key, this.mode = PickerMode.addStop});
 
-  /// `null` keeps the legacy add-stop behavior intact. Non-null switches
-  /// the page into sub-picker mode (Partida / Destino).
-  final PickerMode? mode;
+  /// Defaults to [PickerMode.addStop] for the legacy add-stop call site.
+  /// Detalhes da rota's Partida/Destino row taps push the page with
+  /// [PickerMode.startLocation] / [PickerMode.endLocation] explicitly.
+  final PickerMode mode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(addStopUiStateProvider);
+    final state = ref.watch(addStopUiStateProvider(mode));
     final m = mode;
 
     return Scaffold(
@@ -52,29 +62,27 @@ class AddStopPage extends ConsumerWidget {
         top: false,
         child: Column(
           children: [
-            AddStopSearchBar(hintText: m?.hintText),
+            AddStopSearchBar(mode: m, hintText: m.hintText),
             Expanded(
               child: switch (state) {
                 EmptyVariant(:final stopCount) => _EmptyState(
                     stopCount: stopCount,
-                    showMethodButtons: m?.showMethodButtonsOnEmpty ?? true,
-                    showMicrocopy: m == null,
+                    showMethodButtons: m.showMethodButtonsOnEmpty,
+                    showMicrocopy: m.showMicrocopyOnEmpty,
                   ),
                 Loading() => const Center(child: CircularProgressIndicator()),
                 ErrorState(:final error) =>
                   Center(child: Text('Erro ao buscar endereços: $error')),
                 ZeroResults() => _ZeroResultsState(
-                    showMethodButtons: m?.showMethodButtonsOnEmpty ?? true,
+                    showMethodButtons: m.showMethodButtonsOnEmpty,
                   ),
                 WithResults(:final matchesInRoute, :final newCandidates) =>
                   AddStopResultsSection(
                     matchesInRoute: matchesInRoute,
                     newCandidates: newCandidates,
-                    sectionBHeader:
-                        m?.resultsSectionHeader ?? 'Adicionar nova parada',
-                    showExistingStopsSection:
-                        m?.showExistingStopsSection ?? true,
-                    showChooseOnMapFooter: m?.showChooseOnMapFooter ?? true,
+                    sectionBHeader: m.resultsSectionHeader,
+                    showExistingStopsSection: m.showExistingStopsSection,
+                    showChooseOnMapFooter: m.showChooseOnMapFooter,
                     onSectionATap: (s) => _onSectionATap(context, s),
                     onSectionBTap: (p) => _onSectionBTap(context, ref, p),
                   ),
@@ -100,9 +108,8 @@ class AddStopPage extends ConsumerWidget {
     WidgetRef ref,
     PlaceAutocompletePrediction p,
   ) async {
-    final m = mode;
-    switch (m) {
-      case null:
+    switch (mode) {
+      case PickerMode.addStop:
         await _addStopFromPrediction(context, ref, p);
       case PickerMode.startLocation:
         await _popWithStartLocation(context, ref, p);

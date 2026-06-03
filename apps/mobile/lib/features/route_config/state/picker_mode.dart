@@ -1,6 +1,6 @@
 /// Disambiguates which slot of [RouteConfig] the reused `AddStopPage` is
 /// being driven by, and carries every per-mode UI flag the page needs to
-/// branch on. Adding a third mode is therefore a single enum entry +
+/// branch on. Adding a fourth mode is therefore a single enum entry +
 /// matching values — the widget body's switch over `mode.<flag>` does not
 /// require modification.
 ///
@@ -10,7 +10,27 @@
 /// placeholder. Each divergence is encoded as a flag here so the call
 /// site (Detalhes da rota row tap) drives the page entirely via this
 /// enum.
+///
+/// Also doubles as the keying axis for `searchQueryProvider`,
+/// `placeAutocompleteProvider`, and `addStopUiStateProvider` so the
+/// Partida picker's search state cannot bleed into the Add Stop flow's
+/// (or vice versa) when the user navigates between them. See
+/// `lib/features/routes/state/`.
 enum PickerMode {
+  /// Default add-stop flow: opened from the active-route sheet to append
+  /// a new stop to the live route. This is the only mode that surfaces
+  /// the "Desta rota" matches, the Mapa/Leitor/Voz method shortcuts, the
+  /// empty-state microcopy, and the "Escolher no mapa" footer. Selecting
+  /// a result row creates a [Stop] and pops without a return value.
+  addStop(
+    hintText: 'Digite o endereço da parada',
+    resultsSectionHeader: 'Adicionar nova parada',
+    showMethodButtonsOnEmpty: true,
+    showMicrocopyOnEmpty: true,
+    showExistingStopsSection: true,
+    showChooseOnMapFooter: true,
+  ),
+
   /// Sub-picker for `Partida` row in Detalhes da rota — selects the
   /// route's [StartLocation]. Spoke renders a bare search-as-topbar over a
   /// black body (no method shortcuts, no route-stops section, no map
@@ -19,6 +39,7 @@ enum PickerMode {
     hintText: 'Buscar local de partida',
     resultsSectionHeader: 'Escolha o novo endereço',
     showMethodButtonsOnEmpty: false,
+    showMicrocopyOnEmpty: false,
     showExistingStopsSection: false,
     showChooseOnMapFooter: false,
   ),
@@ -31,6 +52,7 @@ enum PickerMode {
     hintText: 'Buscar local de destino',
     resultsSectionHeader: 'Escolha o novo endereço',
     showMethodButtonsOnEmpty: false,
+    showMicrocopyOnEmpty: false,
     showExistingStopsSection: false,
     showChooseOnMapFooter: false,
   );
@@ -39,6 +61,7 @@ enum PickerMode {
     required this.hintText,
     required this.resultsSectionHeader,
     required this.showMethodButtonsOnEmpty,
+    required this.showMicrocopyOnEmpty,
     required this.showExistingStopsSection,
     required this.showChooseOnMapFooter,
   });
@@ -55,6 +78,11 @@ enum PickerMode {
   /// When true, the empty-state body renders the Mapa/Leitor/Voz buttons.
   /// Partida + Destino location pickers set this `false` (Spoke empty body).
   final bool showMethodButtonsOnEmpty;
+
+  /// When true, the empty-state body shows the
+  /// "Adicione (as primeiras|novas) paradas..." instructional copy. Only
+  /// the add-stop flow uses it; Partida/Destino keep the body bare.
+  final bool showMicrocopyOnEmpty;
 
   /// When true, the results layout includes the "Desta rota (N)" section
   /// listing stops on the current route whose address matches the query.

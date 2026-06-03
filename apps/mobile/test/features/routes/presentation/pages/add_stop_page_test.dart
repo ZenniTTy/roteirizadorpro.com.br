@@ -42,11 +42,14 @@ GoRouter _router(Widget home) => GoRouter(
       ],
     );
 
-Widget _wrap({required AddStopUiState state, PickerMode? mode}) {
+Widget _wrap({
+  required AddStopUiState state,
+  PickerMode mode = PickerMode.addStop,
+}) {
   final router = _router(AddStopPage(mode: mode));
   return ProviderScope(
     overrides: [
-      addStopUiStateProvider.overrideWith((ref) => state),
+      addStopUiStateProvider(mode).overrideWith((ref) => state),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -295,7 +298,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          addStopUiStateProvider.overrideWith(
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
             (ref) => const WithResults(matchesInRoute: [], newCandidates: []),
           ),
         ],
@@ -479,7 +482,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          addStopUiStateProvider.overrideWith(
+          addStopUiStateProvider(PickerMode.startLocation).overrideWith(
             (ref) =>
                 const WithResults(matchesInRoute: [], newCandidates: [pred]),
           ),
@@ -507,10 +510,13 @@ void main() {
     expect(popped!.lng, closeTo(-46.656, 1e-6));
   });
 
-  testWidgets('mode == null preserves Area 4 default behavior (regression)',
-      (tester) async {
+  testWidgets(
+      'mode defaults to addStop and preserves Area 4 default behavior '
+      '(regression)', (tester) async {
     // Re-exercises the legacy default-hint + empty-state-buttons path with
-    // mode left null, to lock the no-regression contract for MS3.
+    // mode left at its default, to lock the no-regression contract for MS3
+    // after PickerMode gained an explicit `addStop` value (2026-06-02
+    // cleanup).
     await tester.pumpWidget(_wrap(state: const EmptyVariant(stopCount: 0)));
     await tester.pumpAndSettle();
 
