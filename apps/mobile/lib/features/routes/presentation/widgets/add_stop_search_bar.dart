@@ -7,7 +7,12 @@ import '../../state/place_autocomplete_provider.dart';
 import '../../state/search_query_provider.dart';
 
 class AddStopSearchBar extends ConsumerStatefulWidget {
-  const AddStopSearchBar({super.key});
+  const AddStopSearchBar({super.key, this.hintText});
+
+  /// Placeholder shown inside the input. Defaults to the legacy add-stop
+  /// copy when null so existing call sites are unaffected. The Partida /
+  /// Destino sub-pickers (MS3 / MS5) pass their own per-`PickerMode` text.
+  final String? hintText;
 
   @override
   ConsumerState<AddStopSearchBar> createState() => _AddStopSearchBarState();
@@ -61,10 +66,12 @@ class _AddStopSearchBarState extends ConsumerState<AddStopSearchBar> {
                     child: TextField(
                       controller: _controller,
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        hintText: 'Adicione uma parada...',
-                        hintStyle:
-                            TextStyle(fontSize: 14, color: AppColors.textMuted),
+                      decoration: InputDecoration(
+                        hintText: widget.hintText ?? 'Adicione uma parada...',
+                        hintStyle: const TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textMuted,
+                        ),
                         border: InputBorder.none,
                         isDense: true,
                       ),

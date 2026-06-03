@@ -3,11 +3,37 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:dio/dio.dart';
+import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
+import 'package:roteirizador_pro/features/route_config/state/picker_mode.dart';
 import 'package:roteirizador_pro/features/routes/application/add_stop_ui_state.dart';
+import 'package:roteirizador_pro/features/routes/data/repositories/places_repository.dart';
 import 'package:roteirizador_pro/features/routes/domain/place_autocomplete_prediction.dart';
+import 'package:roteirizador_pro/features/routes/domain/place_details.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/add_stop_page.dart';
 import 'package:roteirizador_pro/features/routes/state/add_stop_ui_state_provider.dart';
+
+/// Manual fake for [PlacesRepository] used by the Partida sub-picker pop
+/// test — `mocktail ^1.0.5` is the project default for mocks but a manual
+/// fake is sufficient here (single method) and avoids reaching for codegen.
+class _FakePlacesRepository implements PlacesRepository {
+  _FakePlacesRepository({required this.details});
+  final PlaceDetails details;
+
+  @override
+  Future<PlaceDetails?> getPlaceDetails(String placeId) async => details;
+
+  @override
+  Future<List<PlaceAutocompletePrediction>> autocomplete(String query) async =>
+      const [];
+
+  @override
+  Dio get dio => throw UnimplementedError();
+
+  @override
+  String get apiKey => throw UnimplementedError();
+}
 
 GoRouter _router(Widget home) => GoRouter(
       initialLocation: '/',
@@ -19,8 +45,8 @@ GoRouter _router(Widget home) => GoRouter(
       ],
     );
 
-Widget _wrap({required AddStopUiState state}) {
-  final router = _router(const AddStopPage());
+Widget _wrap({required AddStopUiState state, PickerMode? mode}) {
+  final router = _router(AddStopPage(mode: mode));
   return ProviderScope(
     overrides: [
       addStopUiStateProvider.overrideWith((ref) => state),
@@ -278,5 +304,215 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SENTINEL_MAP'), findsOneWidget);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PickerMode.startLocation — Spoke baseline 2026-06-02:
+  // empty body (no method buttons), custom hint, no "Desta rota" section,
+  // no "Escolher no mapa" footer, results header = "Escolha o novo endereço".
+  // ─────────────────────────────────────────────────────────────────────────
+
+  testWidgets(
+      'startLocation mode: EmptyVariant body is empty (no method buttons, '
+      'no microcopy)', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        state: const EmptyVariant(stopCount: 0),
+        mode: PickerMode.startLocation,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mapa'), findsNothing);
+    expect(find.text('Leitor'), findsNothing);
+    expect(find.text('Voz'), findsNothing);
+    expect(find.textContaining('Adicione as primeiras paradas'), findsNothing);
+    expect(
+      find.textContaining('Adicione novas paradas ou encontre'),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'startLocation mode: search field placeholder is '
+      '"Buscar local de partida"', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        state: const EmptyVariant(stopCount: 0),
+        mode: PickerMode.startLocation,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final hintFinder = find.text('Buscar local de partida');
+    expect(hintFinder, findsOneWidget);
+    // Sanity: default add-stop hint must NOT be present in this mode.
+    expect(find.text('Adicione uma parada...'), findsNothing);
+  });
+
+  testWidgets(
+      'startLocation mode: WithResults renders only "Escolha o novo '
+      'endereço" header (no "Desta rota", no "Adicionar nova parada")',
+      (tester) async {
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+    final stop = Stop(
+      lat: 0,
+      lng: 0,
+      streetName: 'Av Paulista, 500',
+      fullAddress: 'x',
+    );
+    await tester.pumpWidget(
+      _wrap(
+        state: WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
+        mode: PickerMode.startLocation,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Escolha o novo endereço'), findsOneWidget);
+    expect(find.text('Adicionar nova parada'), findsNothing);
+    // Section A header must not appear — Partida picker has no
+    // existing-stops list.
+    expect(find.textContaining('Desta rota'), findsNothing);
+    // The Section A stop row must also be absent — the entire section is
+    // skipped, not just the header.
+    expect(find.text('Av Paulista, 500'), findsNothing);
+    // The new-candidates row is still rendered.
+    expect(find.text('Av Paulista, 1000'), findsOneWidget);
+  });
+
+  testWidgets(
+      'startLocation mode: WithResults has NO "Escolher no mapa" footer',
+      (tester) async {
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+    await tester.pumpWidget(
+      _wrap(
+        state: const WithResults(matchesInRoute: [], newCandidates: [pred]),
+        mode: PickerMode.startLocation,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Escolher no mapa'), findsNothing);
+  });
+
+  testWidgets(
+      'startLocation mode: ZeroResults body has no method buttons '
+      '(empty Partida picker shows nothing below the field)', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        state: const ZeroResults(),
+        mode: PickerMode.startLocation,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mapa'), findsNothing);
+    expect(find.text('Leitor'), findsNothing);
+    expect(find.text('Voz'), findsNothing);
+    expect(find.textContaining('Nenhum resultado encontrado'), findsOneWidget);
+  });
+
+  testWidgets(
+      'startLocation mode: tapping a new-candidate row pops with a '
+      'StartLocation built from the prediction', (tester) async {
+    // Use a router that has the picker pushed (so pop has a target frame),
+    // and verifies the pop result.
+    StartLocation? popped;
+    bool popReturned = false;
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Center(
+              child: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () async {
+                    popped = await ctx.push<StartLocation>('/picker');
+                    popReturned = true;
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/picker',
+          builder: (_, __) => const AddStopPage(mode: PickerMode.startLocation),
+        ),
+      ],
+    );
+
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+
+    final fakeRepo = _FakePlacesRepository(
+      details: const PlaceDetails(
+        lat: -23.561,
+        lng: -46.656,
+        shortFormattedAddress: 'Av Paulista, 1000',
+        formattedAddress: 'Av Paulista, 1000 - Bela Vista, São Paulo - SP',
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider.overrideWith(
+            (ref) =>
+                const WithResults(matchesInRoute: [], newCandidates: [pred]),
+          ),
+          placesRepositoryProvider.overrideWith((ref) => fakeRepo),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // Picker is on top — tap the new-candidate row.
+    expect(find.text('Av Paulista, 1000'), findsOneWidget);
+    await tester.tap(find.text('Av Paulista, 1000'));
+    await tester.pumpAndSettle();
+
+    // The future resolved with a StartLocation (not null).
+    expect(popReturned, isTrue);
+    expect(popped, isNotNull);
+    expect(popped!.address, 'Av Paulista, 1000');
+    expect(popped!.isUserCurrentLocation, isFalse);
+    expect(popped!.lat, closeTo(-23.561, 1e-6));
+    expect(popped!.lng, closeTo(-46.656, 1e-6));
+  });
+
+  testWidgets('mode == null preserves Area 4 default behavior (regression)',
+      (tester) async {
+    // Re-exercises the legacy default-hint + empty-state-buttons path with
+    // mode left null, to lock the no-regression contract for MS3.
+    await tester.pumpWidget(_wrap(state: const EmptyVariant(stopCount: 0)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Adicione uma parada...'), findsOneWidget);
+    expect(find.text('Mapa'), findsOneWidget);
+    expect(find.text('Leitor'), findsOneWidget);
+    expect(find.text('Voz'), findsOneWidget);
   });
 }
