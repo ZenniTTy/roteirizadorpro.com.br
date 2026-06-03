@@ -204,8 +204,27 @@ const REVIEW_SCHEMA = {
 }
 
 // ---------------------------------------------------------------------------
-// args validation — fail fast if controller forgot to pass something
+// args parsing + validation
+//
+// IMPORTANT: empirically (see workflow w1lt9y2qo probe 2026-06-03), the
+// Workflow runtime delivers `args` as a STRING (the JSON-stringified value
+// passed in the tool call), NOT as the actual JS object the tool docs imply.
+// We parse defensively to support both shapes — string AND object — so the
+// template works regardless of any future runtime change.
 // ---------------------------------------------------------------------------
+
+let cfg
+if (typeof args === 'string') {
+  try {
+    cfg = JSON.parse(args)
+  } catch (e) {
+    throw new Error(`area5-microsprint: args is a string but not valid JSON. Got: ${args.slice(0, 200)}`)
+  }
+} else if (args != null && typeof args === 'object') {
+  cfg = args
+} else {
+  throw new Error('area5-microsprint: args is missing. Pass via Workflow({args: {...}}).')
+}
 
 const REQUIRED_ARGS = [
   'msNumber', 'msTitle', 'baseCommitSha', 'spokeBaselineFiles',
@@ -213,14 +232,14 @@ const REQUIRED_ARGS = [
   'minTestsExpected',
 ]
 for (const k of REQUIRED_ARGS) {
-  if (args == null || args[k] == null) {
+  if (cfg[k] == null) {
     throw new Error(`area5-microsprint: missing required arg '${k}'. Pass via Workflow({args: {...}}).`)
   }
 }
-if (!Array.isArray(args.spokeBaselineFiles) || args.spokeBaselineFiles.length === 0) {
+if (!Array.isArray(cfg.spokeBaselineFiles) || cfg.spokeBaselineFiles.length === 0) {
   throw new Error('area5-microsprint: spokeBaselineFiles must be a non-empty array of /tmp/*.png paths')
 }
-if (!Array.isArray(args.filesToTouch) || args.filesToTouch.length === 0) {
+if (!Array.isArray(cfg.filesToTouch) || cfg.filesToTouch.length === 0) {
   throw new Error('area5-microsprint: filesToTouch must be a non-empty array')
 }
 
@@ -238,9 +257,9 @@ function buildHaltedResult(phaseLabel, partial, reason) {
     atPhase: phaseLabel,
     haltReason: reason || partial.haltReason || 'unspecified',
     partial,
-    msNumber: args.msNumber,
-    msTitle: args.msTitle,
-    baseCommitSha: args.baseCommitSha,
+    msNumber: cfg.msNumber,
+    msTitle: cfg.msTitle,
+    baseCommitSha: cfg.baseCommitSha,
   }
 }
 
@@ -251,10 +270,10 @@ function buildHaltedResult(phaseLabel, partial, reason) {
 phase('Preflight')
 
 const preflight = await agent(
-  `You are running Phase 0 preflight for MS${args.msNumber} (${args.msTitle}).
+  `You are running Phase 0 preflight for MS${cfg.msNumber} (${cfg.msTitle}).
 
 Repo: ${REPO_ROOT}
-Base commit (HEAD before this MS): ${args.baseCommitSha}
+Base commit (HEAD before this MS): ${cfg.baseCommitSha}
 
 ## Your ONLY job — verify upstream artifacts before any agent does real work
 
@@ -269,7 +288,7 @@ For each path in the list below, run \`ls -la <path>\` and \`stat -c %s <path>\`
 - \`sizeBytes\`: the file size in bytes (0 if empty or missing)
 
 Baselines to check:
-${args.spokeBaselineFiles.map((p) => `  - ${p}`).join('\n')}
+${cfg.spokeBaselineFiles.map((p) => `  - ${p}`).join('\n')}
 
 ### Step 2 — Spec/plan/ADR \`[INFERRED — VERIFY BEFORE LOCK]\` scan
 
@@ -280,9 +299,9 @@ For each doc path below, read the file and search for the literal string \`[INFE
 - \`hasInferredMarker\`: true if the file contains the literal marker
 
 Docs to check:
-  - ${args.specRelPath}
-  - ${args.planRelPath}
-${(args.relevantAdrRelPaths || []).map((p) => `  - ${p}`).join('\n')}
+  - ${cfg.specRelPath}
+  - ${cfg.planRelPath}
+${(cfg.relevantAdrRelPaths || []).map((p) => `  - ${p}`).join('\n')}
 
 ### Step 3 — Decide halt
 
@@ -330,7 +349,7 @@ for (const d of preflight.docCheckResults) {
 phase('Spoke Baseline')
 
 const baseline = await agent(
-  `LIVE Spoke baseline re-inspection for MS${args.msNumber}: ${args.widgetUnderInspection}.
+  `LIVE Spoke baseline re-inspection for MS${cfg.msNumber}: ${cfg.widgetUnderInspection}.
 
 Device: Samsung M54 \`RQCW401G33T\` (confirmed connected at MS start; if \`mcp__maestro__list_devices\` returns empty, halt).
 
@@ -341,13 +360,13 @@ Device: Samsung M54 \`RQCW401G33T\` (confirmed connected at MS start; if \`mcp__
 
 ## What to do
 
-Navigate Spoke on M54 to the screen containing \`${args.widgetUnderInspection}\`. Capture XML + PNG of every state the widget can be in (empty, mid-interaction, confirmed, dismissed).
+Navigate Spoke on M54 to the screen containing \`${cfg.widgetUnderInspection}\`. Capture XML + PNG of every state the widget can be in (empty, mid-interaction, confirmed, dismissed).
 
-**Prefer Maestro MCP.** Fallback to \`adb shell uiautomator dump\` + \`adb exec-out screencap -p\`. Save screenshots to \`/tmp/spoke-a5-inspection/ms${args.msNumber}-*.png\`.
+**Prefer Maestro MCP.** Fallback to \`adb shell uiautomator dump\` + \`adb exec-out screencap -p\`. Save screenshots to \`/tmp/spoke-a5-inspection/ms${cfg.msNumber}-*.png\`.
 
 ## What to compare against
 
-The pre-existing spec (\`${args.specRelPath}\`) and plan (\`${args.planRelPath}\`) make claims about \`${args.widgetUnderInspection}\`. Read those documents and the relevant ADRs (${(args.relevantAdrRelPaths || []).join(', ') || 'none specified'}), then list every divergence between what Spoke actually renders and what spec/plan/ADRs currently claim.
+The pre-existing spec (\`${cfg.specRelPath}\`) and plan (\`${cfg.planRelPath}\`) make claims about \`${cfg.widgetUnderInspection}\`. Read those documents and the relevant ADRs (${(cfg.relevantAdrRelPaths || []).join(', ') || 'none specified'}), then list every divergence between what Spoke actually renders and what spec/plan/ADRs currently claim.
 
 For each divergence, classify \`severity\`:
 
@@ -392,7 +411,7 @@ if (archSurprises.length > 0) {
 phase('Library Research')
 
 const research = await agent(
-  `Research Flutter 3.44 + Riverpod 3 best practices for MS${args.msNumber} (${args.msTitle}).
+  `Research Flutter 3.44 + Riverpod 3 best practices for MS${cfg.msNumber} (${cfg.msTitle}).
 
 ## Spoke baseline (just captured, frozen)
 
@@ -409,7 +428,7 @@ ${baseline.divergencesVsSpec.map((d, i) => `${i + 1}. [${d.severity}] ${d.kind}:
 2. **Context7** (\`mcp__claude_ai_Context7__resolve-library-id\` + \`mcp__claude_ai_Context7__query-docs\`) for external libraries.
 3. **WebSearch** only when Context7 misses.
 
-For each topic relevant to building \`${args.widgetUnderInspection}\`:
+For each topic relevant to building \`${cfg.widgetUnderInspection}\`:
 - What's the current Flutter 3.44 / Material 3 idiom?
 - Are there gesture / state / lifecycle risks?
 - Citation source URL or package id.
@@ -418,7 +437,7 @@ For each topic relevant to building \`${args.widgetUnderInspection}\`:
 
 Set \`shouldHaltForEduardo: true\` if you discover during research:
 - A library API behaves contrary to the spec's assumption AND no workaround is obvious.
-- Multiple equally-valid implementation paths exist and the choice has architectural implications for MS${args.msNumber + 1}+.
+- Multiple equally-valid implementation paths exist and the choice has architectural implications for MS${cfg.msNumber + 1}+.
 - Risk that violates an existing memory rule (e.g. introduces a sync API where async is required).
 
 Otherwise \`shouldHaltForEduardo: false\`. List \`risksDiscovered\` even if no halt — they inform implementer.
@@ -438,17 +457,17 @@ if (research.shouldHaltForEduardo) {
 phase('Implement')
 
 const impl = await agent(
-  `Implement MS${args.msNumber} (${args.msTitle}) per the spec/plan AND the live Spoke baseline below.
+  `Implement MS${cfg.msNumber} (${cfg.msTitle}) per the spec/plan AND the live Spoke baseline below.
 
 Repo: ${REPO_ROOT}
-Branch HEAD before this MS: ${args.baseCommitSha}
+Branch HEAD before this MS: ${cfg.baseCommitSha}
 
 ## Eduardo's directives (memory — non-negotiable)
 
 1. **Spoke is canonical for behavior/UX.** If the spec/plan/ADRs contradict the live Spoke baseline below in a STRUCTURAL way (widget shape, navigation model, state model, persistence model), STOP. Return \`status: 'BLOCKED_SPEC_OUTDATED'\` with \`blockReason\` describing the mismatch. DO NOT implement either version. The controller will escalate to Eduardo.
 2. **Zero tech debt.** No \`// TODO\`, \`// FIXME\`, \`// MS\` markers. No commented-out code. No "defer to MS9". If a divergence flagged below requires structural rework, escalate via BLOCKED_OTHER — don't half-fix.
 3. **TDD red→green per change.** Test first asserting Spoke string/structure, fails → implement → passes → commit.
-4. **Surgical scope.** Touch ONLY files in the allowed list below. \`git diff ${args.baseCommitSha} HEAD --stat\` must show only these files at the end.
+4. **Surgical scope.** Touch ONLY files in the allowed list below. \`git diff ${cfg.baseCommitSha} HEAD --stat\` must show only these files at the end.
 5. **Spoke baseline is the contract.** Every divergence in the punch list below must be addressed in code AND a paired widget test that asserts the Spoke shape (not the old spec wording).
 
 ## Spoke baseline (frozen — DO NOT re-inspect)
@@ -471,16 +490,16 @@ Risks to mitigate: ${JSON.stringify(research.risksDiscovered || [])}
 
 ## Allowed scope — touch ONLY these files
 
-${args.filesToTouch.map((f) => `- ${f}`).join('\n')}
+${cfg.filesToTouch.map((f) => `- ${f}`).join('\n')}
 
-Any drive-by edit outside this list is a fail; the reviewer will reject. \`git diff ${args.baseCommitSha} HEAD --stat\` is your scope check before declaring done.
+Any drive-by edit outside this list is a fail; the reviewer will reject. \`git diff ${cfg.baseCommitSha} HEAD --stat\` is your scope check before declaring done.
 
 ## Acceptance gates (Rule 3 of feedback_escalate_recurring_and_gate_check)
 
 Before declaring DONE, mechanically verify:
-- [ ] \`cd apps/mobile && flutter test\` returns "All tests passed!" with count >= ${args.minTestsExpected}.
+- [ ] \`cd apps/mobile && flutter test\` returns "All tests passed!" with count >= ${cfg.minTestsExpected}.
 - [ ] \`cd apps/mobile && flutter analyze\` (over touched scope) returns "No issues found!".
-- [ ] \`git diff ${args.baseCommitSha} HEAD --stat\` shows ONLY files from the allowed list.
+- [ ] \`git diff ${cfg.baseCommitSha} HEAD --stat\` shows ONLY files from the allowed list.
 - [ ] \`git grep -nE 'TODO|FIXME|XXX|// MS|wires MS' apps/mobile/lib/\` returns nothing inside the diff.
 
 If any gate fails, return \`status: 'DONE_WITH_CONCERNS'\` with the specific gate failure in \`concerns\`. Do NOT claim DONE with unmet gates.
@@ -526,11 +545,11 @@ phase('Reviews')
 
 const [specReview, qualityReview] = await parallel([
   () => agent(
-    `Review Spoke parity compliance for MS${args.msNumber} implementation.
+    `Review Spoke parity compliance for MS${cfg.msNumber} implementation.
 
 **DO NOT trust the implementer report.** Read code + Spoke baseline independently.
 
-Branch HEAD after MS commits: read \`git log --oneline ${args.baseCommitSha}..HEAD\`.
+Branch HEAD after MS commits: read \`git log --oneline ${cfg.baseCommitSha}..HEAD\`.
 
 ## Spoke baseline (frozen — already captured by Phase 1)
 
@@ -553,16 +572,16 @@ ${JSON.stringify(impl, null, 2)}
 For each divergence: verify code change + paired test assertion locking Spoke shape.
 
 Mechanical gates:
-- \`cd apps/mobile && flutter test\` count >= ${args.minTestsExpected}.
+- \`cd apps/mobile && flutter test\` count >= ${cfg.minTestsExpected}.
 - \`cd apps/mobile && flutter analyze\` over implementer's touched scope: clean.
-- \`git diff ${args.baseCommitSha} HEAD --stat\` shows ONLY: ${args.filesToTouch.join(', ')}.
+- \`git diff ${cfg.baseCommitSha} HEAD --stat\` shows ONLY: ${cfg.filesToTouch.join(', ')}.
 - \`git grep -nE 'TODO|FIXME|XXX|// MS|wires MS' apps/mobile/lib/\` empty in the diff.
 
 Report per schema.`,
     { schema: REVIEW_SCHEMA, label: 'parity-spec-review', phase: 'Reviews' },
   ),
   () => agent(
-    `Review code quality for MS${args.msNumber} implementation.
+    `Review code quality for MS${cfg.msNumber} implementation.
 
 Implementer report: ${JSON.stringify(impl, null, 2)}
 
@@ -572,7 +591,7 @@ Research recommendations applied: ${research.recommendations.map((r) => r.topic)
 
 A. Material 3 / Flutter 3.44 idioms — research recommendations actually applied.
 B. Test quality — tests assert BEHAVIOR (tap, callback, state) not just rendering. No tautological asserts.
-C. Surgical scope — \`git diff ${args.baseCommitSha} HEAD --stat\` matches allowed list.
+C. Surgical scope — \`git diff ${cfg.baseCommitSha} HEAD --stat\` matches allowed list.
 D. Zero tech debt — no TODO/FIXME/// MS markers in diff.
 E. Riverpod 3 — ref.watch reactive, ref.read callback. ConsumerStatefulWidget when local state. Family + autoDispose where scoping needs.
 F. Naming — class/method names self-describing. No abbreviations.
@@ -589,9 +608,9 @@ Report per schema.`,
 // Final structured return — controller surfaces to Eduardo
 return {
   halted: false,
-  msNumber: args.msNumber,
-  msTitle: args.msTitle,
-  baseCommitSha: args.baseCommitSha,
+  msNumber: cfg.msNumber,
+  msTitle: cfg.msTitle,
+  baseCommitSha: cfg.baseCommitSha,
   preflight,
   baseline,
   research,
