@@ -32,7 +32,8 @@ Slice 2 Area 4 (Add Stop via TEXT) shipped via PR #24 (squash merge 2026-06-01).
 | Q3 | Time picker — qual shape? | **D — Numeric keypad (4×3 grid) via custom Flutter widget, sem package externo** | Paridade Spoke 1:1 (`bsp_time_picker` BottomSheetDialog: 4 linhas × 3 colunas com dígitos 1-9 + `:00` + 0 + `:30` + FAB confirm + backspace + header live-text). Decisão B/C/A (drum/dial/3rd-party) anteriores foram baseadas em inferência; live re-inspection 2026-06-03 (workflow `wrqvzoso8`) provou que Spoke não usa wheel. Ver ADR-0042 (supersedes ADR-0041) e baselines `/tmp/spoke-a5-inspection/step2..step9.png`. |
 | Q4 | Persistência defaults | **A — `SharedPreferencesAsync` com JSON envelope `schemaVersion: 1`** | Mesmo padrão Area 3 (remember-me) e Area 4 (search history). Schema forward-compat com Slice 3 backend RouteDefaults table. |
 | Q5 | Wire 3 rows Area 3 — agora ou polish depois? | **A — Agora (MS7)** | ~3 linhas por row, custo zero. Postergar = risco de esquecer + Eduardo vê app "quebrado" durante demo. |
-| Q6 | Sub-picker Partida — reusar `AddStopPage` ou nova rota? | **A — Reusar com `PickerMode` enum** | Spoke literalmente faz isso (mesma tela de search). Economia ~3h. |
+| Q6 | Sub-picker Partida/Destino-endereço — reusar `AddStopPage` ou nova rota? | **A — Reusar com `PickerMode` enum** | Spoke literalmente faz isso (mesma tela de search). Economia ~3h. Confirmado ao vivo 2026-06-03: a opção "Destino em outro endereço" do sheet abre a busca full-screen "Insira um endereço" (mesmo pipeline Add Stop). |
+| Q11 | Destino — shape do sub-picker? | **A — Bottom sheet com 3 cards (ADR-0043)** | A spec original dizia página full-screen + 3 `RadioListTile` + AppBar X/Confirmar, baseada em baseline INFERIDO (`/tmp/spoke-a5-destino.png` estava mislabeled — é o numpad, não o Destino). Re-inspeção ao vivo 2026-06-03 (Maestro MCP) provou: é um `design_bottom_sheet` com header "Destino" + botão "Concluído", 3 `CardView` clicáveis (ícone + título + subtítulo), dismiss via tap-outside/Back. Opções: "Voltar ao ponto de partida"/"Ida e volta (recomendado)" (`RoundTrip`), "Destino em outro endereço"/"Digite qualquer endereço" (`SpecificAddress`), "Não usar destino"/"Não recomendado para transportadoras" (`NoDestination` — tipo novo). Domínio alinhado a 3 estados Spoke; `BackToStart` removido. Baseline: `/tmp/spoke-a5-inspection/ms5-live-destino-*.png` + `/tmp/spoke-a5-idaevolta.xml`. Mesmo failure mode da ADR-0042. |
 | Q7 | Pausa — chips de duração hardcoded? | **A — 15/30/60min + "Personalizar..."** | Paridade Spoke. "Personalizar" abre o mesmo numeric keypad (`TimePickerSheet`) usado em Início/Término — reaproveitamento direto, sem widget novo. |
 | Q8 | Checkbox "Salvar como padrão" — checked default? | **A — Replicar 1:1 (true)** | Spoke marca checked por default. Muscle memory rider. |
 | Q9 | Back gesture de Detalhes da rota? | **A — GoRouter padrão (sem lógica custom)** | Spoke usa back nativo Android = pop route. Custom orchestration = risco. |
@@ -46,14 +47,14 @@ Um install do APK `v1.1.0-area5` pode, contra produção:
 2. Tap em qualquer row "Configuração de rota" do Area 3 sheet (Partida/Início/Destino) → mesma tela "Detalhes da rota" abre.
 3. Topbar "Detalhes da rota" tem botão "X" (esquerda) que pop pra Area 3, e botão "Concluído" (direita) habilitado quando time é coerente.
 4. Section "Partida": 2 rows — "Local de início" (atualmente: `Usar local atual`) + "Início" (atualmente: `08:00`). Tap em "Local de início" → AddStopPage em PickerMode.startLocation; tap em "Início" → time picker sheet.
-5. Section "Destino": 1 row "Destino" (atualmente: `Voltar ao local de início`). Tap → sub-tela de 3 radio options (Voltar ao local de início / Selecionar endereço / Ida e volta).
+5. Section "Destino": 1 row "Destino" (atualmente: `Ida e volta` / subtítulo `Viagem de ida e volta a partir do local atual`). Tap → **bottom sheet** "Destino" com 3 cards: "Voltar ao ponto de partida" (`RoundTrip`) / "Destino em outro endereço" (`SpecificAddress`) / "Não usar destino" (`NoDestination`). Ver Q11 + ADR-0043.
 6. Section "Pausas": 0..N rows + CTA "+ Adicionar pausa". CTA abre sub-tela "Configure a pausa" com 2 chip groups (horário + duração).
 7. Checkbox "Salvar como padrão para próximas rotas" (default: marcado) abaixo de cada section.
 8. Tap "Concluído" → persiste config no estado da rota ativa + (se checkbox marcado) atualiza `RouteDefaults` no SharedPrefs → pop pra Area 3 → 3 rows do sheet refletem novos valores.
 9. Criar 2ª rota → wizard pula Detalhes (rota usa defaults persistidos); abrir Detalhes via row do sheet → valores defaults pré-preenchidos.
 10. Time picker "Início" mostra scroll wheel HH:MM (24h) + chips :00/:30 abaixo (paridade Spoke).
 11. Time picker "Término" idêntico ao "Início" (mesmo widget reused).
-12. Sub-tela "Destino" tem 3 RadioListTile + AppBar com X + "Confirmar"; "Selecionar endereço" abre AddStopPage em PickerMode.endLocation.
+12. Bottom sheet "Destino" tem header "Destino" + botão "Concluído" + 3 cards clicáveis (ícone + título + subtítulo), dismiss via tap-outside/Back; card "Destino em outro endereço" abre AddStopPage em PickerMode.endLocation. (Ver Q11 + ADR-0043 — NÃO é página full-screen nem RadioListTile.)
 13. Sub-tela "Adicionar pausa" tem 2 ChoiceChip Wrap (horário: 11:00/12:00/13:00 + Personalizar; duração: 15/30/60min + Personalizar) + Confirmar.
 14. Back gesture Android (3-finger swipe ou botão back) em qualquer sub-picker pop pra "Detalhes da rota"; back em "Detalhes da rota" pop pra Area 3.
 
@@ -74,7 +75,8 @@ Um install do APK `v1.1.0-area5` pode, contra produção:
 ```
 apps/mobile/lib/features/route_config/
 ├── domain/
-│   ├── route_config.dart                  // sealed (StartLocation, TimeStart, TimeEnd, Destination, BreakConfig)
+│   ├── route_config.dart                  // sealed (StartLocation, TimeStart, TimeEnd, Destination={RoundTrip,SpecificAddress,NoDestination}, BreakConfig) — ADR-0043
+│   //   └ Destination 3-state aligns to Spoke sheet; BackToStart removed (ADR-0043)
 │   └── route_defaults.dart                // SharedPrefs envelope class
 ├── data/
 │   └── route_defaults_repository.dart     // SharedPreferencesAsync read/write
@@ -85,12 +87,12 @@ apps/mobile/lib/features/route_config/
 ├── presentation/
 │   ├── pages/
 │   │   ├── route_details_page.dart        // shell full-screen
-│   │   ├── destination_picker_page.dart   // 3 radio options
 │   │   └── break_picker_page.dart         // chips horário + duração
 │   └── widgets/
 │       ├── route_details_section.dart     // section card with title + rows + checkbox
 │       ├── route_config_row.dart          // ListTile-equivalent label + trailing value
 │       ├── time_picker_sheet.dart         // numpad 4×3 (digits + :00/:30 shortcuts + FAB) per ADR-0042
+│       ├── destination_picker_sheet.dart  // bottom sheet, 3 cards + "Concluído" per ADR-0043
 │       └── break_chip_groups.dart         // 2 ChoiceChip Wraps
 ```
 
@@ -146,7 +148,7 @@ Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png`
 | **MS2** | Shell tela `RouteDetailsPage` (topbar + 3 sections + 5 rows + checkboxes + Concluído) | 6h | Screenshot side-by-side `shell.png` |
 | **MS3** | `PickerMode` enum + extend `AddStopPage` (Partida + Destino-select) | 4h | Toolbar OCR side-by-side `partida.png` |
 | **MS4** | `TimePickerSheet` (numpad 4×3 + FAB + backspace) — 2 sub-pickers (Início + Término) reusando o mesmo widget só com título diferente. | 4h | Side-by-side keypad layout + FAB enable/disable vs `/tmp/spoke-a5-inspection/step2..step9.png` |
-| **MS5** | `DestinationPickerPage` (3 RadioListTile + Confirmar) | 4h | Strings + radio order `destino.png` |
+| **MS5** | `DestinationPickerSheet` (bottom sheet, 3 cards + "Concluído") + domínio 3-estados (`RoundTrip`/`SpecificAddress`/`NoDestination`, remove `BackToStart`) + wire `endLocation` em `AddStopPage` | 5h | Strings + card order + ícones `ms5-live-destino-sheet.png` (ADR-0043) |
 | **MS6** | `BreakPickerPage` (2 ChoiceChip Wraps + Confirmar) | 5h | Chips horário + duração `pause.png` |
 | **MS7** | Wire Area 3 sheet rows → clickable + show config values | 3h | Row clickable feel |
 | **MS8** | `SharedPreferencesAsync` persistência + FTUE trigger wire | 4h | FTUE behavior empírico |
@@ -167,6 +169,7 @@ No external time-picker package. The numeric keypad is implemented inline as a `
 
 - ~~**ADR-0041** — `wheel_picker ^0.3.0` adopted for time picker drum widget.~~ Superseded by ADR-0042 on 2026-06-03 (baseline was inferred, not measured; Spoke is numpad).
 - **ADR-0042** — Time picker = numeric keypad, custom widget, no external dependency. Filed 2026-06-03 after live Spoke re-inspection.
+- **ADR-0043** — Destino picker = bottom sheet com 3 action cards; domínio `Destination` alinhado aos 3 estados Spoke (`RoundTrip`/`SpecificAddress`/`NoDestination`, remove `BackToStart`). Filed 2026-06-03 após re-inspeção ao vivo (mesmo failure mode da ADR-0042 — baseline mislabeled).
 
 ## Risks and mitigations
 

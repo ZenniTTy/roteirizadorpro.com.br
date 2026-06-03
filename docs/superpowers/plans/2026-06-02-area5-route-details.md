@@ -49,12 +49,12 @@ apps/mobile/lib/features/route_config/
 └── presentation/
     ├── pages/
     │   ├── route_details_page.dart        (CREATE, ~250 LOC shell)
-    │   ├── destination_picker_page.dart   (CREATE, ~120 LOC)
     │   └── break_picker_page.dart         (CREATE, ~150 LOC)
     └── widgets/
         ├── route_details_section.dart     (CREATE, ~80 LOC)
         ├── route_config_row.dart          (CREATE, ~60 LOC)
         ├── time_picker_sheet.dart         (CREATE, ~120 LOC stateful numpad — 4×3 GridView + FAB + backspace + buffer String, per ADR-0042)
+        ├── destination_picker_sheet.dart  (CREATE, ~120 LOC — bottom sheet, header + 3 cards + "Concluído", per ADR-0043)
         └── break_chip_groups.dart         (CREATE, ~100 LOC)
 ```
 
@@ -236,28 +236,32 @@ No commit.
 
 ---
 
-## Phase 5 — Destino sub-tela (MS5)
+## Phase 5 — Destino sub-picker (MS5) — bottom sheet per ADR-0043
 
-**Delivers:** `DestinationPickerPage` with 3 RadioListTile (Voltar / Selecionar endereço / Ida e volta); option "Selecionar endereço" reuses `AddStopPage(mode: endLocation)` on tap.
+**Delivers:** `DestinationPickerSheet` (a `showModalBottomSheet<Destination>` modal, NOT a page) with header "Destino" + "Concluído" text button + 3 tappable cards (icon + title + subtitle); card "Destino em outro endereço" reuses `AddStopPage(mode: endLocation)` on tap. Domain `Destination` family realigned to Spoke's 3 states (`RoundTrip` / `SpecificAddress` / `NoDestination`); `BackToStart` removed. Live Spoke baseline re-captured 2026-06-03 (`/tmp/spoke-a5-inspection/ms5-live-destino-*.png`) — the spec's original full-screen-RadioListTile design was drawn from a mislabeled baseline (same failure mode as ADR-0042). See ADR-0043.
 
-### Task MS5: DestinationPickerPage
+### Task MS5: DestinationPickerSheet + 3-state domain
 
 **Files:**
-- Create: `apps/mobile/lib/features/route_config/presentation/pages/destination_picker_page.dart`
-- Modify: `apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart` (extend PickerMode.endLocation branch)
-- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Destino row)
-- Modify: `apps/mobile/lib/app_router.dart` (+ 2 routes: destination + destination/select-address)
-- Create: paired widget tests
+- Create: `apps/mobile/lib/features/route_config/presentation/widgets/destination_picker_sheet.dart` (sheet body: header row + Divider + 3 `_DestinationCard`s; pops `Destination` on card tap, `null` on dismiss)
+- Modify: `apps/mobile/lib/features/route_config/domain/route_config.dart` (remove `BackToStart`; add `final class NoDestination extends Destination`)
+- Modify: `apps/mobile/lib/features/route_config/domain/route_defaults.dart` (JSON arms: drop `'backToStart'`, add `'noDestination'`)
+- Modify: `apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart` (replace the `endLocation` `throw UnsupportedError` with `_popWithEndLocation` returning a `SpecificAddress`-bearing result, mirroring `_popWithStartLocation`)
+- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Destino row `onTap` → `_showDestinationPicker()` launcher mirroring `_showTimePicker`; on result `setDestination`; "Destino em outro endereço" card → push `AddStopPage(mode: endLocation)` and translate the popped address into `SpecificAddress`; update `_destinationLabel`/`_destinationSubtitle`/`_destinationIcon` switch arms for the new 3-state family — `BackToStart` arm removed, `NoDestination` arm added)
+- Modify (MS1 test churn, in-scope per ADR-0043): `test/.../domain/route_config_test.dart`, `test/.../domain/route_defaults_test.dart`, `test/.../data/route_defaults_repository_test.dart`, `test/.../state/route_config_controller_test.dart`, `test/.../presentation/pages/route_details_page_test.dart` — replace `BackToStart` assertions; add `NoDestination` coverage
+- Create: `test/.../presentation/widgets/destination_picker_sheet_test.dart` (paired widget tests)
+- NOTE: router lives in `apps/mobile/lib/app.dart` (NOT `app_router.dart` — spec stale on this). No new GoRoute needed for the sheet (it's a modal). The `endLocation` AddStopPage push uses the existing `/...details/start-location`-style route OR an in-place `Navigator.push` consistent with how Partida is wired.
 
-**Steps:**
+**Steps (implementer TDD red→green per change):**
 
-- [ ] MS5.1: TDD: `DestinationPickerPage` renders 3 RadioListTile + AppBar (X + Confirmar) + Material 3 `RadioGroup<DestinationType>` ancestor.
-- [ ] MS5.2: Implement strings 1:1 paridade Spoke per `/tmp/spoke-a5-destino.xml`.
-- [ ] MS5.3: Wire option B (Selecionar endereço) → push `AddStopPage(mode: endLocation)`.
-- [ ] MS5.4: Wire Destino row in `route_details_page.dart`.
-- [ ] MS5.5: Add routes.
-- [ ] MS5.6: D-mid screenshot strings side-by-side with `/tmp/spoke-a5-destino.png` + radio order.
-- [ ] MS5.7: Commit.
+- [ ] MS5.1: TDD domain: `NoDestination` added (no fields, equals itself); `BackToStart` removed; `RouteConfig.empty()` still defaults `RoundTrip`. Update MS1 domain tests.
+- [ ] MS5.2: TDD JSON: `route_defaults.dart` `_destinationToJson`/`_destinationFromJson` arms → `'roundTrip'|'specificAddress'|'noDestination'`; unknown tag still throws → caller degrades to empty. Update roundtrip tests.
+- [ ] MS5.3: TDD widget: `DestinationPickerSheet` renders header "Destino" + "Concluído" + 3 cards with exact Spoke strings/subtitles/icons (`cornerUpLeft`/`mapPin`/`x`). Tap card N pops the matching `Destination`. Tap "Concluído" / dismiss → pops null (or current selection — match Spoke). `Semantics(identifier:)` on each card + Concluído.
+- [ ] MS5.4: Implement `_showDestinationPicker` launcher in `route_details_page.dart` mirroring `_showTimePicker`; wire Destino row `onTap`; on non-null result `setDestination`.
+- [ ] MS5.5: Wire "Destino em outro endereço" card → `AddStopPage(mode: endLocation)`; implement `_popWithEndLocation` in `add_stop_page.dart` (resolve place details → pop `SpecificAddress` payload). Run ALL Area 4 add-stop tests — regression gate green.
+- [ ] MS5.6: Update `route_details_page.dart` `_destination*` switch arms for the 3-state family; update its widget tests.
+- [ ] MS5.7: D-mid screenshot RotPro sheet side-by-side with `/tmp/spoke-a5-inspection/ms5-live-destino-clean.png` — card order + strings + icon pixels (screenshot evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
+- [ ] MS5.8: `flutter analyze` clean + `flutter test` ≥ baseline. `git diff <base> HEAD --stat` shows only the in-scope files. Commit per Conventional Commits.
 
 ---
 
