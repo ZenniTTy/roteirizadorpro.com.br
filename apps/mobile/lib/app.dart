@@ -7,6 +7,7 @@ import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'features/route_config/presentation/pages/route_details_page.dart';
+import 'features/route_config/state/picker_mode.dart';
 import 'features/routes/presentation/route_shell_page.dart';
 import 'features/routes/presentation/wizard_route_page.dart';
 import 'features/routes/presentation/reuse_stops_page.dart';
@@ -83,6 +84,17 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => RouteDetailsPage(
               routeId: state.pathParameters['routeId']!,
             ),
+            routes: [
+              GoRoute(
+                // Partida sub-picker — Spoke parity §Partida (MS3).
+                // Reuses AddStopPage with `PickerMode.startLocation`; the
+                // tap on Detalhes da rota's Partida row pushes this route
+                // and awaits a `StartLocation` (typed pop result).
+                path: 'start-location',
+                builder: (_, __) =>
+                    const AddStopPage(mode: PickerMode.startLocation),
+              ),
+            ],
           ),
         ],
       ),

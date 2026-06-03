@@ -329,4 +329,161 @@ void main() {
     // Two clock icons: Partida row 2 + Destino row 2.
     expect(find.byIcon(LucideIcons.clock), findsNWidgets(2));
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MS3 — Partida row navigation: tapping Partida-Local pushes the
+  // start-location sub-route AND writes the popped StartLocation back
+  // through `routeConfigControllerProvider.setStartLocation`.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  testWidgets(
+      'Partida row 1 tap pushes /home/routes/active/:id/details/start-location',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/home/routes/active/r1/details',
+      routes: [
+        GoRoute(
+          path: '/home/routes/active/:routeId/details',
+          builder: (_, state) => RouteDetailsPage(
+            routeId: state.pathParameters['routeId']!,
+          ),
+          routes: [
+            GoRoute(
+              path: 'start-location',
+              builder: (_, __) =>
+                  const Scaffold(body: Text('SENTINEL_START_LOCATION')),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap via the row's Semantics identifier so we hit the InkWell's
+    // onTap, not an inner Text node (per lesson
+    // `maestro_flutter_listtile_tap_needs_semantics`, which applies to
+    // widget tests too once the production widget uses Semantics).
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_partida_local'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SENTINEL_START_LOCATION'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Partida row 1 tap returning a StartLocation writes it through '
+      'routeConfigController.setStartLocation', (tester) async {
+    // The sentinel sub-route pops a known StartLocation so we can verify
+    // the parent picks it up. Default Partida label is "Usar local atual";
+    // after the pop, the row label must read the returned address.
+    const expected = StartLocation(
+      address: 'Rua Augusta, 500',
+      lat: -23.55,
+      lng: -46.66,
+      isUserCurrentLocation: false,
+    );
+    final router = GoRouter(
+      initialLocation: '/home/routes/active/r1/details',
+      routes: [
+        GoRoute(
+          path: '/home/routes/active/:routeId/details',
+          builder: (_, state) => RouteDetailsPage(
+            routeId: state.pathParameters['routeId']!,
+          ),
+          routes: [
+            GoRoute(
+              path: 'start-location',
+              builder: (context, __) => Scaffold(
+                body: Center(
+                  child: Builder(
+                    builder: (ctx) => ElevatedButton(
+                      onPressed: () => ctx.pop<StartLocation>(expected),
+                      child: const Text('pop_with_value'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Sanity: pre-tap label is the default.
+    expect(find.text('Usar local atual'), findsOneWidget);
+
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_partida_local'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('pop_with_value'));
+    await tester.pumpAndSettle();
+
+    // Back on Detalhes; the Partida-Local label must now reflect the
+    // selected address, proving the controller was updated.
+    expect(find.text('Rua Augusta, 500'), findsOneWidget);
+    expect(find.text('Usar local atual'), findsNothing);
+  });
+
+  testWidgets(
+      'Partida row 1 tap that pops with null leaves the row label '
+      'unchanged (Spoke X-close contract)', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/home/routes/active/r1/details',
+      routes: [
+        GoRoute(
+          path: '/home/routes/active/:routeId/details',
+          builder: (_, state) => RouteDetailsPage(
+            routeId: state.pathParameters['routeId']!,
+          ),
+          routes: [
+            GoRoute(
+              path: 'start-location',
+              builder: (context, __) => Scaffold(
+                body: Center(
+                  child: Builder(
+                    builder: (ctx) => ElevatedButton(
+                      // Pop with no value — matches X-close + back gesture.
+                      onPressed: () => ctx.pop(),
+                      child: const Text('pop_no_value'),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_partida_local'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('pop_no_value'));
+    await tester.pumpAndSettle();
+
+    // Row label must still be the default — null result is a no-op.
+    expect(find.text('Usar local atual'), findsOneWidget);
+  });
 }

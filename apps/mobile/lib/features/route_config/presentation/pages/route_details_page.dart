@@ -82,7 +82,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
           label: localLabel,
           leading: LucideIcons.locateFixed,
           active: true,
-          onTap: null,
+          onTap: _onTapPartidaLocal,
         ),
         RouteConfigRow(
           semanticsKey: 'partida_inicio',
@@ -93,6 +93,20 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
         ),
       ],
     );
+  }
+
+  /// Push the Partida sub-picker (`AddStopPage` in `PickerMode.startLocation`)
+  /// and, on success, write the selected [StartLocation] back into
+  /// `routeConfigControllerProvider`. The Future resolves to `null` when the
+  /// user dismisses the picker (X close / back), per the Spoke contract.
+  Future<void> _onTapPartidaLocal() async {
+    final result = await context.push<StartLocation>(
+      '/home/routes/active/${widget.routeId}/details/start-location',
+    );
+    if (result == null) return;
+    ref
+        .read(routeConfigControllerProvider(widget.routeId).notifier)
+        .setStartLocation(result);
   }
 
   RouteDetailsSection _destinoSection(RouteConfig config) {
