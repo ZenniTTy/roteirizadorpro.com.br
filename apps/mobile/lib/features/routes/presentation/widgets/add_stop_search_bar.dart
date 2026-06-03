@@ -67,7 +67,8 @@ class _AddStopSearchBarState extends ConsumerState<AddStopSearchBar> {
                       controller: _controller,
                       autofocus: true,
                       decoration: InputDecoration(
-                        hintText: widget.hintText ?? 'Adicione uma parada...',
+                        hintText:
+                            widget.hintText ?? 'Digite o endereço da parada',
                         hintStyle: const TextStyle(
                           fontSize: 14,
                           color: AppColors.textMuted,

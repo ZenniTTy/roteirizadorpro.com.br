@@ -81,8 +81,16 @@ class AddStopResultsSection extends StatelessWidget {
     for (final p in newCandidates) {
       children.add(
         ListTile(
-          leading:
-              const Icon(LucideIcons.plusCircle, color: AppColors.textMuted),
+          // Spoke parity 2026-06-02 (live side-by-side, both modes):
+          // result rows lead with a thin redirect-arrow (`cornerDownLeft`),
+          // not a plusCircle. The arrow shape ↩ reads as
+          // "tap to navigate-to / select" — Spoke uses it identically in
+          // the Add Stop and Partida pickers.
+          leading: const Icon(
+            LucideIcons.cornerDownLeft,
+            color: AppColors.textMuted,
+            size: 20,
+          ),
           title: Text(p.mainText),
           subtitle: p.secondaryText.isNotEmpty ? Text(p.secondaryText) : null,
           onTap: () => onSectionBTap(p),

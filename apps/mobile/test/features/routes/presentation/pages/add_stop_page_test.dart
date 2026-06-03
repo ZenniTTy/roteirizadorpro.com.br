@@ -39,9 +39,6 @@ GoRouter _router(Widget home) => GoRouter(
       initialLocation: '/',
       routes: [
         GoRoute(path: '/', builder: (_, __) => home),
-        GoRoute(
-            path: '/map',
-            builder: (_, __) => const Scaffold(body: Text('MAP'))),
       ],
     );
 
@@ -143,10 +140,12 @@ void main() {
     expect(find.byIcon(LucideIcons.chevronRight), findsOneWidget);
   });
 
-  testWidgets('WithResults Section B ListTile has leading icon',
-      (tester) async {
-    // §11.4 amendment 2026-05-29 item 5 (INVALIDATED): live side-by-side
-    // confirmed Spoke renders + icon at left of every Section B row.
+  testWidgets(
+      'WithResults Section B ListTile leads with cornerDownLeft icon '
+      '(Spoke parity 2026-06-02)', (tester) async {
+    // Live side-by-side 2026-06-02: Spoke result rows lead with a thin
+    // redirect-arrow (cornerDownLeft / ↩), not plusCircle. Holds in both
+    // the Add Stop and Partida pickers.
     const pred = PlaceAutocompletePrediction(
       placeId: 'p1',
       description: 'Av Paulista, 1000',
@@ -162,15 +161,20 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final sectionBTile = tester.widget<ListTile>(
-      find
-          .ancestor(
-            of: find.text('Av Paulista, 1000'),
-            matching: find.byType(ListTile),
-          )
-          .first,
+    expect(
+      find.descendant(
+        of: find
+            .ancestor(
+              of: find.text('Av Paulista, 1000'),
+              matching: find.byType(ListTile),
+            )
+            .first,
+        matching: find.byIcon(LucideIcons.cornerDownLeft),
+      ),
+      findsOneWidget,
     );
-    expect(sectionBTile.leading, isNotNull);
+    // Regression: the old plusCircle must not survive in Section B.
+    expect(find.byIcon(LucideIcons.plusCircle), findsNothing);
   });
 
   testWidgets('WithResults Section A ListTile keeps leading icon',
@@ -347,7 +351,7 @@ void main() {
     final hintFinder = find.text('Buscar local de partida');
     expect(hintFinder, findsOneWidget);
     // Sanity: default add-stop hint must NOT be present in this mode.
-    expect(find.text('Adicione uma parada...'), findsNothing);
+    expect(find.text('Digite o endereço da parada'), findsNothing);
   });
 
   testWidgets(
@@ -510,7 +514,7 @@ void main() {
     await tester.pumpWidget(_wrap(state: const EmptyVariant(stopCount: 0)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Adicione uma parada...'), findsOneWidget);
+    expect(find.text('Digite o endereço da parada'), findsOneWidget);
     expect(find.text('Mapa'), findsOneWidget);
     expect(find.text('Leitor'), findsOneWidget);
     expect(find.text('Voz'), findsOneWidget);
