@@ -292,11 +292,23 @@ ${cfg.spokeBaselineFiles.map((p) => `  - ${p}`).join('\n')}
 
 ### Step 2 — Spec/plan/ADR \`[INFERRED — VERIFY BEFORE LOCK]\` scan
 
-For each doc path below, read the file and search for the literal string \`[INFERRED — VERIFY BEFORE LOCK]\` (case-sensitive). Record:
+For each doc path below, read the file and search for ACTIVE \`[INFERRED — VERIFY BEFORE LOCK]\` markers.
 
+**IMPORTANT — distinguish active markers from meta-documentation:**
+- ACTIVE marker = appears inside a Markdown table cell (line contains \`|\` separators around the marker), OR inside a YAML frontmatter field. These are decisions that have not been live-verified yet.
+- META documentation = the literal string appears in body prose explaining what the marker is. Example: a sentence like "use the marker \`[INFERRED — VERIFY BEFORE LOCK]\` when..." is META, not ACTIVE.
+
+Set \`hasInferredMarker\` to \`true\` ONLY if at least one ACTIVE marker exists. False positives from meta documentation are NOT halt conditions.
+
+Concrete heuristic: for each line containing the literal \`[INFERRED — VERIFY BEFORE LOCK]\`:
+- If the line starts with \`|\` AND contains another \`|\` separator → ACTIVE (table row).
+- If the line is inside a fenced code block → ACTIVE only if the code block is YAML/JSON config, not a code example of the marker itself.
+- Otherwise → META documentation; ignore.
+
+Record:
 - \`path\`: literal path
 - \`exists\`: true if file is present
-- \`hasInferredMarker\`: true if the file contains the literal marker
+- \`hasInferredMarker\`: true ONLY if an ACTIVE marker exists per the heuristic above
 
 Docs to check:
   - ${cfg.specRelPath}
@@ -308,7 +320,7 @@ ${(cfg.relevantAdrRelPaths || []).map((p) => `  - ${p}`).join('\n')}
 Set \`shouldHaltForEduardo: true\` and provide \`haltReason\` if ANY of:
 - Any baseline file has \`sizeBytes < 100\` (anything under 100 bytes is too small to be a real screenshot).
 - Any baseline file does not exist.
-- Any spec/plan/ADR contains the \`[INFERRED]\` marker (those decisions need live verification before any code is written).
+- Any spec/plan/ADR contains an ACTIVE \`[INFERRED]\` marker per the heuristic above (those decisions need live verification before any code is written).
 - Any spec/plan/ADR file does not exist.
 
 Otherwise: \`shouldHaltForEduardo: false\`.
