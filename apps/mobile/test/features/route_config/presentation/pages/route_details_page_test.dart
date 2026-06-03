@@ -488,7 +488,7 @@ void main() {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // MS4 — Numpad TimePickerSheet wiring (ADR-0042).
+  // Numpad TimePickerSheet wiring (ADR-0042).
   // Tapping the Partida-Início / Destino-Término rows opens the sheet;
   // confirming with a TimeOfDay writes through routeConfigController and
   // refreshes the row label per Spoke (`HH:MM` inline).
