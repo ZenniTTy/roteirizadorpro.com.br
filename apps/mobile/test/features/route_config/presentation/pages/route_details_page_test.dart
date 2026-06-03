@@ -486,4 +486,115 @@ void main() {
     // Row label must still be the default — null result is a no-op.
     expect(find.text('Usar local atual'), findsOneWidget);
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MS4 — Numpad TimePickerSheet wiring (ADR-0042).
+  // Tapping the Partida-Início / Destino-Término rows opens the sheet;
+  // confirming with a TimeOfDay writes through routeConfigController and
+  // refreshes the row label per Spoke (`HH:MM` inline).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  testWidgets(
+      'Partida row 2 tap opens TimePickerSheet with title '
+      '"Definir horário de início"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_partida_inicio'));
+    await tester.pumpAndSettle();
+
+    // Header of the freshly-opened sheet shows the placeholder title.
+    expect(
+      find.descendant(
+        of: find.bySemanticsIdentifier('time_picker_header'),
+        matching: find.text('Definir horário de início'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'Destino row 2 tap opens TimePickerSheet with title '
+      '"Definir horário de término"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.bySemanticsIdentifier('route_details_row_destino_horario_termino'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.bySemanticsIdentifier('time_picker_header'),
+        matching: find.text('Definir horário de término'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'Confirming TimePickerSheet on Partida row writes timeStart and '
+      'refreshes label to "Iniciar agora mesmo  HH:MM"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_partida_inicio'));
+    await tester.pumpAndSettle();
+
+    // Type 10:30.
+    for (final d in ['1', '0', '3', '0']) {
+      await tester.tap(find.bySemanticsIdentifier('time_picker_digit_$d'));
+      await tester.pump();
+    }
+    await tester.tap(find.bySemanticsIdentifier('time_picker_confirm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Iniciar agora mesmo  10:30'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Confirming TimePickerSheet on Destino row writes timeEnd and '
+      'refreshes label to "HH:MM"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.bySemanticsIdentifier('route_details_row_destino_horario_termino'),
+    );
+    await tester.pumpAndSettle();
+
+    for (final d in ['1', '8', '0', '0']) {
+      await tester.tap(find.bySemanticsIdentifier('time_picker_digit_$d'));
+      await tester.pump();
+    }
+    await tester.tap(find.bySemanticsIdentifier('time_picker_confirm'));
+    await tester.pumpAndSettle();
+
+    // Spoke renders the value inline — placeholder is gone, "18:00" shows.
+    expect(find.text('18:00'), findsOneWidget);
+    expect(find.text('Definir horário de término'), findsNothing);
+  });
 }

@@ -8,6 +8,7 @@ import '../../domain/route_config.dart';
 import '../../state/route_config_controller.dart';
 import '../widgets/route_config_row.dart';
 import '../widgets/route_details_section.dart';
+import '../widgets/time_picker_sheet.dart';
 
 /// Full-screen "Detalhes da rota" — Spoke white-label layout.
 ///
@@ -89,7 +90,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
           label: 'Iniciar agora mesmo  $startSuffix',
           leading: LucideIcons.clock,
           active: true,
-          onTap: null,
+          onTap: _onTapPartidaInicio,
         ),
       ],
     );
@@ -107,6 +108,18 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
     ref
         .read(routeConfigControllerProvider(widget.routeId).notifier)
         .setStartLocation(result);
+  }
+
+  /// Open the Spoke-fidelity numpad picker (ADR-0042) for the Partida-Início
+  /// row and, on confirm, write the resulting [TimeOfDay] back through
+  /// `routeConfigController.setTimeStart`. Sheet returns `null` on
+  /// tap-outside / system back — that's a cancel, leave state untouched.
+  Future<void> _onTapPartidaInicio() async {
+    final picked = await _showTimePicker('Definir horário de início');
+    if (picked == null) return;
+    ref
+        .read(routeConfigControllerProvider(widget.routeId).notifier)
+        .setTimeStart(TimeStart(time: picked));
   }
 
   RouteDetailsSection _destinoSection(RouteConfig config) {
@@ -134,9 +147,40 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
               : _formatTimeOfDay(config.timeEnd!.time),
           leading: LucideIcons.clock,
           active: config.timeEnd != null,
-          onTap: null,
+          onTap: _onTapDestinoHorarioTermino,
         ),
       ],
+    );
+  }
+
+  /// Symmetric counterpart of [_onTapPartidaInicio] for the Destino-Término
+  /// row — opens the same numpad sheet and writes [TimeEnd] on confirm.
+  Future<void> _onTapDestinoHorarioTermino() async {
+    final picked = await _showTimePicker('Definir horário de término');
+    if (picked == null) return;
+    ref
+        .read(routeConfigControllerProvider(widget.routeId).notifier)
+        .setTimeEnd(TimeEnd(time: picked));
+  }
+
+  /// Shared launcher for the [TimePickerSheet] modal so both time rows use
+  /// identical config. Mirrors the [showModalBottomSheet] pattern used by
+  /// `AppDrawer` (single precedent in this codebase for sheet-as-modal).
+  /// Returns `null` on tap-outside / system back.
+  Future<TimeOfDay?> _showTimePicker(String title) {
+    return showModalBottomSheet<TimeOfDay>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      useRootNavigator: true,
+      backgroundColor: AppColors.bg,
+      barrierColor: Colors.black54,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadii.sheet),
+        ),
+      ),
+      builder: (_) => TimePickerSheet(title: title),
     );
   }
 
