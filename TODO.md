@@ -43,7 +43,16 @@ Spec autoritativa: [`docs/superpowers/specs/`](./docs/superpowers/specs/). Plan 
   - [ ] **MS4 (REABERTO 2026-05-29 pós-audit)** — integration_test atual é brittle (assume device com rota ativa pré-logada; confirmado falhando em fresh install). D4 spoke-parity-checker dispatched retroativo: **3 must-fix + 2 should-fix** estruturais descobertos. Ver session log `2026-05-29-01`. MS4 não fecha até MS5 aplicar D4 fixes + rerun verification.
   - [x] **MS5 (D4 fixes — shipped 2026-05-29)** — Section B sem leading icon + Footer sem leading/trailing (commits `16ee368` + `1b9cafa` + `ddbc290`). Section A trailing pencil affordance (commits `2da3359` + `4e43fce`). Search bar X = limpar input (descoberta visual M54 — antes fechava a tela; agora limpa + restaura OCR/Voice) (commits `972c933` + `9ab267a`). Decisão Eduardo: `plusCircle` e `searchX` decorativos MANTIDOS como "RotPro additive" (commit `1f598f5`). +14 testes (89 → 91). Re-validação M54 + smoke Maestro standalone + final review = pré-PR.
   - **Out of scope deste PR** (cada um vai pra PR isolado): Voz (Area 7), OCR (Area 7), tap-no-mapa (Area 5), CSV upload (Slice 3+), edit-stop sheet (Area 6 — BIG FIND auto-open per inventory §11.4 fica adiado, documentado no spec).
-- [ ] **Area 5 (Detalhes da rota — pré-flight Partida/Destino/Pausa)**.
+- [ ] **Area 5 (Detalhes da rota — pré-flight Partida/Destino/Pausa)** — em andamento na branch `feat/m2-slice-2-area-5-route-details`:
+  - [x] MS1 Domain + State (sealed `RouteConfig`, `RouteDefaults`, 2 controllers, `PickerMode`) — base ✅.
+  - [x] MS2 Shell `RouteDetailsPage` (3 seções + Concluído + checkbox Salvar como padrão) — Spoke parity (sem AppBar, X flutuante topo-esquerda, body-level h1).
+  - [x] MS3 Partida picker reusing `AddStopPage(mode: startLocation)` — commits `52e9211`, `95c0eaf`.
+  - [x] MS4 TimePickerSheet (numpad 4×3 + FAB + backspace + buffer) — pivot crítico: ADR-0041 (wheel_picker) ➜ ADR-0042 (numpad) após re-inspeção live Spoke 2026-06-03. Commits `bf89e63` (widget + 14 testes), `413713f` (wire 2 rows + 4 testes), `bc236ff` (style), `23ff0ff` (Spoke parity fix: Partida-Início collapses to `'HH:MM'` após confirm). Template `area5-microsprint.js` criado e validado.
+  - [ ] MS5 Sub-tela Destino (3 radio options) — próximo.
+  - [ ] MS6 Sub-tela Pausa (chips horário + duração).
+  - [ ] MS7 Wire Area 3 sheet rows clickable.
+  - [ ] MS8 Persistência SharedPreferencesAsync + FTUE trigger.
+  - [ ] MS9 D4 closing parity + Maestro YAML + PR.
 - [ ] **Area 6 (Editar parada — 14 campos)** — reverte o `context.pop()` deste PR e implementa inline DraggableScrollableSheet (BIG FIND §11.4).
 - [ ] **Area 7 (Otimizar rota — 3 estados + FTUE modals)**.
 - [ ] **Area 8 (Modo delivery — stop focused + status buttons)**.

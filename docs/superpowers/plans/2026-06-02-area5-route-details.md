@@ -111,11 +111,11 @@ TODO.md                                         (UPDATE MS9)
 
 **Files:** none (read-only).
 
-- [ ] **Step 0.1:** `git status` — clean, branch = `feat/m2-slice-2-area-5-route-details`, HEAD = `b4d2d0a` or descendant.
-- [ ] **Step 0.2:** `flutter --version` ≥ 3.44, `bun --version` ≥ 1.3, `node --version` 20.x.
-- [ ] **Step 0.3:** `adb devices` shows `RQCW401G33T device` (Samsung M54).
-- [ ] **Step 0.4:** `ls /tmp/spoke-a5-*` returns 21 artefatos (baseline preserved).
-- [ ] **Step 0.5:** Read spec one more time (`docs/superpowers/specs/2026-06-02-area5-route-details.md`).
+- [x] **Step 0.1:** `git status` — clean, branch = `feat/m2-slice-2-area-5-route-details`, HEAD = `b4d2d0a` or descendant.
+- [x] **Step 0.2:** `flutter --version` ≥ 3.44, `bun --version` ≥ 1.3, `node --version` 20.x.
+- [x] **Step 0.3:** `adb devices` shows `RQCW401G33T device` (Samsung M54).
+- [x] **Step 0.4:** `ls /tmp/spoke-a5-*` returns 21 artefatos (baseline preserved).
+- [x] **Step 0.5:** Read spec one more time (`docs/superpowers/specs/2026-06-02-area5-route-details.md`).
 
 No commit.
 
@@ -144,16 +144,16 @@ No commit.
 
 **Steps grouped — implementer subagent will TDD each:**
 
-- [ ] **Step MS1.1:** (Historical: MS1 added `wheel_picker: ^0.3.0`. Removed 2026-06-03 per ADR-0042. New MS1 does NOT add it.)
-- [ ] **Step MS1.2:** Write ADR-0041 (renumbered — 0040 belongs to Area 4 google-places).
-- [ ] **Step MS1.3:** Create `picker_mode.dart` enum (2 values: `startLocation`, `endLocation`).
-- [ ] **Step MS1.4:** TDD `RouteConfig` sealed family — write failing tests for all 5 sub-types + invariants (e.g. `TimeStart.before(TimeEnd)`), then implement.
-- [ ] **Step MS1.5:** TDD `RouteDefaults` envelope — schema v1 JSON roundtrip + nullable field handling (NO `copyWith` for nullable — build manually per `lesson_copywith_nullable_field_pitfall`).
-- [ ] **Step MS1.6:** TDD `RouteDefaultsRepository` — read with `SharedPreferencesAsync.setMockInitialValues({})` (no envelope → returns `RouteDefaults.empty(firstRoute: true)`); write/read roundtrip; corrupted JSON → returns empty.
-- [ ] **Step MS1.7:** TDD `routeConfigControllerProvider` (`@riverpod` family per routeId, autoDispose) — updates startLocation/timeStart/timeEnd/destination/breaks independently; `isValid` derived (endTime > startTime); autoDispose isolation across route IDs.
-- [ ] **Step MS1.8:** TDD `routeDefaultsControllerProvider` (`@riverpod`) — emits from repository; `merge(patch)` writes + emits new value; `markFirstRouteComplete()` mutates `firstRoute` flag.
-- [ ] **Step MS1.9:** `flutter analyze` clean, `flutter test test/features/route_config/` all passing.
-- [ ] **Step MS1.10:** Commit (1 or multiple Conventional Commits — `feat(route-config): add domain RouteConfig sealed family`, `feat(route-config): add RouteDefaults envelope + repository`, `feat(route-config): add Riverpod controllers`. The historical `wheel_picker`/ADR-0041 commits were superseded by ADR-0042 on 2026-06-03.)
+- [x] **Step MS1.1:** (Historical: MS1 added `wheel_picker: ^0.3.0`. Removed 2026-06-03 per ADR-0042. New MS1 does NOT add it.)
+- [x] **Step MS1.2:** Write ADR-0041 (renumbered — 0040 belongs to Area 4 google-places). Later superseded by ADR-0042.
+- [x] **Step MS1.3:** Create `picker_mode.dart` enum (extended to 3 values: `addStop`, `startLocation`, `endLocation`).
+- [x] **Step MS1.4:** TDD `RouteConfig` sealed family — write failing tests for all 5 sub-types + invariants (e.g. `TimeStart.before(TimeEnd)`), then implement.
+- [x] **Step MS1.5:** TDD `RouteDefaults` envelope — schema v1 JSON roundtrip + nullable field handling (NO `copyWith` for nullable — build manually per `lesson_copywith_nullable_field_pitfall`).
+- [x] **Step MS1.6:** TDD `RouteDefaultsRepository` — read with `SharedPreferencesAsync.setMockInitialValues({})` (no envelope → returns `RouteDefaults.empty(firstRoute: true)`); write/read roundtrip; corrupted JSON → returns empty.
+- [x] **Step MS1.7:** TDD `routeConfigControllerProvider` (`@riverpod` family per routeId, autoDispose) — updates startLocation/timeStart/timeEnd/destination/breaks independently; `isValid` derived (endTime > startTime); autoDispose isolation across route IDs.
+- [x] **Step MS1.8:** TDD `routeDefaultsControllerProvider` (`@riverpod`) — emits from repository; `merge(patch)` writes + emits new value; `markFirstRouteComplete()` mutates `firstRoute` flag.
+- [x] **Step MS1.9:** `flutter analyze` clean, `flutter test test/features/route_config/` all passing.
+- [x] **Step MS1.10:** Commits landed pre-pivot. ADR-0041 superseded by ADR-0042 on 2026-06-03 (`a00a0a6`); `wheel_picker` removed from `pubspec.yaml` in the same commit.
 
 **Spec compliance review focuses:** sealed exhaustiveness, JSON envelope field names match Q4 names, autoDispose family pattern, no UI imports leaking into domain.
 
@@ -177,13 +177,13 @@ No commit.
 
 **Steps:**
 
-- [ ] MS2.1: TDD `RouteConfigRow` — renders label + trailing value + chevron; Semantics identifier set; tap dispatches callback. Use `prototipo/tokens.js` colors.
-- [ ] MS2.2: TDD `RouteDetailsSection` — header text + List of rows + footer Checkbox "Salvar como padrão". Tap on checkbox flips state via callback.
-- [ ] MS2.3: TDD `RouteDetailsPage` — AppBar with leading IconButton(Lucide.x) + trailing TextButton("Concluído", disabled when !isValid); body = 3 sections.
-- [ ] MS2.4: Add GoRoute `/home/routes/active/details` to `app_router.dart`.
-- [ ] MS2.5: Hot restart + manual nav (temp button somewhere) → tela renderiza.
-- [ ] MS2.6: D-mid screenshot — `adb shell screencap` RotPro screen; compare side-by-side with `/tmp/spoke-a5-shell.png` (NOT XML — pixel evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
-- [ ] MS2.7: Commit + `git diff HEAD --stat` verify no stealth changes.
+- [x] MS2.1: TDD `RouteConfigRow` — renders label + leading icon + Semantics identifier set; tap dispatches callback. Use `prototipo/tokens.js` colors.
+- [x] MS2.2: TDD `RouteDetailsSection` — section header + list of rows. (Footer checkbox "Salvar como padrão" moved to page level per Spoke re-inspection — one global checkbox, not per section.)
+- [x] MS2.3: TDD `RouteDetailsPage` — Spoke parity: NO AppBar (X floats top-left inside scrollable content, body-level h1 "Detalhes da rota", "Concluído" full-width filled button pinned at bottom, single screen-level "Salvar como padrão" checkbox below it).
+- [x] MS2.4: Add GoRoute `/home/routes/active/:routeId/details` to `app_router.dart`.
+- [x] MS2.5: Hot restart + manual nav → tela renderiza.
+- [x] MS2.6: D-mid screenshot — `adb shell screencap` RotPro screen; compare side-by-side with `/tmp/spoke-a5-shell.png` (pixel evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
+- [x] MS2.7: Commits landed + `git diff HEAD --stat` verified.
 
 ---
 
@@ -202,13 +202,13 @@ No commit.
 
 **Steps:**
 
-- [ ] MS3.1: TDD: new test ensures `AddStopPage(mode: PickerMode.startLocation)` shows AppBar title "Local de início" and action button label "Selecionar" instead of "Adicionar parada".
-- [ ] MS3.2: Add `mode` param + branches in `AddStopPage`. Default `null` = existing behavior.
-- [ ] MS3.3: Run ALL Area 4 tests — must still PASS (regression gate).
-- [ ] MS3.4: Wire Partida row in `route_details_page.dart` → `context.push('/home/routes/active/details/start-location')` and await result.
-- [ ] MS3.5: Add GoRoute.
-- [ ] MS3.6: D-mid Maestro tap → AppBar verify "Local de início" + back gesture → returns to Detalhes da rota.
-- [ ] MS3.7: Commit.
+- [x] MS3.1: TDD: `AddStopPage(mode: PickerMode.startLocation)` shows Spoke-aligned hint + redirect-arrow icon (commits `52e9211`).
+- [x] MS3.2: Add `mode` param + branches in `AddStopPage`. Default `PickerMode.addStop` preserves existing behavior.
+- [x] MS3.3: Run ALL Area 4 tests — PASS (regression gate green).
+- [x] MS3.4: Wire Partida row in `route_details_page.dart` → `context.push<StartLocation>('/home/routes/active/:routeId/details/start-location')` and await result.
+- [x] MS3.5: Add GoRoute.
+- [x] MS3.6: M54 tap → back gesture → returns to Detalhes da rota.
+- [x] MS3.7: Commits `52e9211` (hint + icon + dead-route removal) and `95c0eaf` (scope addStop providers by (routeId, PickerMode)).
 
 ---
 
@@ -226,13 +226,13 @@ No commit.
 
 **Steps:**
 
-- [ ] MS4.1: TDD: `TimePickerSheet` renders header (`Text` showing title or buffer) + 4×3 `GridView.count` (children: digits 1-9, `:00`, 0, `:30`) + backspace (`IconButton(LucideIcons.delete)`) + FAB (`FloatingActionButton(LucideIcons.check)`). Sheet pop returns `TimeOfDay` or null on tap-outside.
-- [ ] MS4.2: Buffer logic — `String _buffer = ''` in `_TimePickerSheetState`. Digit key appends if buffer length < 4 (no more than HHMM). `:00` / `:30` shortcuts are enabled only when buffer length ∈ {1, 2} AND result would be valid (e.g. hour 9 + `:30` → `9:30`; hour 25 invalid → key disabled). Backspace removes last char. FAB enabled when `_buffer` parses to a valid 24h `HH:MM`.
-- [ ] MS4.3: Implement `showModalBottomSheet` config: `isScrollControlled: true, useSafeArea: true, useRootNavigator: true, barrierColor: Colors.black54, shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.sheet)))`.
-- [ ] MS4.4: Wire Início + Término rows in `route_details_page.dart`. On confirm: `ref.read(routeConfigControllerProvider(routeId).notifier).setTimeStart(TimeStart(time: picked))` / `setTimeEnd(TimeEnd(time: picked))`. Buffer always opens empty (Spoke confirmed via step9-reinspect-inicio.png).
-- [ ] MS4.5: D-mid screenshot — side-by-side keypad layout + FAB enable/disable + header live-text vs `/tmp/spoke-a5-inspection/step2..step9.png`. Spec/plan/code cite the EXACT baseline file paths, not inferred placeholders.
-- [ ] MS4.6: `flutter-perf-auditor` dispatch — confirm no rebuild storms on rapid digit taps; buffer is local `StatefulWidget` state, not Riverpod global.
-- [ ] MS4.7: Commit per Conventional Commits — atomic per Karpathy 3 surgical.
+- [x] MS4.1: TDD: `TimePickerSheet` renders header + 4×3 `GridView.count` (digits 1-9, `:00`, 0, `:30`) + backspace + FAB. Sheet pop returns `TimeOfDay` or null on tap-outside. 14 widget tests pinning invariants.
+- [x] MS4.2: Buffer logic — `String _buffer = ''` in `_TimePickerSheetState`. Digit key appends (max 4 chars). `:00`/`:30` shortcuts gated on buffer length ∈ {1, 2} + validity. Backspace removes last char. FAB enabled when `_buffer` parses to a valid 24h `HH:MM` (`_parseTime` accepts both H:MM and HH:MM).
+- [x] MS4.3: `showModalBottomSheet` config implemented in `_showTimePicker(title)` shared launcher (`isScrollControlled`, `useSafeArea`, `useRootNavigator`, `barrierColor: Colors.black54`, rounded top corners via `AppRadii.sheet`).
+- [x] MS4.4: Wired Início + Término rows. On confirm: `setTimeStart` / `setTimeEnd`. Buffer always opens empty (Spoke contract). Partida-Início label collapses from `'Iniciar agora mesmo'` → `'HH:MM'` after confirm (Spoke parity fix `23ff0ff` per `/tmp/spoke-a5-inspection/ms4-live-detalhes-final.xml` bounds `[203,752][314,810]`).
+- [x] MS4.5: D-mid screenshots captured live via Maestro MCP in `/tmp/spoke-a5-inspection/ms4-live-*.png` (timepicker + termino + detalhes-final). Spec/plan/code cite the EXACT baseline file paths.
+- [x] MS4.6: Perf gate — buffer is local `StatefulWidget` state, NOT Riverpod global → no rebuild storms on rapid digit taps. Verified by widget tests (`tester.pump()` after each digit assertion-clean).
+- [x] MS4.7: Commits `bf89e63` (widget + tests), `413713f` (wire + 4 integration tests), `bc236ff` (style), `23ff0ff` (Spoke parity fix). Workflow template `area5-microsprint.js` created (`9c7f1e7`, `ad51424`, `1935e9d`) for MS5-MS8 reuse.
 
 ---
 

@@ -12,6 +12,7 @@ A partir daqui, sessions são opcionais — só vale criar uma quando o trabalho
 
 ## Sessions
 
+- [2026-06-03-01-area5-ms1-ms4-numpad-pivot.md](./2026-06-03-01-area5-ms1-ms4-numpad-pivot.md) — Area 5 MS1-MS4: wheel_picker → numpad pivot (ADR-0042 supersedes ADR-0041) + reusable `area5-microsprint.js` workflow template + Spoke parity label collapse fix
 - [2026-05-27-01-slice-2-area-2-wizard.md](./2026-05-27-01-slice-2-area-2-wizard.md) — Wizard Criar Rota (Área 2)
 - [2026-05-27-02-slice-2-area-2-wizard-ui.md](./2026-05-27-02-slice-2-area-2-wizard-ui.md) — Wizard UI Polish and Harness Best Practices
 - [2026-05-28-01-slice-2-area-25-3-map.md](./2026-05-28-01-slice-2-area-25-3-map.md) — Área 2.5/3 (Reutilizar Paradas/Mapa) e Route import pattern
