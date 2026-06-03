@@ -511,6 +511,87 @@ void main() {
   });
 
   testWidgets(
+      'endLocation mode: tapping a new-candidate row pops with a '
+      'SpecificAddress built from the prediction (ADR-0043)', (tester) async {
+    // Symmetric to the startLocation pop test: the Destino sheet's "Destino
+    // em outro endereço" card pushes AddStopPage(mode: endLocation); selecting
+    // an address must pop a SpecificAddress for the parent to persist via
+    // setDestination. Replaces the prior UnsupportedError stub.
+    SpecificAddress? popped;
+    bool popReturned = false;
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Center(
+              child: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () async {
+                    popped = await ctx.push<SpecificAddress>('/picker');
+                    popReturned = true;
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/picker',
+          builder: (_, __) => const AddStopPage(mode: PickerMode.endLocation),
+        ),
+      ],
+    );
+
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+
+    final fakeRepo = _FakePlacesRepository(
+      details: const PlaceDetails(
+        lat: -23.561,
+        lng: -46.656,
+        shortFormattedAddress: 'Av Paulista, 1000',
+        formattedAddress: 'Av Paulista, 1000 - Bela Vista, São Paulo - SP',
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.endLocation).overrideWith(
+            (ref) =>
+                const WithResults(matchesInRoute: [], newCandidates: [pred]),
+          ),
+          placesRepositoryProvider.overrideWith((ref) => fakeRepo),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // Picker is on top — tap the new-candidate row.
+    expect(find.text('Av Paulista, 1000'), findsOneWidget);
+    await tester.tap(find.text('Av Paulista, 1000'));
+    await tester.pumpAndSettle();
+
+    // The future resolved with a SpecificAddress (not null).
+    expect(popReturned, isTrue);
+    expect(popped, isNotNull);
+    expect(popped!.address, 'Av Paulista, 1000');
+    expect(popped!.lat, closeTo(-23.561, 1e-6));
+    expect(popped!.lng, closeTo(-46.656, 1e-6));
+  });
+
+  testWidgets(
       'mode defaults to addStop and preserves Area 4 default behavior '
       '(regression)', (tester) async {
     // Re-exercises the legacy default-hint + empty-state-buttons path with

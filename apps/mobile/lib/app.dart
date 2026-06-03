@@ -94,6 +94,15 @@ final _routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) =>
                     const AddStopPage(mode: PickerMode.startLocation),
               ),
+              GoRoute(
+                // Destino sub-picker (card 2 "Destino em outro endereço").
+                // Reuses AddStopPage with `PickerMode.endLocation`; the
+                // Destino sheet pops first, then this route is pushed and
+                // awaits a `SpecificAddress` (typed pop result). ADR-0043.
+                path: 'end-location',
+                builder: (_, __) =>
+                    const AddStopPage(mode: PickerMode.endLocation),
+              ),
             ],
           ),
         ],

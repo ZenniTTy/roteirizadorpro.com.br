@@ -68,21 +68,12 @@ final class TimeEnd extends RouteConfigPart {
   int get hashCode => time.hashCode;
 }
 
-/// Where the route ends. Three Spoke-canonical variants.
+/// Where the route ends. Three Spoke-canonical variants, mapping 1:1 onto the
+/// three cards in Spoke's Destino bottom sheet (ADR-0043): [RoundTrip]
+/// ("Voltar ao ponto de partida"), [SpecificAddress] ("Destino em outro
+/// endereço"), and [NoDestination] ("Não usar destino").
 sealed class Destination extends RouteConfigPart {
   const Destination();
-}
-
-/// Loop back to whatever [StartLocation] resolved to at run time.
-final class BackToStart extends Destination {
-  const BackToStart();
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is BackToStart;
-
-  @override
-  int get hashCode => (BackToStart).hashCode;
 }
 
 /// End at an explicit address distinct from the start.
@@ -109,7 +100,8 @@ final class SpecificAddress extends Destination {
   int get hashCode => Object.hash(address, lat, lng);
 }
 
-/// Solver may revisit the start mid-route ("ida e volta").
+/// Solver may revisit the start mid-route ("ida e volta"). Spoke's
+/// brand-new-route default and the [RouteConfig.empty] bootstrap value.
 final class RoundTrip extends Destination {
   const RoundTrip();
 
@@ -119,6 +111,20 @@ final class RoundTrip extends Destination {
 
   @override
   int get hashCode => (RoundTrip).hashCode;
+}
+
+/// No destination — the route ends wherever the last stop is ("Não usar
+/// destino" in Spoke; "Nenhum destino" in the parent Detalhes row). Carries
+/// no payload.
+final class NoDestination extends Destination {
+  const NoDestination();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is NoDestination;
+
+  @override
+  int get hashCode => (NoDestination).hashCode;
 }
 
 /// Named `BreakConfig` (not `Break`) — `break` is a reserved keyword.

@@ -45,9 +45,9 @@ void main() {
   });
 
   group('Destination sealed family', () {
-    test('BackToStart has no fields and equals itself', () {
-      const a = BackToStart();
-      const b = BackToStart();
+    test('NoDestination has no fields and equals itself', () {
+      const a = NoDestination();
+      const b = NoDestination();
       expect(a, b);
     });
 
@@ -71,23 +71,23 @@ void main() {
       expect(a, isNot(c));
     });
 
-    test('RoundTrip distinct from BackToStart', () {
-      expect(const RoundTrip() == const BackToStart(), isFalse);
+    test('RoundTrip distinct from NoDestination', () {
+      expect(const RoundTrip() == const NoDestination(), isFalse);
       expect(const RoundTrip(), const RoundTrip());
     });
 
-    test('exhaustive switch compiles for all 3 variants', () {
+    test('exhaustive switch compiles for all 3 Spoke variants', () {
       String label(Destination d) => switch (d) {
-            BackToStart() => 'back',
-            SpecificAddress() => 'specific',
             RoundTrip() => 'round',
+            SpecificAddress() => 'specific',
+            NoDestination() => 'none',
           };
-      expect(label(const BackToStart()), 'back');
+      expect(label(const RoundTrip()), 'round');
       expect(
         label(const SpecificAddress(address: 'a', lat: 0, lng: 0)),
         'specific',
       );
-      expect(label(const RoundTrip()), 'round');
+      expect(label(const NoDestination()), 'none');
     });
   });
 
@@ -135,7 +135,7 @@ void main() {
         ),
         timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
         timeEnd: TimeEnd(time: TimeOfDay(hour: 18, minute: 0)),
-        destination: BackToStart(),
+        destination: NoDestination(),
         breaks: [
           BreakConfig(
             startTime: TimeOfDay(hour: 12, minute: 0),
@@ -152,7 +152,7 @@ void main() {
         ),
         timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
         timeEnd: TimeEnd(time: TimeOfDay(hour: 18, minute: 0)),
-        destination: BackToStart(),
+        destination: NoDestination(),
         breaks: [
           BreakConfig(
             startTime: TimeOfDay(hour: 12, minute: 0),
@@ -247,7 +247,8 @@ void main() {
       });
 
       test('withDestination(null) clears the field', () {
-        final filled = RouteConfig.empty().withDestination(const BackToStart());
+        final filled =
+            RouteConfig.empty().withDestination(const NoDestination());
         expect(filled.withDestination(null).destination, isNull);
       });
 

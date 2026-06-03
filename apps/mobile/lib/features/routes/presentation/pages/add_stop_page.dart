@@ -34,9 +34,10 @@ import '../widgets/add_stop_search_bar.dart';
 ///    `routeConfigController.setStartLocation`.
 ///
 /// 3. **Destino sub-picker** (`mode == PickerMode.endLocation`) — reuses
-///    the same shell but currently throws [UnsupportedError] on selection.
-///    `_onSectionBTap` will translate the picked address into a
-///    `SpecificAddress` destination once `DestinationPickerPage` is wired.
+///    the same shell and pops a [SpecificAddress] on selection. The Destino
+///    sheet's "Destino em outro endereço" card pushes this route; the parent
+///    (Detalhes da rota) awaits the address and persists it via
+///    `routeConfigController.setDestination`. ADR-0043.
 ///
 /// [PickerMode] also keys the search-state providers
 /// (`searchQueryProvider`, `placeAutocompleteProvider`,
@@ -114,15 +115,7 @@ class AddStopPage extends ConsumerWidget {
       case PickerMode.startLocation:
         await _popWithStartLocation(context, ref, p);
       case PickerMode.endLocation:
-        // No call site pushes this mode yet (DestinationPickerPage is the
-        // entry point — it will translate the popped result into a
-        // `SpecificAddress` destination). Raising here makes the
-        // unsupported edge a loud runtime error rather than a silent
-        // mis-routed selection.
-        throw UnsupportedError(
-          'AddStopPage cannot currently be pushed with '
-          'PickerMode.endLocation; the destination flow is not wired yet.',
-        );
+        await _popWithEndLocation(context, ref, p);
     }
   }
 
@@ -205,6 +198,44 @@ class AddStopPage extends ConsumerWidget {
 
     if (context.mounted) {
       context.pop<StartLocation>(selected);
+    }
+  }
+
+  /// Destino sub-picker path: symmetric counterpart of [_popWithStartLocation]
+  /// for the "Destino em outro endereço" card (ADR-0043). Resolves the place
+  /// details and pops a [SpecificAddress] for the caller (Detalhes da rota →
+  /// Destino sheet → parent push) to persist via
+  /// `routeConfigControllerProvider.setDestination`.
+  Future<void> _popWithEndLocation(
+    BuildContext context,
+    WidgetRef ref,
+    PlaceAutocompletePrediction p,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    SpecificAddress? selected;
+    try {
+      final repo = ref.read(placesRepositoryProvider);
+      final details = await repo.getPlaceDetails(p.placeId);
+      if (details == null) {
+        // Repository returned null (place not found) — treat as a hard
+        // failure rather than silently popping with zeros that would later
+        // break destination anchoring.
+        throw Exception('Não foi possível obter os detalhes do endereço.');
+      }
+      selected = SpecificAddress(
+        address: p.mainText,
+        lat: details.lat,
+        lng: details.lng,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      context.pop<SpecificAddress>(selected);
     }
   }
 }

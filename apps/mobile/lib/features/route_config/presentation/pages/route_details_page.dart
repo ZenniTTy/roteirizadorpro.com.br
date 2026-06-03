@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/route_config.dart';
 import '../../state/route_config_controller.dart';
+import '../widgets/destination_picker_sheet.dart';
 import '../widgets/route_config_row.dart';
 import '../widgets/route_details_section.dart';
 import '../widgets/time_picker_sheet.dart';
@@ -143,7 +144,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
           subtitle: _destinationSubtitle(config.destination),
           leading: _destinationIcon(config.destination),
           active: true,
-          onTap: null,
+          onTap: _onTapDestino,
         ),
         RouteConfigRow(
           semanticsKey: 'destino_horario_termino',
@@ -166,6 +167,55 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
     ref
         .read(routeConfigControllerProvider(widget.routeId).notifier)
         .setTimeEnd(TimeEnd(time: picked));
+  }
+
+  /// Open the Spoke Destino bottom sheet (ADR-0043) and act on the popped
+  /// [DestinationChoice]:
+  ///
+  /// - `null` (Concluído / scrim / system Back) → no-op, selection unchanged.
+  /// - [DestinationChosen] (card 1 or 3) → apply via `setDestination`.
+  /// - [AddressSearchRequested] (card 2) → the sheet has already closed; push
+  ///   the full-screen address search (`AddStopPage(mode: endLocation)`) and,
+  ///   on a returned [SpecificAddress], apply it. Backing out returns to
+  ///   Detalhes da rota (the sheet is NOT reshown) and leaves the selection
+  ///   untouched (divergence #6).
+  Future<void> _onTapDestino() async {
+    final choice = await _showDestinationPicker();
+    final notifier =
+        ref.read(routeConfigControllerProvider(widget.routeId).notifier);
+
+    switch (choice) {
+      case null:
+        return;
+      case DestinationChosen(:final destination):
+        notifier.setDestination(destination);
+      case AddressSearchRequested():
+        if (!mounted) return;
+        final address = await context.push<SpecificAddress>(
+          '/home/routes/active/${widget.routeId}/details/end-location',
+        );
+        if (address == null) return;
+        notifier.setDestination(address);
+    }
+  }
+
+  /// Launcher for the [DestinationPickerSheet] modal, mirroring
+  /// [_showTimePicker]. Returns `null` on tap-outside / system Back.
+  Future<DestinationChoice?> _showDestinationPicker() {
+    return showModalBottomSheet<DestinationChoice>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      useRootNavigator: true,
+      backgroundColor: AppColors.bg,
+      barrierColor: Colors.black54,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadii.sheet),
+        ),
+      ),
+      builder: (_) => const DestinationPickerSheet(),
+    );
   }
 
   /// Shared launcher for the [TimePickerSheet] modal so both time rows use
@@ -212,36 +262,45 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
     return RouteDetailsSection(title: 'Pausa', children: rows);
   }
 
-  /// Maps a [Destination] subtype to its primary display string.
+  /// Maps a [Destination] subtype to its primary row display string.
   ///
   /// `RouteConfig.empty()` ships `destination: RoundTrip()`, so the default
   /// Destino label is "Ida e volta" via the [RoundTrip] arm. The `null` arm
   /// is defensive: [RouteConfig.withDestination] accepts `null` to clear, so
   /// the UI keeps rendering the Spoke default in that edge case rather than
-  /// blanking the row. `BackToStart()` (a distinct, explicit choice from the
-  /// picker) renders as "Voltar ao local de início".
+  /// blanking the row. [NoDestination] renders "Nenhum destino" — Spoke's
+  /// row copy after "Não usar destino" is chosen (the row copy differs from
+  /// the sheet card copy per ADR-0043 §Decision 3).
   String _destinationLabel(Destination? destination) {
     return switch (destination) {
       null || RoundTrip() => 'Ida e volta',
-      BackToStart() => 'Voltar ao local de início',
       SpecificAddress(:final address) => address,
+      NoDestination() => 'Nenhum destino',
     };
   }
 
   /// Spoke shows a small subtitle under "Ida e volta" explaining the mode.
-  /// Other destination variants have no subtitle.
+  /// Other destination variants have no subtitle — including [NoDestination],
+  /// which Spoke renders as a single-line row (divergence #3).
   String? _destinationSubtitle(Destination? destination) {
     return switch (destination) {
       null || RoundTrip() => 'Viagem de ida e volta a partir do local atual',
-      _ => null,
+      SpecificAddress() => null,
+      NoDestination() => null,
     };
   }
 
+  /// Row icon per [Destination]. Note the asymmetry the sheet card has with
+  /// the row: the sheet card for "Não usar destino" uses [LucideIcons.x], but
+  /// the resulting row uses [LucideIcons.flag] (two surfaces, same state —
+  /// ADR-0043 §Decision 2 / divergence #2). RoundTrip's row icon is
+  /// [LucideIcons.cornerUpLeft], identical to its sheet card (divergence #4),
+  /// NOT `repeat`.
   IconData _destinationIcon(Destination? destination) {
     return switch (destination) {
-      null || RoundTrip() => LucideIcons.repeat,
-      BackToStart() => LucideIcons.cornerDownLeft,
+      null || RoundTrip() => LucideIcons.cornerUpLeft,
       SpecificAddress() => LucideIcons.mapPin,
+      NoDestination() => LucideIcons.flag,
     };
   }
 

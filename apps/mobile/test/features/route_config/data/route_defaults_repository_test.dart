@@ -27,7 +27,7 @@ void main() {
         firstRoute: false,
         timeStart: TimeStart(time: TimeOfDay(hour: 9, minute: 0)),
         timeEnd: TimeEnd(time: TimeOfDay(hour: 17, minute: 0)),
-        destination: BackToStart(),
+        destination: NoDestination(),
       );
       await prefs.setString(
         RouteDefaultsRepository.storageKey,

@@ -44,10 +44,12 @@ enum PickerMode {
     showChooseOnMapFooter: false,
   ),
 
-  /// Sub-picker for `Destino` row when the user picks
-  /// "Selecionar endereço". Mirrors startLocation's structural Spoke shape
-  /// but is not currently pushed from anywhere — the DestinationPickerPage
-  /// entry point that consumes the popped result is not wired yet.
+  /// Sub-picker for the `Destino` row when the user picks the
+  /// "Destino em outro endereço" card in the Destino bottom sheet
+  /// (`DestinationPickerSheet`, ADR-0043). Mirrors startLocation's
+  /// structural Spoke shape. Pushed from `RouteDetailsPage` via the
+  /// `end-location` GoRoute; selecting a result pops a [SpecificAddress]
+  /// the page persists through `routeConfigController.setDestination`.
   endLocation(
     hintText: 'Buscar local de destino',
     resultsSectionHeader: 'Escolha o novo endereço',

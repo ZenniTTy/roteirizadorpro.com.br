@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/pages/route_details_page.dart';
+import 'package:roteirizador_pro/features/route_config/presentation/widgets/destination_picker_sheet.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_details_section.dart';
 import 'package:roteirizador_pro/features/route_config/state/route_config_controller.dart';
@@ -220,22 +221,36 @@ void main() {
   });
 
   testWidgets(
-      'Destino BackToStart() renders "Voltar ao local de início" '
-      '(explicit choice, not default)', (tester) async {
-    const config = RouteConfig(destination: BackToStart());
+      'Destino NoDestination() renders "Nenhum destino" with the flag icon '
+      'and NO subtitle (Spoke parity, single-line row)', (tester) async {
+    const config = RouteConfig(destination: NoDestination());
     await tester.pumpWidget(_wrap(routeId: 'r1', initialConfig: config));
     await tester.pumpAndSettle();
 
-    expect(find.text('Voltar ao local de início'), findsOneWidget);
+    // Label per /tmp/spoke-a5-inspection/ms5-after-nao-usar.png.
+    expect(find.text('Nenhum destino'), findsOneWidget);
+    // Row icon is FLAG (the sheet card uses X; the row uses flag — two
+    // surfaces, same state — per divergence #2).
+    expect(find.byIcon(LucideIcons.flag), findsOneWidget);
+    // No subtitle: the round-trip subtitle must NOT appear (divergence #3).
+    expect(
+      find.text('Viagem de ida e volta a partir do local atual'),
+      findsNothing,
+    );
   });
 
-  testWidgets('Destino RoundTrip explicit renders "Ida e volta" as primary',
-      (tester) async {
+  testWidgets(
+      'Destino RoundTrip explicit renders "Ida e volta" as primary with the '
+      'cornerUpLeft icon (Spoke parity, not repeat)', (tester) async {
     const config = RouteConfig(destination: RoundTrip());
     await tester.pumpWidget(_wrap(routeId: 'r1', initialConfig: config));
     await tester.pumpAndSettle();
 
     expect(find.text('Ida e volta'), findsOneWidget);
+    // Row icon is cornerUpLeft (same as the sheet card 1), NOT repeat
+    // (divergence #4).
+    expect(find.byIcon(LucideIcons.cornerUpLeft), findsOneWidget);
+    expect(find.byIcon(LucideIcons.repeat), findsNothing);
   });
 
   testWidgets('Destino SpecificAddress renders the address as primary',
@@ -251,6 +266,216 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('R. Augusta, 100'), findsOneWidget);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MS5 — Destino row → bottom-sheet sub-picker (ADR-0043).
+  // Tapping the Destino row opens DestinationPickerSheet; a card tap applies
+  // the chosen Destination immediately; "Concluído" closes without change.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  testWidgets('Destino row 1 tap opens the DestinationPickerSheet',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_destino'));
+    await tester.pumpAndSettle();
+
+    // Sheet header + its 3 cards are now on screen.
+    expect(find.byType(DestinationPickerSheet), findsOneWidget);
+    expect(find.text('Voltar ao ponto de partida'), findsOneWidget);
+    expect(find.text('Não usar destino'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Destino sheet card "Não usar destino" applies NoDestination → row '
+      'shows "Nenhum destino" + flag icon, no subtitle', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    // Default state.
+    expect(find.text('Ida e volta'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_destino'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.bySemanticsIdentifier('destination_card_no_destination'));
+    await tester.pumpAndSettle();
+
+    // Sheet dismissed AND selection applied (card tap IS the confirm).
+    expect(find.byType(DestinationPickerSheet), findsNothing);
+    expect(find.text('Nenhum destino'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.flag), findsOneWidget);
+    expect(
+      find.text('Viagem de ida e volta a partir do local atual'),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'Destino sheet "Concluído" closes the sheet WITHOUT changing the '
+      'selection (Spoke close-without-change contract, divergence #5)',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Start in NoDestination so we can prove "Concluído" leaves it untouched.
+    const config = RouteConfig(destination: NoDestination());
+    await tester.pumpWidget(_wrap(routeId: 'r1', initialConfig: config));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nenhum destino'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_destino'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('destination_done'));
+    await tester.pumpAndSettle();
+
+    // Sheet gone, row label unchanged — Concluído never mutates the row.
+    expect(find.byType(DestinationPickerSheet), findsNothing);
+    expect(find.text('Nenhum destino'), findsOneWidget);
+  });
+
+  testWidgets(
+      'Destino sheet card "Destino em outro endereço" pushes the end-location '
+      'route and applies the returned SpecificAddress (card-2 two-hop nav, '
+      'ADR-0043 divergence #6)', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Router rich enough to actually exercise the card-2 push: the
+    // end-location route stands in for AddStopPage(mode: endLocation) and
+    // pops a SpecificAddress, the same typed result the real picker returns.
+    // The plain `_wrap` router (path '/' only) cannot route this push — this
+    // is the exact branch-route push Flutter #155746 makes fragile, so it
+    // needs a real route registered (see lesson_slice_checklist_integration_test_gate;
+    // the on-device golden path is covered in MS9).
+    const picked = SpecificAddress(
+      address: 'Av Paulista, 1000',
+      lat: -23.561,
+      lng: -46.656,
+    );
+    final router = GoRouter(
+      initialLocation: '/home/routes/active/r1/details',
+      routes: [
+        GoRoute(
+          path: '/home/routes/active/:routeId/details',
+          builder: (_, state) =>
+              RouteDetailsPage(routeId: state.pathParameters['routeId']!),
+          routes: [
+            GoRoute(
+              path: 'end-location',
+              builder: (context, __) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    key: const Key('stub_pick_address'),
+                    onPressed: () => context.pop<SpecificAddress>(picked),
+                    child: const Text('pick'),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pumpAndSettle();
+
+    // Default state.
+    expect(find.text('Ida e volta'), findsOneWidget);
+
+    // Open the Destino sheet, tap card 2 → sheet closes, end-location pushed.
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_destino'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.bySemanticsIdentifier('destination_card_specific_address'));
+    await tester.pumpAndSettle();
+
+    // We are now on the pushed end-location route (sheet gone).
+    expect(find.byType(DestinationPickerSheet), findsNothing);
+    expect(find.byKey(const Key('stub_pick_address')), findsOneWidget);
+
+    // Pick an address → pops the SpecificAddress → setDestination applies it.
+    await tester.tap(find.byKey(const Key('stub_pick_address')));
+    await tester.pumpAndSettle();
+
+    // Back on Detalhes; the Destino row now shows the chosen address.
+    expect(find.text('Av Paulista, 1000'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.mapPin), findsOneWidget);
+  });
+
+  testWidgets(
+      'Destino sheet card-2 push that is backed out (null pop) leaves the '
+      'destination untouched (divergence #6 backout case)', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final router = GoRouter(
+      initialLocation: '/home/routes/active/r1/details',
+      routes: [
+        GoRoute(
+          path: '/home/routes/active/:routeId/details',
+          builder: (_, state) =>
+              RouteDetailsPage(routeId: state.pathParameters['routeId']!),
+          routes: [
+            GoRoute(
+              path: 'end-location',
+              builder: (context, __) => Scaffold(
+                body: Center(
+                  child: ElevatedButton(
+                    key: const Key('stub_back'),
+                    // Pops with no value → null result, mimicking system back.
+                    onPressed: () => context.pop(),
+                    child: const Text('back'),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ida e volta'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_destino'));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.bySemanticsIdentifier('destination_card_specific_address'));
+    await tester.pumpAndSettle();
+
+    // Back out without selecting (null pop).
+    await tester.tap(find.byKey(const Key('stub_back')));
+    await tester.pumpAndSettle();
+
+    // Destination unchanged — still the RoundTrip default.
+    expect(find.text('Ida e volta'), findsOneWidget);
   });
 
   testWidgets(
@@ -340,8 +565,8 @@ void main() {
     expect(find.byIcon(LucideIcons.locateFixed), findsOneWidget);
     // Coffee on the Adicionar pausa row.
     expect(find.byIcon(LucideIcons.coffee), findsOneWidget);
-    // Repeat for the default Ida e volta destination.
-    expect(find.byIcon(LucideIcons.repeat), findsOneWidget);
+    // cornerUpLeft for the default Ida e volta destination (Spoke parity).
+    expect(find.byIcon(LucideIcons.cornerUpLeft), findsOneWidget);
     // Two clock icons: Partida row 2 + Destino row 2.
     expect(find.byIcon(LucideIcons.clock), findsNWidgets(2));
   });

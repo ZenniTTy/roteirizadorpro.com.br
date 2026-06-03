@@ -204,7 +204,6 @@ TimeEnd? _timeEndFromJson(Object? raw) {
 Map<String, dynamic>? _destinationToJson(Destination? d) {
   return switch (d) {
     null => null,
-    BackToStart() => {'type': 'backToStart'},
     SpecificAddress(:final address, :final lat, :final lng) => {
         'type': 'specificAddress',
         'address': address,
@@ -212,6 +211,7 @@ Map<String, dynamic>? _destinationToJson(Destination? d) {
         'lng': lng,
       },
     RoundTrip() => {'type': 'roundTrip'},
+    NoDestination() => {'type': 'noDestination'},
   };
 }
 
@@ -222,13 +222,13 @@ Destination? _destinationFromJson(Object? raw) {
   }
   final type = raw['type'];
   return switch (type) {
-    'backToStart' => const BackToStart(),
     'specificAddress' => SpecificAddress(
         address: raw['address'] as String,
         lat: (raw['lat'] as num).toDouble(),
         lng: (raw['lng'] as num).toDouble(),
       ),
     'roundTrip' => const RoundTrip(),
+    'noDestination' => const NoDestination(),
     _ => throw const FormatException('unknown destination type'),
   };
 }

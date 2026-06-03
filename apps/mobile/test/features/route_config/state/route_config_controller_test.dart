@@ -70,10 +70,10 @@ void main() {
     test('setDestination cycles between variants', () {
       final c = _container();
       final notifier = c.read(routeConfigControllerProvider('r1').notifier)
-        ..setDestination(const BackToStart());
+        ..setDestination(const NoDestination());
       expect(
         c.read(routeConfigControllerProvider('r1')).destination,
-        const BackToStart(),
+        const NoDestination(),
       );
       notifier.setDestination(const RoundTrip());
       expect(

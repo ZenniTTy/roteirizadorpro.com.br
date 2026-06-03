@@ -24,7 +24,7 @@ void main() {
       expect(restored, original);
     });
 
-    test('fully-filled with BackToStart destination roundtrip', () {
+    test('fully-filled with NoDestination destination roundtrip', () {
       const original = RouteDefaults(
         firstRoute: false,
         startLocation: StartLocation(
@@ -35,7 +35,7 @@ void main() {
         ),
         timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)),
         timeEnd: TimeEnd(time: TimeOfDay(hour: 18, minute: 30)),
-        destination: BackToStart(),
+        destination: NoDestination(),
         breaks: [
           BreakConfig(
             startTime: TimeOfDay(hour: 12, minute: 0),
@@ -45,6 +45,14 @@ void main() {
       );
       final restored = RouteDefaults.fromJson(original.toJson());
       expect(restored, original);
+    });
+
+    test('NoDestination destination roundtrip', () {
+      final original = RouteDefaults.empty().copyWith(
+        destination: const NoDestination(),
+      );
+      final restored = RouteDefaults.fromJson(original.toJson());
+      expect(restored.destination, const NoDestination());
     });
 
     test('SpecificAddress destination roundtrip', () {
@@ -138,6 +146,18 @@ void main() {
         'schemaVersion': 1,
         'firstRoute': true,
         'destination': {'type': 'teleport'},
+      });
+      expect(restored, RouteDefaults.empty());
+    });
+
+    test('legacy backToStart tag (removed per ADR-0043) → empty()', () {
+      // BackToStart was dropped from the domain in MS5. A hand-edited or
+      // corrupted envelope carrying the old tag is no longer a known type,
+      // so it falls through the unknown-type arm and degrades to empty().
+      final restored = RouteDefaults.fromJson({
+        'schemaVersion': 1,
+        'firstRoute': true,
+        'destination': {'type': 'backToStart'},
       });
       expect(restored, RouteDefaults.empty());
     });
