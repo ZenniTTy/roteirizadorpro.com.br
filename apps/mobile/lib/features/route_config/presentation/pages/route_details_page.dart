@@ -71,9 +71,14 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
     final localLabel =
         hasCustomLocation ? config.startLocation!.address : 'Usar local atual';
     final startConfigured = config.timeStart != null;
-    final startSuffix = startConfigured
+    // Spoke parity: when not yet configured the row reads the placeholder
+    // 'Iniciar agora mesmo'; once a time is confirmed, the row collapses to
+    // just 'HH:MM' (no prefix). Verified live via
+    // /tmp/spoke-a5-inspection/ms4-live-detalhes-final.xml at bounds
+    // [203,752][314,810] showing the lone TextView 'text="10:30"'.
+    final inicioLabel = startConfigured
         ? _formatTimeOfDay(config.timeStart!.time)
-        : _formatTimeOfDay(TimeOfDay.now());
+        : 'Iniciar agora mesmo';
 
     return RouteDetailsSection(
       title: 'Partida',
@@ -87,7 +92,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
         ),
         RouteConfigRow(
           semanticsKey: 'partida_inicio',
-          label: 'Iniciar agora mesmo  $startSuffix',
+          label: inicioLabel,
           leading: LucideIcons.clock,
           active: true,
           onTap: _onTapPartidaInicio,

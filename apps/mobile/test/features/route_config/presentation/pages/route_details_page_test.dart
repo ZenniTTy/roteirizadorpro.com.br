@@ -149,7 +149,9 @@ void main() {
     expect(find.text('Local de início'), findsNothing);
   });
 
-  testWidgets('Partida row 2 primary label starts with "Iniciar agora mesmo"',
+  testWidgets(
+      'Partida row 2 label collapses to "HH:MM" when timeStart is configured '
+      '(Spoke parity: no "Iniciar agora mesmo" prefix once a time is set)',
       (tester) async {
     await tester.pumpWidget(
       _wrap(
@@ -161,9 +163,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Spoke renders the live time appended inline; we lock the time as 08:00.
-    expect(find.text('Iniciar agora mesmo  08:00'), findsOneWidget);
-    // Old label gone.
+    // Verified live in /tmp/spoke-a5-inspection/ms4-live-detalhes-final.xml:
+    // row contains a single TextView with text="10:30" — no prefix.
+    expect(find.text('08:00'), findsOneWidget);
+    expect(find.text('Iniciar agora mesmo  08:00'), findsNothing);
+    expect(find.text('Iniciar agora mesmo'), findsNothing);
+    // Old MS3 label gone.
+    expect(find.text('Início'), findsNothing);
+  });
+
+  testWidgets(
+      'Partida row 2 label is "Iniciar agora mesmo" when timeStart is null '
+      '(Spoke parity: placeholder phrase before any time is set)',
+      (tester) async {
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Iniciar agora mesmo'), findsOneWidget);
     expect(find.text('Início'), findsNothing);
   });
 
@@ -546,7 +562,7 @@ void main() {
 
   testWidgets(
       'Confirming TimePickerSheet on Partida row writes timeStart and '
-      'refreshes label to "Iniciar agora mesmo  HH:MM"', (tester) async {
+      'collapses label to "HH:MM" (Spoke parity, no prefix)', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -567,7 +583,10 @@ void main() {
     await tester.tap(find.bySemanticsIdentifier('time_picker_confirm'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Iniciar agora mesmo  10:30'), findsOneWidget);
+    // Spoke parity: label is just '10:30' — no 'Iniciar agora mesmo' prefix.
+    expect(find.text('10:30'), findsOneWidget);
+    expect(find.text('Iniciar agora mesmo  10:30'), findsNothing);
+    expect(find.text('Iniciar agora mesmo'), findsNothing);
   });
 
   testWidgets(
