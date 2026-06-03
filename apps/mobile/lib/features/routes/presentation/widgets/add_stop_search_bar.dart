@@ -11,7 +11,7 @@ class AddStopSearchBar extends ConsumerStatefulWidget {
 
   /// Placeholder shown inside the input. Defaults to the legacy add-stop
   /// copy when null so existing call sites are unaffected. The Partida /
-  /// Destino sub-pickers (MS3 / MS5) pass their own per-`PickerMode` text.
+  /// Destino sub-pickers pass their own per-[PickerMode] text.
   final String? hintText;
 
   @override

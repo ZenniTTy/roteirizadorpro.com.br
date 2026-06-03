@@ -86,10 +86,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
             ),
             routes: [
               GoRoute(
-                // Partida sub-picker — Spoke parity §Partida (MS3).
-                // Reuses AddStopPage with `PickerMode.startLocation`; the
-                // tap on Detalhes da rota's Partida row pushes this route
-                // and awaits a `StartLocation` (typed pop result).
+                // Partida sub-picker. Reuses AddStopPage with
+                // `PickerMode.startLocation`; the tap on Detalhes da
+                // rota's Partida row pushes this route and awaits a
+                // `StartLocation` (typed pop result).
                 path: 'start-location',
                 builder: (_, __) =>
                     const AddStopPage(mode: PickerMode.startLocation),

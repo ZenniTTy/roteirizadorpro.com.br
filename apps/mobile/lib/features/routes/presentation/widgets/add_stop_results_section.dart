@@ -14,8 +14,7 @@ import '../../domain/stop.dart';
 ///   "Escolha o novo endereço")
 /// - Footer "Escolher no mapa" (conditional on `showChooseOnMapFooter`)
 ///
-/// Spoke parity §10.21 amendment 3 + §11.4 amendment 2 (both 2026-05-28),
-/// extended Slice 2 Area 5 MS3 (2026-06-02) with `PickerMode`-aware flags.
+/// Spoke parity §10.21 amendment 3 + §11.4 amendment 2 (both 2026-05-28).
 class AddStopResultsSection extends StatelessWidget {
   const AddStopResultsSection({
     super.key,

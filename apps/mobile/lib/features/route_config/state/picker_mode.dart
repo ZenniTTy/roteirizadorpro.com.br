@@ -1,20 +1,20 @@
 /// Disambiguates which slot of [RouteConfig] the reused `AddStopPage` is
 /// being driven by, and carries every per-mode UI flag the page needs to
-/// branch on. Adding a fourth mode is therefore a single enum entry +
+/// branch on. Adding a third mode is therefore a single enum entry +
 /// matching values — the widget body's switch over `mode.<flag>` does not
 /// require modification.
 ///
-/// Per Spoke baseline 2026-06-02: the Partida picker has a completely empty
-/// dark body, no method buttons, no "Desta rota" section, no
-/// "Escolher no mapa" footer, and uses a distinct search-field placeholder.
-/// Each divergence is encoded as a flag here so the call site (Detalhes da
-/// rota row tap) drives the page entirely via this enum.
-///
-/// `endLocation` is wired by Slice 2 Area 5 MS5 (DestinationPickerPage).
+/// Per Spoke baseline 2026-06-02: the Partida picker has a completely
+/// empty dark body, no method buttons, no "Desta rota" section, no
+/// "Escolher no mapa" footer, and uses a distinct search-field
+/// placeholder. Each divergence is encoded as a flag here so the call
+/// site (Detalhes da rota row tap) drives the page entirely via this
+/// enum.
 enum PickerMode {
-  /// Sub-picker for `Partida` row in Detalhes da rota — selects the route's
-  /// [StartLocation]. Spoke renders a bare search-as-topbar over a black body
-  /// (no method shortcuts, no route-stops section, no map footer).
+  /// Sub-picker for `Partida` row in Detalhes da rota — selects the
+  /// route's [StartLocation]. Spoke renders a bare search-as-topbar over a
+  /// black body (no method shortcuts, no route-stops section, no map
+  /// footer).
   startLocation(
     hintText: 'Buscar local de partida',
     resultsSectionHeader: 'Escolha o novo endereço',
@@ -23,8 +23,10 @@ enum PickerMode {
     showChooseOnMapFooter: false,
   ),
 
-  /// Sub-picker for `Destino` row when the user picks "Selecionar endereço" —
-  /// wired by MS5. Mirrors startLocation's structural Spoke shape.
+  /// Sub-picker for `Destino` row when the user picks
+  /// "Selecionar endereço". Mirrors startLocation's structural Spoke shape
+  /// but is not currently pushed from anywhere — the DestinationPickerPage
+  /// entry point that consumes the popped result is not wired yet.
   endLocation(
     hintText: 'Buscar local de destino',
     resultsSectionHeader: 'Escolha o novo endereço',

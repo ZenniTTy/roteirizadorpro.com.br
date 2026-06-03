@@ -25,14 +25,15 @@ import '../widgets/add_stop_search_bar.dart';
 ///    implements edit-stop sheet). Section B tap → create Stop +
 ///    `context.pop()`. Footer tap → push `/home/routes/add-stop/map`.
 ///
-/// 2. **Sub-picker flow** (`mode == PickerMode.startLocation`) — Slice 2
-///    Area 5 MS3. The same screen is pushed by the Detalhes da rota
-///    Partida row. Empty body (no method buttons), single results section,
-///    no map footer; selecting a row pops with a [StartLocation] for the
-///    caller to persist via `routeConfigController.setStartLocation`.
-///    `PickerMode.endLocation` reuses the same shell; the row-tap handling
-///    is fully wired by MS5 (DestinationPickerPage), where the chosen
-///    address is converted into a `SpecificAddress` destination.
+/// 2. **Sub-picker flow** (`mode == PickerMode.startLocation`) — pushed
+///    by Detalhes da rota's Partida row. Empty body (no method buttons),
+///    single results section, no map footer; selecting a row pops with a
+///    [StartLocation] for the caller to persist via
+///    `routeConfigController.setStartLocation`.
+///    `PickerMode.endLocation` reuses the same shell but currently throws
+///    [UnsupportedError] on selection — `_onSectionBTap` will translate
+///    the picked address into a `SpecificAddress` destination once
+///    `DestinationPickerPage` is wired.
 class AddStopPage extends ConsumerWidget {
   const AddStopPage({super.key, this.mode});
 
@@ -106,11 +107,14 @@ class AddStopPage extends ConsumerWidget {
       case PickerMode.startLocation:
         await _popWithStartLocation(context, ref, p);
       case PickerMode.endLocation:
-        // Wired by Slice 2 Area 5 MS5 (DestinationPickerPage) — the caller
-        // will await a `Destination` and convert it via `SpecificAddress`.
+        // No call site pushes this mode yet (DestinationPickerPage is the
+        // entry point — it will translate the popped result into a
+        // `SpecificAddress` destination). Raising here makes the
+        // unsupported edge a loud runtime error rather than a silent
+        // mis-routed selection.
         throw UnsupportedError(
-          'PickerMode.endLocation is wired by Slice 2 Area 5 MS5; '
-          'AddStopPage cannot be pushed with this mode yet.',
+          'AddStopPage cannot currently be pushed with '
+          'PickerMode.endLocation; the destination flow is not wired yet.',
         );
     }
   }
