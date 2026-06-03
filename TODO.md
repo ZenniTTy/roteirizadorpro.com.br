@@ -48,7 +48,7 @@ Spec autoritativa: [`docs/superpowers/specs/`](./docs/superpowers/specs/). Plan 
   - [x] MS2 Shell `RouteDetailsPage` (3 seções + Concluído + checkbox Salvar como padrão) — Spoke parity (sem AppBar, X flutuante topo-esquerda, body-level h1).
   - [x] MS3 Partida picker reusing `AddStopPage(mode: startLocation)` — commits `52e9211`, `95c0eaf`.
   - [x] MS4 TimePickerSheet (numpad 4×3 + FAB + backspace + buffer) — pivot crítico: ADR-0041 (wheel_picker) ➜ ADR-0042 (numpad) após re-inspeção live Spoke 2026-06-03. Commits `bf89e63` (widget + 14 testes), `413713f` (wire 2 rows + 4 testes), `bc236ff` (style), `23ff0ff` (Spoke parity fix: Partida-Início collapses to `'HH:MM'` após confirm). Template `area5-microsprint.js` criado e validado.
-  - [ ] MS5 Sub-tela Destino (3 radio options) — próximo.
+  - [x] MS5 Sub-tela Destino — **bottom sheet com 3 cards** (NÃO radio/página — spec original veio de baseline mislabeled; re-inspeção live Spoke 2026-06-03 corrigiu, ADR-0043). Cards: Voltar ao ponto de partida (`RoundTrip`) / Destino em outro endereço (`SpecificAddress` → push end-location search) / Não usar destino (`NoDestination`). Domínio realinhado aos 3 estados Spoke (`BackToStart` removido, `NoDestination` adicionado). `add_stop_page` endLocation de-stubado (pop `SpecificAddress`). Card-2 usa returns-intent pattern (Flutter #155746). Commit `5dea345`. 240 testes (+18). Workflow `w29si5x7y` halt em scope-error meu (`app.dart` faltava na allowlist) → corrigido manualmente + 2 reviewers ✅. Débito: card-2 on-device golden path fica pro MS9.
   - [ ] MS6 Sub-tela Pausa (chips horário + duração).
   - [ ] MS7 Wire Area 3 sheet rows clickable.
   - [ ] MS8 Persistência SharedPreferencesAsync + FTUE trigger.
