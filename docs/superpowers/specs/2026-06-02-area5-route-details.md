@@ -52,7 +52,7 @@ Um install do APK `v1.1.0-area5` pode, contra produção:
 7. Checkbox "Salvar como padrão para próximas rotas" (default: marcado) abaixo de cada section.
 8. Tap "Concluído" → persiste config no estado da rota ativa + (se checkbox marcado) atualiza `RouteDefaults` no SharedPrefs → pop pra Area 3 → 3 rows do sheet refletem novos valores.
 9. Criar 2ª rota → wizard pula Detalhes (rota usa defaults persistidos); abrir Detalhes via row do sheet → valores defaults pré-preenchidos.
-10. Time picker "Início" mostra scroll wheel HH:MM (24h) + chips :00/:30 abaixo (paridade Spoke).
+10. Time picker "Início" mostra numpad 4×3 (dígitos 1-9, `:00`, 0, `:30`) + header live-text + FAB confirm + backspace (ADR-0042; sem scroll wheel — Spoke usa numpad, confirmado live 2026-06-03 `/tmp/spoke-a5-msfix/timepicker-inicio-header.png`).
 11. Time picker "Término" idêntico ao "Início" (mesmo widget reused).
 12. Bottom sheet "Destino" tem header "Destino" + botão "Concluído" + 3 cards clicáveis (ícone + título + subtítulo), dismiss via tap-outside/Back; card "Destino em outro endereço" abre AddStopPage em PickerMode.endLocation. (Ver Q11 + ADR-0043 — NÃO é página full-screen nem RadioListTile.)
 13. Sub-tela "Adicionar pausa" tem 2 ChoiceChip Wrap (horário: 11:00/12:00/13:00 + Personalizar; duração: 15/30/60min + Personalizar) + Confirmar.
@@ -102,7 +102,7 @@ Tests mirror under `apps/mobile/test/features/route_config/`.
 
 - **`apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart`** — extend with optional `PickerMode? mode` constructor parameter. When non-null, alters AppBar title + button labels but reuses entire search/typeahead pipeline.
 - **`apps/mobile/lib/features/routes/presentation/widgets/route_sheet.dart`** (Area 3) — wire 3 rows of "Configuração de rota" `onTap: () => context.push('/home/routes/active/details')`.
-- **`apps/mobile/lib/app_router.dart`** — 6 new GoRoutes:
+- **`apps/mobile/lib/app.dart`** — 6 new GoRoutes (the GoRouter config lives in `app.dart`, not a separate `app_router.dart`):
   - `/home/routes/active/details` (shell)
   - `/home/routes/active/details/start-location` → `AddStopPage(mode: startLocation)`
   - `/home/routes/active/details/time-start` (modal sheet)
@@ -177,7 +177,7 @@ No external time-picker package. The numeric keypad is implemented inline as a `
 |---|---|
 | Back gesture orchestration breaks on nested routes (6 new routes deep) | `integration_test/route_details_flow_test.dart` em MS9 cobre todos paths |
 | State leak Route A → Route B (config persiste de rota fechada) | `family + autoDispose` em MS1 + isolation unit test |
-| Custom scroll wheel UX divergence vs Spoke | `flutter-perf-auditor` em MS4 + screenshot D-mid + flick velocity test |
+| Numpad layout / FAB-enable divergence vs Spoke | `flutter-perf-auditor` em MS4 + screenshot D-mid side-by-side + widget tests on buffer/FAB-enable state (ADR-0042) |
 | SharedPrefs schema drift Slice 3 backend | `schemaVersion: 1` + field names = futuros TypeBox |
 | Compose ImageVector blindspot (uiautomator) recomenda divergência fantasma | Screenshot citation MANDATORY em todos D-mid + D4 (lesson `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`) |
 | Picker reuse (AddStopPage) altera comportamento Area 4 ao adicionar `PickerMode` | `mode` é nullable, default null = comportamento atual; widget + integration tests Area 4 devem continuar passando |

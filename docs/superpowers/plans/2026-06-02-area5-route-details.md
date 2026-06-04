@@ -64,7 +64,7 @@ apps/mobile/lib/features/route_config/
 apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart  (MODIFY: +PickerMode? mode param + AppBar branch)
 apps/mobile/lib/features/routes/presentation/widgets/route_sheet.dart  (MODIFY: 3 rows → onTap push)
 apps/mobile/lib/features/routes/state/route_creation_controller.dart   (MODIFY: FTUE push after complete())
-apps/mobile/lib/app_router.dart                                        (MODIFY: +6 GoRoutes)
+apps/mobile/lib/app.dart                                        (MODIFY: +6 GoRoutes)
 apps/mobile/pubspec.yaml                                                (no time-picker deps — wheel_picker removed 2026-06-03 per ADR-0042)
 apps/mobile/scripts/area5_route_details_flow.yaml                       (CREATE: Maestro smoke)
 ```
@@ -171,7 +171,7 @@ No commit.
 - Create: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart`
 - Create: `apps/mobile/lib/features/route_config/presentation/widgets/route_details_section.dart`
 - Create: `apps/mobile/lib/features/route_config/presentation/widgets/route_config_row.dart`
-- Modify: `apps/mobile/lib/app_router.dart` (+ `/home/routes/active/details` route)
+- Modify: `apps/mobile/lib/app.dart` (+ `/home/routes/active/details` route)
 - Create: 3 paired widget test files
 - Capture: `/tmp/spoke-a5-shell.png` already exists; compare against new RotPro screenshot
 
@@ -180,7 +180,7 @@ No commit.
 - [x] MS2.1: TDD `RouteConfigRow` — renders label + leading icon + Semantics identifier set; tap dispatches callback. Use `prototipo/tokens.js` colors.
 - [x] MS2.2: TDD `RouteDetailsSection` — section header + list of rows. (Footer checkbox "Salvar como padrão" moved to page level per Spoke re-inspection — one global checkbox, not per section.)
 - [x] MS2.3: TDD `RouteDetailsPage` — Spoke parity: NO AppBar (X floats top-left inside scrollable content, body-level h1 "Detalhes da rota", "Concluído" full-width filled button pinned at bottom, single screen-level "Salvar como padrão" checkbox below it).
-- [x] MS2.4: Add GoRoute `/home/routes/active/:routeId/details` to `app_router.dart`.
+- [x] MS2.4: Add GoRoute `/home/routes/active/:routeId/details` to `app.dart`.
 - [x] MS2.5: Hot restart + manual nav → tela renderiza.
 - [x] MS2.6: D-mid screenshot — `adb shell screencap` RotPro screen; compare side-by-side with `/tmp/spoke-a5-shell.png` (pixel evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
 - [x] MS2.7: Commits landed + `git diff HEAD --stat` verified.
@@ -196,7 +196,7 @@ No commit.
 **Files:**
 - Modify: `apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart` (+ `PickerMode? mode` constructor + AppBar title branch + return value branch)
 - Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Partida row onTap)
-- Modify: `apps/mobile/lib/app_router.dart` (+ `/home/routes/active/details/start-location` route)
+- Modify: `apps/mobile/lib/app.dart` (+ `/home/routes/active/details/start-location` route)
 - Create: paired widget test for new `AddStopPage` branches
 - Verify: existing Area 4 widget tests still PASS (regression check)
 
@@ -221,7 +221,7 @@ No commit.
 **Files:**
 - Create: `apps/mobile/lib/features/route_config/presentation/widgets/time_picker_sheet.dart`
 - Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Início + Término rows)
-- Modify: `apps/mobile/lib/app_router.dart` (+ 2 modal routes OR use showModalBottomSheet)
+- Modify: `apps/mobile/lib/app.dart` (+ 2 modal routes OR use showModalBottomSheet)
 - Create: paired widget tests
 
 **Steps:**
@@ -250,7 +250,7 @@ No commit.
 - Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Destino row `onTap` → `_showDestinationPicker()` launcher mirroring `_showTimePicker`; on result `setDestination`; "Destino em outro endereço" card → push `AddStopPage(mode: endLocation)` and translate the popped address into `SpecificAddress`; update `_destinationLabel`/`_destinationSubtitle`/`_destinationIcon` switch arms for the new 3-state family — `BackToStart` arm removed, `NoDestination` arm added)
 - Modify (MS1 test churn, in-scope per ADR-0043): `test/.../domain/route_config_test.dart`, `test/.../domain/route_defaults_test.dart`, `test/.../data/route_defaults_repository_test.dart`, `test/.../state/route_config_controller_test.dart`, `test/.../presentation/pages/route_details_page_test.dart` — replace `BackToStart` assertions; add `NoDestination` coverage
 - Create: `test/.../presentation/widgets/destination_picker_sheet_test.dart` (paired widget tests)
-- NOTE: router lives in `apps/mobile/lib/app.dart` (NOT `app_router.dart` — spec stale on this). No new GoRoute needed for the sheet (it's a modal). The `endLocation` AddStopPage push uses the existing `/...details/start-location`-style route OR an in-place `Navigator.push` consistent with how Partida is wired.
+- NOTE: the GoRouter config lives in `apps/mobile/lib/app.dart` (there is no separate `app_router` file). No new GoRoute needed for the sheet (it's a modal). The `endLocation` AddStopPage push uses the existing `/...details/start-location`-style route OR an in-place `Navigator.push` consistent with how Partida is wired.
 
 **Steps (implementer TDD red→green per change):**
 
@@ -275,7 +275,7 @@ No commit.
 - Create: `apps/mobile/lib/features/route_config/presentation/pages/break_picker_page.dart`
 - Create: `apps/mobile/lib/features/route_config/presentation/widgets/break_chip_groups.dart`
 - Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire + Adicionar pausa CTA + render list of existing breaks)
-- Modify: `apps/mobile/lib/app_router.dart` (+ `/break/:breakIndex?` route)
+- Modify: `apps/mobile/lib/app.dart` (+ `/break/:breakIndex?` route)
 - Create: paired widget tests
 
 **Steps:**
@@ -321,7 +321,7 @@ No commit.
 **Files:**
 - Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (Concluído onPressed → save flow)
 - Modify: `apps/mobile/lib/features/routes/state/route_creation_controller.dart` (FTUE branch)
-- Modify: maybe `app_router.dart` (redirect after wizard complete)
+- Modify: maybe `app.dart` (redirect after wizard complete)
 - Create/Modify: widget tests covering save flow + FTUE behavior
 - Create: `apps/mobile/integration_test/area5_route_details_flow_test.dart` (initial structure; expanded MS9)
 

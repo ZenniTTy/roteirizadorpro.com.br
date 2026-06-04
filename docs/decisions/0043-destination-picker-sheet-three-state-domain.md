@@ -47,7 +47,20 @@ This is a structural decision with persistence ripple: `Destination` is serializ
 - **`NoDestination` is added** for the "Não usar destino" state.
 - JSON envelope type tags become `'roundTrip' | 'specificAddress' | 'noDestination'`. The `'backToStart'` tag is removed. Since no production install has yet persisted a `route_defaults_v1` envelope (Area 5 is unshipped), no migration path is required; a `'backToStart'` tag encountered in a corrupted/hand-edited envelope falls through the existing `_ => throw FormatException('unknown destination type')` arm, which `RouteDefaults.fromJson`'s caller already catches and degrades to `RouteDefaults.empty()`.
 
-**3. Parent "Detalhes da rota" Destino row copy is unchanged.** The parent row keeps its own Spoke strings ("Ida e volta" / "Viagem de ida e volta a partir do local atual"), which differ from the sheet's option-1 copy ("Voltar ao ponto de partida" / "Ida e volta (recomendado)"). Both are Spoke facts captured live — Spoke renders the same logical `RoundTrip` state with different copy in the row vs the picker. The implementer must preserve both verbatim; they are not a contradiction to reconcile.
+**3. Spoke divergences — the canonical `#N` enumeration the code + tests reference.** Spoke renders the same logical state with different copy/icons in the parent "Detalhes" row vs the picker sheet, and the close/back behaviors have their own contracts. This is the single source of truth for every `divergence #N` cited in `route_details_page.dart` and `route_details_page_test.dart`. The numbering below matches the code EXACTLY (mixing visual row↔card facts and behavioral contracts, because the code references both):
+
+| # | Kind | Divergence (what the code/test pins) |
+|---|---|---|
+| #1 | visual | `RoundTrip` label: row = "Ida e volta" / "Viagem de ida e volta a partir do local atual"; sheet card = "Voltar ao ponto de partida" / "Ida e volta (recomendado)". (Reference only; no `#1` literal in code.) |
+| #2 | visual | `NoDestination` icon asymmetry: row = `LucideIcons.flag`, sheet card = `LucideIcons.x` (two surfaces, same state). |
+| #3 | visual | `NoDestination` layout: row is single-line (no subtitle); the round-trip subtitle must NOT appear on it. |
+| #4 | visual | `RoundTrip` row icon = `LucideIcons.cornerUpLeft`, identical to its sheet card (pinned so a refactor can't drift it to `repeat`). |
+| #5 | behavioral | "Concluído" close-without-change: tapping the sheet's "Concluído" closes it WITHOUT mutating the selected destination (Spoke close-without-change contract). |
+| #6 | behavioral | Card-2 ("Destino em outro endereço") two-hop nav: backing out of the pushed address search (null pop) leaves the destination untouched. |
+
+These are Spoke facts (live captures) + navigation contracts, not contradictions to reconcile.
+
+**4. "Salvar como padrão" checkbox default = UNCHECKED.** The Area-2 spec Q8 originally said "replicate 1:1 (true/checked)", inferred from a single 2026-05-26 inventory note. The implementation ships **unchecked** because that matches the only verifiable returning-user Spoke evidence; the checked-on-first-use hypothesis was hedged even by its author. This is a deliberate override of spec Q8, recorded here rather than silently. **Open item:** re-confirm against a fresh Spoke account before Slice 3 (tracked in `docs/audits/2026-06-03-area5-ms1-ms5-retro-audit.md` deferred-debt + this note).
 
 ## Consequences
 
