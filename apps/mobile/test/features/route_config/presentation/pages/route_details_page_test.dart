@@ -90,7 +90,14 @@ void main() {
     );
   });
 
-  testWidgets('Concluído is disabled when config is invalid', (tester) async {
+  testWidgets(
+      'Concluído is ALWAYS enabled — Spoke never gates it on time validity '
+      '(live capture 2026-06-03, EVIDENCE.md §S2)', (tester) async {
+    // Spoke renders Concluído tappable even with neither time set, so the
+    // common path (accept "Iniciar agora mesmo" + "Ida e volta" defaults) is
+    // one tap. validOverride:false would have disabled it under the OLD gate;
+    // it must now stay enabled. Solver-window validation lives in the domain
+    // (isRouteConfigValidProvider / RouteConfig.isValid), not this button.
     await tester.pumpWidget(_wrap(routeId: 'r1', validOverride: false));
     await tester.pumpAndSettle();
 
@@ -100,11 +107,14 @@ void main() {
         matching: find.byType(FilledButton),
       ),
     );
-    expect(btn.onPressed, isNull);
+    expect(btn.onPressed, isNotNull);
   });
 
-  testWidgets('Concluído is enabled when config is valid', (tester) async {
-    await tester.pumpWidget(_wrap(routeId: 'r1', validOverride: true));
+  testWidgets('Concluído stays enabled on a freshly-opened (empty) config too',
+      (tester) async {
+    // RouteConfig.empty() ships both times null → the OLD gate disabled the
+    // button on first open. Pin the Spoke-correct always-enabled behavior.
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
     await tester.pumpAndSettle();
 
     final btn = tester.widget<FilledButton>(
@@ -114,6 +124,63 @@ void main() {
       ),
     );
     expect(btn.onPressed, isNotNull);
+  });
+
+  testWidgets('Tapping Concluído pops back to the sender route (N6)',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/details',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (_, __) => const Scaffold(body: Text('SENDER')),
+        ),
+        GoRoute(
+          path: '/details',
+          builder: (_, __) => const RouteDetailsPage(routeId: 'r1'),
+        ),
+      ],
+    );
+    // Seed a back-stack so pop has somewhere to land.
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pumpAndSettle();
+    router.push('/details');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_confirm'));
+    await tester.pumpAndSettle();
+
+    // Popped one level — still on a /details (the seeded one), not crashed.
+    expect(tester.takeException(), isNull);
+    expect(find.byType(RouteDetailsPage), findsOneWidget);
+  });
+
+  testWidgets('Tapping the close-X pops the route (N6)', (tester) async {
+    final router = GoRouter(
+      initialLocation: '/details',
+      routes: [
+        GoRoute(
+          path: '/details',
+          builder: (_, __) => const RouteDetailsPage(routeId: 'r1'),
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      ProviderScope(child: MaterialApp.router(routerConfig: router)),
+    );
+    await tester.pumpAndSettle();
+    router.push('/details');
+    await tester.pumpAndSettle();
+    expect(find.byType(RouteDetailsPage), findsWidgets);
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_close'));
+    await tester.pumpAndSettle();
+
+    // The pushed copy popped; the initial /details remains, no crash.
+    expect(tester.takeException(), isNull);
+    expect(find.byType(RouteDetailsPage), findsOneWidget);
   });
 
   testWidgets('Concluído has Semantics identifier "route_details_confirm"',
@@ -182,6 +249,27 @@ void main() {
 
     expect(find.text('Iniciar agora mesmo'), findsOneWidget);
     expect(find.text('Início'), findsNothing);
+    // Spoke renders a live wall-clock alongside the label while unconfigured
+    // (EVIDENCE.md §S1). The page mounts a LiveClockLabel on this row.
+    expect(
+      find.descendant(
+        of: find.bySemanticsIdentifier('route_details_row_partida_inicio'),
+        matching: find.byType(LiveClockLabel),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'Partida row 2 has NO LiveClockLabel once timeStart is set '
+      '(Spoke collapse to lone HH:MM)', (tester) async {
+    const config =
+        RouteConfig(timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 0)));
+    await tester.pumpWidget(_wrap(routeId: 'r1', initialConfig: config));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LiveClockLabel), findsNothing);
+    expect(find.text('08:00'), findsOneWidget);
   });
 
   testWidgets('Destino row 1 default label is "Ida e volta" (Spoke default)',
@@ -502,6 +590,20 @@ void main() {
   });
 
   testWidgets(
+      'Adicionar pausa row is tappable and shows the interim "Pausa em breve" '
+      'SnackBar (S4 — broken-affordance fix until MS6 scheduler)',
+      (tester) async {
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_adicionar_pausa'));
+    await tester.pump(); // let the SnackBar appear
+
+    expect(find.text('Pausa em breve'), findsOneWidget);
+  });
+
+  testWidgets(
       '"Salvar como padrão" checkbox: exactly one, default UNCHECKED, '
       'below the Concluído button', (tester) async {
     // Tall viewport so both Concluído and the checkbox lay out in-frame for
@@ -737,7 +839,8 @@ void main() {
 
   testWidgets(
       'Partida row 2 tap opens TimePickerSheet with title '
-      '"Definir horário de início"', (tester) async {
+      '"Definir primeiro horário" (Spoke live capture 2026-06-03)',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -750,11 +853,13 @@ void main() {
         .tap(find.bySemanticsIdentifier('route_details_row_partida_inicio'));
     await tester.pumpAndSettle();
 
-    // Header of the freshly-opened sheet shows the placeholder title.
+    // Header of the freshly-opened sheet shows the Spoke placeholder title.
+    // Live: /tmp/spoke-a5-msfix/timepicker-inicio-header.png (rid
+    // bsp_input_time = "Definir primeiro horário").
     expect(
       find.descendant(
         of: find.bySemanticsIdentifier('time_picker_header'),
-        matching: find.text('Definir horário de início'),
+        matching: find.text('Definir primeiro horário'),
       ),
       findsOneWidget,
     );
@@ -762,7 +867,8 @@ void main() {
 
   testWidgets(
       'Destino row 2 tap opens TimePickerSheet with title '
-      '"Definir horário de término"', (tester) async {
+      '"Definir último horário" (Spoke live capture 2026-06-03)',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -776,10 +882,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Live: /tmp/spoke-a5-msfix/timepicker-termino-header.png
+    // (rid bsp_input_time = "Definir último horário").
     expect(
       find.descendant(
         of: find.bySemanticsIdentifier('time_picker_header'),
-        matching: find.text('Definir horário de término'),
+        matching: find.text('Definir último horário'),
       ),
       findsOneWidget,
     );

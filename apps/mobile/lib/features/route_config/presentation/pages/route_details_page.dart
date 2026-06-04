@@ -34,7 +34,6 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(routeConfigControllerProvider(widget.routeId));
-    final isValid = ref.watch(isRouteConfigValidProvider(widget.routeId));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -50,10 +49,15 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
               _destinoSection(config),
               _pausaSection(config),
               const SizedBox(height: 24),
-              _ConcluidoButton(
-                enabled: isValid,
-                onPressed: () => context.pop(),
-              ),
+              // Spoke parity (live capture 2026-06-03,
+              // /tmp/spoke-a5-msfix/EVIDENCE.md §S2): "Concluído" is ALWAYS
+              // enabled — Spoke renders it tappable even with neither time set,
+              // so the common path (accept the "Iniciar agora mesmo" + "Ida e
+              // volta" defaults) is one tap. Solver-window validation
+              // (endTime > startTime, isRouteConfigValidProvider /
+              // RouteConfig.isValid) stays in the DOMAIN for the Slice-3 solver
+              // but must NOT gate this screen's affordance.
+              _ConcluidoButton(onPressed: () => context.pop()),
               const SizedBox(height: 8),
               _SalvarComoPadraoCheckbox(
                 value: _saveAsDefault,
@@ -73,10 +77,12 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
         hasCustomLocation ? config.startLocation!.address : 'Usar local atual';
     final startConfigured = config.timeStart != null;
     // Spoke parity: when not yet configured the row reads the placeholder
-    // 'Iniciar agora mesmo'; once a time is confirmed, the row collapses to
-    // just 'HH:MM' (no prefix). Verified live via
-    // /tmp/spoke-a5-inspection/ms4-live-detalhes-final.xml at bounds
-    // [203,752][314,810] showing the lone TextView 'text="10:30"'.
+    // 'Iniciar agora mesmo' WITH a dimmer live wall-clock trailing it (live
+    // capture 2026-06-03, /tmp/spoke-a5-msfix/EVIDENCE.md §S1: two siblings
+    // 'Iniciar agora mesmo' + '23:36' tracking the system clock). Once a time
+    // is confirmed, the row collapses to just 'HH:MM' (no prefix, no clock).
+    // Verified live via ms4-live-detalhes-final.xml bounds [203,752][314,810]
+    // showing the lone TextView 'text="10:30"'.
     final inicioLabel = startConfigured
         ? _formatTimeOfDay(config.timeStart!.time)
         : 'Iniciar agora mesmo';
@@ -94,6 +100,9 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
         RouteConfigRow(
           semanticsKey: 'partida_inicio',
           label: inicioLabel,
+          // Only the unconfigured state shows the live clock; once confirmed
+          // the row is just the lone 'HH:MM' label (Spoke collapse, 23ff0ff).
+          trailingValue: startConfigured ? null : const LiveClockLabel(),
           leading: LucideIcons.clock,
           active: true,
           onTap: _onTapPartidaInicio,
@@ -121,7 +130,12 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   /// `routeConfigController.setTimeStart`. Sheet returns `null` on
   /// tap-outside / system back — that's a cancel, leave state untouched.
   Future<void> _onTapPartidaInicio() async {
-    final picked = await _showTimePicker('Definir horário de início');
+    // Spoke time-picker header copy (live capture 2026-06-03,
+    // /tmp/spoke-a5-msfix/timepicker-inicio-header.png, rid bsp_input_time):
+    // the start picker header reads "Definir primeiro horário", NOT
+    // "...horário de início". The Destino ROW placeholder (line ~152) keeps
+    // "Definir horário de término" — that's the row, verified separately.
+    final picked = await _showTimePicker('Definir primeiro horário');
     if (picked == null) return;
     ref
         .read(routeConfigControllerProvider(widget.routeId).notifier)
@@ -162,7 +176,9 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   /// Symmetric counterpart of [_onTapPartidaInicio] for the Destino-Término
   /// row — opens the same numpad sheet and writes [TimeEnd] on confirm.
   Future<void> _onTapDestinoHorarioTermino() async {
-    final picked = await _showTimePicker('Definir horário de término');
+    // Spoke end picker header reads "Definir último horário" (live capture
+    // 2026-06-03, /tmp/spoke-a5-msfix/timepicker-termino-header.png).
+    final picked = await _showTimePicker('Definir último horário');
     if (picked == null) return;
     ref
         .read(routeConfigControllerProvider(widget.routeId).notifier)
@@ -250,16 +266,29 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
           active: true,
           onTap: null,
         ),
-      const RouteConfigRow(
+      RouteConfigRow(
         semanticsKey: 'adicionar_pausa',
         label: 'Adicionar pausa',
         leading: LucideIcons.coffee,
         active: false,
-        onTap: null,
+        // Interim affordance until the break scheduler ships (MS6). Spoke's
+        // Pausa row is clickable, so an inert chevron would be a broken
+        // affordance — the row must respond to a tap even before the real
+        // scheduler exists.
+        onTap: _onTapAdicionarPausa,
       ),
     ];
 
     return RouteDetailsSection(title: 'Pausa', children: rows);
+  }
+
+  /// Interim handler for the "Adicionar pausa" CTA until MS6 wires the break
+  /// scheduler sheet. Shows a placeholder SnackBar so the row is a working
+  /// affordance rather than an inert chevron.
+  void _onTapAdicionarPausa() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Pausa em breve')),
+    );
   }
 
   /// Maps a [Destination] subtype to its primary row display string.
@@ -293,7 +322,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   /// Row icon per [Destination]. Note the asymmetry the sheet card has with
   /// the row: the sheet card for "Não usar destino" uses [LucideIcons.x], but
   /// the resulting row uses [LucideIcons.flag] (two surfaces, same state —
-  /// ADR-0043 §Decision 2 / divergence #2). RoundTrip's row icon is
+  /// ADR-0043 §Decision 3 divergence #2). RoundTrip's row icon is
   /// [LucideIcons.cornerUpLeft], identical to its sheet card (divergence #4),
   /// NOT `repeat`.
   IconData _destinationIcon(Destination? destination) {
@@ -351,8 +380,7 @@ class _Header extends StatelessWidget {
 }
 
 class _ConcluidoButton extends StatelessWidget {
-  const _ConcluidoButton({required this.enabled, required this.onPressed});
-  final bool enabled;
+  const _ConcluidoButton({required this.onPressed});
   final VoidCallback onPressed;
 
   @override
@@ -366,13 +394,14 @@ class _ConcluidoButton extends StatelessWidget {
         child: FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
-            disabledBackgroundColor: AppColors.disabledBg,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadii.btn),
             ),
           ),
-          onPressed: enabled ? onPressed : null,
+          // Always enabled per Spoke (see call site comment). The button
+          // never gates on time-validity at the UI layer.
+          onPressed: onPressed,
           child: const Text(
             'Concluído',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

@@ -174,5 +174,23 @@ void main() {
       expect(d.copyWith(firstRoute: false).firstRoute, isFalse);
       expect(d.firstRoute, isTrue); // original untouched
     });
+
+    test(
+        '_omit sentinel: copyWith(startLocation: null) CLEARS, '
+        'copyWith() PRESERVES (pins the clear-path merge() cannot reach)', () {
+      const populated = RouteDefaults(
+        startLocation: StartLocation(
+          address: 'Av Paulista, 1000',
+          lat: -23.561,
+          lng: -46.656,
+          isUserCurrentLocation: false,
+        ),
+      );
+
+      // Explicit null clears the field (sentinel distinguishes omit vs null).
+      expect(populated.copyWith(startLocation: null).startLocation, isNull);
+      // Omitting the arg preserves it.
+      expect(populated.copyWith().startLocation, isNotNull);
+    });
   });
 }

@@ -341,8 +341,10 @@ void main() {
   });
 
   testWidgets(
-      'startLocation mode: search field placeholder is '
-      '"Buscar local de partida"', (tester) async {
+      'startLocation mode: search field placeholder is the original shared '
+      '"Buscar endereço" (ADR-0035: original, not Spoke\'s "Insira um '
+      'endereço"; see /tmp/spoke-a5-inspection/ms5-live-endereco-search.png)',
+      (tester) async {
     await tester.pumpWidget(
       _wrap(
         state: const EmptyVariant(stopCount: 0),
@@ -351,7 +353,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final hintFinder = find.text('Buscar local de partida');
+    final hintFinder = find.text('Buscar endereço');
     expect(hintFinder, findsOneWidget);
     // Sanity: default add-stop hint must NOT be present in this mode.
     expect(find.text('Digite o endereço da parada'), findsNothing);

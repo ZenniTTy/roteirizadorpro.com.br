@@ -208,4 +208,70 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('renders trailingValue widget between label and chevron',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const RouteConfigRow(
+          semanticsKey: 'partida_inicio',
+          label: 'Iniciar agora mesmo',
+          leading: LucideIcons.clock,
+          trailingValue: Text('99:99'),
+        ),
+      ),
+    );
+
+    expect(find.text('Iniciar agora mesmo'), findsOneWidget);
+    expect(find.text('99:99'), findsOneWidget);
+    expect(find.byIcon(LucideIcons.chevronRight), findsOneWidget);
+  });
+
+  group('LiveClockLabel', () {
+    testWidgets('renders the injected clock as zero-padded HH:MM',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          LiveClockLabel(clock: () => const TimeOfDay(hour: 7, minute: 5)),
+        ),
+      );
+
+      expect(find.text('07:05'), findsOneWidget);
+    });
+
+    testWidgets('ticks: re-reads the clock and updates after the 30s timer',
+        (tester) async {
+      var minute = 0;
+      await tester.pumpWidget(
+        _wrap(
+          LiveClockLabel(clock: () => TimeOfDay(hour: 9, minute: minute)),
+        ),
+      );
+      expect(find.text('09:00'), findsOneWidget);
+
+      // Advance the injected clock + let the periodic timer fire.
+      minute = 1;
+      await tester.pump(const Duration(seconds: 30));
+      expect(find.text('09:01'), findsOneWidget);
+      expect(find.text('09:00'), findsNothing);
+    });
+
+    testWidgets('cancels its timer on dispose (no pending-timer assertion)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          LiveClockLabel(clock: () => const TimeOfDay(hour: 1, minute: 2)),
+        ),
+      );
+      expect(find.text('01:02'), findsOneWidget);
+
+      // Replacing the tree disposes the widget; if the timer were not
+      // cancelled, the test binding would flag a pending timer at teardown.
+      await tester.pumpWidget(_wrap(const SizedBox.shrink()));
+      await tester.pump(const Duration(seconds: 60));
+
+      expect(find.text('01:02'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

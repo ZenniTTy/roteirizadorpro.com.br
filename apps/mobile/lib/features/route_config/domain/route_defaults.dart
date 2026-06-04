@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/material.dart' show TimeOfDay;
 
 import 'route_config.dart';
@@ -61,7 +62,12 @@ class RouteDefaults {
         destination: destination,
         breaks: breaks,
       );
-    } catch (_) {
+    } catch (e) {
+      // Degrade to empty() on ANY structural/value error (corrupted envelope,
+      // wrong-typed field, unknown destination tag). Log before degrading so a
+      // genuine helper-logic bug leaves a diagnostic trail rather than silently
+      // re-showing the FTUE — mirrors the repository layer's debugPrint.
+      debugPrint('[route_defaults] malformed envelope, degrading to empty: $e');
       return RouteDefaults.empty();
     }
   }

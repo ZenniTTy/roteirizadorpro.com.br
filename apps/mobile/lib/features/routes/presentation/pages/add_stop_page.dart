@@ -163,10 +163,12 @@ class AddStopPage extends ConsumerWidget {
     }
   }
 
-  /// Partida sub-picker path: resolve details if the API call succeeds,
-  /// otherwise fall back to the prediction's textual fields. The caller
-  /// (Detalhes da rota → Partida row) awaits the [StartLocation] and writes
-  /// it through `routeConfigControllerProvider.setStartLocation`.
+  /// Partida sub-picker path: resolve place details and, on success, pop a
+  /// [StartLocation]. On null details this HARD-FAILS — it surfaces a SnackBar
+  /// and returns without popping, rather than popping zero coordinates that
+  /// would later break start anchoring (see the inline comment below). The
+  /// caller (Detalhes da rota → Partida row) awaits the [StartLocation] and
+  /// writes it through `routeConfigControllerProvider.setStartLocation`.
   Future<void> _popWithStartLocation(
     BuildContext context,
     WidgetRef ref,

@@ -4,12 +4,13 @@
 /// matching values — the widget body's switch over `mode.<flag>` does not
 /// require modification.
 ///
-/// Per Spoke baseline 2026-06-02: the Partida picker has a completely
-/// empty dark body, no method buttons, no "Desta rota" section, no
-/// "Escolher no mapa" footer, and uses a distinct search-field
-/// placeholder. Each divergence is encoded as a flag here so the call
-/// site (Detalhes da rota row tap) drives the page entirely via this
-/// enum.
+/// Per Spoke baseline 2026-06-02: the Partida/Destino location pickers have a
+/// completely empty dark body, no method buttons, no "Desta rota" section, and
+/// no "Escolher no mapa" footer. Each divergence is encoded as a flag here so
+/// the call site (Detalhes da rota row tap) drives the page entirely via this
+/// enum. The search-field placeholder ([hintText]) is an ORIGINAL RotPro
+/// string ('Buscar endereço') shared by both location pickers — not Spoke's
+/// verbatim 'Insira um endereço' (ADR-0035 forbids cloning Circuit microcopy).
 ///
 /// Also doubles as the keying axis for `searchQueryProvider`,
 /// `placeAutocompleteProvider`, and `addStopUiStateProvider` so the
@@ -36,7 +37,7 @@ enum PickerMode {
   /// black body (no method shortcuts, no route-stops section, no map
   /// footer).
   startLocation(
-    hintText: 'Buscar local de partida',
+    hintText: 'Buscar endereço',
     resultsSectionHeader: 'Escolha o novo endereço',
     showMethodButtonsOnEmpty: false,
     showMicrocopyOnEmpty: false,
@@ -51,7 +52,7 @@ enum PickerMode {
   /// `end-location` GoRoute; selecting a result pops a [SpecificAddress]
   /// the page persists through `routeConfigController.setDestination`.
   endLocation(
-    hintText: 'Buscar local de destino',
+    hintText: 'Buscar endereço',
     resultsSectionHeader: 'Escolha o novo endereço',
     showMethodButtonsOnEmpty: false,
     showMicrocopyOnEmpty: false,
