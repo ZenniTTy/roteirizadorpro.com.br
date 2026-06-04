@@ -2,6 +2,23 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-04 — Área 5 (Detalhes da rota) docs: ADRs 0041–0043 + audit + spec/plan
+
+Documentation artifacts produced across the Área 5 microsprints (MS1–MS5 + MS-FIX) on `feat/m2-slice-2-area-5-route-details`. Code lives in git; this entry records the docs.
+
+**New ADRs:**
+- **ADR-0041** ([wheel_picker time drum](decisions/0041-wheel-picker-time-drum.md)) — adopted `wheel_picker` for the time picker. **Superseded by ADR-0042** the same area after live Spoke re-inspection.
+- **ADR-0042** ([time picker = numpad](decisions/0042-time-picker-numpad-spoke-fidelity.md)) — Spoke's time picker is a 4×3 numeric keypad, not a wheel; custom widget, no external dep. Documents the inference-vs-measurement failure mode (baseline was 0 bytes) + a spec-drafting protocol amendment.
+- **ADR-0043** ([Destino picker = bottom sheet + 3-state domain](decisions/0043-destination-picker-sheet-three-state-domain.md)) — Destino is a bottom sheet with 3 action cards, not a full-screen RadioListTile page; `Destination` family realigned to `RoundTrip`/`SpecificAddress`/`NoDestination` (`BackToStart` removed). Same mislabeled-baseline failure mode as ADR-0042. §Decision 3 carries the canonical row↔sheet `#N` divergence table; §Decision 4 records the deliberate "Salvar como padrão" unchecked override of spec Q8.
+
+**New audit doc:** `docs/audits/2026-06-03-area5-ms1-ms5-retro-audit.md` — read-only retrospective audit of MS1–MS5 (6 dimensions, adversarial-verified 30→21 findings, verdict `minor-issues`). First entry under the new `docs/audits/` directory.
+
+**Spec/plan:** `docs/superpowers/specs/2026-06-02-area5-route-details.md` (Q3 numpad rewrite, Q6/Q11 Destino sheet, Goal #10 + Risks numpad, app_router→app.dart) + `docs/superpowers/plans/2026-06-02-area5-route-details.md` (Phase 4/5 rewrites) + new MS-FIX plan `docs/superpowers/plans/2026-06-03-area5-msfix-audit-remediation.md`.
+
+**Process:** memory directive "fresh live Spoke inspection per feature — never trust a prior-session baseline" locked after the MS4/MS5 mislabeled-baseline failures.
+
+> **Known gap (not backfilled):** this Changelog jumps 2026-05-26 → 2026-06-04; ADRs **0031–0040** (Stripe, Maestro, and other sprints between the M2 reset and Área 5) have no Changelog entry. Pre-existing; decide whether to backfill before M2 closes.
+
 ## 2026-05-26 — M2 reset to baseline (white-label Spoke restart)
 
 Após 30 dias de slice-2 acumular entropia (16 microsprints + 43 session logs + 37 ADRs + 12 specs/plans + 522 LOC TODO), Eduardo redirecionou: **estratégia M2 = white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Branch `chore/m2-reset-to-zero` executou limpeza completa:

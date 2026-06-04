@@ -259,6 +259,7 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 - Disaster recovery → `docs/09-DISASTER-RECOVERY.md`
 - Documentation changelog → `docs/10-CHANGELOG.md`
 - All decisions and their rationale → `docs/decisions/`
+- Retrospective audit reports (read-only punch-lists) → `docs/audits/`
 - Git workflow detail → `CONTRIBUTING.md`
 - Security policy → `SECURITY.md`
 
