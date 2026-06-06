@@ -1,6 +1,6 @@
 # TODO
 
-> **Last reset:** 2026-05-26. Estratégia M2 = **white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Catálogo autoritativo de paridade: [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md). Roadmap simplificado: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md). Plano da limpeza que originou esse reset: `~/.claude/plans/velvet-yawning-thacker.md`.
+> **Estratégia M2 = white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Roadmap canônico (fonte única, reescrito limpo 2026-06-06): [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md). Catálogo de paridade: [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md). Sprint de execução do Slice 2: [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./docs/superpowers/specs/2026-06-06-slice2-completion.md).
 
 ## M1 — closed 2026-05-09 (BRL 2.000 escrow)
 
@@ -31,11 +31,13 @@ Slices restantes (detalhe em [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md))
 
 ## Slice 2 — em andamento por área
 
-Spec autoritativa: [`docs/superpowers/specs/`](./docs/superpowers/specs/). Plan autoritativo: [`docs/superpowers/plans/`](./docs/superpowers/plans/). Status canônico desta lista, código canônico nos commits.
+Roadmap canônico: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (reescrito limpo 2026-06-06). Sprint de execução do Slice 2: [`docs/superpowers/{specs,plans}/2026-06-06-slice2-completion.md`](./docs/superpowers/specs/2026-06-06-slice2-completion.md). Spec/plan da Área 5 (parcialmente supersedidos, referência MS6–9): `docs/superpowers/{specs,plans}/2026-06-02-area5-route-details.md`. Status canônico desta lista, código canônico nos commits.
 
-- [x] **Area 1 (Auth)** — fora de escopo Slice 2; recuperação senha/Google sign-in vão pra Slice 3.
+> **Ordem FORÇADA por dependência (não é livre):** terminar Área 5 (MS6→MS9) + gatilhos da Área 3 → Área 6 → Área 7 → Área 8 → Área 9. Áreas 1, 10, 11 são independentes (Á10 precede Á11). **Gates do Slice 2:** `integration_test/` AINDA NÃO EXISTE (hard gate; 1º teste = `area5_route_details_flow_test.dart` no MS9); 23 lints pré-existentes a zerar; `flutter test` ≥ 249. **Áreas 1 e 11 NÃO têm baseline Spoke** → sem dispatch `spoke-parity-checker`.
+
+- [ ] **Area 1 (Auth — completar UI, SEM baseline Spoke)** — Login/Register prontos; FALTA UI: tela `/auth/forgot-password` + botão "Continuar com Google" (backend ambos Slice 3). NÃO é fora-de-escopo — é UI restante do Slice 2.
 - [x] **Area 2 (Drawer + Shell + Wizard + Popup 3-dot)** — shipped via `cd37a65` (branch `feat/m2-slice-2-area-2-drawer`, mergeada).
-- [ ] **Area 3 (Tela ativa de rota — mapa + sheet)** — já 80% pronta; polish + bug fixes ficam pra polish pass.
+- [ ] **Area 3 (Tela ativa de rota — mapa + sheet)** — ~80% pronta. FALTA wirar 4 stubs FUNCIONAIS (não é polish): controles de mapa (layer/recenter), CTA "Otimizar rota"→Á7, tap no stop card→Á6, kebab/bottom-bar→Á9. Estão no caminho forçado pras Áreas 6/7/9.
 - [ ] **Area 4 (Adicionar parada)** — TEXT method **em andamento** na branch `feat/m2-slice-2-area-4-add-stop-text`:
   - [x] MS1 Domain (sealed `AddStopUiState` + 5-branch `from` factory) — commits `d0331a3`, `220479d`, `bc27ba7`, `19abe5e`. 14 unit tests pinning invariants.
   - [x] MS2 State (`searchQueryProvider` + `currentRouteStopsProvider` + `addStopUiStateProvider`) — commits `3a603af`, `fe6d05d`, `0672635`. +9 unit tests.
@@ -49,13 +51,16 @@ Spec autoritativa: [`docs/superpowers/specs/`](./docs/superpowers/specs/). Plan 
   - [x] MS3 Partida picker reusing `AddStopPage(mode: startLocation)` — commits `52e9211`, `95c0eaf`.
   - [x] MS4 TimePickerSheet (numpad 4×3 + FAB + backspace + buffer) — pivot crítico: ADR-0041 (wheel_picker) ➜ ADR-0042 (numpad) após re-inspeção live Spoke 2026-06-03. Commits `bf89e63` (widget + 14 testes), `413713f` (wire 2 rows + 4 testes), `bc236ff` (style), `23ff0ff` (Spoke parity fix: Partida-Início collapses to `'HH:MM'` após confirm). Template `area5-microsprint.js` criado e validado.
   - [x] MS5 Sub-tela Destino — **bottom sheet com 3 cards** (NÃO radio/página — spec original veio de baseline mislabeled; re-inspeção live Spoke 2026-06-03 corrigiu, ADR-0043). Cards: Voltar ao ponto de partida (`RoundTrip`) / Destino em outro endereço (`SpecificAddress` → push end-location search) / Não usar destino (`NoDestination`). Domínio realinhado aos 3 estados Spoke (`BackToStart` removido, `NoDestination` adicionado). `add_stop_page` endLocation de-stubado (pop `SpecificAddress`). Card-2 usa returns-intent pattern (Flutter #155746). Commit `5dea345`. 240 testes (+18). Workflow `w29si5x7y` halt em scope-error meu (`app.dart` faltava na allowlist) → corrigido manualmente + 2 reviewers ✅. Débito: card-2 on-device golden path fica pro MS9.
-  - [x] MS-FIX Audit remediation (MS1–MS5) — auditoria retrospectiva read-only (6 dimensões + verificação adversarial: 30→21 achados; relatório `docs/audits/2026-06-03-area5-ms1-ms5-retro-audit.md`). Corrigidos: M1 títulos time-picker ("Definir primeiro/último horário"), S2 Concluído sempre habilitado, S1 relógio ao vivo na linha Início, S3 hints originais, S4 row Pausa tappável (stub), + nits (catch log, merge doc+test, docstring, divergence-table ADR-0043, Q8 note, docs app_router→app.dart + scroll-wheel→numpad). 249 testes (+9). Commits `21d43c4` (código), `6e1f738` (docs). 2 reviewers ✅. Débito mantido: integration_test + checkbox checked-default re-confirm + Pausa scheduler → MS6/MS9.
+  - [x] MS-FIX Audit remediation (MS1–MS5) — auditoria retrospectiva read-only (6 dimensões + verificação adversarial: 30→21 achados; relatório `docs/audits/2026-06-03-area5-ms1-ms5-retro-audit.md`). Corrigidos: M1 títulos time-picker ("Definir primeiro/último horário"), S2 Concluído sempre habilitado, S1 relógio ao vivo na linha Início, S3 hints originais, S4 row Pausa tappável (stub), + nits (catch log, merge doc+test, docstring, divergence-table ADR-0043, Q8 note, docs app_router→app.dart + scroll-wheel→numpad). 249 testes (+9). Commits `21d43c4` (código), `6e1f738` (docs). 2 reviewers ✅. Débito mantido: integration_test + confirmar que o default UNCHECKED se mantém vs Spoke fresh (per ADR-0043 §Q8) + Pausa scheduler → MS6/MS9.
   - [ ] MS6 Sub-tela Pausa (chips horário + duração).
   - [ ] MS7 Wire Area 3 sheet rows clickable.
   - [ ] MS8 Persistência SharedPreferencesAsync + FTUE trigger.
   - [ ] MS9 D4 closing parity + Maestro YAML + PR.
-- [ ] **Area 6 (Editar parada — 14 campos)** — reverte o `context.pop()` deste PR e implementa inline DraggableScrollableSheet (BIG FIND §11.4).
-- [ ] **Area 7 (Otimizar rota — 3 estados + FTUE modals)**.
-- [ ] **Area 8 (Modo delivery — stop focused + status buttons)**.
-- [ ] **Area 9 (Conclusão de rota)**.
-- [ ] **Area 10 (Polish visual + microcopy final + transições)**.
+- [ ] **Area 6 (Editar parada — 14 campos)** — inline DraggableScrollableSheet (BIG FIND §11.4); depende de Á3 (tap stop card) + Á4 (Mudar endereço reusa add-stop).
+- [ ] **Area 7 (Otimizar rota — 3 estados + 3 FTUE modals)** — depende de Á6 (chips A1/A2) + Á3 (CTA Otimizar). Usar `onReorderItem` (3.44).
+- [ ] **Area 8 (Modo delivery — stop focused + status buttons)** — depende de Á7 ("Iniciar rota"). Mapa following em Column (não Stack).
+- [ ] **Area 9 (Conclusão + telas core: ShareSheet, kebab rota ativa, reordenar, RoutesList)** — depende de Á8 (estado terminal).
+- [ ] **Area 10 (Settings completas — 13 rows)** — independente; precede Á11. Usar `RadioGroup<T>` (3.44).
+- [ ] **Area 11 (Notification settings — UI stub, SEM baseline Spoke)** — row dentro de Settings (depende de Á10); 3 toggles; FCM real Slice 3.
+
+> **Polish visual + microcopy PT-BR final + transições** = passe pós-Slices (NÃO é uma área numerada). `prototype-fidelity-checker` sweep + tag `v1.1.0`.

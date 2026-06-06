@@ -2,6 +2,21 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-06 — ROADMAP-v2 clean rewrite + Slice-2 sprint + 2 pending sprints + harness drift sweep
+
+Major documentation realignment to a single source of truth, plus a verified harness-drift cleanup.
+
+**Roadmap:** `docs/08-ROADMAP-v2.md` fully rewritten (407→~290 lines) and synced to real code — Áreas 1–4 done, 3+5 partial, 6–11 not started; Á5 Destino is the ADR-0043 3-card sheet; "Salvar como padrão" UNCHECKED; Á4 uses live Google Places. Adds dependency-forced execution order, B2C/B2B boundary, and the 3 post-cutoff Flutter 3.44 breaking changes.
+
+**New sprints authored (NOT yet executed):**
+- `docs/superpowers/{specs,plans}/2026-06-06-slice2-completion.md` — finishes Slice 2 area-by-area via a mandatory 5-phase per-area pipeline (modern-stack research → fresh live Spoke dump → implement → validate → harness-current) + a 30-item NEVER-AGAIN bad-practices catalogue.
+- `docs/superpowers/{specs,plans}/2026-06-06-restructure-b2c-clarity-and-harden.md` — B2C/B2B boundary doc + ADR-0044 + generalize `area5-microsprint.js`→`spoke-microsprint.js` + live-inspect contract.
+- `docs/superpowers/{specs,plans}/2026-06-04-revalidation-backfill-sprint.md` — revalidate the built surface (analyze→0, fresh baselines, integration_test).
+
+**Harness drift sweep (verified by a 5-agent adversarial workflow):** 34 confirmed drifts fixed across README, CLAUDE.md, TODO.md, M2-SLICE-CHECKLIST.md, BUSINESS-RULES.md, the verify-slice skill, the old Á5 spec/plan (superseded-banner + MS5 marked done + checkbox/Concluído facts), the inventory (checkbox UNCHECKED), and 4 harness files referencing dead MCP tool names (`inspect_view_hierarchy`/`tap_on`/`back`/`launch_app` → `inspect_screen`+`run`; `resolve_workspace_symbol`/`hover`/`signature_help`/`run_tests` → `lsp`). The 3 subagent `tools:` frontmatter lines need a separate human-authorized edit (auto-mode permission guard).
+
+> **Known gap (still not backfilled):** ADRs **0031–0040** have no Changelog entry (owned by the unrun revalidation-backfill sprint).
+
 ## 2026-06-04 — Área 5 (Detalhes da rota) docs: ADRs 0041–0043 + audit + spec/plan
 
 Documentation artifacts produced across the Área 5 microsprints (MS1–MS5 + MS-FIX) on `feat/m2-slice-2-area-5-route-details`. Code lives in git; this entry records the docs.

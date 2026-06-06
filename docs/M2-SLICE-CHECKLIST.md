@@ -32,10 +32,11 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 
 ## Antes de PR
 
-- [ ] `cd apps/mobile && flutter analyze` clean.
-- [ ] `cd apps/mobile && flutter test` passa.
+- [ ] `cd apps/mobile && flutter analyze` clean. **NOTA:** o baseline tem 23 lints pré-existentes (ver ROADMAP-v2 §Gates do Slice 2); o gate é **nenhum lint NOVO** da sua mudança, não zero total — até o MS de burn-down zerar os 23.
+- [ ] `cd apps/mobile && flutter test` passa (baseline ≥ 249).
 - [ ] `cd apps/backend && bun run typecheck` clean (se mexeu backend).
-- [ ] `spoke-parity-checker` D4 dispatch — punch list resolvida. Must-fix bloqueia merge; should-fix vira tech debt explícita no TODO; nit ignora.
+- [ ] **`integration_test/` no device se mexeu navegação** (hard gate per ROADMAP-v2 §Gates + memory `lesson_slice_checklist_integration_test_gate`): qualquer área que toque `app.dart`/GoRouter/Android-back roda `cd apps/mobile && flutter test integration_test/ -d RQCW401G33T`. A pasta AINDA NÃO EXISTE — 1º teste = `area5_route_details_flow_test.dart` (Á5 MS9). Widget tests não pegam branch-stack do GoRouter.
+- [ ] `spoke-parity-checker` D4 dispatch — punch list resolvida. Must-fix bloqueia merge; should-fix vira tech debt explícita no TODO; nit ignora. **(NÃO dispatchar pras Áreas 1 e 11 — sem baseline Spoke.)**
 - [ ] **Smoke E2E no Samsung M54** — golden path do slice funciona com APK release contra prod API:
   ```bash
   flutter run -d RQCW401G33T --release \

@@ -1,5 +1,7 @@
 # Area 5 (Slice 2): Detalhes da rota — Implementation Plan
 
+> ⚠️ **PARCIALMENTE SUPERSEDIDO (2026-06-06).** Execução da Área 5 agora regida por [`docs/superpowers/plans/2026-06-06-slice2-completion.md`](./2026-06-06-slice2-completion.md) (MS-A5.6 … MS-A5.9). **Phases MS1–MS5 + MS-FIX foram ENTREGUES** (commit `5dea345`; ADR-0042 numpad; ADR-0043 Destino 3-card sheet, `BackToStart` removido / `NoDestination` adicionado; MS-FIX: Concluído sempre habilitado, checkbox UNCHECKED). NÃO re-executar MS1–MS5. Este plano é a **referência detalhada dos passos MS6–MS9 apenas**.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` to implement this plan task-by-task. One subagent per MS (microsprint). Two-stage review after each MS: spec compliance first, then code quality.
 
 **Goal:** Ship the Spoke-aligned "Detalhes da rota" screen with 5 sub-pickers + Area 3 sheet wiring + SharedPreferencesAsync persistence + FTUE trigger; total 14 testable acceptance steps on Samsung M54.
@@ -254,14 +256,14 @@ No commit.
 
 **Steps (implementer TDD red→green per change):**
 
-- [ ] MS5.1: TDD domain: `NoDestination` added (no fields, equals itself); `BackToStart` removed; `RouteConfig.empty()` still defaults `RoundTrip`. Update MS1 domain tests.
-- [ ] MS5.2: TDD JSON: `route_defaults.dart` `_destinationToJson`/`_destinationFromJson` arms → `'roundTrip'|'specificAddress'|'noDestination'`; unknown tag still throws → caller degrades to empty. Update roundtrip tests.
-- [ ] MS5.3: TDD widget: `DestinationPickerSheet` renders header "Destino" + "Concluído" + 3 cards with exact Spoke strings/subtitles/icons (`cornerUpLeft`/`mapPin`/`x`). Tap card N pops the matching `Destination`. Tap "Concluído" / dismiss → pops null (or current selection — match Spoke). `Semantics(identifier:)` on each card + Concluído.
-- [ ] MS5.4: Implement `_showDestinationPicker` launcher in `route_details_page.dart` mirroring `_showTimePicker`; wire Destino row `onTap`; on non-null result `setDestination`.
-- [ ] MS5.5: Wire "Destino em outro endereço" card → `AddStopPage(mode: endLocation)`; implement `_popWithEndLocation` in `add_stop_page.dart` (resolve place details → pop `SpecificAddress` payload). Run ALL Area 4 add-stop tests — regression gate green.
-- [ ] MS5.6: Update `route_details_page.dart` `_destination*` switch arms for the 3-state family; update its widget tests.
-- [ ] MS5.7: D-mid screenshot RotPro sheet side-by-side with `/tmp/spoke-a5-inspection/ms5-live-destino-clean.png` — card order + strings + icon pixels (screenshot evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
-- [ ] MS5.8: `flutter analyze` clean + `flutter test` ≥ baseline. `git diff <base> HEAD --stat` shows only the in-scope files. Commit per Conventional Commits.
+- [x] MS5.1: TDD domain: `NoDestination` added (no fields, equals itself); `BackToStart` removed; `RouteConfig.empty()` still defaults `RoundTrip`. Update MS1 domain tests. — DONE (commit `5dea345`, ADR-0043)
+- [x] MS5.2: TDD JSON: `route_defaults.dart` `_destinationToJson`/`_destinationFromJson` arms → `'roundTrip'|'specificAddress'|'noDestination'`; unknown tag still throws → caller degrades to empty. Update roundtrip tests. — DONE
+- [x] MS5.3: TDD widget: `DestinationPickerSheet` renders header "Destino" + "Concluído" + 3 cards with exact Spoke strings/subtitles/icons (`cornerUpLeft`/`mapPin`/`x`). Tap card N pops the matching `Destination`. Tap "Concluído" / dismiss → pops null (or current selection — match Spoke). `Semantics(identifier:)` on each card + Concluído. — DONE
+- [x] MS5.4: Implement `_showDestinationPicker` launcher in `route_details_page.dart` mirroring `_showTimePicker`; wire Destino row `onTap`; on non-null result `setDestination`. — DONE
+- [x] MS5.5: Wire "Destino em outro endereço" card → `AddStopPage(mode: endLocation)`; implement `_popWithEndLocation` in `add_stop_page.dart` (resolve place details → pop `SpecificAddress` payload). Run ALL Area 4 add-stop tests — regression gate green. — DONE (returns-intent pattern, Flutter #155746)
+- [x] MS5.6: Update `route_details_page.dart` `_destination*` switch arms for the 3-state family; update its widget tests. — DONE
+- [x] MS5.7: D-mid screenshot RotPro sheet side-by-side with `/tmp/spoke-a5-inspection/ms5-live-destino-clean.png` — card order + strings + icon pixels (screenshot evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`). — DONE (on-device golden path deferred to MS9 per session log)
+- [x] MS5.8: `flutter analyze` clean + `flutter test` ≥ baseline. `git diff <base> HEAD --stat` shows only the in-scope files. Commit per Conventional Commits. — DONE (240 tests at MS5; 249 after MS-FIX)
 
 ---
 
@@ -375,7 +377,7 @@ No commit.
 - §Decisions Q6 (reuse AddStopPage) → MS3 + MS5
 - §Decisions Q7-Q8 (chips + checkbox) → MS6 + MS2
 - §Decisions Q9 (GoRouter back default) → covered by integration_test MS9
-- §Decisions Q10 (endTime>startTime validation) → MS1 controller + MS2 button disabled state
+- §Decisions Q10 (endTime>startTime validation) → MS1 controller domain validity only (NO UI gate; Concluído sempre habilitado per MS-FIX S2; validade reservada pro solver da Slice-3)
 - §Goals 14-step path → MS9 integration_test + manual run
 - §Architecture file tree → covered MS1-MS8
 - §Risks → mitigations embedded in MS1 (sealed/autoDispose/no copyWith for nullable), MS2 (Semantics), MS4 (perf-auditor), MS6 (re-dispatch parity), MS8 (FTUE flag), MS9 (integration_test)

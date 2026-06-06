@@ -20,8 +20,8 @@
 
 ## Restrições técnicas constantes
 
-- **Distribuição:** APK-only per [ADR-0014](./decisions/0014-apk-distribution.md) (sem Play Store no M2).
-- **Cobertura geográfica:** SP-Capital only per [ADR-0008](./decisions/0008-graphhopper-self-hosted.md) + [ADR-0016](./decisions/0016-tile-server-strategy.md).
+- **Distribuição:** APK-only per [ADR-0014](./decisions/0014-android-release-signing.md) (sem Play Store no M2).
+- **Cobertura geográfica:** SP-Capital only per [ADR-0008](./decisions/0008-graphhopper-routing.md) + [ADR-0016](./decisions/0016-map-and-tile-policy.md).
 - **Monetização:** tier único R$ 25,90 / 30 dias via Stripe Pix per [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](./BUSINESS-RULES.md). Trigger paywall = tap em **"Navegar"** no modo delivery (NÃO "Otimizar rota" — otimização é grátis). Sem free trial.
 - **Tokens visuais (per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-reference.md)):** cores, spacing, radii, shadows, typography, ícones Lucide vêm de [`prototipo/tokens.js`](../prototipo/tokens.js) desde commit 1. Polish final só substitui microcopy + decoração.
 

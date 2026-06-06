@@ -648,7 +648,7 @@ nav_host (FrameLayout)
 
 **🚨 Gap crítico do inventário existente.** Nenhuma das seções §3/§5/§6 mencionou essa tela. Comportamento observado:
 
-**Trigger:** ao tocar em uma **rota com paradas** no drawer pela primeira vez (não toda vez? requer verificação — pode ser comportamento "uma vez por sessão" ou "até salvar como padrão"). O checkbox `"Salvar como padrão"` na parte de baixo da tela (default CHECKED) sugere que após primeira config, próximas entradas pulam esta tela.
+**Trigger:** ao tocar em uma **rota com paradas** no drawer pela primeira vez (FTUE one-time confirmado — §13.C.2 resolvida; rotas seguintes vão direto pro sheet). O checkbox `"Salvar como padrão"` na parte de baixo da tela (default UNCHECKED per ADR-0043 §4 — re-inspeção live 2026-06-03; esta nota hedge "CHECKED" foi superseded) indica que o usuário opta por persistir a config.
 
 **Estrutura completa (full-screen com ScrollView):**
 
@@ -665,7 +665,7 @@ nav_host (FrameLayout)
 | **Seção "Pausa"** (header `[45,1417][146,1465]`) | | |
 | Row "Adicionar pausa" (placeholder cinza) | `[45,1488][1035,1646]` | clickable + coffee-cup icon + chevron-right |
 | **CTA primary "Concluído"** | `[45,1959][1035,2117]` | Filled-primary, full-width, height 158 |
-| Checkbox `"Salvar como padrão"` | `[244,2124][794,2259]` | CHECKED by default |
+| Checkbox `"Salvar como padrão"` | `[244,2124][794,2259]` | UNCHECKED by default (per ADR-0043 §4 — re-inspeção live 2026-06-03; a nota original "CHECKED" foi superseded) |
 
 **Implicações pro RotPro:**
 

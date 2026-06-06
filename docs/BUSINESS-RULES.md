@@ -75,7 +75,7 @@ SUBSCRIPTION_DURATION_DAYS=30
 
 ## 5. O que REQUER assinatura
 
-Apenas um elemento: **o botão "Iniciar Navegação"**.
+Apenas um elemento: **o botão "Navegar"** (no modo delivery, por parada — Spoke parity per ROADMAP-v2). Não confundir com "Otimizar rota", que é gratuito.
 
 Fluxo exato (decisão do cliente):
 
@@ -83,7 +83,7 @@ Fluxo exato (decisão do cliente):
 1. Adicionar paradas          — GRATUITO
 2. Otimizar rota              — GRATUITO
 3. Ver rota otimizada         — GRATUITO
-4. Tocar "Iniciar Navegação"  — PAYWALL APARECE SE INATIVO
+4. Tocar "Navegar"            — PAYWALL APARECE SE INATIVO
 5. Pagar via Pix              — webhook confirma
 6. Botão desbloqueado         — abre Waze ou Google Maps
 ```
@@ -116,7 +116,7 @@ Fluxo exato (decisão do cliente):
 |---|---|
 | Webhook confirmado | `status='active'`, `expires_at=now+30d` |
 | Cron 03:00 BRT diário | Subscriptions com `expires_at < now()` → `status='inactive'` |
-| Usuário toca "Iniciar Navegação" após expirar | Paywall aparece novamente → mesmo fluxo |
+| Usuário toca "Navegar" após expirar | Paywall aparece novamente → mesmo fluxo |
 
 ---
 
@@ -258,7 +258,7 @@ LIVRE (sem assinatura):
   → Configurar casa → Compartilhar app
 
 BLOQUEADO (requer assinatura):
-  Iniciar Navegação  ← único ponto de bloqueio
+  Navegar  ← único ponto de bloqueio (modo delivery, por parada)
 
 INEXISTENTE (não criar em hipótese alguma):
   Cancelar → Reembolsar → Renovação automática → Gerenciar assinatura

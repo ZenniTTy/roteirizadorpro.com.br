@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-27 (ADR-0010 Amendments 1+2 — engineering artifacts da inspeção podem entrar no repo livremente; inspeção é escolha do operador. O que rege é apenas o **shipped product** ter identidade visual original per ADR-0035. Trava operacional removida — workflow do `spoke-parity-checker` simplificado, sem cleanup loops nem proibições de extração interna. Previous: ADR-0037 Maestro CLI 2.6 + Maestro MCP adotados como camada preferida; ROADMAP-v2 simplificado; estratégia firme **white-label do Spoke** (100% funcional/estrutural com nossa stack; polish visual no final). Foundational: ADR-0035 pivot + ADR-0036 parity gate.)
+> **Last updated:** 2026-06-06 (drift sweep — `docs/08-ROADMAP-v2.md` reescrito limpo como fonte única; ADR-0042 numpad + ADR-0043 Destino 3-card sheet; correções de drift no harness: MCP tool names, checkbox UNCHECKED, Concluído sempre habilitado. Previous 2026-05-27: ADR-0010 Amendments 1+2 — engineering artifacts da inspeção podem entrar no repo livremente; inspeção é escolha do operador; o que rege é o **shipped product** ter identidade visual original per ADR-0035. Foundational: ADR-0035 pivot + ADR-0036 parity gate + ADR-0037 Maestro MCP.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -28,7 +28,7 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M2 (slice 2 — Telas Core, RESET 2026-05-26)
+## Current Focus: M2 — Slice 2 (Telas Core Spoke-aligned, ~55%)
 
 M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 reset 2026-05-26**: branch `chore/m2-reset-to-zero` apagou todo o código slice-2 (29 stops + 1 settings + 1 share) + 37 tests + 12 ADRs específicas + 10 specs/plans + 36 sessions. Estratégia agora firme: **white-label do Spoke** — replicar 100% funcional/estrutural com nossa stack; polish visual no final. Locked order:
 

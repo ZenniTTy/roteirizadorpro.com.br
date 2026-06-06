@@ -436,7 +436,7 @@ ${baseline.divergencesVsSpec.map((d, i) => `${i + 1}. [${d.severity}] ${d.kind}:
 
 ## Research order (Rule 1 of feedback_harness_validation_and_escalation)
 
-1. **Dart MCP** (\`mcp__dart__hover\`, \`mcp__dart__analyze_files\`, \`mcp__dart__pub_dev_search\`) for any installed package.
+1. **Dart MCP** (\`mcp__dart__lsp\` with command hover/resolveWorkspaceSymbol, \`mcp__dart__analyze_files\`, \`mcp__dart__pub_dev_search\`) for any installed package.
 2. **Context7** (\`mcp__claude_ai_Context7__resolve-library-id\` + \`mcp__claude_ai_Context7__query-docs\`) for external libraries.
 3. **WebSearch** only when Context7 misses.
 
