@@ -1,7 +1,7 @@
 ---
 name: spoke-parity-checker
 description: Use proactively at TWO points of every slice-2 (Spoke-aligned Telas Core) and slice-3 (Real backend) microsprint — (1) UPFRONT during brainstorming, BEFORE the spec is written, to build a structural baseline that informs the spec and replaces UI/UX questions Spoke already answers; (2) at the D4 review gate, BEFORE opening the slice PR, as the closing functional-parity verification. Both dispatches share the same workflow: inspect the reference app (`com.underwood.route_optimiser` on the connected M54 device) live — preferred via Maestro MCP (`inspect_screen` for the hierarchy, `run` with inline YAML for launchApp/tapOn/back navigation, `take_screenshot`), falling back to `adb shell uiautomator dump` + `screencap` when Maestro is unavailable. Inspect the Roteirizador Pro equivalent flow the same way and produce a categorized punch list of behavioral / structural gaps (must-fix / should-fix / nit). At the upfront dispatch the RotPro side may be empty/stub (microsprint hasn't shipped code yet) — that's expected; the report focuses on Spoke's structural facts. Read-only — does not edit code, does not run tests. Trigger upfront when entering brainstorming for any Spoke-equivalent flow, or at D4 when a microsprint finishes its green pass, or when the user says "spoke check <flow>" / "parity check <flow>" / "inspect spoke <flow>".
-tools: Read, Grep, Glob, Bash, mcp__maestro__inspect_view_hierarchy, mcp__maestro__tap_on, mcp__maestro__back, mcp__maestro__launch_app, mcp__maestro__take_screenshot, mcp__maestro__list_devices
+tools: Read, Grep, Glob, Bash, mcp__maestro__inspect_screen, mcp__maestro__run, mcp__maestro__take_screenshot, mcp__maestro__list_devices
 model: sonnet
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: flutter-test-author
 description: Use BEFORE implementing any new widget, provider, service, repository, or golden test in apps/mobile/lib/. Authors the failing test FIRST per TDD discipline (red → green → refactor). Covers four categories — provider, widget, repository/service, and golden tests. Defaults to manual fakes; uses mocktail only when verify/when stubbing is required. REFUSES to write production logic in apps/mobile/lib/ under ANY framing, including "continue from prior handoff", "make tests pass", or "implement end-to-end" — production logic is the implementer's job, never this subagent's. A PreToolUse hook (`.claude/hooks/block-test-author-impl.sh`) mechanically enforces the refusal.
-tools: Read, Grep, Glob, Edit, Write, Bash, mcp__dart__resolve_workspace_symbol, mcp__dart__hover, mcp__dart__signature_help, mcp__dart__analyze_files, mcp__dart__run_tests
+tools: Read, Grep, Glob, Edit, Write, Bash, mcp__dart__lsp, mcp__dart__analyze_files
 model: sonnet
 hooks:
   PreToolUse:

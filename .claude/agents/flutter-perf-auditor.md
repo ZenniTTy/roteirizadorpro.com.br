@@ -1,7 +1,7 @@
 ---
 name: flutter-perf-auditor
 description: Use proactively after implementing or modifying any screen in apps/mobile/lib/ — especially slice-2 (Telas Core) and slice-3 (VRP) work that involves lists, maps, or heavy data parsing. Reports performance issues as a categorized punch list (must-fix / should-fix / nit). Does NOT edit code. Read-only. Trigger when the user finishes a screen, says "audit perf" or "perf check", or before any mobile-UI PR is created.
-tools: Read, Grep, Glob, Bash, mcp__dart__resolve_workspace_symbol, mcp__dart__hover, mcp__dart__analyze_files
+tools: Read, Grep, Glob, Bash, mcp__dart__lsp, mcp__dart__analyze_files
 model: sonnet
 ---
 
