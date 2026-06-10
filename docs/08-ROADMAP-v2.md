@@ -1,406 +1,299 @@
-# 08 — Roadmap v2 (reset 2026-05-26 · rewrite 2026-05-27 white-label completo)
+# 08 — Roadmap v2 (fonte única · reescrito limpo 2026-06-06)
 
-> **Estratégia:** **white-label completo do Spoke funcionando 100%** dentro da nossa stack (Flutter + Riverpod + GoRouter + SharedPrefsAsync no mobile; Fastify + TypeBox + Prisma 7 + PostgreSQL + GraphHopper SP-Capital no backend). Quando o app estiver funcionalmente equivalente ao Spoke, Eduardo aplica polish de identidade visual (microcopy PT-BR original + ajustes decorativos + diferenciações de UI) pra não ficar idêntico.
+> **Esta é a fonte única de verdade do M2.** Reescrita limpa em 2026-06-06 sincronizada com o código real (não com descrições antigas). Versões anteriores: `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md` (pré-pivot) e o histórico git desta `-v2` (reset 2026-05-26 → rewrite 2026-05-27 → esta limpeza 2026-06-06).
 >
-> **Catálogo autoritativo de paridade:** [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./inventory/2026-05-26-spoke-vs-rotpro.md). Quando houver qualquer dúvida estrutural → dispatch `spoke-parity-checker` subagent. **Leitura obrigatória antes de qualquer microsprint:** §10/§11 da feature respectiva + §12 (features ausentes do inventário inicial) + §13 (ambiguidades pendentes).
->
-> **Tokens visuais (per ADR-0035):** cores, spacing, radii, shadows, typography, **ícones Lucide** vêm de [`prototipo/tokens.js`](../prototipo/tokens.js) e devem ser usados **desde commit 1** de cada tela. Polish final só substitui microcopy + decoração. NÃO implementar tela com cores/ícones genéricos pra "ajustar depois" — vira retrabalho.
->
-> **Restrições técnicas constantes:**
-> - Distribuição: **APK-only** per [ADR-0014](./decisions/0014-apk-distribution.md) (sem Play Store no M2; sem Google Play Billing forçado)
-> - Cobertura geográfica: **SP-Capital only** per [ADR-0008](./decisions/0008-graphhopper-self-hosted.md) + [ADR-0016](./decisions/0016-tile-server-strategy.md) (GraphHopper + Nominatim self-hosted). Expansão pra Sudeste fica pós-slice-7.
-> - Monetização: **single paid tier R$ 25,90 / 30 dias via Stripe Pix** per [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](./BUSINESS-RULES.md). Trigger paywall = tap em "Iniciar Navegação" (não "Otimizar rota"). Sem free trial, sem free tier limitado.
->
-> **Princípio guia:** spec leve por tela (NÃO microsprint formal), dispatch `spoke-parity-checker` no D1 brainstorming + D4 review de cada PR substancial, smoke E2E no Samsung M54 antes de mergear. Commits pequenos, frequentes, descritivos.
+> **Estratégia (inalterada):** white-label funcional 100% do **Spoke Route Planner B2C** dentro da nossa stack. Quando funcionalmente equivalente, Eduardo aplica polish de identidade visual (microcopy PT-BR original + decoração). NÃO clonar o **Spoke Dispatch** (produto B2B de frota/dispatcher) — ver §"Fronteira B2C/B2B" abaixo.
+
+## Stack travada
+
+| Camada | Tech | Versão real instalada |
+|---|---|---|
+| Mobile | Flutter + Riverpod 3 (`@riverpod` codegen) + GoRouter + Material 3 | **Flutter 3.44.0 / Dart 3.12.0** (floor pubspec `>=3.24.0`) |
+| Pacotes-chave | `flutter_riverpod` 3.0.0 · `go_router` 14.6.0 · `google_maps_flutter` 2.17.1 · `flutter_lints` 5.0.0 + `custom_lint` + `riverpod_lint` | |
+| Backend | Node 20 LTS + Fastify v5 + TypeBox + Prisma 7 + PostgreSQL 16 | |
+| Routing | GraphHopper self-hosted SP-Capital | |
+
+> ⚠️ **3 breaking changes pós-cutoff (Flutter 3.44) que um implementador com cutoff Jan-2026 vai errar** — sempre verificar contra Dart MCP, não memória:
+> 1. `ReorderableListView.onReorderItem` substitui `onReorder` (correção de índice automática) — **Área 7**.
+> 2. `RadioGroup<T>` ancestral substitui `groupValue`/`onChanged` por-Radio — **Áreas 10/11**.
+> 3. `AsyncValue` é selada → `switch` exaustivo sem `default` — **Áreas 7/8/9**.
+
+## Restrições técnicas constantes
+
+- **Distribuição:** APK-only per [ADR-0014](./decisions/0014-android-release-signing.md) (sem Play Store no M2).
+- **Cobertura geográfica:** SP-Capital only per [ADR-0008](./decisions/0008-graphhopper-routing.md) + [ADR-0016](./decisions/0016-map-and-tile-policy.md).
+- **Monetização:** tier único R$ 25,90 / 30 dias via Stripe Pix per [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](./BUSINESS-RULES.md). Trigger paywall = tap em **"Navegar"** no modo delivery (NÃO "Otimizar rota" — otimização é grátis). Sem free trial.
+- **Tokens visuais (per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-reference.md)):** cores, spacing, radii, shadows, typography, ícones Lucide vêm de [`prototipo/tokens.js`](../prototipo/tokens.js) desde commit 1. Polish final só substitui microcopy + decoração.
+
+## Fontes de verdade
+
+- **Estrutura/fatos (O QUÊ existe — dump-first, ADR-0045):** [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) — dump estático do Spoke v3.65.1 (campos, defaults, enums, strings PT-BR verbatim, pacote de código das 20 telas antes "Não drilled"). **Consultar ANTES de qualquer inspeção runtime.**
+- **Comportamento/UX dinâmico (COMO se comporta — confirma o dump):** Spoke ao vivo (M54) + catálogo [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./inventory/2026-05-26-spoke-vs-rotpro.md) (§10/§11/§12/§13). Dispatch `spoke-parity-checker` para CONFIRMAR as hipóteses da MASTER-TABLE onde o campo `Precisa-runtime` indicar, não para descobrir do zero.
+- **Identidade visual:** `prototipo/tokens.js` + `prototipo/ui.jsx`.
+- **Tiebreaker:** cliente Ueslei.
+
+## Fronteira B2C vs B2B (o que NÃO clonar)
+
+Spoke ships dois produtos. Clonamos só o **Route Planner (B2C, motorista solo)**. NÃO clonamos o **Spoke Dispatch (B2B, frota/dispatcher)**: atribuir paradas a outros motoristas, GPS tracking de frota, gestão de equipe/membros, notificações automáticas ao cliente final, páginas de rastreio pro destinatário, dashboards de analytics de equipe, billing por assento. **B2C confirmado por doc oficial (NÃO cortar):** time-window e priority por parada são features do Route Planner solo. A única feature B2B do inventário (max-stops-per-plan) já foi cortada (ADR-0030).
+
+> A sprint de reestruturação (`docs/superpowers/{specs,plans}/2026-06-06-restructure-b2c-clarity-and-harden.md`) cria o boundary doc canônico `docs/inventory/2026-06-06-spoke-b2c-vs-b2b-boundary.md` + ADR-0044. **Esse doc ainda NÃO existe** — até existir, decisões de corte usam os marcadores do inventário + diretivas §7.1. 4 widgets nas Áreas 7/9/11 ficam cortados/postergados por essa regra (ver cada área).
 
 ---
 
-## Slice 1 — APK distribuível ✅ shipped 2026-05-13 (v1.0.0)
+# Visão geral dos 7 slices
 
-Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutter + APK assinado. Closed.
+| Slice | O que é | Estado |
+|---|---|---|
+| **1** | APK distribuível (auth real + landing + GraphHopper + Login/Register + APK assinado) | ✅ shipped 2026-05-13 (`v1.0.0`) |
+| **2** | Telas Core Spoke-aligned (white-label funcional 100%) | 🟡 ~55% — Áreas 1–4 prontas, 3+5 parciais, 6–11 não iniciadas |
+| **3** | Backend real (solver + geocoding + persistência + FCM + reset senha + Google backend) | ⏳ não iniciado |
+| **4** | Stripe Pix paywall (R$ 25,90 / 30 dias, Connect 50/50) | ⏳ não iniciado |
+| **5** | Sentido casa (endereço de casa + solver respeita) | ⏳ não iniciado |
+| **6** | LGPD (export + excluir conta + privacy + terms + licenças) | ⏳ não iniciado |
+| **7** | Painel admin (feature original RotPro — interno, NÃO o dashboard B2B Dispatch) | ⏳ não iniciado |
+
+**Pós-slices:** polish visual final (microcopy PT-BR + decoração + assets + `prototype-fidelity-checker` sweep) → tag `vX.Y.0`.
 
 ---
 
-## Slice 2 — Telas Core Spoke-aligned (em progresso · objetivo: white-label 100% funcional)
+## Slice 1 — APK distribuível ✅ shipped 2026-05-13 (`v1.0.0`)
 
-> **Objetivo:** replicar 100% das telas/fluxos Spoke descobertos na inspeção (inventário §10 + §11 + §12) usando nossa stack + tokens visuais do prototipo. Microcopy PT-BR original. Bypass de paywall durante slice 2 (slice 4 implementa paywall real).
->
-> **Ordem das áreas:** flexível (sem dependências artificiais exceto onde marcado). Sugestão de ordem operacional: Área 1 → Área 2 → Área 3 → Área 4 → Área 5 → Área 6 → Área 7 → Área 8 → Área 9 → Área 10 (polish final).
-
-### Área 1 — Auth (completar UI)
-
-- [ ] **Recuperação de senha (UI)** — tela `/auth/forgot-password` com campo email + CTA "Enviar link". Backend slice 3.
-- [ ] **Google Sign-In (UI)** — botão "Continuar com Google" em `/login` + `/register`. Backend slice 3.
-
-### Área 2 — Rotas (drawer + lista + wizard) — base de tudo
-
-- [ ] **Drawer lateral** — width 90% da tela, scrim 10% direita ("Fechar menu de navegação"), `drawerEnableOpenDragGesture: false` (Spoke não habilita swipe-from-edge). Body com 3 zonas: (a) header user card (avatar + nome + email + plano "Standard · Renova-se em DD/MM/AAAA" — linha plano só pra assinante ativo) + 2 IconButtons topo-direito (Help abre `PopupMenu`, Settings abre tela) + CTA secundário "Assinar" condicional (só visível pra non-subscriber); (b) lista de rotas agrupadas por **4 períodos dinâmicos** ("Próximas rotas" / "Hoje" / "Início desta semana" / "Início deste mês" — ver §11.6 corrigido 2026-05-27); cada item = data abreviada + nome opcional + 3-dot kebab; rota ativa em cor primary (azul); (c) CTA filled primary "Criar rota" pinned no rodapé. Detalhe em inventory §6.2 + §10.1 + §11.6.
-
-- [ ] **Popup 3-dot por rota** — PopupMenu ancorado (não bottom sheet) com 3 ações: "Definir nome e data" / "Duplicar rota" / "Excluir rota". Sem ícones, sem cor destrutiva diferenciada pra "Excluir". Detalhe em inventory §6.2 + §10.2.
-
-- [ ] **Wizard "Criar rota"** — full-screen (NÃO sheet), back-arrow topo-esquerdo. 3 zonas:
-  - Zona A: label "Nome da rota (opcional)" + TextField. Placeholder = auto-gerado pattern "[dia-da-semana] Rota [N]" (incrementa por rota do mesmo dia). Se não editar, placeholder vira nome salvo.
-  - Zona B: label "Selecione a data" + 3 radio-rows: "Hoje" (pré-selecionado, com data inline) / "Amanhã" (data inline) / "Escolher data" + chevron-right → `showDatePicker` Material 3 PT-BR (ver §11.2 pra confirmação que widget nativo replica visual Spoke).
-  - Zona C: label "Opções de início rápido" + checkbox "Reutilizar paradas anteriores" (uncheck default). Quando marcado, CTA muda label e navega pra Área 2.5 (Reutilizar paradas).
-  - CTA filled primary "Confirmar" full-width no rodapé. Tap → cria rota, navega imediatamente pra tela ativa (Área 3). Sem modal de sucesso.
-  - Detalhe em inventory §6.2 + §10.3 (corrected naming).
-
-- [ ] **Form "Definir nome e data"** — reuso da tela Wizard parametrizada por `Route?` (null=create, non-null=edit). Diferenças quando edit: X close (não back-arrow), título "Editar rota", TextField pré-populado com nome atual, sem Zona C, CTA "Salvar alterações". Detalhe em inventory §10.3.
-
-- [ ] **Tela "Reutilizar paradas" + picker rota fonte** — tela full-screen separada acessada via checkbox marcado no wizard OU via CTA secundário "Copiar paradas de uma rota anterior" no empty state da tela ativa. Body: dropdown "De: [data + nome]" (tap → dialog floating com lista DESC todas rotas + status badge) + 3 ExpansionTile com checkbox por categoria ("Paradas não realizadas" / "Paradas puladas" / "Paradas feitas") + microcopy de empty-state quando categoria vazia + CTA "Copiar paradas" pinned no rodapé (disabled se nenhum item selecionado). RotPro deve **excluir rota corrente do picker** (UX melhor que Spoke). Detalhe em inventory §11.3.
-
-- [ ] **Duplicar rota** — ação do popup 3-dot (Área 2 item 2). Backend slice 3 endpoint `POST /routes/:id/duplicate`. UI: tap → cria cópia em estado draft + navega pra tela ativa da nova rota. Sem confirmação visual.
-
-- [ ] **Excluir rota** — ação destrutiva do popup 3-dot. **Comportamento Spoke não confirmado** (gap §13 — confirmar se abre confirm dialog ou delete imediato). RotPro decision: **SIM, abrir AlertDialog** com Cancelar/Excluir (melhor UX que Spoke se Spoke não tiver).
-
-### Área 3 — Tela ativa de rota (mapa + sheet) — core da app
-
-- [ ] **Mapa Google Maps SDK como base layer full-screen** — `google_maps_flutter` package. SP-Capital bounds. Sem navegação interna RotPro (handoff Waze/GMaps per ADR-0010). Detalhe em inventory §10.5.
-
-- [ ] **DraggableScrollableSheet com 2 snap points (estado VAZIO)** — collapsed (~14% altura, só bottom bar visível) + expanded (full-screen abaixo da status bar). Drag handle horizontal pill centered. Detalhe em inventory §6.2bis.
-
-- [ ] **Sheet AUTO-EXPANDED ao entrar rota com paradas** — quando navega pra rota com `route.stops.isNotEmpty`, sheet abre EXPANDED automaticamente (não collapsed). **Correção crítica vs assumption inicial.** Detalhe em inventory §10.5.
-
-- [ ] **Bottom bar collapsed (estado vazio + estado com stops)** — sticky no topo do sheet collapsed E sticky no topo do sheet expanded. Elementos (esq→dir): hamburger float separado (abre drawer) + TextField "Toque para adicionar" + IconButton OCR (a11y "Ler etiqueta de endereço") + IconButton Voice (a11y "Dite o endereço") + IconButton kebab 3-dot (abre menu Área 6). Detalhe em inventory §6.2bis + §10.5.
-
-- [ ] **Floating map controls** — 2 IconButtons no lado direito visíveis com sheet collapsed: (a) Layer toggle "Alternar modo de mapa" (padrão/satélite); (b) Recenter "Alternar para o mapa" (centra no GPS). Detalhe em inventory §6.2bis.
-
-- [ ] **Empty state expanded (rota sem paradas)** — ilustração + microcopy centralizada + 2 CTAs: filled primary "Adicionar paradas" + text-style "Copiar paradas de uma rota anterior". Detalhe em inventory §6.2bis.
-
-- [ ] **Lista de stops expanded (rota com paradas)** — `ListView.builder` com stop cards. Cada card: número badge esquerda (tabular, "01"/"02"...) + título h6 (nome rua) + subtítulo body2 muted (endereço completo) + status icon direita (color dot pending / ✓ delivered / × failed). Container clickable inteiro (tap abre Área 4 Editar parada). **Long-press e swipe NEGATIVOS confirmado** (§10.7 — tap é única gesture). Detalhe em inventory §10.5.
-
-- [ ] **Section "Configuração de rota" inline no sheet** — 3 rows acima da lista de stops (refletem state da Área 5 Detalhes da rota): "Iniciar no local atual" + clock-with-time + home icon; "Ida e volta" + flag icon; "Sem pausa" + coffee-cup icon. Cada row clickable → reabre sub-tela respectiva. Detalhe em inventory §10.5.
-
-- [ ] **Counter "N paradas" no header sheet** — abaixo da bottom bar, h6. Detalhe em inventory §10.5.
-
-- [ ] **CTA "Otimizar rota" sticky bottom** — filled primary full-width, ícone circular-arrows. Sempre visível mesmo com sheet rolando. Tap → entra no flow Área 7 (Otimização). Detalhe em inventory §10.5.
-
-### Área 4 — Adicionar parada (5 métodos)
-
-- [ ] **Tela "Adicionar parada" entry** — full-screen sheet com header sticky (X close + TextField + OCR + Voice IconButtons) + empty state encorajador (3 method shortcut buttons grandes: Mapa / Leitor / Voz). 3 buttons visíveis SÓ quando input vazio + autocomplete sem resultados. Detalhe em inventory §10.21.
-
-- [ ] **Adicionar parada — texto + autocomplete inline** — typing no TextField triggera autocomplete (debounced 300ms). Slice 2 = stub 4-5 endereços hardcoded SP-Capital quando `input.length >= 3`. Slice 3 = Nominatim SP query real. Tap em resultado → cria Stop + fecha sheet + retorna pra tela ativa com marker no mapa + **auto-abre Editar parada via swipe-up sheet** (per §11.4 BIG FIND). Detalhe em inventory §11.4.
-
-- [ ] **Adicionar parada — voz (single-stop)** — tela dedicada `/stops/voice`. Estado idle → recording (com pulse + amplitude) → transcrito (preview editável + confirm/recapture). Use `speech_to_text` package, locale `pt_BR` hardcoded. CTA secundário "fale vários endereços" leva pra multi-stop dictation (slice 3). Detalhe em inventory §3.2 item 10b.
-
-- [ ] **Adicionar parada — OCR single-stop** — tela `/stops/ocr` com camera viewfinder full-screen + capture button + ML Kit text recognition (`google_mlkit_text_recognition`) + tela de confirmação com endereço extraído editável. CTA secundário "ler manifesto" leva pra multi-stop OCR (slice 3). Detalhe em inventory §3.2 item 10.
-
-- [ ] **Adicionar parada — tap no mapa** — tela `/stops/add-map` com full-screen map + crosshair central + bounds SP-Capital + CTA "Adicionar este ponto" pinned bottom. Tap → reverse geocode (Nominatim slice 3 ou stub slice 2) → cria Stop com lat/lng + endereço resolvido. Detalhe em inventory §10.21.
-
-- [ ] **Adicionar parada — CSV upload (postergado pra slice 3)** — kebab da rota → "Importar manifesto de rotas" → file picker (`.csv/.tsv/.xls/.xlsx`) → parser + UI de mapeamento de colunas. Tracking aqui só pra completude do roadmap; **implementação real em slice 3**. Detalhe em inventory §12.A.6.
-
-### Área 5 — Detalhes da rota (pré-flight Partida/Destino/Pausa)
-
-> **Bloqueio §13.C.2:** confirmar se essa tela é FTUE one-time, per-route ou per-session via Maestro MCP (30 min). Se per-route obrigatório, implementar todo o flow. Se FTUE/per-session, RotPro pode pular essa tela (defaults hardcoded sensatos).
-
-- [ ] **Tela "Detalhes da rota"** — full-screen com X close + título "Detalhes da rota" + 3 seções (Partida / Destino / Pausa) + checkbox "Salvar como padrão" CHECKED default + CTA "Concluído" pinned bottom. Detalhe em inventory §10.4.
-
-- [ ] **Sub-tela Partida — "Usar local atual" picker** — escolha entre GPS atual OU endereço custom (abre search picker tipo Área 4 texto). Detalhe em inventory §13.C.2.
-
-- [ ] **Sub-tela Partida — "Iniciar agora mesmo" time picker** — `showTimePicker` Material 3 PT-BR pra setar horário de início diferente do atual. Útil pra solver considerar traffic patterns. Detalhe em inventory §10.4 + §12.B.8.
-
-- [ ] **Sub-tela Destino — "Ida e volta" toggle + endereço** — switch on/off; quando off, mostra endereço custom picker. Quando on, end-point = start-point automaticamente. Detalhe em inventory §10.4 + §12.B.3.
-
-- [ ] **Sub-tela Destino — "Definir horário de término"** — `showTimePicker` Material 3 PT-BR opcional. Hard deadline; solver tenta respeitar. Detalhe em inventory §10.4.
-
-- [ ] **Sub-tela Pausa — "Adicionar pausa" picker** — sheet com (a) horário início pausa via `showTimePicker`; (b) duração (15min/30min/1h/custom). Solver inclui pausa na otimização. Detalhe em inventory §10.4.
-
-### Área 6 — Editar parada (sheet bottom) — 14 campos
-
-> **Bloqueio §13.C.1:** confirmar antes de finalizar spec se Pacotes/Ordem/Tipo são gated por alguma pré-condição (5 hipóteses listadas). **30 min Maestro pra resolver.** RotPro decision se Spoke ambíguo: implementar SEMPRE ativos.
-
-- [ ] **Sheet "Editar parada"** — DraggableScrollableSheet (NÃO route separada do GoRouter). Auto-expanded ao tap em stop card. Top bar do sheet: IconButton "Ajuda e suporte" esquerda + título "Editar parada" centro + CTA "Concluído" primary direita (save + close). Detalhe em inventory §10.6 + §11.1 + §11.5.
-
-- [ ] **Chip color picker (cor da parada)** — chip clickable horizontal-pill com cor selecionada + label cor. Tap → showModalBottomSheet com 5 opções verticais (Azul/Verde-azulado/Roxo/Rosa/Laranja) + CTAs "Limpar" / "Concluído" no topo + tap-to-dismiss area. Detalhe em inventory §11.1.
-
-- [ ] **Chip package ID display** — chip somente display após otimização (ex: "A1"). Pré-otimização provavelmente picker de format (Moderno A1/A2 vs Clássico 1/2 per setting global §3.3 item 19). Gap §13 pra confirmar.
-
-- [ ] **Card endereço (read-mostly)** — título h6 (nome rua) + subtítulo (endereço completo). Não editável inline; usar "Mudar endereço" abaixo.
-
-- [ ] **Botão "Instruções de acesso"** — outlined-style com + icon. Tap → modal/bottom sheet com TextField multiline (4-6 linhas) + label "Instruções de acesso" + checkbox "Salvar como padrão para este endereço" + CTAs Cancelar/Salvar. **CRÍTICO: instruções ficam sticky NO ENDEREÇO, não na parada** — schema slice 3 precisa modelar `address_defaults` table OU `JSONB meta` em `addresses`. Detalhe em inventory §11.1 + docs Spoke.
-
-- [ ] **TextField "Adicionar notas" + IconButton camera attach** — multi-line input livre + botão pra anexar foto (slice 3 POD). Detalhe em inventory §10.6.
-
-- [ ] **Row "Localizador de pacotes"** — tap → picker visual de posição no veículo (gap não drilled; provavelmente grade representando carro). Slice 2: implementar como input texto livre ("Frente direita" / "Atrás esquerda" / etc.). Slice 3+: melhorar pra picker visual. Detalhe em inventory §10.6.2 item 6.
-
-- [ ] **Stepper "Pacotes"** — - / contador / + (default 1, range 1-99). Detalhe em inventory §10.6.
-
-- [ ] **SegmentedButton "Ordem"** — 3 opções: Primeira / **Automática** (default) / Última. Detalhe em inventory §10.6.
-
-- [ ] **SegmentedButton "Tipo"** — 2 opções: **Entrega** (default) / Coleta. Afeta render dos botões de status no modo delivery (Entregue para Entrega, Coletado para Coleta). Detalhe em inventory §10.6 + §12.B.9.
-
-- [ ] **Row "Horário de chegada"** — valor display "Qualquer momento" default. Tap → time range picker (start-end) pra time window constraint do solver. Slice 2: stub picker. Slice 3: solver respeita constraint. Detalhe em inventory §10.6 + §12.B.7.
-
-- [ ] **Row "Tempo estimado na parada"** — valor display "Padrão (1 min)" default (vem do setting global). Tap → picker de minutos (1/2/3/5/10/custom). Override per-stop do setting global. Detalhe em inventory §10.6.
-
-- [ ] **Row "Mudar endereço"** — search icon + chevron right. Tap → re-abre Área 4 (Adicionar parada) em modo "replace existing". Detalhe em inventory §10.6.
-
-- [ ] **Row "Duplicar parada"** — plus icon + chevron right. Cria cópia da Stop + opens Editar da nova. Detalhe em inventory §10.6.
-
-- [ ] **Row "Remover parada"** — trash icon + **texto VERMELHO** + chevron right. **Única ação com cor destrutiva no inventário.** Tap → AlertDialog confirm "Excluir esta parada?" Cancelar/Excluir. Detalhe em inventory §10.6.
-
-### Área 7 — Otimizar rota (3 estados sequenciais)
-
-- [ ] **Modal FTUE "IDs ajustados" (one-time per account)** — full-screen overlay com hero illustration (3 cartões A1/A2/A3) + título h4 + body explicativo + CTA "Entendi" primary + CTA secundário "Configurar..." (abre setting ID format). Flag `bool hasSeenOptimizeFtue` em SharedPrefsAsync. Detalhe em inventory §10.8.
-
-- [ ] **Estado pós-otimização (PRE-CONFIRM)** — mapa ocupa metade superior, polyline azul conectando markers numerados 1-N, auto-zoom na bounding box. Sheet posição mid (não expanded). Nova linha summary acima do título: "X min · N paradas · D km". Section "Configuração de rota" reduzida (Partida + Destino fundidos numa row "Ponto de partida"). Lista de stops em ORDEM OTIMIZADA com chip "A1"/"A2"/"AN" à direita. Detalhe em inventory §10.9.
-
-- [ ] **3 CTAs especializados (substituem "Otimizar rota" do draft)** — Row no rodapé: "X min" (text verde, não-clickable) / "Refinar" (outline, re-roda otimização) / "Confirmar" (filled primary, lock IDs + transita pra Ready-to-Run). Detalhe em inventory §10.9.
-
-- [ ] **Modal FTUE "IDs definitivos" (one-time per account)** — hero illustration (cadeado + ID badges) + título "Os IDs serão definitivos" + body + CTA "Continuar" primary + CTA "Cancelar" text. Flag `bool hasSeenConfirmFtue` em SharedPrefsAsync. Detalhe em inventory §10.10.
-
-- [ ] **Modal FTUE "Carregar veículo?" (one-time per account)** — hero + título "Tudo pronto para carregar o veículo?" + body + CTA "Continuar" primary (abre Load vehicle — OUT-OF-SCOPE M2; deferred) + CTA "Pular" text (skip pra Ready-to-Run state). Flag `bool hasSeenLoadVehicleFtue` em SharedPrefsAsync. Detalhe em inventory §10.11.
-
-- [ ] **Estado "Ready-to-Run"** — sheet ganha 2 botões em row abaixo do título: "Compartilhar rota em tempo real" (outline com share icon — OUT-OF-SCOPE slice 2; postergado pra slice 3 follow-up live tracking) + "Carregar veículo" (outline com truck icon — OUT-OF-SCOPE M2). CTAs bottom: "X min" verde / "Editar" (outline; abre route builder pra add/remove stops) / **"Iniciar rota"** (filled primary; GATEWAY pro modo delivery). Detalhe em inventory §10.12.
-
-### Área 8 — Modo Delivery (running route)
-
-- [ ] **Tela "Modo delivery" — current stop focused** — mapa top metade centrado na parada atual + polyline + 2 markers visíveis (current + finish flag). Hamburger top-left + ETA finish badge top-right "HH:MM" + flag-finish icon. Floating layer + recenter controls mantêm. Detalhe em inventory §10.13.
-
-- [ ] **Sheet "Stop focused"** — topbar: título h1 (nome rua atual) + X close direita (sair do modo delivery, com AlertDialog confirm). Subtitle: "N/total, HH:MM" (progress + horário atual). Detalhe em inventory §10.13.
-
-- [ ] **3 botões status (render conditional por `Stop.type`)** — Row com 3 botões grandes:
-  - **"Navegar"** (filled primary BLUE, SEMPRE renderiza, default selected) — tap → handoff `url_launcher` com `geo:lat,lng?q=address` URI (resolve via Android intent chooser conforme setting "App de navegação" — opções RotPro: GoogleMaps/Waze/Outro per §10.19.1 corrigido).
-  - **"Não entregue"** (outline, SEMPRE renderiza) — tap → marca Failed silenciosamente + auto-advance pra próxima parada pending. **SEM picker de razão** (confirmado §10.14). Slice 3: backend persiste `failureReason: String?` editável retroativamente.
-  - **"Entregue"** (outline, conditional `stop.type == StopType.delivery`) OU **"Coletado"** (outline, conditional `stop.type == StopType.pickup`) — tap → marca Delivered/PickedUp + auto-advance. Sem confirmation.
-  - **PAYWALL TRIGGER:** primeiro tap em "Navegar" verifica `user.isPaid` — se inativo, abre paywall modal slice 4 ANTES de fazer handoff. Per BUSINESS-RULES §5.
-  - Detalhe em inventory §10.13 + §12.B.9.
-
-- [ ] **Lista inline abaixo dos botões** — rows clickable: "Adicionar notas" (note icon) / endereço (map icon) / "A1 Originally Nst" (ID badge + posição original) / "Editar parada" (pencil icon) / "Duplicar parada" / "Remover parada" (red). Detalhe em inventory §10.13.
-
-- [ ] **Marker visual encoding no mapa** — pending = N (azul), failed = Nx (escuro), delivered = N✓ (verde), current = N grande destacado + flag-finish nearby. Use `BitmapDescriptor.fromBytes` com SVG render dinâmico. Detalhe em inventory §10.15.
-
-- [ ] **Estado "Destino final" (Ida e volta retorno)** — após todas paradas marcadas, sheet mostra ponto de retorno: título h1 (endereço start), subtitle "Destino, HH:MM", APENAS 2 botões ("Navegar" filled primary + "Rota concluída" outline com check). Lista inline reduzida (só CEP + "Editar destino"). Detalhe em inventory §10.17.
-
-### Área 9 — Conclusão de rota + outras telas core
-
-- [ ] **Tela "Rota concluída!"** — markers do mapa congelados em estado final (4 paradas com ✓/× indicators). Sheet topbar: summary "Término: HH:MM · 0 parada · 0 m" + IconButton add/search (reabre rota pra adicionar mais paradas) + kebab. Lista de stops com timestamps de conclusão. Card central "Rota concluída!" com check verde + título h2 + stats "N paradas · M perdida(s)" + CTA "Copiar paradas para uma nova rota". Detalhe em inventory §10.18.
-
-- [ ] **Kebab da rota concluída** — exatamente as mesmas 3 opções do popup drawer (§10.2), sem opção extra como "Exportar PDF" ou "Compartilhar resumo". **RotPro OPORTUNIDADE:** adicionar 4º item "Compartilhar resumo" (gap Spoke + alinha com ScreenShare RotPro). Detalhe em inventory §10.20.
-
-- [ ] **Reordenar paradas manual** — drag-to-reorder dentro do sheet expanded (pré-otimização). Use `ReorderableListView`. Slice 2 stub: reordena visualmente; slice 3 persiste no backend. Detalhe em inventory §10.5.
-
-- [ ] **ShareSheet (feature original RotPro)** — recriar tela que existia no slice 1 e foi apagada no reset 2026-05-26. Path: `/settings/share`. WhatsApp send + copy link `roteirizadorpro.com.br/download` + QR code com mesmo link. Detalhe em inventory §4 (feature original).
-
-- [ ] **Menu kebab da rota ativa** — bottom sheet modal com 5 opções: "Compartilhar cópia da rota" (peer transfer pra outro motoboy via QR/link — POSTERGAR pós-M2) / "Transferir paradas" (POSTERGAR) / "Copiar paradas..." (clipboard text export — slice 3) / "Ler manifesto de rotas" (OCR multi-stop — slice 3) / "Importar manifesto de rotas" (CSV upload — slice 3). Slice 2: tela existe mas opções abrem snackbar "Em breve". Detalhe em inventory §6.4 + §12.A.5.
-
-- [ ] **Lista de rotas (RoutesListPage)** — surface alternativa ao drawer pra estados sem rota ativa. Tela full-screen com mesma agrupação dinâmica do drawer + CTA "Criar rota". Detalhe em inventory §6.2.
-
-### Área 10 — Settings completas (13 rows + 4 sections via PreferenceActivity-like)
-
-> **Atenção arquitetural:** Spoke usa PreferenceActivity tradicional Android (não Compose). RotPro implementa equivalente com `ListView` + `ListTile` + `SwitchListTile.adaptive` + section headers via `Padding(Text(...))`. Detalhe em inventory §10.19.
-
-- [ ] **Tela Settings raiz** — Scaffold + AppBar "Configurações" + back arrow. ListView com sections + rows. Detalhe em inventory §10.19.
-
-#### Section "Preferências de rota" (7 rows)
-
-- [ ] **Row "App de navegação"** — picker modal radio list 3 opções RotPro: GoogleMaps (default per ADR-0017) / Waze / **Outro** (Android `ACTION_VIEW` com `geo:` URI = activity chooser do sistema). NÃO replicar "Navegação do Spoke" nem Yandex (§10.19.1 corrigido).
-
-- [ ] **Row "Lado da parada"** — picker modal radio list 3 opções: Qualquer (default) / Direito / Esquerdo. `enum StopSidePreference`.
-
-- [ ] **Row "Tempo médio na parada"** — picker numérico, default 1 min. Valores: 1/2/3/5/10/custom. `int avgStopDurationMinutes`. Override per-stop em Editar parada (Área 6).
-
-- [ ] **Row "Tipo de veículo"** — picker modal radio list **5 opções com ícones + subtitle de restrição**: Bicicleta (subtitle "Somente Google Maps") / Scooter / Carro (default) / Caminhão pequeno / **Caminhão grande NÃO suportado** (GraphHopper SP atual não tem perfil truck-large; pós-M2). Detalhe em inventory §10.19.2.
-
-- [ ] **Row "Evitar pedágios" (switch)** — toggle OFF default. Slice 3 backend: passa `avoid=toll` pro GraphHopper.
-
-- [ ] **Row "ID de parada"** — picker tela com 2 radio groups: "Formato" (Moderno A1/A2 default / Clássico 1/2) + "Atribuir IDs" (Depois da otimização default / Conforme as paradas são adicionadas). Detalhe em inventory §10.6.1.
-
-- [ ] **Row "Balão do modo de navegação" (switch)** — toggle ON default. Mostra overlay com info de entrega durante navegação. **RotPro: SE não temos navegação interna, esse setting fica disabled OU é removido.** Decidir no D1 brainstorming.
-
-#### Section "Preferências gerais" (1 row — OUT-OF-SCOPE)
-
-- [ ] ~~Tema~~ — **DESCARTADO per Eduardo 2026-05-26.** RotPro tem tema único do prototipo (dark per ADR-0035 visual identity). Section "Preferências gerais" inteira pode ser removida se sobrar 0 rows.
-
-#### Section "Assinatura" (1 row)
-
-- [ ] **Row "Comparar planos"** — tela informacional (NÃO picker entre tiers). Mostra: preço único R$ 25,90/30 dias + bullets do que está incluído (acesso ilimitado, suporte, atualizações) + CTA "Assinar agora" (abre paywall slice 4). Per ADR-0030. Detalhe em inventory §12.B.10.
-
-#### Section sem header — rodapé legal (4-5 rows)
-
-- [ ] **Row "Endereço de casa"** — picker de endereço via search (tipo Área 4 texto). Stub slice 2 ("Em breve"), implementação real slice 5.
-
-- [ ] **Row "Indicações"** — leva pra ShareSheet (`/settings/share`).
-
-- [ ] **Row "Licenças"** — tela gerada de `pubspec.lock` + npm deps via `flutter_oss_licenses` package. Slice 6 LGPD.
-
-- [ ] **Row "Política de privacidade"** — link externo ou tela in-app. Slice 6 LGPD.
-
-- [ ] **Row "Termos de uso"** — idem privacidade. Slice 6 LGPD.
-
-- [ ] **Row "Versão"** — display only "RotPro vX.Y.Z" (não-clickable). Versão lida de `package_info_plus`.
-
-- [ ] **Row "Sair" (TEXTO VERMELHO)** — destructive logout. Limpa secure storage + invalida session + navega pra `/login`.
-
-### Área 11 — Notification settings (UI stub slice 2; FCM real slice 3)
-
-- [ ] **Tela "Notificações"** — `/settings/notifications`. 3 toggles: "Lembrete início rota" / "Atualização de status" / "Promoções". Persiste em SharedPrefsAsync. FCM topic subscribe/unsubscribe slice 3.
-
-### Área 12 — Modal upsell contextualizado (OUT-OF-SCOPE slice 2; slice 4)
-
-- [ ] **Modal "Termine mais cedo"** — paywall promotion contextual. Template: "{userFirstName}, chegar cedo a casa." + "Motoristas de {userCity} terminam o trabalho mais cedo com as rotas otimizadas do RotPro." + CTA "Termine mais cedo" (abre paywall) + CTA "Cancelar". Trigger a definir (após N opens? após otimizar?). Detalhe em inventory §10.24.
-
-### ✅ Done quando Slice 2 (TODAS as áreas 1-11) marcadas + `flutter analyze` clean + `flutter test` verdes + smoke E2E completo no Samsung M54 com APK release contra prod API. PR `feat/m2-slice-2-spoke-clone` → develop → tag `v1.1.0`.
+Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutter + APK assinado. Fechado.
 
 ---
 
-## Slice 3 — Backend real (Spoke parity)
+## Slice 2 — Telas Core Spoke-aligned 🟡 em progresso
 
-> **Objetivo:** trocar todos os stubs/mocks do slice 2 por implementação real. Backend Fastify v5 + TypeBox + Prisma 7 contra PostgreSQL 16 + GraphHopper SP-Capital + Nominatim SP-Capital + FCM.
+> **Sprint dedicada de execução:** [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./superpowers/specs/2026-06-06-slice2-completion.md) + [`docs/superpowers/plans/2026-06-06-slice2-completion.md`](./superpowers/plans/2026-06-06-slice2-completion.md). A sprint executa cada área restante com disciplina: websearch/Context7 (boas práticas modernas) → **[Áreas 6–11] consultar a MASTER-TABLE do dump estático (ADR-0045) para as hipóteses estruturais concretas** → dump live fresco da Spoke só daquela área para **CONFIRMAR** (não descobrir greenfield) onde o `Precisa-runtime` indicar → implementa → valida → integration_test. Este roadmap é o catálogo; a sprint é o passo-a-passo.
 
-### Backend core
+### Estado real por área (medido no código 2026-06-06)
 
-- [ ] **`POST /routes/optimize` real** — solver in-process Node TS (nearest-neighbor + 2-opt) contra GraphHopper matrix API. Latência alvo <2s pra ≤20 paradas. Constraints suportadas: start_time, end_time, time_windows (per stop), priority (per stop), avoid_tolls (boolean), vehicle_profile (car/bike/motorcycle/small_truck), home_address (slice 5).
+| Área | Tela | Estado |
+|---|---|---|
+| 1 | Auth (Login/Register) | ✅ pronto · ⏳ falta UI de recuperar-senha + botão Google |
+| 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto |
+| 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~80% — controles de mapa e ações kebab/bottom-bar são stubs `_comingSoon` |
+| 4 | Adicionar parada (texto) | ✅ pronto (usa Google Places **live**, não stub) · ⏳ OCR/Voz/tap-mapa são stubs (Área 7/5) |
+| 5 | Detalhes da rota (Partida/Destino/Pausa) | ✅ **fechada** — MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows+MS8 persistência+MS9 integration_test/D4/editar-remover-pausa (ADR-0049). 1º integration_test do app VERDE no M54. PR aberto. |
+| 6 | Editar parada (sheet, 14 campos) | ⏳ não iniciada |
+| 7 | Otimizar rota (3 estados + 3 modais FTUE) | ⏳ não iniciada |
+| 8 | Modo Delivery (running route) | ⏳ não iniciada |
+| 9 | Conclusão de rota + telas core (ShareSheet, kebab, reordenar, RoutesList) | ⏳ não iniciada |
+| 10 | Settings completas (13 rows) | ⏳ não iniciada |
+| 11 | Notification settings (UI stub) | ⏳ não iniciada |
 
-- [ ] **`POST /geocode` endpoint** — proxy Nominatim self-hosted SP-Capital. Limite N requests/min por user. Cache Redis 24h.
+### Ordem de execução (forçada por dependências — NÃO é livre)
 
-- [ ] **Routes schema** — Prisma migration: `routes` table (id, user_id, name, date, status enum, completed_at, total_stops_count, failed_stops_count, duration_minutes, distance_km, optimized_at, confirmed_at, started_at, vehicle_type, avoid_tolls).
+```
+[✅ FECHADA]     Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência ✅ (FTUE-cut ADR-0047) → MS9 integration_test+D4+editar/remover pausa ✅ (ADR-0049))
+       │        Finalizar gatilhos da Área 3 (Otimizar CTA, tap no stop card, kebab/bottom-bar)
+       ▼
+   Área 6 (Editar parada)  ──► chips A1/A2 e lista inline dependem dela
+       ▼
+   Área 7 (Otimizar rota)  ──► "Iniciar rota" é o gateway pra Área 8
+       ▼
+   Área 8 (Modo Delivery)  ──► estado terminal alimenta Área 9
+       ▼
+   Área 9 (Conclusão + telas core)
 
-- [ ] **Stops schema** — Prisma migration: `stops` table (id, route_id, position_in_route, delivery_id [A1/1 format], type enum [delivery/pickup], status enum [pending/delivered/failed/picked_up], failure_reason, notes, color, packages_count, time_window_start, time_window_end, priority, custom_stop_duration_min, address_id FK, pod_photo_url, status_changed_at, lat, lng).
+[independentes — intercalar a qualquer momento]
+   Área 1 (auth UI leftovers — SEM baseline Spoke, não dispatch parity-checker)
+   Área 10 (Settings) ──► DEVE preceder Área 11 (row Notificações vive dentro de Settings)
+   Área 11 (Notifications — SEM baseline Spoke, UI original derivada da diretiva #9)
+```
 
-- [ ] **Addresses schema (sticky data)** — Prisma migration: `addresses` table com `access_instructions` field per ADR-0010 + meta JSONB column. Tabela `address_defaults` opcional ou JSONB embedded.
+> **2 áreas SEM equivalente Spoke** (Área 1 auth-leftovers + Área 11 notifications): NÃO dispatch `spoke-parity-checker` (não há o que inspecionar). São UI original/derivada — spec por inferência declarada, não por parity.
 
-- [ ] **Reutilizar paradas endpoint** — `POST /routes/:id/copy-stops` aceita source_route_id + filter categories (not_completed/skipped/done). Dedupe por endereço.
+### Gates do Slice 2 (pré-existentes que bloqueiam "Done")
 
-- [ ] **Duplicar rota endpoint** — `POST /routes/:id/duplicate`. Copia metadata + stops; reset status pra draft.
+- [ ] `flutter analyze` clean — hoje **23 lints pré-existentes** (reuse_stops_page ×11, add_stop_map_page ×5, places_repository ×4, drawer ×2, test ×1). A sprint inclui um MS de burn-down OU aceita explicitamente fora-de-escopo.
+- [x] `apps/mobile/integration_test/` existe — **CRIADO** na Área 5 MS9: `area5_route_details_flow_test.dart` (back-stack dos sub-pickers + add/editar pausa, VERDE no M54). Idiom estabelecido (map-free stand-in p/ o deadlock GoogleMap×integration_test, `WidgetsBinding.handlePopRoute()` p/ system-back, font-free theme) p/ as próximas áreas.
+- [ ] `flutter test` ≥ 249 (baseline atual).
 
-### Auth completion
+### Área 1 — Auth (completar UI) · independente · SEM baseline Spoke
 
-- [ ] **Reset senha** — endpoint `POST /auth/forgot-password` (gera token + envia email transacional via Resend ou similar) + endpoint `POST /auth/reset-password` (valida token + atualiza hash).
+- [ ] **Recuperação de senha (UI)** — tela `/auth/forgot-password` (campo email + CTA "Enviar link"). Backend Slice 3. Hoje: SnackBar "em breve" em `login_page.dart:223`.
+- [ ] **Google Sign-In (UI)** — botão "Continuar com Google" em `/login` + `/register`. Backend Slice 3. Apple+Facebook cortados (diretiva #2).
 
-- [ ] **Google Sign-In backend** — Firebase Auth ou Google Identity Services direto (avaliar Context7 antes). Issuer + audience validation; auto-create User se não existir.
+### Área 2 — Rotas (drawer + lista + wizard) ✅ pronto
 
-### Comunicação
+Drawer (90% width, scrim, sem swipe-from-edge) + lista agrupada por 4 períodos dinâmicos + 3-dot popup (Definir nome e data / Duplicar / Excluir) + wizard criar/editar (reusado por `:routeId` path param) + tela Reutilizar paradas. Detalhe inventory §6.2 + §10.1–10.3 + §11.3/§11.6. **Duplicar/Excluir rota e Reutilizar paradas dependem de backend (Slice 3) pra persistir.**
 
-- [ ] **FCM push notifications** — setup Firebase Admin SDK no backend. 3 tópicos: `route_reminders` (lembrete início rota) / `status_updates` (atualização status no app) / `promotions` (paywall upsell). Subscribe/unsubscribe via Notification settings (Área 11 slice 2).
+### Área 3 — Tela ativa de rota (mapa + sheet) 🟡 ~80%
 
-### Voice + OCR multi-stop
+Pronto: GoogleMap base + sheet manual 3-snap (direction-based snap) + search pill + hamburger flutuante → drawer + **seção "Configuração de rota" (2 rows-resumo → página Detalhes; via Área 5 MS7, ADR-0046)**. **Falta wirar (a sprint termina antes de 6/7/9):**
 
-- [ ] **Multi-address dictation** — parser de transcript pra extrair N endereços de uma frase ("Av Paulista 1000, Rua Augusta 500, Rua Iguape 100..."). Splitter por vírgula/conector + geocode batch + UI de confirmação lista.
+- [ ] **Controles de mapa** (layer toggle + recenter) — hoje visual-only stub (`route_shell_page.dart:17`, SnackBar `:205`).
+- [ ] **CTA "Otimizar rota"** sticky bottom → entra na Área 7. Hoje stub.
+- [ ] **Tap no stop card** → abre Área 6 (edit-stop sheet). Hoje SnackBar (`add_stop_page.dart:103`).
+- [ ] **Kebab + bottom-bar actions** → Área 9 surfaces. Hoje `_comingSoon` (`:483`).
 
-- [ ] **Multi-address OCR ("Ler manifesto")** — extrair N endereços de uma foto de lista impressa. ML Kit text recognition + parser de linhas + geocode batch + UI de confirmação.
+> Layout crítico (lição travada): mapa + sheet em `Column { Expanded(GoogleMap), sheet }`, NUNCA `Stack` (o PlatformView do GoogleMap ganha toda arena de gesto).
 
-### CSV import
+### Área 4 — Adicionar parada (texto) ✅ pronto · demais métodos stub
 
-- [ ] **CSV upload endpoint** — `POST /routes/:id/import-stops` aceita multipart file (`.csv/.tsv/.xls/.xlsx`). Parser SheetJS ou similar + UI de mapeamento de colunas (cliente seleciona qual coluna = endereço, qual = notes, etc.) + geocode batch.
+Pronto: texto + autocomplete via **Google Places API live** (`places_repository.dart` — não é stub; herda dependência de API key em runtime). Sealed `AddStopUiState` 5-branch. **Stubs (cada um em PR isolado):**
 
-### CSV export (opcional slice 3 ou pós-M2)
+- [ ] **OCR single-stop** (`/stops/ocr`, ML Kit) — Área 7 / PR isolado.
+- [ ] **Voz single-stop** (`/stops/voice`, `speech_to_text` locale pt_BR) — Área 7 / PR isolado.
+- [ ] **Tap no mapa** (`add_stop_map_page.dart` — hoje grey-box mock `:26`, reverse geocode não wirado) — Área 5 / PR isolado.
+- [ ] **CSV upload** — Slice 3.
 
-- [ ] **CSV export endpoint** — `GET /routes/:id/export.csv`. Schema: route_date, route_name, stop_number, stop_address, stop_eta, driver_name, package_count. Per §12.B.5.
+### Área 5 — Detalhes da rota ✅ FECHADA
+
+Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 body-level, sem AppBar) + Partida picker + TimePickerSheet **numpad 4×3** (ADR-0042, pivot do wheel ADR-0041) + Destino **bottom sheet 3-cards** (ADR-0043 — `RoundTrip` "Voltar ao ponto de partida" / `SpecificAddress` "Destino em outro endereço" / `NoDestination` "Não usar destino"; `BackToStart` removido) + Concluído sempre habilitado + checkbox "Salvar como padrão" **UNCHECKED** (ADR-0043 §Q8). **Falta:**
+
+- [x] **MS6 Sub-tela Pausa** ✅ (2026-06-09, ADR-0044) — página full-screen "Configure a pausa" (NÃO sheet): janela de horário Entre/E (default 08:00–15:00) via numpad reusado + duração em minutos (dialog numérico, default 30; NÃO chips). `BreakConfig` virou janela (`fromTime`/`toTime`/`durationMinutes`). SnackBar interino removido. 261 testes.
+- [x] **MS7 Seção "Configuração de rota" na tela ativa** ✅ (2026-06-10, ADR-0046) — Phase-2 halt corrigiu a premissa do plano: a tela ativa NÃO tinha rows de config (a Spoke mostra **2 rows-resumo** Início + Ida-e-volta, SEM Pausa) e elas abrem a **página Detalhes da rota** inteira, NÃO os sub-pickers direto. Criado `_ConfigSummarySection` em `route_shell_page.dart` (microcopy de resumo distinta da página Detalhes); `RouteDetailsPage` antes órfã agora tem entrypoint de produção. 272 testes.
+- [x] **MS8 Persistência + FTUE-cut** ✅ (2026-06-10, ADR-0047) — DUMP-FIRST: o dump decompilado prova que a Spoke **não tem gate de "primeira rota"** (sem `firstRoute`/`isFirst` em `RouteSetupViewModel`; `ui/onboarding` é survey). **FTUE auto-show CORTADO** (era inferência). Wirado só persistência: "Salvar como padrão" → `merge()` no Concluído (best-effort) + seed da Detalhes do envelope `route_defaults_v1` ao abrir. Q8 UNCHECKED confirmado por pixels. 281 testes.
+- [x] **MS9 integration_test + D4 + editar/remover pausa + PR** ✅ (2026-06-10, ADR-0049) — 1º `integration_test` do app (`area5_route_details_flow_test.dart`, back-stack 5-rotas + add/editar pausa) **VERDE no M54**. D4 **dump-only** (sem poluir conta licenciada) fechou 2 gaps NO MESMO MS: **GAP-1** editar/remover pausa (row existente reabre em edit mode + "Remover pausa" + diálogo de confirmação — dump `BreakSetupArgs.EditBreak`/`UpdateBreak` + strings `break_screen_remove_button`/`remove_break_confirmation_dialog_*`; resultado vira sealed `BreakSchedulerResult`); **GAP-2** "Salvar como padrão" sempre visível (sem gate de 1ª rota, mesmo achado do ADR-0047). 284 testes host. PR aberto.
+
+> Nota §13.C.2 RE-RESOLVIDA (ADR-0047, dump-first): a hipótese "Detalhes da rota é FTUE one-time" era **inferência** — o dump decompilado prova que a Spoke **NÃO tem gate de primeira rota** (sem `firstRoute`/`isFirst`/`hasSeenSetup` em `RouteSetupViewModel`; `ui/onboarding` é survey, não setup). A Detalhes é **on-demand** (aberta pelo resumo "Configuração de rota" da Área 3, ADR-0046), não auto-mostrada. FTUE auto-show **cortado**.
+
+### Área 6 — Editar parada (sheet, 14 campos) ⏳ depende de Área 3 (tap stop card) + Área 4 (Mudar endereço reusa add-stop)
+
+`DraggableScrollableSheet` (NÃO route GoRouter; Área 4 e 6 compartilham a route `/home/routes/add-stop`). Topbar: Ajuda (esq) + "Editar parada" + "Concluído" primary (save+pop). Campos: chip cor (sheet 5 cores) · chip package-ID "A1" (display pós-otimização) · card endereço read-mostly · botão "Instruções de acesso" (2º sheet, **sticky AO ENDEREÇO** não à parada — §13.C.3 resolvida) · notas + camera attach · "Localizador de pacotes" · stepper Pacotes · SegmentedButton Ordem (Primeira/Automática/Última) · SegmentedButton Tipo (Entrega/Coleta) · "Horário de chegada" (B2C) · "Tempo estimado na parada" (default do setting global) · "Mudar endereço" · "Duplicar parada" · "Remover parada" (VERMELHO + AlertDialog confirm). Detalhe §10.6 + §11.1 + §11.5. **§13.C.1 RESOLVIDA: Pacotes/Ordem/Tipo sempre ativos.** SEM picker de razão de falha (é Dispatch B2B).
+
+📊 **Dump (ADR-0045) — consome #4/#5/#6/#7/#8/#9/#10 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** `high` (codar direto) → **#8** Mudar endereço, **#9** Duplicar parada, **#10** Remover parada, **#6** Horário de chegada. `medium` (confirmar range/default ao vivo) → **#4** stepper Pacotes, **#7** Tempo na parada (default vem do setting global da Área 10; é campo DISTINTO da duração de Pausa — Achado #1). `low` (**NÃO codar sem runtime dedicado**, ou cortar B2B) → **#5** Localizador de pacotes.
+
+### Área 7 — Otimizar rota (3 estados + 3 modais FTUE) ⏳ depende de Área 6 (chips) + Área 3 (CTA Otimizar)
+
+Funil: modal FTUE "IDs ajustados" → estado PRE-CONFIRM (mapa metade + polyline + markers 1-N + sheet mid + summary "X min · N paradas · D km" + 3 CTAs: X min verde / Refinar / Confirmar) → modal FTUE "IDs definitivos" → modal FTUE "Carregar veículo?" → estado **Ready-to-Run** (CTAs: X min verde / Editar / **Iniciar rota** = gateway pro modo delivery). 3 flags FTUE em SharedPrefsAsync. Otimização é **grátis** (paywall só em "Navegar"). Detalhe §10.8–10.12.
+
+- ⚠️ **CORTADO (B2B-adjacent):** "Compartilhar rota em tempo real" (live tracking pro cliente final) — OUT-OF-SCOPE Slice 2; postergado.
+- ⚠️ **OUT-OF-SCOPE M2:** "Carregar veículo" (Load vehicle).
+- 📌 **§13.C.4 PENDENTE:** opções do "Refinar" não inspecionadas. Live-inspect no MS; fallback = re-run simples do solver (1 botão), registrado como decisão explícita.
+- 🔧 Usar `ReorderableListView.onReorderItem` (3.44), não `onReorder`.
+
+📊 **Dump (ADR-0045) — consome #20 + #21/#22/#25-Voz da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** **#20** Pular otimização (`medium`) — strings `optimization_failed_*` prontas; agrupar a confirmação do dialog no MESMO drill runtime do "Refinar" (§13.C.4). **#21** OCR / **#22** Importar CSV-PDF / **#25-Voz** — `high` em estrutura MAS dependem de ML Kit + gravação + upload assíncrono (timeout 240s = pressupõe backend Slice 3). **Manter stub no Slice 2; reavaliar pós-Slice 3** (são as features mais caras do app).
+
+### Área 8 — Modo Delivery (running route) ⏳ depende de Área 7 (Iniciar rota)
+
+Foco em UMA parada por vez. Mapa metade superior centrado na parada atual (following) + sheet mid (h1 nome rua + X close + subtitle "N/total, HH:MM"). **3 botões status (conditional por `Stop.type`):** "Navegar" (filled BLUE, sempre, handoff `url_launcher` geo: URI) · "Não entregue" (sempre, marca Failed **silenciosamente** + auto-advance, SEM picker de razão — §10.14) · "Entregue" (se delivery) / "Coletado" (se pickup). Lista inline + marker encoding por status. Estado "Destino final" (retorno Ida e volta): só 2 botões. **PAYWALL TRIGGER:** 1º "Navegar" verifica `user.isPaid` (Slice 4). Detalhe §10.13–10.17.
+
+- 🔧 `AsyncValue.guard` pras mutações de status; `switch` exaustivo na AsyncValue selada.
+- 🔧 Mapa following com `_followUser` flag + `distanceFilter`; pausar camera no pan do usuário.
+
+📊 **Dump (ADR-0045):** o Modo Delivery não estava nas 20 telas "Não drilled", mas o dump REVELOU o `break_detail_sheet` (Pausa DURANTE a entrega: "Faça uma pausa" / "Pausa feita" / "Pular pausa" / "Editar pausa" / "Entre as paradas %1$d e %2$d") — uma surface desta Área que o ADR-0044 (agendamento) não cobre. Ver Achado #1 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md). Drillar ao vivo no MS da Área 8.
+
+### Área 9 — Conclusão + telas core ⏳ depende de Área 8 (estado terminal)
+
+- [ ] **Tela "Rota concluída!"** — markers congelados + summary + card central (check verde + stats "N paradas · M perdida") + CTA "Copiar paradas para nova rota". Spoke conta só Failed em "perdida". Reabrível trivialmente. Detalhe §10.18.
+- [ ] **Kebab da rota concluída** — 3 opções do drawer. **RotPro oportunidade:** 4º item "Compartilhar resumo" (alinha ScreenShare). §10.20.
+- [ ] **Reordenar paradas** — `ReorderableListView.onReorderItem` no sheet expanded. §10.5.
+- [ ] **ShareSheet** (feature original RotPro, apagada no reset) — `/settings/share`: WhatsApp + copy link + QR. §4.
+- [ ] **Menu kebab da rota ativa** — bottom sheet 5 opções. Slice 2: existe mas opções abrem "Em breve". §6.4.
+- [ ] **RoutesListPage** — surface alternativa ao drawer. §6.2.
+
+⚠️ **CORTADAS (B2B-adjacent, postergadas pós-M2):** "Compartilhar cópia da rota" (peer transfer driver-to-driver) + "Transferir paradas" — §6.4. 📌 **§13.C.5 PENDENTE** (semântica das duas).
+
+📊 **Dump (ADR-0045) — consome #17/#18/#19/#23/#24/#25-Duplicar da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** `high` (codar direto) → **#24** Remover paradas (2 branches todas/só-feitas, textos verbatim), **#19** Copiar paradas + **#25** Duplicar rota (fluxo "Manter/Redefinir progresso", alimenta o CTA "Copiar paradas para nova rota"). **#23** Imprimir rota (`high`, baixo esforço Android print) — item NOVO que o dump revelou; **decisão de Eduardo**: incluir como extra B2C ou cortar. **§13.C.5 PODE FECHAR:** o dump confirma que **#17** Compartilhar-cópia e **#18** Transferir são peer-transfer driver-to-driver ("outros usuários do Spoke" / QR code) — o corte está correto (≠ ShareSheet original RotPro em `/settings/share`).
+
+### Área 10 — Settings completas (13 rows) ⏳ independente · precede Área 11
+
+`ListView` + `ListTile`/`SwitchListTile.adaptive` + section headers (equivalente ao PreferenceActivity do Spoke). **Pickers radio: usar `RadioGroup<T>` ancestral (3.44), não groupValue por-Radio.**
+
+- **Preferências de rota (7):** App de navegação (radio: GoogleMaps/Waze/Outro — NÃO Yandex nem "Navegação do Spoke") · Lado da parada (Qualquer/Direito/Esquerdo) · Tempo médio na parada (1/2/3/5/10/custom — alimenta default da Área 6) · Tipo de veículo (5 opções; Caminhão grande NÃO suportado) · Evitar pedágios (switch OFF) · ID de parada (Formato Moderno/Clássico + Atribuir Depois/Conforme) · Balão do modo de navegação (switch — disabled/removido se sem navegação interna; decidir no MS).
+- **Assinatura (1):** Comparar planos — tela informacional do pass único R$ 25,90 (NÃO picker de tiers). Abre paywall (Slice 4).
+- **Rodapé legal:** Endereço de casa (stub, real Slice 5) · Indicações (→ ShareSheet) · Licenças (Slice 6) · Privacidade (Slice 6) · Termos (Slice 6) · Versão (display) · **Sair** (VERMELHO).
+- ❌ **Tema:** DESCARTADO (tema único). Section "Preferências gerais" removível.
+
+📊 **Dump (ADR-0045):** Settings não tem linha-gap própria na [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) (o dump focou no fluxo de rota; Settings é `PreferenceActivity` com XML extraível à parte). **Dependência:** o setting "Tempo médio na parada" (1/2/3/5/10/custom) **alimenta o default do #7** ("Tempo na parada" da Área 6) — implementar Área 10 antes/junto da Área 6 para o default ter origem real, não hard-coded.
+
+Detalhe §10.19 + §10.6.1.
+
+### Área 11 — Notification settings (UI stub) ⏳ depende de Área 10 · SEM baseline Spoke
+
+Tela `/settings/notifications` (row dentro de Settings). 3 toggles persistidos em SharedPrefsAsync: "Lembrete início rota" / "Atualização de status" / "Promoções". FCM real é Slice 3. **NÃO há baseline Spoke** (derivada da diretiva #9 + plano FCM). 📌 Confirmar com Eduardo: "Atualização de status" = self-notification (B2C), NÃO notificar cliente final (B2B).
+
+### ✅ Slice 2 "Done"
+
+Todas as Áreas 1–11 ✅ + `flutter analyze` clean (23 lints zerados) + `flutter test` verde + `integration_test/` existe e passa no M54 + smoke E2E release contra prod API. PR `feat/m2-slice-2-spoke-clone` → tag `v1.1.0`.
 
 ---
 
-## Slice 4 — Stripe Pix paywall
+## Slice 3 — Backend real (Spoke parity) ⏳
 
-Per [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](./BUSINESS-RULES.md). **Modelo já fechado, sem decisões pendentes.**
+Troca todos os stubs/mocks do Slice 2 por implementação real. Fastify v5 + TypeBox + Prisma 7 + PostgreSQL 16 + GraphHopper + Nominatim SP + FCM.
 
-- [ ] **Stripe Connect setup** — conta principal RotPro + connected account do cliente. Separate Charges and Transfers (50/50 split).
-
-- [ ] **`POST /payments/create-pix-intent`** — cria PaymentIntent Stripe com `payment_method_types: ['pix']`. Retorna QR code + copia-e-cola code.
-
-- [ ] **`POST /webhooks/stripe` (idempotente)** — recebe `payment_intent.succeeded` + valida signature + atualiza `User.paidUntil = now() + 30 days` + log audit. Idempotência via `Webhook.eventId` unique.
-
-- [ ] **Modal paywall flow** — full-screen overlay (NÃO sheet). Hero ilustração + título "Roteirizador Pro" + preço "R$ 25,90" hero text + bullets do que inclui + CTA "Pagar com Pix" (gera Pix intent) + tela de QR/copia-e-cola + polling status (`GET /payments/:intent_id/status` cada 3s até succeeded).
-
-- [ ] **Paywall trigger logic** — `PaywallController` checa `user.paidUntil > now()` antes de cada tap em "Navegar" (Área 8). Se inativo, abre modal paywall ANTES de fazer handoff. Per BUSINESS-RULES §5.
-
-- [ ] **Server-side enforcement** — middleware nas rotas críticas (`GET /routes/:id`, `POST /optimize`, etc.) verifica `user.paidUntil`. Se inativo, retorna 402 Payment Required. UI trata 402 → abre paywall.
-
-- [ ] **Modal upsell contextualizado** — implementar §10.24 (template "{userFirstName}, chegar cedo a casa." + "Motoristas de {userCity}..."). Trigger: após otimizar rota se `user.paidUntil == null` (nunca pagou).
+- [ ] **`POST /routes/optimize` real** — solver in-process (nearest-neighbor + 2-opt) contra GraphHopper matrix. <2s pra ≤20 paradas. Constraints: start/end_time, time_windows (per stop), priority (per stop), avoid_tolls, vehicle_profile, home_address (Slice 5). Hoje é **mock** (`apps/backend/src/routes/routes.ts:13` — devolve ordem de entrada, métricas zeradas).
+- [ ] **`POST /geocode`** — proxy Nominatim SP-Capital + cache Redis 24h.
+- [ ] **Routes/Stops/Addresses schema** — migrations Prisma (Stops inclui `time_window_*`, `priority`, `custom_stop_duration_min`, `pod_photo_url`; Addresses inclui `access_instructions` sticky-ao-endereço per Área 6).
+- [ ] **Reutilizar paradas** (`POST /routes/:id/copy-stops`) + **Duplicar rota** (`POST /routes/:id/duplicate`).
+- [ ] **Reset senha** (`POST /auth/forgot-password` + `/reset-password`) + **Google Sign-In backend**.
+- [ ] **FCM push** — Firebase Admin SDK, 3 tópicos (route_reminders/status_updates/promotions).
+- [ ] **Multi-stop Voz + OCR** (dictation N endereços + "ler manifesto").
+- [ ] **CSV import** (`POST /routes/:id/import-stops`) + CSV export (opcional).
 
 ---
 
-## Slice 5 — Sentido casa
+## Slice 4 — Stripe Pix paywall ⏳
 
-Toggle nas settings + campo "Endereço de casa" (já stubbed em Área 10 slice 2). Solver respeita constraint "rota termina mais perto de casa". Per §12.B.3 — feature mais granular que Spoke Roundtrip.
+Per [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](./BUSINESS-RULES.md). Modelo fechado.
+
+- [ ] **Stripe Connect** (conta RotPro + connected do cliente, Separate Charges and Transfers 50/50).
+- [ ] **`POST /payments/create-pix-intent`** (QR + copia-e-cola) + **`POST /webhooks/stripe`** idempotente (`payment_intent.succeeded` → `User.paidUntil = now()+30d`).
+- [ ] **Modal paywall** (full-screen, R$ 25,90 + QR + polling status).
+- [ ] **Trigger logic** (`PaywallController` checa `paidUntil` antes de "Navegar") + **server-side enforcement** (middleware 402).
+- [ ] **Modal upsell contextualizado** (ex-Área 12 — "{userFirstName}, chegar cedo a casa." + "Motoristas de {userCity}..."). Trigger: após otimizar se nunca pagou.
+
+---
+
+## Slice 5 — Sentido casa ⏳
 
 - [ ] **Backend constraint** — solver respeita `user.homeAddress` como end-point quando `route.endNearHome == true`.
-
-- [ ] **UI toggle por rota** — switch em Detalhes da rota (Área 5 slice 2) "Terminar próximo de casa" (default false).
-
----
-
-## Slice 6 — LGPD
-
-- [ ] **Exportar dados** — botão em settings → `GET /users/me/export` retorna JSON com tudo do usuário (routes + stops + addresses + payments).
-
-- [ ] **Excluir conta** — botão em settings (RED + confirm dialog double) → `DELETE /users/me`. Cascade delete tudo + audit log com timestamp + reason.
-
-- [ ] **Página de Política de Privacidade** — tela in-app (não link externo) com Markdown renderizado de `apps/mobile/assets/legal/privacy-policy-pt-BR.md`.
-
-- [ ] **Página de Termos de Uso** — idem privacy.
-
-- [ ] **OSS licenses** — tela gerada via `flutter_oss_licenses` package + npm deps via custom script.
+- [ ] **UI toggle por rota** — switch em Detalhes da rota (Área 5) "Terminar próximo de casa" (default false). Campo "Endereço de casa" já stubbed na Área 10.
 
 ---
 
-## Slice 7 — Admin panel
+## Slice 6 — LGPD ⏳
 
-Subapp Next.js 14 + Tailwind em `apps/admin/` (novo) ou expansão de `apps/landing/`. Auth separada (admin role no User table). Dashboards:
-
-- [ ] MRR (Monthly Recurring Revenue) — total pago no mês baseado em `payments.amount * 0.5` (split RotPro)
-- [ ] Usuários ativos — usuários com `lastActiveAt` nos últimos 7 dias
-- [ ] Paradas processadas no mês — sum `stops.count` em rotas do mês
-- [ ] Rotas otimizadas — count `routes.optimizedAt IS NOT NULL` do mês
-- [ ] Taxa de conversão paywall — `count(users.paidUntil IS NOT NULL) / count(users)`
+- [ ] **Exportar dados** (`GET /users/me/export`) · **Excluir conta** (`DELETE /users/me`, RED + double confirm, cascade + audit) · **Privacidade** + **Termos** (telas in-app Markdown) · **OSS licenses** (`flutter_oss_licenses`).
 
 ---
 
-## ⚠️ Bloqueios conhecidos antes de implementar (ler invent §13)
+## Slice 7 — Admin panel ⏳ (feature ORIGINAL RotPro — NÃO o dashboard B2B Dispatch)
 
-### Resolver ANTES de spec da tela respectiva:
+Subapp Next.js em `apps/admin/` (ou expansão de `apps/landing/`). Auth separada (admin role). Ferramenta interna pros 2 sócios — NÃO exposta ao motoboy, NÃO é o dashboard de frota do Spoke Dispatch.
 
-- **§13.C.1 (🔴 crítico)** — Pacotes/Ordem/Tipo disabled em Editar parada (Área 6). **30 min Maestro** pra testar 4 hipóteses. Bloqueia Área 6.
-- **§13.C.2 (🟡 moderado)** — Detalhes da rota é FTUE ou per-route? **5 min Maestro.** Bloqueia decisão Área 5 (replicar ou pular).
-- **§13.C.3 (🟡 moderado)** — Instruções de acesso UI real desconhecida. **10 min Maestro com endereço conhecido.** Afeta Área 6.
-
-### Resolver oportunisticamente:
-
-- **§13.C.4 (🟢 menor)** — "Refinar" CTA opções. Drillar quando chegar na Área 7.
-- **§13.C.5 (🟢 menor)** — "Compartilhar cópia" vs "Transferir paradas" semântica. Drillar quando chegar na Área 9 kebab.
+- [ ] MRR (`payments.amount * 0.5`) · Usuários ativos (7d) · Paradas processadas/mês · Rotas otimizadas/mês · Taxa de conversão paywall.
 
 ---
 
-## Validação contínua
+## Bloqueios conhecidos (ler inventory §13)
 
-- **`spoke-parity-checker` subagent** ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md)) — dispatch em qualquer dúvida estrutural (upfront durante brainstorming + closing no D4 de cada PR substancial). Per ADR-0037, prefere Maestro MCP pra inspeção (bash fallback).
-
-- **`prototype-fidelity-checker` subagent** — usar **durante implementação** pra validar tokens visuais (cores/spacing/ícones/typography do prototipo) per ADR-0035. NÃO esperar polish final — tokens devem estar corretos commit 1.
-
-- **`flutter-test-author` subagent** — antes de qualquer widget/provider/service novo, dispatch pra escrever failing test primeiro per ADR-0025 + ADR-0031.
-
-- **`flutter-perf-auditor` subagent** — após terminar tela, antes de PR, dispatch pra audit de performance.
-
-- **`adr-guardian` subagent** — antes de PR que toca stack (pubspec/package.json/schema), dispatch pra confirmar ADR existe.
-
-- **M54 device E2E** em cada PR substancial:
-  ```bash
-  bash apps/mobile/scripts/build-release-apk.sh
-  # OR
-  flutter run -d RQCW401G33T --release \
-    --dart-define=API_BASE_URL=https://api.roteirizadorpro.com.br \
-    --dart-define=APP_ENV=production
-  ```
+| Item | Severidade | Estado | Bloqueia |
+|---|---|---|---|
+| §13.C.1 Pacotes/Ordem/Tipo gating | 🔴 | ✅ RESOLVIDO — sempre ativos | Área 6 |
+| §13.C.2 Detalhes da rota FTUE? | 🟡 | ✅ RESOLVIDO (ADR-0047) — SEM gate FTUE; Detalhes é on-demand (dump) | Área 5 |
+| §13.C.3 Instruções de acesso UI | 🟡 | ✅ RESOLVIDO — 2º sheet sticky-ao-endereço | Área 6 |
+| §13.C.4 "Refinar" CTA opções | 🟢 | 📌 PENDENTE — drillar no MS Área 7 | Área 7 |
+| §13.C.5 Compartilhar cópia vs Transferir | 🟢 | 📌 PENDENTE — ambas postergadas | Área 9 |
 
 ---
 
-## Polish final (pós Slice 2-7 completos)
+## Validação contínua (subagents + gates)
 
-Quando white-label completo estiver funcionando, Eduardo aplica manualmente:
-
-- **Microcopy PT-BR original** — substituir labels/CTAs paraphraseados por copy de marca RotPro
-- **Diferenciações decorativas de UI** — animations extras, microinterações, easter eggs que não existem no Spoke
-- **Asset finais** — splash screen, app icon, ilustrações de empty state, marketing screenshots
-- **Validação visual final** — `prototype-fidelity-checker` full sweep + revisão humana de cada tela
-
-> **Importante:** identidade visual base (cores/tipografia/ícones Lucide) já está aplicada desde slice 2 commit 1 per ADR-0035. Polish final é só ajuste fino, não rework de styling do zero.
+- **`spoke-parity-checker`** ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md)) — dispatch UPFRONT (baseline estrutural com tabela `bounds|desc|padrão|widget`, exigir screenshot pixels pra ícones Compose) + D4 closing. **NÃO** pra Áreas 1 e 11 (sem baseline Spoke).
+- **`flutter-test-author`** ([ADR-0025](./decisions/0025-flutter-test-author-subagent.md)) — antes de widget/provider/service novo (TDD opcional).
+- **`flutter-perf-auditor`** — após terminar tela, antes do PR (9-check read-only).
+- **`adr-guardian`** — antes de PR que toca stack (pubspec/package.json/schema).
+- **`prototype-fidelity-checker`** — SÓ no polish visual final.
+- **Hooks automáticos:** `block-env` (PreToolUse, blocking), `format-dart` + `run-riverpod-codegen` (PostToolUse), `analyze-changed-dart` + `check-dto-mirror` + `warn-adr-drift` (Stop, signal-only).
+- **M54 E2E** em cada PR substancial: `bash apps/mobile/scripts/build-release-apk.sh` (já wira `--dart-define`).
 
 ---
 
-## Sem mais (princípios operacionais)
+## Polish visual final (pós Slices 2–7)
 
-- Sem microsprint formal (MS-Ax/MS-Bx) — overhead desnecessário
-- Sem ADR por slice (só pra mudanças de stack)
-- Sem session log por commit (commits descritivos cobrem isso)
-- Sem brainstorm pra cada decisão (Spoke decide; só perguntar quando Spoke não cobre — ver §12 inventory)
-- Sem placeholders genéricos de cor/ícone "pra ajustar depois" — tokens prototipo desde commit 1
+Microcopy PT-BR original + diferenciações decorativas + assets finais (splash/icon/ilustrações) + `prototype-fidelity-checker` full sweep + revisão humana. Identidade base (cores/tipografia/ícones Lucide) já aplicada desde Slice 2 commit 1.
+
+---
+
+## Princípios operacionais
+
+- Spoke decide comportamento/UX; prototipo decide visual; cliente desempata.
+- **Live-inspect por feature no momento da implementação** — baseline de sessão anterior (mesmo existindo, não-zero, nomeado certo) NÃO é confiável (falhas MS4/MS5). Ordem: mapear → live-inspect → implementar → validar.
+- **Zero tech debt por área** — nunca deferir divergência com `// TODO`/`// MS9`; corrigir no mesmo MS ou escalar como BLOCKED.
+- Sem placeholders de cor/ícone "pra ajustar depois" — tokens prototipo desde commit 1.
+- Tokens 3.44 (não memória Jan-2026): `onReorderItem`, `RadioGroup<T>`, `AsyncValue` selada.

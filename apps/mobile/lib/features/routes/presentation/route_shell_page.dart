@@ -6,6 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../route_config/domain/route_config.dart';
+import '../../route_config/presentation/widgets/route_config_row.dart';
+import '../../route_config/state/route_config_controller.dart';
+import '../state/active_route_provider.dart';
 import 'widgets/app_drawer.dart';
 
 /// Shell that hosts the active route's map + sheet.
@@ -46,6 +50,28 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context);
+
+    // ADR-0046: the active-route sheet surfaces a "Configuração de rota"
+    // summary (2 rows: Início + Ida-e-volta) that opens the full Detalhes da
+    // rota page. It exists only when a route is active — when
+    // `activeRouteIdProvider` is null the shell shows the placeholder with no
+    // config section (`active_route_provider.dart` contract).
+    //
+    // Only `activeRouteIdProvider` is watched here (rarely changes, keepAlive).
+    // The per-field RouteConfig watches live INSIDE `_ConfigSummarySection`
+    // (a ConsumerWidget) via `.select`, so a break/time mutation on the
+    // Detalhes page rebuilds the two summary rows — not the whole shell shell
+    // (map + drag geometry).
+    final activeRouteId = ref.watch(activeRouteIdProvider);
+    final Widget? configSummary = activeRouteId == null
+        ? null
+        : _ConfigSummarySection(
+            routeId: activeRouteId,
+            onOpenDetails: () => context.push(
+              '/home/routes/active/$activeRouteId/details',
+            ),
+          );
+
     // Collapsed = handle (24) + pill row height (48 + 16 vertical padding) +
     // bottom system nav inset + a small breathing pad. Não inclui os
     // big buttons — eles só aparecem quando o sheet sobe pra medium+.
@@ -75,52 +101,57 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
       body: Column(
         children: [
           Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: GoogleMap(
-                    mapType: MapType.normal,
-                    initialCameraPosition: _initialPosition,
-                    onMapCreated: (GoogleMapController controller) {
-                      _controller.complete(controller);
-                    },
-                    zoomControlsEnabled: false,
-                    mapToolbarEnabled: false,
-                    myLocationButtonEnabled: false,
-                    compassEnabled: false,
+            // RepaintBoundary isolates the map + static floating chrome from
+            // the per-frame setState the sheet drag fires (onHandleDragUpdate),
+            // so the floating buttons aren't recomposited on every drag frame.
+            child: RepaintBoundary(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: GoogleMap(
+                      mapType: MapType.normal,
+                      initialCameraPosition: _initialPosition,
+                      onMapCreated: (GoogleMapController controller) {
+                        _controller.complete(controller);
+                      },
+                      zoomControlsEnabled: false,
+                      mapToolbarEnabled: false,
+                      myLocationButtonEnabled: false,
+                      compassEnabled: false,
+                    ),
                   ),
-                ),
-                Positioned(
-                  top: mq.padding.top + 12,
-                  left: 16,
-                  child: _FloatingCircleButton(
-                    semanticsLabel: 'Abrir menu',
-                    icon: LucideIcons.menu,
-                    onTap: () => AppDrawer.show(context),
+                  Positioned(
+                    top: mq.padding.top + 12,
+                    left: 16,
+                    child: _FloatingCircleButton(
+                      semanticsLabel: 'Abrir menu',
+                      icon: LucideIcons.menu,
+                      onTap: () => AppDrawer.show(context),
+                    ),
                   ),
-                ),
-                Positioned(
-                  right: 16,
-                  bottom: 12,
-                  child: Column(
-                    children: [
-                      _FloatingCircleButton(
-                        semanticsLabel: 'Alternar modo de mapa',
-                        icon: LucideIcons.layers,
-                        onTap: () =>
-                            _comingSoon(context, 'Alternar modo de mapa'),
-                        iconColor: AppColors.primary,
-                      ),
-                      const SizedBox(height: 12),
-                      _FloatingCircleButton(
-                        semanticsLabel: 'Alternar para o mapa',
-                        icon: LucideIcons.locateFixed,
-                        onTap: () => _comingSoon(context, 'Centrar no mapa'),
-                      ),
-                    ],
+                  Positioned(
+                    right: 16,
+                    bottom: 12,
+                    child: Column(
+                      children: [
+                        _FloatingCircleButton(
+                          semanticsLabel: 'Alternar modo de mapa',
+                          icon: LucideIcons.layers,
+                          onTap: () =>
+                              _comingSoon(context, 'Alternar modo de mapa'),
+                          iconColor: AppColors.primary,
+                        ),
+                        const SizedBox(height: 12),
+                        _FloatingCircleButton(
+                          semanticsLabel: 'Alternar para o mapa',
+                          icon: LucideIcons.locateFixed,
+                          onTap: () => _comingSoon(context, 'Centrar no mapa'),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           AnimatedContainer(
@@ -132,6 +163,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             child: _ActiveRouteSheet(
               currentFraction: clampedFraction,
               collapsedFraction: _collapsedFraction,
+              configSummary: configSummary,
               onHandleDragStart: () {
                 _dragStartFraction = _sheetFraction;
               },
@@ -247,6 +279,7 @@ class _ActiveRouteSheet extends StatelessWidget {
   const _ActiveRouteSheet({
     required this.currentFraction,
     required this.collapsedFraction,
+    required this.configSummary,
     required this.onHandleDragStart,
     required this.onHandleDragUpdate,
     required this.onHandleDragEnd,
@@ -259,6 +292,11 @@ class _ActiveRouteSheet extends StatelessWidget {
 
   /// Fração mínima (collapsed). Usado como ponto de comparação.
   final double collapsedFraction;
+
+  /// "Configuração de rota" summary (ADR-0046), or `null` when there is no
+  /// active route. Rendered inside the medium+ scrollable body, above the
+  /// empty-state/stop-list, mirroring Spoke's `stepList` placement.
+  final Widget? configSummary;
 
   /// Disparado quando o user começa a arrastar a área do handle (parte
   /// superior do sheet, ~24px). O parent guarda a fração atual pra usar
@@ -326,15 +364,33 @@ class _ActiveRouteSheet extends StatelessWidget {
                 ),
               ),
               _buildSearchRow(context),
-              // Spacer expandido — quando o sheet está medium+ hospeda o
-              // empty state da Spoke (dashed pin + microcopy). No collapsed
-              // fica vazio (SizedBox.shrink) pra não ocupar espaço.
+              // Spacer expandido — quando o sheet está medium+ hospeda a seção
+              // "Configuração de rota" (MS-A5.7) + o empty state da Spoke
+              // (dashed pin + microcopy). No collapsed fica vazio
+              // (SizedBox.shrink) pra não ocupar espaço. O corpo é scrollável
+              // pra nunca dar overflow em frações intermediárias (a seção de
+              // config tem altura fixa). No futuro hospeda a lista de stops.
               // Também serve como área de captura de drag (GestureDetector
-              // externo translucent). No futuro hospeda a lista de stops.
+              // externo translucent).
               Expanded(
-                child: showButtons
-                    ? _buildEmptyState(context)
-                    : const SizedBox.shrink(),
+                child: !showButtons
+                    ? const SizedBox.shrink()
+                    : configSummary == null
+                        // No active route: keep the original centered empty
+                        // state (existing Spoke parity, unchanged).
+                        ? _buildEmptyState(context)
+                        // Active route: config summary on top, empty state
+                        // below, in a scroll view so intermediate fractions
+                        // never overflow.
+                        : SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                configSummary!,
+                                _buildEmptyState(context),
+                              ],
+                            ),
+                          ),
               ),
               // Big buttons FIXOS no rodapé. Só renderizados quando o sheet
               // está medium+ (showButtons = true). Sempre respeitam o
@@ -653,5 +709,113 @@ class _GradientCircleButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// "Configuração de rota" summary shown in the active-route sheet (ADR-0046).
+/// Spoke renders a 2-row summary — Início + Ida-e-volta, NO Pausa —
+/// above the stop list; tapping either row opens the full "Detalhes da rota"
+/// page (`RouteDetailsPage`). The summary microcopy is DISTINCT from the
+/// Detalhes-page rows (Spoke uses "Iniciar no local atual" /
+/// "Use a posição do GPS ao otimizar" here, vs "Usar local atual" /
+/// "Iniciar agora mesmo" inside Detalhes — live capture 2026-06-10,
+/// /tmp/spoke-a57-config-rows-inspection/EVIDENCE.md).
+///
+/// A [ConsumerWidget] that watches only the two `RouteConfig` fields it
+/// renders (`startLocation`, `destination`) via `.select`, so a break/time
+/// mutation on the Detalhes page does NOT rebuild the parent shell (map + drag
+/// geometry) — only these two rows. The rows are pure reads; all writes happen
+/// on the Detalhes page via its own sub-pickers, so both rows simply navigate
+/// (no returns-intent — there is no popped result to consume here).
+class _ConfigSummarySection extends ConsumerWidget {
+  const _ConfigSummarySection({
+    required this.routeId,
+    required this.onOpenDetails,
+  });
+
+  final String routeId;
+  final VoidCallback onOpenDetails;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final startLocation = ref.watch(
+      routeConfigControllerProvider(routeId).select((c) => c.startLocation),
+    );
+    final destination = ref.watch(
+      routeConfigControllerProvider(routeId).select((c) => c.destination),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'Configuração de rota',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          RouteConfigRow(
+            semanticsKey: 'config_summary_inicio',
+            label: _inicioLabel(startLocation),
+            subtitle: 'Use a posição do GPS ao otimizar',
+            leading: LucideIcons.house,
+            active: true,
+            onTap: onOpenDetails,
+          ),
+          RouteConfigRow(
+            semanticsKey: 'config_summary_destino',
+            label: _destinoLabel(destination),
+            subtitle: _destinoSubtitle(destination),
+            leading: _destinoIcon(destination),
+            active: true,
+            onTap: onOpenDetails,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Início primary label: the chosen custom address when set, else Spoke's
+  /// GPS placeholder. Matches the active-route summary copy (NOT the Detalhes
+  /// "Usar local atual" / "Iniciar agora mesmo" wording).
+  String _inicioLabel(StartLocation? loc) {
+    if (loc != null && !loc.isUserCurrentLocation) return loc.address;
+    return 'Iniciar no local atual';
+  }
+
+  /// Ida-e-volta primary label, derived from the destination. RoundTrip (the
+  /// `RouteConfig.empty` default) reads "Ida e volta".
+  String _destinoLabel(Destination? destination) {
+    return switch (destination) {
+      null || RoundTrip() => 'Ida e volta',
+      SpecificAddress(:final address) => address,
+      NoDestination() => 'Nenhum destino',
+    };
+  }
+
+  /// Summary subtitle. RoundTrip uses Spoke's active-route copy "Retorne ao
+  /// ponto de partida" (distinct from the Detalhes-page "Viagem de ida e volta
+  /// a partir do local atual"). Other variants have no subtitle.
+  String? _destinoSubtitle(Destination? destination) {
+    return switch (destination) {
+      null || RoundTrip() => 'Retorne ao ponto de partida',
+      SpecificAddress() => null,
+      NoDestination() => null,
+    };
+  }
+
+  IconData _destinoIcon(Destination? destination) {
+    return switch (destination) {
+      null || RoundTrip() => LucideIcons.cornerUpLeft,
+      SpecificAddress() => LucideIcons.mapPin,
+      NoDestination() => LucideIcons.flag,
+    };
   }
 }

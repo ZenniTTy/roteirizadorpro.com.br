@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-05-27 (ADR-0010 Amendments 1+2 — engineering artifacts da inspeção podem entrar no repo livremente; inspeção é escolha do operador. O que rege é apenas o **shipped product** ter identidade visual original per ADR-0035. Trava operacional removida — workflow do `spoke-parity-checker` simplificado, sem cleanup loops nem proibições de extração interna. Previous: ADR-0037 Maestro CLI 2.6 + Maestro MCP adotados como camada preferida; ROADMAP-v2 simplificado; estratégia firme **white-label do Spoke** (100% funcional/estrutural com nossa stack; polish visual no final). Foundational: ADR-0035 pivot + ADR-0036 parity gate.)
+> **Last updated:** 2026-06-10 (ADR-0048 — dump-first vira gate signal-only: hook `warn-dump-first.sh` (Stop) avisa runtime/websearch sem dump antes + SessionStart re-injeta a regra; websearch/Context7 só para libs, não para comportamento Spoke. ADR-0046 config-summary na tela ativa + ADR-0047 persistência route-defaults (FTUE cortado, dump provou que a Spoke não tem gate de 1ª rota). ADR-0045 — dump estático completo do Spoke v3.65.1 como baseline funcional; `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` substitui paráfrase por fato e INVERTE o método: dump-first → runtime-confirm. ADR-0044 Pausa = página full-screen + janela de horário. Previous 2026-06-06: drift sweep — `docs/08-ROADMAP-v2.md` reescrito limpo como fonte única; ADR-0042 numpad + ADR-0043 Destino 3-card sheet. Previous 2026-05-27: ADR-0010 Amendments 1+2 — engineering artifacts da inspeção podem entrar no repo livremente; inspeção é escolha do operador; o que rege é o **shipped product** ter identidade visual original per ADR-0035. Foundational: ADR-0035 pivot + ADR-0036 parity gate + ADR-0037 Maestro MCP.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -28,7 +28,7 @@ Operating manual for AI agents acting on this repository (Claude Code, Cursor, C
 
 This positioning is non-negotiable. See `docs/decisions/0010-clone-positioning.md`.
 
-## Current Focus: M2 (slice 2 — Telas Core, RESET 2026-05-26)
+## Current Focus: M2 — Slice 2 (Telas Core Spoke-aligned, ~55%)
 
 M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-05-13 as `v1.0.0`. **M2 reset 2026-05-26**: branch `chore/m2-reset-to-zero` apagou todo o código slice-2 (29 stops + 1 settings + 1 share) + 37 tests + 12 ADRs específicas + 10 specs/plans + 36 sessions. Estratégia agora firme: **white-label do Spoke** — replicar 100% funcional/estrutural com nossa stack; polish visual no final. Locked order:
 
@@ -40,7 +40,7 @@ M1 was delivered on 2026-05-09. Slice 1 of M2 (Distributable APK) shipped 2026-0
 6. ⏳ Slice 6 — LGPD
 7. ⏳ Slice 7 — Painel admin
 
-**The single source of truth for M2 is [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md)** (simplificado pós-reset). Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta). Catálogo autoritativo de paridade Spoke↔RotPro: `docs/inventory/2026-05-26-spoke-vs-rotpro.md`.
+**The single source of truth for M2 is [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md)** (simplificado pós-reset). Slice-execution discipline lives in `docs/M2-SLICE-CHECKLIST.md`. Cost ceiling in `docs/M2-COST-MODEL.md` (≤ BRL 200/month total infrastructure while in beta). Catálogo autoritativo de paridade Spoke↔RotPro: `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. **Baseline estrutural de FATO (ADR-0045): [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md)** — dump estático do Spoke v3.65.1 (string→recurso→tela→modelo, com defaults/enums/strings verbatim das 20 telas antes "Não drilled"). Consulte-o ANTES da inspeção runtime para qualquer tela Slice 2/3 com equivalente Spoke.
 
 ## Onboarding Ritual
 
@@ -54,12 +54,15 @@ When you start a session in this repo, read in this order:
 6. `TODO.md` — current slice-by-slice state.
 7. `docs/sessions/0001-INDEX.md` — last 5 session logs minimum.
 8. The slice's section in `docs/08-ROADMAP-v2.md` (e.g. "Slice 2 — Spoke-aligned Telas Core"), the matching `prototipo/screens-*.jsx` files (for visual identity only), and the matching section of `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (for functional/behavioral parity baseline).
+   - **8a. The static dump baseline (ADR-0045) — READ THIS FIRST for any Slice 2/3 screen with a Spoke equivalent:** [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md). It holds the structural facts (fields, defaults, enums, exact PT-BR strings, code package) for the 20 screens that were "Não drilled". The dump is the source of *what exists*; runtime inspection (the `spoke-parity-checker` dispatch in §"Spoke deep-dive") only *confirms behavior* where the table's `Precisa-runtime` field says so. This dump-first order is the cure for the ADR-0041/0042/0043/0044 stale-inference rework.
 9. The relevant ADRs (`docs/decisions/0015-*` for the M2 plan, `0016-*` for map/tiles, plus any slice-specific ADRs cross-referenced inside the slice section).
 10. **Recent ADRs (one-time orientation):**
     - **0023–0026 (AI harness):** Dart MCP server (0023), `@riverpod` codegen hook (0024), `flutter-test-author` subagent (0025), `GH_DATA_DIR` infra override (0026). Wired into §"Verify Your Work" and §"In-Loop Auto-Validation" below.
     - **0030 (Stripe Pix):** slice 4 uses **Stripe Connect** with 50/50 split via Separate Charges and Transfers; **R$ 25,90 grants 30 days of access**, renewed via fresh manual Pix each cycle (no Stripe Billing, no Stripe Subscriptions API). Operational rules in `docs/BUSINESS-RULES.md`.
     - **0035 + 0036 (Spoke white-label):** Spoke is the canonical source for behavior/flows; `prototipo/` is canonical for visual identity only (cores, tokens, ícones Lucide); cliente Ueslei is tiebreaker. Dispatch `spoke-parity-checker` subagent upfront during brainstorming + closing at D4 for any slice-2/slice-3 microsprint. See §"Source-of-truth hierarchy" below.
-    - **0037 (Maestro MCP inspection):** `spoke-parity-checker` now **prefers** Maestro MCP (`mcp__maestro__inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`, `list_devices`) for structural extraction. Bash + `adb shell uiautomator dump` remains the documented fallback. Both observe the same Android Accessibility surface, so ADR-0010 legal posture is unchanged. The subagent's report carries an `Inspection path:` line so every dispatch is auditable.
+    - **0037 (Maestro MCP inspection):** `spoke-parity-checker` now **prefers** Maestro MCP (`mcp__maestro__inspect_screen`, `run`, `take_screenshot`, `list_devices`) for structural extraction. Bash + `adb shell uiautomator dump` remains the documented fallback. Both observe the same Android Accessibility surface, so ADR-0010 legal posture is unchanged. The subagent's report carries an `Inspection path:` line so every dispatch is auditable.
+    - **0041–0044 (Área 5 baseline-inference cycle):** four consecutive route-config sub-pickers shipped (or nearly shipped) the WRONG widget from a stale/inferred Spoke baseline, each corrected by a live re-inspection: 0041 wheel→0042 numpad time picker; 0043 Destino = 3-card sheet (not RadioListTile page); 0044 Pausa = full-screen page + time WINDOW + free-integer minutes (not sheet + chips). Same failure mode four times — the reason ADR-0045 exists.
+    - **0045 (Spoke static dump baseline — INVERTS the method):** the recurring "baseline inferido" rework is killed by a complete **static dump** of Spoke v3.65.1 (apktool + jadx, `~/spoke-dump` heavy / [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) light). The 20 "Não drilled" gaps become facts (fields, defaults, enums, verbatim PT-BR strings, code package). **New order: dump FIRST (the what), runtime SECOND (the how — only where the table's `Precisa-runtime` field flags it).** Regenerate via the README in that folder. See §"Source-of-truth hierarchy" + §"Spoke deep-dive" below.
 
 Skipping this ritual is not an option, even if the human seems eager to jump to code. **Five minutes of reading saves five hours of rework.**
 
@@ -67,15 +70,17 @@ Skipping this ritual is not an option, even if the human seems eager to jump to 
 
 Two artifacts, each authoritative only on what it actually governs. When in doubt, ask "is this a behavioral question or a visual question?" and consult the matching source.
 
-1. **Spoke (ex-Circuit Route Planner)** — canonical for **behavior**: which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. The end-user is a delivery rider who already uses Spoke daily; functional parity with Spoke is the contract per ADR-0010 (functional fork). Default inspection is via runtime UX observation on Eduardo's licensed install (Samsung M54); other methods are operator's choice per ADR-0010 Amendment 2.
+1. **Spoke (ex-Circuit Route Planner)** — canonical for **behavior**: which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. The end-user is a delivery rider who already uses Spoke daily; functional parity with Spoke is the contract per ADR-0010 (functional fork). **Inspection method (post-ADR-0045, dump-first):** for any Slice 2/3 screen with a Spoke equivalent, (1) READ the static dump baseline ([`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md)) — structural facts (fields, defaults, enums, exact strings) frozen at v3.65.1; THEN (2) confirm live behavior via runtime UX observation on Eduardo's licensed install (Samsung M54) only where the table's `Precisa-runtime` field flags it. The dump is frozen fact (the *what*); runtime is live confirmation (the *how*). Other extraction methods are operator's choice per ADR-0010 Amendment 2.
 2. **`prototipo/` (Claude Design prototype, client-approved 2026-05-07)** — canonical for **visual identity only**: color tokens (`prototipo/tokens.js`), spacing scale, radii, shadows, typography pairing, icon family (Lucide), animation patterns, decorative creativity. The prototype is a creative reference, not a structural specification.
 3. **Cliente Ueslei** — final tiebreaker on any conflict between the two layers above.
 
-When `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` is the canonical Spoke→implementation mapping per slice.
+When `docs/06-DESIGN-SYSTEM.md` references "the prototype", read it as "the visual identity source"; functional flows and screen presence trace back to Spoke. `docs/inventory/2026-05-26-spoke-vs-rotpro.md` is the canonical Spoke→implementation mapping per slice — and as of **ADR-0045 (2026-06-09)**, its §11 "Não drilled" gaps (#4–#25) are superseded by fact in [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md).
 
-### Spoke deep-dive default behavior (per ADR-0036, amended by ADR-0037 — 2026-05-26)
+### Spoke deep-dive default behavior (per ADR-0036, amended by ADR-0037 — 2026-05-26; dump-first per ADR-0045 — 2026-06-09)
 
-For any **slice-2 (Telas Core) or slice-3 (Real backend) microsprint** whose flow has a Spoke equivalent, the `spoke-parity-checker` subagent is dispatched **proactively and upfront during brainstorming** — BEFORE asking Eduardo UI/UX questions that Spoke already answers structurally. This is the default; do not offer alternatives ("inspect Spoke first or just ask the user?"). The inspection produces a structural baseline that informs the spec, and the same subagent is dispatched again at D4 closing for verification (the gate documented in ADR-0036 and `docs/M2-SLICE-CHECKLIST.md` §Verification).
+**Dump-first (ADR-0045):** for any **slice-2/slice-3 microsprint** with a Spoke equivalent, the FIRST move is to read the static dump ([`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md)) — it already holds the structural baseline (fields, defaults, enums, verbatim PT-BR strings, code package) for the 20 previously "Não drilled" screens. The `spoke-parity-checker` dispatch below then becomes **confirmation of dynamic behavior** (which screen a tap opens, back-stack, animations, disabled states — the table's `Precisa-runtime` column), NOT greenfield discovery. This inversion is the cure for the ADR-0041/0042/0043/0044 stale-inference rework; do not skip the dump and go straight to runtime.
+
+For any **slice-2 (Telas Core) or slice-3 (Real backend) microsprint** whose flow has a Spoke equivalent, the `spoke-parity-checker` subagent is dispatched **proactively and upfront during brainstorming** (now to CONFIRM the dump's facts) — BEFORE asking Eduardo UI/UX questions that Spoke already answers structurally. This is the default; do not offer alternatives ("inspect Spoke first or just ask the user?"). The inspection confirms the dump-derived baseline that informs the spec, and the same subagent is dispatched again at D4 closing for verification (the gate documented in ADR-0036 and `docs/M2-SLICE-CHECKLIST.md` §Verification).
 
 **Inspection path (per ADR-0037):** the subagent prefers **Maestro MCP** (`mcp__maestro__inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`, `list_devices`) because the hierarchy output is structured (paste-verbatim into the inventory; no paraphrasing into existence) and Maestro auto-navigates state coverage that synchronous bash sessions made tedious. When Maestro is unavailable (CLI missing, MCP not connected, driver crash), the subagent falls back to `adb shell uiautomator dump` + `screencap` — same Android Accessibility surface, slower workflow. Per ADR-0010 Amendment 2, other inspection methods (APK inspection, decompilation, resource extraction) are operator's choice when faster than runtime — what matters is what the shipped APK contains, not how we got the information. The chosen path is recorded in every dispatch report's `Inspection path:` line.
 
@@ -156,6 +161,8 @@ Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Pla
 
 Before proposing OR installing any external library/framework, query Context7 (`resolve-library-id` then `query-docs`). Training-data knowledge has a cutoff; Context7 has current docs. **No exceptions for libraries within reach of the cutoff date.** Stdlib and well-established APIs (HTTP, SQL) are exempt.
 
+> **Scope (ADR-0048 — websearch/Context7 only when needed):** Context7 and `WebSearch` answer **library/framework** questions (a new dependency, a post-cutoff API, a modern best-practice for a tool). They are **NOT** the source for **Spoke behavior** — that is **dump-first** (the static dump baseline `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` + `~/spoke-dump/jadx-out` for gating logic), then runtime confirmation. Do not websearch "how does Spoke do X"; read the dump. The `warn-dump-first.sh` Stop hook signals a session that ran runtime/websearch without consulting the dump first. See §"Source-of-truth hierarchy" + ADR-0045/0048.
+
 **Precedence after ADR-0023 (Dart & Flutter MCP server adopted):**
 
 1. **Dart MCP first** — for any symbol, class, or method from a Dart/Flutter package **already installed** in `apps/mobile/pubspec.yaml` (i.e. resolvable from local `.pub-cache/`), use the Dart MCP tools (`resolve_symbol`, `analyze`, etc.) instead of `Read`ing pub-cache files or hitting Context7. The MCP returns the real signature from the local analyzer — zero hallucination, zero token spent on file traversal.
@@ -175,15 +182,18 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - **For mobile TDD (opcional pós-reset), dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point + um hook `block-test-author-impl.sh` em `.claude/hooks/` enforça mecanicamente. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
 - **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit.
 
-### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
+### In-Loop Auto-Validation (ADR-0018 + ADR-0024 + ADR-0048)
 
-Four hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
+Hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
 
 **Stop hooks** (fire once at end of turn, batched across all edits):
 
 - `analyze-changed-dart.sh` — `flutter analyze --no-pub` over `.dart` files edited in `apps/mobile/lib/` this turn.
 - `check-dto-mirror.sh` — warns when an `apps/backend/src/<feature>/schemas.ts` edit lacks its paired Dart DTO update (ADR-0013 contract).
 - `warn-adr-drift.sh` — warns when `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` was edited this turn but no ADR was added/modified.
+- `warn-dump-first.sh` (ADR-0048) — warns when the session ran live Spoke runtime inspection (Maestro/`adb`/`uiautomator`) or a `WebSearch` **without** consulting the static dump baseline (`MASTER-TABLE.md` or a `~/spoke-dump/jadx-out` grep) first this session. The in-loop nudge for dump-first; mirrors `warn-adr-drift`. Exceptions: Áreas without a Spoke baseline (Á1, Á11) and genuinely-new libraries.
+
+**SessionStart hook** (`reinject-roadmap.sh`, matcher `compact`) also re-injects the dump-first + websearch-only-when-needed rule after compaction, so a resumed session stays aware of it.
 
 **PostToolUse hook** (fires per Edit/Write/MultiEdit, debounced):
 
@@ -253,12 +263,14 @@ The detail lives elsewhere. Read these only when the topic is relevant to your c
 - Naming, code style, directory layout → `docs/03-CONVENTIONS.md`
 - Features (canonical business rules) → `docs/04-FEATURES.md`
 - Screens (Spoke catalogue) → `docs/inventory/2026-05-26-spoke-vs-rotpro.md`
+- Spoke static dump (structural baseline, read BEFORE runtime per ADR-0045) → `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` + `docs/inventory/spoke-dump-v3.65.1/README.md` (v3.65.1: strings PT-BR, fields, defaults, enums, code packages; heavy artifacts regenerable from `~/spoke-dump`)
 - Design system → `docs/06-DESIGN-SYSTEM.md`
 - Infrastructure → `docs/07-INFRA.md`
 - M2 roadmap → `docs/08-ROADMAP-v2.md` (v1 archived at `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md`)
 - Disaster recovery → `docs/09-DISASTER-RECOVERY.md`
 - Documentation changelog → `docs/10-CHANGELOG.md`
 - All decisions and their rationale → `docs/decisions/`
+- Retrospective audit reports (read-only punch-lists) → `docs/audits/`
 - Git workflow detail → `CONTRIBUTING.md`
 - Security policy → `SECURITY.md`
 

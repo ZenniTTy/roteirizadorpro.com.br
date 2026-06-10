@@ -6,6 +6,8 @@
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
 > **Sobre escopo:** este inventário é **engineering documentation** que descreve funcionalidades, navegação e estrutura UX da Spoke pra guiar implementação. Quotes Spoke aparecem livremente aqui (engenharia, não shipped product). O que rege legalmente é apenas o **shipped APK** ter identidade visual original per [ADR-0010](../decisions/0010-clone-positioning.md) Decision section + [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (Lucide icons, prototipo tokens, original PT-BR microcopy). Engineering artifacts (este inventário, hierarchy dumps em `docs/inventory/dumps/`, screenshots) podem entrar no repo livremente per ADR-0010 Amendment 1.
 
+> ⚡ **DUMP-FIRST (ADR-0045, 2026-06-09):** este inventário é **paráfrase** (observação runtime). A baseline estrutural de FATO agora é o dump estático em **[`spoke-dump-v3.65.1/MASTER-TABLE.md`](./spoke-dump-v3.65.1/MASTER-TABLE.md)** (string→recurso→tela→modelo, com defaults/enums/strings verbatim). Os 20 gaps "Não drilled" da §11 (#4–#25) estão **superseded** pela MASTER-TABLE — consulte-a PRIMEIRO; este inventário e o runtime confirmam comportamento dinâmico. Ver o banner detalhado na §11 e o `README.md` do dump.
+
 ---
 
 ## ⚠️ Como ler este inventário (post-audit 2026-05-26)
@@ -648,7 +650,7 @@ nav_host (FrameLayout)
 
 **🚨 Gap crítico do inventário existente.** Nenhuma das seções §3/§5/§6 mencionou essa tela. Comportamento observado:
 
-**Trigger:** ao tocar em uma **rota com paradas** no drawer pela primeira vez (não toda vez? requer verificação — pode ser comportamento "uma vez por sessão" ou "até salvar como padrão"). O checkbox `"Salvar como padrão"` na parte de baixo da tela (default CHECKED) sugere que após primeira config, próximas entradas pulam esta tela.
+**Trigger:** ao tocar em uma **rota com paradas** no drawer pela primeira vez (FTUE one-time confirmado — §13.C.2 resolvida; rotas seguintes vão direto pro sheet). O checkbox `"Salvar como padrão"` na parte de baixo da tela (default UNCHECKED per ADR-0043 §4 — re-inspeção live 2026-06-03; esta nota hedge "CHECKED" foi superseded) indica que o usuário opta por persistir a config.
 
 **Estrutura completa (full-screen com ScrollView):**
 
@@ -665,7 +667,7 @@ nav_host (FrameLayout)
 | **Seção "Pausa"** (header `[45,1417][146,1465]`) | | |
 | Row "Adicionar pausa" (placeholder cinza) | `[45,1488][1035,1646]` | clickable + coffee-cup icon + chevron-right |
 | **CTA primary "Concluído"** | `[45,1959][1035,2117]` | Filled-primary, full-width, height 158 |
-| Checkbox `"Salvar como padrão"` | `[244,2124][794,2259]` | CHECKED by default |
+| Checkbox `"Salvar como padrão"` | `[244,2124][794,2259]` | UNCHECKED by default (per ADR-0043 §4 — re-inspeção live 2026-06-03; a nota original "CHECKED" foi superseded) |
 
 **Implicações pro RotPro:**
 
@@ -1803,6 +1805,8 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 
 **Gaps REAIS pendentes (∼25 items, NÃO 13 como §10.22 sub-estimou):**
 
+> ⚡ **ATUALIZAÇÃO 2026-06-09 (ADR-0045 — dump estático):** 20 destes gaps "Não drilled" foram resolvidos por **dump estático completo do Spoke v3.65.1** (apktool + jadx) — NÃO mais por inferência. A baseline de fato (string→recurso→tela→modelo, com defaults/enums/comportamento verbatim) está em **[`spoke-dump-v3.65.1/MASTER-TABLE.md`](./spoke-dump-v3.65.1/MASTER-TABLE.md)**. Status por gap: **17 `high`** (implementáveis, runtime só confirma) · **3 `medium`** (#4/#7/#20 — confirmar range/branch ao vivo) · **1 `low`** (#5 Localizador de pacotes — NÃO codar sem runtime dedicado ou cortar como B2B). A coluna "Bloqueio pra drillar" abaixo está SUPERSEDIDA para os gaps #4–#25; cada um agora tem um campo `Precisa-runtime` na MASTER-TABLE dizendo o que falta confirmar. Regenerar o dump: ver `spoke-dump-v3.65.1/README.md`.
+
 | # | Item | Bloqueio pra drillar |
 |---|---|---|
 | 1 | Pacotes stepper habilitar trigger | Hipóteses não testadas (a-d em §11.5) |
@@ -1820,7 +1824,7 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 | 13 | Detalhes da rota — Iniciar agora time picker | Não drilled |
 | 14 | Detalhes da rota — Ida e volta destination | Não drilled |
 | 15 | Detalhes da rota — Definir horário término | Não drilled |
-| 16 | Detalhes da rota — Adicionar pausa picker | Não drilled |
+| 16 | Detalhes da rota — Adicionar pausa picker | ✅ DRILLED 2026-06-09 (MS-A5.6) — página full-screen "Configure a pausa": janela de horário (Entre/E, default 08:00–15:00) via numpad reusado + duração em minutos (dialog numérico, default 30). Estruturalmente ≠ inferência (era assumido single-time + chips). Ver ADR-0044 + `/tmp/spoke-a56-pausa-inspection/EVIDENCE.md` |
 | 17 | Kebab rota — Compartilhar (ShareSheet?) | Não drilled |
 | 18 | Kebab rota — Transferir paradas | Não drilled |
 | 19 | Kebab rota — Copiar paradas (full flow) | Não drilled |

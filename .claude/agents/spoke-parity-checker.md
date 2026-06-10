@@ -1,7 +1,7 @@
 ---
 name: spoke-parity-checker
-description: Use proactively at TWO points of every slice-2 (Spoke-aligned Telas Core) and slice-3 (Real backend) microsprint — (1) UPFRONT during brainstorming, BEFORE the spec is written, to build a structural baseline that informs the spec and replaces UI/UX questions Spoke already answers; (2) at the D4 review gate, BEFORE opening the slice PR, as the closing functional-parity verification. Both dispatches share the same workflow: inspect the reference app (`com.underwood.route_optimiser` on the connected M54 device) live — preferred via Maestro MCP (`inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`), falling back to `adb shell uiautomator dump` + `screencap` when Maestro is unavailable. Inspect the Roteirizador Pro equivalent flow the same way and produce a categorized punch list of behavioral / structural gaps (must-fix / should-fix / nit). At the upfront dispatch the RotPro side may be empty/stub (microsprint hasn't shipped code yet) — that's expected; the report focuses on Spoke's structural facts. Read-only — does not edit code, does not run tests. Trigger upfront when entering brainstorming for any Spoke-equivalent flow, or at D4 when a microsprint finishes its green pass, or when the user says "spoke check <flow>" / "parity check <flow>" / "inspect spoke <flow>".
-tools: Read, Grep, Glob, Bash, mcp__maestro__inspect_view_hierarchy, mcp__maestro__tap_on, mcp__maestro__back, mcp__maestro__launch_app, mcp__maestro__take_screenshot, mcp__maestro__list_devices
+description: Use proactively at TWO points of every slice-2 (Spoke-aligned Telas Core) and slice-3 (Real backend) microsprint — (1) UPFRONT during brainstorming, BEFORE the spec is written, to build a structural baseline that informs the spec and replaces UI/UX questions Spoke already answers; (2) at the D4 review gate, BEFORE opening the slice PR, as the closing functional-parity verification. Both dispatches share the same workflow: inspect the reference app (`com.underwood.route_optimiser` on the connected M54 device) live — preferred via Maestro MCP (`inspect_screen` for the hierarchy, `run` with inline YAML for launchApp/tapOn/back navigation, `take_screenshot`), falling back to `adb shell uiautomator dump` + `screencap` when Maestro is unavailable. Inspect the Roteirizador Pro equivalent flow the same way and produce a categorized punch list of behavioral / structural gaps (must-fix / should-fix / nit). At the upfront dispatch the RotPro side may be empty/stub (microsprint hasn't shipped code yet) — that's expected; the report focuses on Spoke's structural facts. Read-only — does not edit code, does not run tests. Trigger upfront when entering brainstorming for any Spoke-equivalent flow, or at D4 when a microsprint finishes its green pass, or when the user says "spoke check <flow>" / "parity check <flow>" / "inspect spoke <flow>".
+tools: Read, Grep, Glob, Bash, mcp__maestro__inspect_screen, mcp__maestro__run, mcp__maestro__take_screenshot, mcp__maestro__list_devices
 model: sonnet
 ---
 
@@ -43,9 +43,11 @@ You map the input to one or more concrete user journeys (steps from app launch t
 
 ## Workflow
 
-### Step 1 — Read the inventory first
+### Step 1 — Read the static dump baseline first (per ADR-0045), then the inventory
 
-Open `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Find the section(s) covering the requested flow (§3, §5, §6 are the most relevant). Use this as **prior knowledge** — what's already documented about how Spoke behaves here. If the flow appears in §9's "not inspected" list, that's a flag that this run is also a chance to amend the inventory.
+**Dump-first (ADR-0045):** open `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` and find the row(s) for the requested flow. The dump is the **frozen structural fact** (fields, defaults, enums, verbatim PT-BR strings, code package) for Spoke v3.65.1 — it already resolved the 20 screens that were "Não drilled". Treat each row as the hypothesis to CONFIRM, and read its `Precisa-runtime` field: that tells you exactly which dynamic behavior the runtime inspection below must verify (which screen a tap opens, back-stack, animations, disabled states). If a flow is NOT in the table, or its row is `low` confidence (e.g. #5 Localizador de pacotes), this run is greenfield discovery — proceed as before.
+
+Then open `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (§3, §5, §6 most relevant) as secondary **prior knowledge** (paraphrase). Note: §11's "Não drilled" gaps #4–#25 are superseded by the MASTER-TABLE — prefer the table where they disagree. If the flow appears in §9's "not inspected" list and isn't in the table either, this run is also a chance to amend the inventory.
 
 ### Step 2 — Inspect Spoke
 
@@ -58,12 +60,12 @@ Open `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Find the section(s) coverin
 
 For each step in the user journey:
 
-1. Bring Spoke to the foreground: `mcp__maestro__launch_app` with `appId: "com.underwood.route_optimiser"`.
+1. Bring Spoke to the foreground via `mcp__maestro__run` with inline YAML: `- launchApp: { appId: "com.underwood.route_optimiser" }`.
 2. Navigate to the relevant state. Two options:
-   - **Deterministic taps:** `mcp__maestro__tap_on` (use `id`/`text`/coordinates as documented). `mcp__maestro__back` for back navigation.
+   - **Deterministic taps:** `mcp__maestro__run` with inline YAML — `- tapOn: { id: ... }` / `- tapOn: { text: ... }` / coordinates, and `- back` for back navigation. (Maestro exposes a single `run` tool that executes flow YAML; there are no separate tap/back tools.)
    - **State-setup requires Eduardo's data:** stop and ask the user to bring Spoke to `<state description>`, then re-poll once.
 3. For each visible state:
-   - `mcp__maestro__inspect_view_hierarchy` → returns the structured tree (class, resource-id, content-desc, bounds, clickable). Paste the relevant subtree directly into the report — that is the ground truth.
+   - `mcp__maestro__inspect_screen` → returns the structured view hierarchy (class, resource-id, content-desc, bounds, clickable, as compact JSON). Paste the relevant subtree directly into the report — that is the ground truth. Copy `txt` values verbatim; never author strings from a screenshot.
    - `mcp__maestro__take_screenshot` (optional, for your own visual context) — Maestro writes to `/tmp/spoke-inspection/<flow>-<step>.png`. Commit/embed in the report when the visual clarifies something text can't (ADR-0010 Amendment 1).
 
 #### Fallback path — bash (per ADR-0036)

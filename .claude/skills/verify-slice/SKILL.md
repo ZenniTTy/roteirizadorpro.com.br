@@ -100,7 +100,7 @@ These remain manual — `/verify-slice` does NOT cover them:
 
 - [ ] `aapt2 dump permissions <built APK>` — Android permission audit (requires the built APK).
 - [ ] `apksigner verify --verbose --print-certs <built APK>` — signature audit.
-- [ ] Real-device E2E on Galaxy A06 — 14-step golden path with screenshots.
+- [ ] Real-device E2E on Samsung Galaxy M54 (`RQCW401G33T`) — slice golden path with screenshots.
 - [ ] Backend `curl -i` evidence for any new/changed endpoint — paste into PR body.
 - [ ] Vercel preview deploy SUCCESS (auto-posted by Vercel bot after `gh pr create`).
 

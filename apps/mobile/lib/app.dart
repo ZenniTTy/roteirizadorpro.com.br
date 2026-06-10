@@ -6,6 +6,10 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
+import 'features/route_config/domain/route_config.dart' show BreakConfig;
+import 'features/route_config/presentation/pages/break_scheduler_page.dart';
+import 'features/route_config/presentation/pages/route_details_page.dart';
+import 'features/route_config/state/picker_mode.dart';
 import 'features/routes/presentation/route_shell_page.dart';
 import 'features/routes/presentation/wizard_route_page.dart';
 import 'features/routes/presentation/reuse_stops_page.dart';
@@ -71,6 +75,48 @@ final _routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'map',
                 builder: (_, __) => const AddStopMapPage(),
+              ),
+            ],
+          ),
+          GoRoute(
+            // Full-screen "Detalhes da rota" — opened from active-route
+            // sheet (Area 3, wired in MS7) and from wizard complete FTUE
+            // (wired in MS8). Slice 2 Area 5 spec §Architecture.
+            path: 'routes/active/:routeId/details',
+            builder: (_, state) => RouteDetailsPage(
+              routeId: state.pathParameters['routeId']!,
+            ),
+            routes: [
+              GoRoute(
+                // Partida sub-picker. Reuses AddStopPage with
+                // `PickerMode.startLocation`; the tap on Detalhes da
+                // rota's Partida row pushes this route and awaits a
+                // `StartLocation` (typed pop result).
+                path: 'start-location',
+                builder: (_, __) =>
+                    const AddStopPage(mode: PickerMode.startLocation),
+              ),
+              GoRoute(
+                // Destino sub-picker (card 2 "Destino em outro endereço").
+                // Reuses AddStopPage with `PickerMode.endLocation`; the
+                // Destino sheet pops first, then this route is pushed and
+                // awaits a `SpecificAddress` (typed pop result). ADR-0043.
+                path: 'end-location',
+                builder: (_, __) =>
+                    const AddStopPage(mode: PickerMode.endLocation),
+              ),
+              GoRoute(
+                // Pausa sub-picker — full-screen "Configure a pausa" page.
+                // The "Adicionar pausa" row pushes this with no `extra` (ADD
+                // mode); an existing-break row pushes it with the BreakConfig as
+                // `extra` (EDIT mode → pre-filled + "Remover pausa"). Awaits a
+                // `BreakSchedulerResult` (BreakSaved/BreakRemoved; null on
+                // back/cancel). Spoke renders this as a routed page, not a sheet
+                // (live capture 2026-06-09). ADR-0044 + ADR-0049.
+                path: 'break-scheduler',
+                builder: (_, state) => BreakSchedulerPage(
+                  initialBreak: state.extra as BreakConfig?,
+                ),
               ),
             ],
           ),

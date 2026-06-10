@@ -1,0 +1,237 @@
+# Spec — Area 5 (Slice 2): Detalhes da rota Spoke-aligned
+
+> ⚠️ **PARCIALMENTE SUPERSEDIDO (2026-06-06).** A execução da Área 5 agora é regida por [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./2026-06-06-slice2-completion.md) (microsprints MS-A5.6 … MS-A5.9). **MS1–MS5 + MS-FIX já foram ENTREGUES** (commit `5dea345`, ADR-0042 numpad, ADR-0043 Destino 3-card sheet, MS-FIX audit). Este arquivo permanece como **referência detalhada dos passos MS6–MS9 apenas**; onde ele divergir do ADR-0043 / ADR-0042 / MS-FIX, esses vencem (correções de drift aplicadas 2026-06-06).
+>
+> **Date:** 2026-06-02
+> **Author:** Claude Code (with Eduardo)
+> **Status:** Partially superseded — see banner above
+> **Branch:** `feat/m2-slice-2-area-5-route-details` (off `develop` at `b4d2d0a`)
+> **Source of truth:** `docs/08-ROADMAP-v2.md` "Área 5" + `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §11.4. ROADMAP wins on disagreement.
+> **Spoke baseline captured:** 21 artefatos `/tmp/spoke-a5-*` (XML + PNG; ADR-0037 path = Bash + uiautomator dump fallback).
+
+---
+
+## Context
+
+Slice 2 Area 4 (Add Stop via TEXT) shipped via PR #24 (squash merge 2026-06-01). Area 3 (tela ativa de rota com mapa + sheet) já tem 3 rows de "Configuração de rota" no shell sheet, mas elas são apenas decorativas (sem onTap). Esta Area 5 implementa:
+
+1. A tela "Detalhes da rota" full-screen Spoke-aligned com 3 sections (Partida, Destino, Pausas).
+2. 5 sub-pickers acessíveis dessa tela (Partida-Local, Início-Horário, Destino, Término-Horário, Pausa).
+3. O wire das 3 rows do Area 3 sheet (boundary tocando Area 3, mas escopo Area 5).
+4. Persistência de defaults com `SharedPreferencesAsync` (forward-compat Slice 3).
+5. FTUE trigger — abre "Detalhes da rota" automaticamente ao concluir primeira rota.
+
+**Não implementa nesta Area:** otimização real (Slice 3 solver), "Sentido casa" (Slice 5), tela de edição de parada inline (Area 6 BIG FIND §11.4 — reverte `context.pop()` futuro).
+
+**Validação empírica:** Spoke inspecionado ao vivo no Samsung M54 em 2026-06-01 (sessão de validação pre-approval). 5 sub-pickers + FTUE behavior confirmados antes desta spec.
+
+## Decisions locked
+
+| # | Question | Decision | Rationale |
+|---|---|---|---|
+| Q1 | FTUE — abrir Detalhes da rota automático após primeira rota concluída? | **A — Implementar** | Spoke faz exatamente isso (validado §13.C.2). Aceitação rider: 1 toque a mais na 1ª rota da vida do usuário, 0 toques nas subsequentes. |
+| Q2 | Re-entrada via 3 rows do Area 3 sheet? | **A — Tornar clickable** | Spoke usa essas mesmas rows como gatilho secundário. Boundary tocando Area 3 (3 linhas de código por row). |
+| Q3 | Time picker — qual shape? | **D — Numeric keypad (4×3 grid) via custom Flutter widget, sem package externo** | Paridade Spoke 1:1 (`bsp_time_picker` BottomSheetDialog: 4 linhas × 3 colunas com dígitos 1-9 + `:00` + 0 + `:30` + FAB confirm + backspace + header live-text). Decisão B/C/A (drum/dial/3rd-party) anteriores foram baseadas em inferência; live re-inspection 2026-06-03 (workflow `wrqvzoso8`) provou que Spoke não usa wheel. Ver ADR-0042 (supersedes ADR-0041) e baselines `/tmp/spoke-a5-inspection/step2..step9.png`. |
+| Q4 | Persistência defaults | **A — `SharedPreferencesAsync` com JSON envelope `schemaVersion: 1`** | Mesmo padrão Area 3 (remember-me) e Area 4 (search history). Schema forward-compat com Slice 3 backend RouteDefaults table. |
+| Q5 | Wire 3 rows Area 3 — agora ou polish depois? | **A — Agora (MS7)** | ~3 linhas por row, custo zero. Postergar = risco de esquecer + Eduardo vê app "quebrado" durante demo. |
+| Q6 | Sub-picker Partida/Destino-endereço — reusar `AddStopPage` ou nova rota? | **A — Reusar com `PickerMode` enum** | Spoke literalmente faz isso (mesma tela de search). Economia ~3h. Confirmado ao vivo 2026-06-03: a opção "Destino em outro endereço" do sheet abre a busca full-screen "Insira um endereço" (mesmo pipeline Add Stop). |
+| Q11 | Destino — shape do sub-picker? | **A — Bottom sheet com 3 cards (ADR-0043)** | A spec original dizia página full-screen + 3 `RadioListTile` + AppBar X/Confirmar, baseada em baseline INFERIDO (`/tmp/spoke-a5-destino.png` estava mislabeled — é o numpad, não o Destino). Re-inspeção ao vivo 2026-06-03 (Maestro MCP) provou: é um `design_bottom_sheet` com header "Destino" + botão "Concluído", 3 `CardView` clicáveis (ícone + título + subtítulo), dismiss via tap-outside/Back. Opções: "Voltar ao ponto de partida"/"Ida e volta (recomendado)" (`RoundTrip`), "Destino em outro endereço"/"Digite qualquer endereço" (`SpecificAddress`), "Não usar destino"/"Não recomendado para transportadoras" (`NoDestination` — tipo novo). Domínio alinhado a 3 estados Spoke; `BackToStart` removido. Baseline: `/tmp/spoke-a5-inspection/ms5-live-destino-*.png` + `/tmp/spoke-a5-idaevolta.xml`. Mesmo failure mode da ADR-0042. |
+| Q7 | Pausa — chips de duração hardcoded? | **REFUTADO 2026-06-09 (ADR-0044) — NÃO há chips** | A resposta original (chips 15/30/60 + "Personalizar") era INFERIDA — o picker estava marcado "Não drilled" no §16. Re-inspeção live (Maestro MCP, M54) provou: é uma **página full-screen "Configure a pausa"** (não sheet) com uma **janela de horário** (Entre/E, default 08:00–15:00, via numpad reusado) + **duração em minutos livre** (dialog numérico "Duração da pausa (minutos)", default 30). `BreakConfig` virou janela (`fromTime`/`toTime`/`durationMinutes`). Mesmo failure mode das ADR-0042/0043. Baseline: `/tmp/spoke-a56-pausa-inspection/EVIDENCE.md`. |
+| Q8 | Checkbox "Salvar como padrão" — checked default? | **A — UNCHECKED (false), sobrepondo o 1:1, per ADR-0043 §Decision 4** | Re-inspeção live Spoke 2026-06-03 (ADR-0043 §4) sobrepôs a hipótese inicial "checked": o default é UNCHECKED. Re-confirmar vs conta Spoke fresh em MS-A5.8. |
+| Q9 | Back gesture de Detalhes da rota? | **A — GoRouter padrão (sem lógica custom)** | Spoke usa back nativo Android = pop route. Custom orchestration = risco. |
+| Q10 | Validação "Concluído" — apenas tempo coerente? | **C — Validar só `endTime > startTime`** | Validações de capacidade temporal (drive time vs paradas) deferidas pro Slice 3 solver (não é responsabilidade do client). |
+
+## Goals (acceptance — testável M54)
+
+Um install do APK `v1.1.0-area5` pode, contra produção:
+
+1. Concluir wizard "Criar Rota" pela primeira vez → tela "Detalhes da rota" abre automaticamente (FTUE).
+2. Tap em qualquer row "Configuração de rota" do Area 3 sheet (Partida/Início/Destino) → mesma tela "Detalhes da rota" abre.
+3. Shell "Detalhes da rota" tem "X" flutuante (esquerda, pop pra Area 3) + botão "Concluído" pinned full-width no rodapé, **sempre habilitado** (MS-FIX S2 — não há gating por validade de horário; Spoke renderiza tappable sem horários).
+4. Section "Partida": 2 rows — "Local de início" (atualmente: `Usar local atual`) + "Início" (atualmente: `08:00`). Tap em "Local de início" → AddStopPage em PickerMode.startLocation; tap em "Início" → time picker sheet.
+5. Section "Destino": 1 row "Destino" (atualmente: `Ida e volta` / subtítulo `Viagem de ida e volta a partir do local atual`). Tap → **bottom sheet** "Destino" com 3 cards: "Voltar ao ponto de partida" (`RoundTrip`) / "Destino em outro endereço" (`SpecificAddress`) / "Não usar destino" (`NoDestination`). Ver Q11 + ADR-0043.
+6. Section "Pausas": 0..N rows + CTA "+ Adicionar pausa". CTA abre sub-tela "Configure a pausa" com 2 chip groups (horário + duração).
+7. Checkbox único de nível-página "Salvar como padrão para próximas rotas" (default: DESMARCADO per ADR-0043 §4), abaixo do botão Concluído (NÃO um por section — o shell usa um único checkbox de página).
+8. Tap "Concluído" → persiste config no estado da rota ativa + (se checkbox marcado) atualiza `RouteDefaults` no SharedPrefs → pop pra Area 3 → 3 rows do sheet refletem novos valores.
+9. Criar 2ª rota → wizard pula Detalhes (rota usa defaults persistidos); abrir Detalhes via row do sheet → valores defaults pré-preenchidos.
+10. Time picker "Início" mostra numpad 4×3 (dígitos 1-9, `:00`, 0, `:30`) + header live-text + FAB confirm + backspace (ADR-0042; sem scroll wheel — Spoke usa numpad, confirmado live 2026-06-03 `/tmp/spoke-a5-msfix/timepicker-inicio-header.png`).
+11. Time picker "Término" idêntico ao "Início" (mesmo widget reused).
+12. Bottom sheet "Destino" tem header "Destino" + botão "Concluído" + 3 cards clicáveis (ícone + título + subtítulo), dismiss via tap-outside/Back; card "Destino em outro endereço" abre AddStopPage em PickerMode.endLocation. (Ver Q11 + ADR-0043 — NÃO é página full-screen nem RadioListTile.)
+13. Sub-tela "Adicionar pausa" tem 2 ChoiceChip Wrap (horário: 11:00/12:00/13:00 + Personalizar; duração: 15/30/60min + Personalizar) + Confirmar.
+14. Back gesture Android (3-finger swipe ou botão back) em qualquer sub-picker pop pra "Detalhes da rota"; back em "Detalhes da rota" pop pra Area 3.
+
+### Non-goals
+
+- Backend solver respeitando time windows / break windows (Slice 3).
+- "Sentido casa" toggle ou home address (Slice 5).
+- FTUE modal "primeira rota" tipo onboarding overlay (não tem no Spoke — só abre a tela).
+- Edição de parada inline (Area 6 BIG FIND §11.4 — reverte `context.pop()` no futuro).
+- Multi-route defaults (este app é single active route).
+- Capacidade de pausa custom-duration < 5min ou > 4h (Spoke não tem; defer).
+- Animation transitions custom (paridade Spoke usa `MaterialPageRoute` padrão).
+
+## Architecture
+
+### Mobile feature module (`apps/mobile/lib/features/route_config/`)
+
+```
+apps/mobile/lib/features/route_config/
+├── domain/
+│   ├── route_config.dart                  // sealed (StartLocation, TimeStart, TimeEnd, Destination={RoundTrip,SpecificAddress,NoDestination}, BreakConfig) — ADR-0043
+│   //   └ Destination 3-state aligns to Spoke sheet; BackToStart removed (ADR-0043)
+│   └── route_defaults.dart                // SharedPrefs envelope class
+├── data/
+│   └── route_defaults_repository.dart     // SharedPreferencesAsync read/write
+├── state/
+│   ├── route_config_controller.dart       // @riverpod active route's config
+│   ├── route_defaults_controller.dart     // @riverpod defaults from SharedPrefs
+│   └── picker_mode.dart                   // enum { startLocation, endLocation }
+├── presentation/
+│   ├── pages/
+│   │   ├── route_details_page.dart        // shell full-screen
+│   │   └── break_picker_page.dart         // chips horário + duração
+│   └── widgets/
+│       ├── route_details_section.dart     // section card with title + rows + checkbox
+│       ├── route_config_row.dart          // ListTile-equivalent label + trailing value
+│       ├── time_picker_sheet.dart         // numpad 4×3 (digits + :00/:30 shortcuts + FAB) per ADR-0042
+│       ├── destination_picker_sheet.dart  // bottom sheet, 3 cards + "Concluído" per ADR-0043
+│       └── break_chip_groups.dart         // 2 ChoiceChip Wraps
+```
+
+Tests mirror under `apps/mobile/test/features/route_config/`.
+
+### Other touch points
+
+- **`apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart`** — extend with optional `PickerMode? mode` constructor parameter. When non-null, alters AppBar title + button labels but reuses entire search/typeahead pipeline.
+- **`apps/mobile/lib/features/routes/presentation/widgets/route_sheet.dart`** (Area 3) — wire 3 rows of "Configuração de rota" `onTap: () => context.push('/home/routes/active/details')`.
+- **`apps/mobile/lib/app.dart`** — 6 new GoRoutes (the GoRouter config lives in `app.dart`, not a separate `app_router.dart`):
+  - `/home/routes/active/details` (shell)
+  - `/home/routes/active/details/start-location` → `AddStopPage(mode: startLocation)`
+  - `/home/routes/active/details/time-start` (modal sheet)
+  - `/home/routes/active/details/time-end` (modal sheet)
+  - `/home/routes/active/details/destination`
+  - `/home/routes/active/details/break/:breakIndex?` (`?` = nullable for add-new)
+- **`apps/mobile/lib/features/routes/state/route_creation_controller.dart`** (Area 2 wizard) — after wizard `complete()`, check `routeDefaultsControllerProvider.firstRoute` flag → if true, route to `/home/routes/active/details`.
+
+### Architecture principles
+
+1. **Sealed `RouteConfig` family** — exhaustive switch over 5 sub-states; compiler enforces handling new types if added.
+2. **`RouteDefaults` is a plain immutable class** (not sealed) — single envelope serialized to one SharedPrefs key `route_defaults_v1`.
+3. **`PickerMode` enum + nullable constructor param** — extends existing `AddStopPage` without forking. Behavior changes at AppBar level only.
+4. **Riverpod 3 codegen** for every controller. `family + autoDispose` on per-route config to prevent state leak when switching routes.
+5. **No premature backend coupling** — `RouteDefaults` serialization uses field names identical to future TypeBox schema (Slice 3), but no API call yet.
+
+## Data flow
+
+### Time-coherent validation flow
+
+User changes Início or Término → `routeConfigControllerProvider.notifier.update*()` → state has new `startTime`/`endTime`. The "Concluído" button `onPressed` **ALWAYS dispatches save** (per MS-FIX S2 — never gated). `isRouteConfigValidProvider` / `RouteConfig.isValid` (`endTime > startTime`) stays in the domain for the Slice-3 solver window validation, but does NOT gate the button.
+
+### Save flow
+
+User taps "Concluído" → if `salvarComoPadrao` checkbox marcado per-section → for each true section, build partial `RouteDefaults` patch → `routeDefaultsControllerProvider.notifier.merge(patch)` → write JSON to SharedPrefs under key `route_defaults_v1` → close screen via `context.pop()`.
+
+### FTUE flow
+
+Wizard "Criar rota" completes → `routeCreationControllerProvider.complete()` → reads `routeDefaultsControllerProvider.firstRoute` → if `true` (defaults SharedPrefs envelope absent), pushes `/home/routes/active/details` after route creation, sets flag `firstRoute=false` on first save → subsequent routes skip this push.
+
+### `AddStopPage` reuse flow
+
+`AddStopPage(mode: PickerMode.startLocation)` → AppBar title = "Local de início", action button = "Selecionar"; search pipeline identical (existing Area 4 typeahead). On selection → `Navigator.pop(context, GeocodedAddress(...))` returns to caller (Detalhes da rota), which calls `routeConfigControllerProvider.notifier.setStartLocation(...)`.
+
+## Sub-microsprint plan
+
+Each MS dispatches `spoke-parity-checker` D-mid against `/tmp/spoke-a5/<MS>.png` baseline.
+
+| MS | Scope | Est | Spoke gate |
+|---|---|---|---|
+| Pre-flight | Branch + reread spec/inventory §11.4 | 30min | None |
+| **MS1** | Domain (`RouteConfig` sealed + `RouteDefaults`) + Riverpod controllers + tests | 4h | None (zero UI) |
+| **MS2** | Shell tela `RouteDetailsPage` (topbar + 3 sections + 5 rows + checkboxes + Concluído) | 6h | Screenshot side-by-side `shell.png` |
+| **MS3** | `PickerMode` enum + extend `AddStopPage` (Partida + Destino-select) | 4h | Toolbar OCR side-by-side `partida.png` |
+| **MS4** | `TimePickerSheet` (numpad 4×3 + FAB + backspace) — 2 sub-pickers (Início + Término) reusando o mesmo widget só com título diferente. | 4h | Side-by-side keypad layout + FAB enable/disable vs `/tmp/spoke-a5-inspection/step2..step9.png` |
+| **MS5** | `DestinationPickerSheet` (bottom sheet, 3 cards + "Concluído") + domínio 3-estados (`RoundTrip`/`SpecificAddress`/`NoDestination`, remove `BackToStart`) + wire `endLocation` em `AddStopPage` | 5h | Strings + card order + ícones `ms5-live-destino-sheet.png` (ADR-0043) |
+| **MS6** | `BreakPickerPage` (2 ChoiceChip Wraps + Confirmar) | 5h | Chips horário + duração `pause.png` |
+| **MS7** | Wire Area 3 sheet rows → clickable + show config values | 3h | Row clickable feel |
+| **MS8** | `SharedPreferencesAsync` persistência + FTUE trigger wire | 4h | FTUE behavior empírico |
+| **MS9** | D4 closing parity + Maestro YAML smoke + PR | 4h | Full side-by-side todos 6 estados |
+
+**Estimate:** 40-44h (5-6 dias úteis com revisões).
+
+## Libraries
+
+| Purpose | Package | Version | Cost | Context7 ID |
+|---|---|---|---|---|
+| Numeric keypad time picker | (custom widget — nenhum package externo) | n/a | 0 | stdlib (`GridView` + `StatefulWidget`); ADR-0042 explica por que removemos `wheel_picker` |
+| Radio screen / chips | (Material 3 stdlib) | n/a | 0 | stdlib exception per CLAUDE.md |
+
+No external time-picker package. The numeric keypad is implemented inline as a `StatefulWidget` (~80 LOC) in `time_picker_sheet.dart`.
+
+## ADRs filed during this Area
+
+- ~~**ADR-0041** — `wheel_picker ^0.3.0` adopted for time picker drum widget.~~ Superseded by ADR-0042 on 2026-06-03 (baseline was inferred, not measured; Spoke is numpad).
+- **ADR-0042** — Time picker = numeric keypad, custom widget, no external dependency. Filed 2026-06-03 after live Spoke re-inspection.
+- **ADR-0043** — Destino picker = bottom sheet com 3 action cards; domínio `Destination` alinhado aos 3 estados Spoke (`RoundTrip`/`SpecificAddress`/`NoDestination`, remove `BackToStart`). Filed 2026-06-03 após re-inspeção ao vivo (mesmo failure mode da ADR-0042 — baseline mislabeled).
+
+## Risks and mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Back gesture orchestration breaks on nested routes (6 new routes deep) | `integration_test/route_details_flow_test.dart` em MS9 cobre todos paths |
+| State leak Route A → Route B (config persiste de rota fechada) | `family + autoDispose` em MS1 + isolation unit test |
+| Numpad layout / FAB-enable divergence vs Spoke | `flutter-perf-auditor` em MS4 + screenshot D-mid side-by-side + widget tests on buffer/FAB-enable state (ADR-0042) |
+| SharedPrefs schema drift Slice 3 backend | `schemaVersion: 1` + field names = futuros TypeBox |
+| Compose ImageVector blindspot (uiautomator) recomenda divergência fantasma | Screenshot citation MANDATORY em todos D-mid + D4 (lesson `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`) |
+| Picker reuse (AddStopPage) altera comportamento Area 4 ao adicionar `PickerMode` | `mode` é nullable, default null = comportamento atual; widget + integration tests Area 4 devem continuar passando |
+| `copyWith` em `RouteConfig` nullable fields silently retains old value | Build entity manualmente, NÃO usar copyWith para nullables (lesson `lesson_copywith_nullable_field_pitfall`) |
+| Maestro tap em ListTile rows falha silenciosamente | `Semantics(identifier:)` em todos rows desde MS2 commit 1 (lesson `lesson_maestro_flutter_listtile_tap_needs_semantics`) |
+| FTUE flag false-positive (defaults SharedPrefs absent ≠ first route) | Flag `route_defaults_v1.firstRoute: true` setada explicitamente ao install; testado MS8 |
+| Pausa chips empírico parcial (só vi 08:00 + 15:00 horários, não validei 11/12/13) | Re-dispatch `spoke-parity-checker` MS6 com nova captura `/tmp/spoke-a5-pause-full.xml` antes do commit final |
+
+## Accessibility
+
+1. **Semantics labels** — `Semantics(identifier: 'route_details_row_<key>')` em todos rows. `Semantics(identifier: 'route_details_confirm')` no botão Concluído.
+2. **Tap targets ≥ 48×48dp** — ChoiceChip + RadioListTile já cumprem por default; rows com `ListTile` (height = 56dp).
+3. **WCAG AA contrast** — usar `prototipo/tokens.js` colors (já validado em Areas 2-4); novos pontos só no numeric keypad (verificar contrast digit-text-on-key-background AA + FAB icon-on-primary-fill AA).
+
+## Test strategy
+
+| Layer | Tool | Coverage |
+|---|---|---|
+| Domain | `flutter_test` unit | `RouteConfig` sealed pattern + `RouteDefaults` JSON roundtrip |
+| State (Riverpod) | `flutter_test` + `ProviderContainer` | Controllers update / valid / autoDispose isolation |
+| Widgets | `flutter_test` widget | Each new page renders + interaction shape (no real network) |
+| Repository | `flutter_test` + `SharedPreferencesAsync.setMockInitialValues` | Read/write/missing-envelope behavior |
+| Integration | `integration_test` + M54 | Full FTUE + back gesture chain + persist+restore + reuse pickers Area 4 still works |
+| Smoke E2E | Maestro YAML | `area5_route_details_flow.yaml` covering nav to/from each sub-picker |
+
+**Tech debt explicit** (added to `TODO.md` MS9 commit):
+
+- *2026-06: Solver-side validation (drive time fits in time window) deferred to Slice 3.*
+- *2026-06: Multi-break ordering UI (rearrange list) deferred — Spoke não tem; só add/edit/delete.*
+
+## Verification gates
+
+- [ ] `flutter analyze` clean.
+- [ ] `flutter test` ≥ 105 passing (current 91 + ~14 novos).
+- [ ] `bun run typecheck` clean (backend não muda, mas slice 3 contract field names devem espelhar nomes Q4).
+- [ ] Real-device golden path (14 steps §Goals) capturado screenshot por screen.
+- [ ] `spoke-parity-checker` D4 dispatch reports clean (screenshot pixel evidence rule observado).
+- [ ] `flutter-perf-auditor` dispatch reports clean (numeric keypad — no rebuild storms on digit tap; buffer state local; no `setState` from outside the widget tree).
+- [ ] `adr-guardian` reports clean.
+- [ ] `/verify-slice` GO verdict.
+- [ ] Maestro `area5_route_details_flow.yaml` PASS on M54.
+- [ ] PR body filled per `M2-SLICE-CHECKLIST.md`.
+
+## References
+
+- `CLAUDE.md` — operating manual + Karpathy 4 + ADR-0035 source-of-truth hierarchy.
+- `docs/08-ROADMAP-v2.md` "Área 5".
+- `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §11.4 (Detalhes da rota) + §13.C.2 (FTUE confirmation).
+- `prototipo/tokens.js` — visual identity.
+- `prototipo/tokens.js` + `prototipo/ui.jsx` — visual identity reference (cores, spacing, ícones Lucide, tipografia) per ADR-0035. (Não existe `screens-route-config.jsx`; as telas do protótipo são `screens-a..e.jsx`.)
+- ADR-0010 (functional fork), ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ~~ADR-0041 (wheel_picker — superseded)~~, ADR-0042 (numpad supersedes 0041 — Spoke fidelity after live re-inspection 2026-06-03).
+- `/tmp/spoke-a5-*` 21 artefatos baseline captured 2026-06-01.
+- Memory: `lesson_uiautomator_blindspot_compose_imagevectors`, `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`, `lesson_copywith_nullable_field_pitfall`, `lesson_maestro_flutter_listtile_tap_needs_semantics`, `lesson_slice_checklist_integration_test_gate`, `lesson_checkpoint_discipline_between_microsprints`, `lesson_git_diff_head_before_commit_after_workflows`.
+- Context7: `/jaweii/flutter_wheel_picker` (queried 2026-06-01 — irrelevant after ADR-0042; dependency removed 2026-06-03).
+- Live Spoke baseline for time picker (numpad): `/tmp/spoke-a5-inspection/step2-time-iniciar.png` (empty state), `step3-type1.png` (digit `1` typed), `step4-typed-1030.png` (`10:30` formed), `step5-after-confirm-iniciar.png` (Detalhes da rota row updated), `step6-time-termino.png` (Término picker — same widget, different title), `step9-reinspect-inicio.png` (confirms picker reopens empty, not pre-filled).

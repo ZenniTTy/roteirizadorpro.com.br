@@ -1,7 +1,7 @@
 ---
 name: flutter-perf-auditor
 description: Use proactively after implementing or modifying any screen in apps/mobile/lib/ — especially slice-2 (Telas Core) and slice-3 (VRP) work that involves lists, maps, or heavy data parsing. Reports performance issues as a categorized punch list (must-fix / should-fix / nit). Does NOT edit code. Read-only. Trigger when the user finishes a screen, says "audit perf" or "perf check", or before any mobile-UI PR is created.
-tools: Read, Grep, Glob, Bash, mcp__dart__resolve_workspace_symbol, mcp__dart__hover, mcp__dart__analyze_files
+tools: Read, Grep, Glob, Bash, mcp__dart__lsp, mcp__dart__analyze_files
 model: sonnet
 ---
 
@@ -111,7 +111,7 @@ A single Markdown report. Always include all four sections, even if empty:
 
 2. **Run `flutter analyze --no-pub`** once for the project. Capture the output. The `prefer_const_*` lints feed §2 directly. Do not run any other build or test command.
 
-3. **Walk the checklist top to bottom** for each in-scope file. Use Grep for the regex hints. Use the Dart MCP (`resolve_workspace_symbol`, `hover`) only when you need to confirm a symbol's actual signature — never invent API surface.
+3. **Walk the checklist top to bottom** for each in-scope file. Use Grep for the regex hints. Use the Dart MCP `lsp` tool (`command: resolveWorkspaceSymbol` / `hover`) only when you need to confirm a symbol's actual signature — never invent API surface.
 
 4. **Quote, don't paraphrase.** Every punch-list item must include the exact line number + snippet. If you can't quote it, do not include it.
 

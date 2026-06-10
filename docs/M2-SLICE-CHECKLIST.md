@@ -5,13 +5,16 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 ## Antes de qualquer trabalho num slice
 
 - [ ] Ler `CLAUDE.md`, `docs/08-ROADMAP-v2.md` (a seção do slice), `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (as seções funcionalmente relevantes).
-- [ ] M54 conectado (`adb devices` mostra `RQCW401G33T`). Spoke logado pra inspeção.
+- [ ] **Para telas com equivalente Spoke: consultar [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) PRIMEIRO** (ADR-0045, dump-first) — string→recurso→tela→modelo com defaults/enums/strings verbatim das 20 telas. A baseline estrutural sai do dump; o runtime só confirma o que o `Precisa-runtime` da linha indicar. É a inversão que evita a inferência que custou ADR-0041/0042/0043/0044.
+- [ ] **Pergunta de COMPORTAMENTO/GATE da Spoke (existe flag X? qual o default? qual branch?) → grep o dump pesado `~/spoke-dump/jadx-out` ANTES de ir ao runtime** (ADR-0047/0048). O código decompilado responde gating/lógica que a tabela light não carrega — e evita poluir a conta Spoke licenciada com estado de teste. Foi assim que o FTUE da Detalhes foi cortado (ADR-0047).
+- [ ] **websearch/Context7 só quando necessário** (ADR-0048): são para **bibliotecas** (dep nova ou API pós-cutoff), NÃO para comportamento Spoke. O Stop hook `warn-dump-first.sh` avisa quem rodou runtime/websearch sem consultar o dump antes (signal-only). Exceções: Á1/Á11 (sem baseline Spoke) e libs genuinamente novas.
+- [ ] M54 conectado (`adb devices` mostra `RQCW401G33T`). Spoke logado pra inspeção (confirmação runtime).
 - [ ] `git status` em develop está limpo. Branch nova `feat/m2-slice-N-<topic>`.
 
 ## Implementação
 
 - [ ] **Tela por tela.** Cada tela do Spoke vira um ciclo curto: olha como Spoke faz → implementa com nossa stack → testa no M54 → commit. Sem subdividir em microsprints A/B.
-- [ ] **Inventário descreve, Spoke decide.** Antes de escrever spec de QUALQUER tela Spoke-aligned, dump live obrigatório do Spoke no estado-alvo (collapsed/expanded/empty/populated). Comando padrão:
+- [ ] **MASTER-TABLE primeiro, dump live confirma (ADR-0045).** Para telas cobertas pela [`MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md), a estrutura (campos/defaults/enums/strings) já é fato do dump estático — o dump live runtime CONFIRMA comportamento dinâmico, não descobre estrutura. Para telas FORA da tabela (ou linha `low` como #5 Localizador de pacotes), vale o protocolo clássico abaixo. **Inventário descreve, Spoke decide.** Antes de escrever spec de QUALQUER tela Spoke-aligned, dump live obrigatório do Spoke no estado-alvo (collapsed/expanded/empty/populated). Comando padrão:
   ```bash
   adb -s RQCW401G33T shell uiautomator dump /sdcard/spoke-<state>.xml
   adb -s RQCW401G33T pull /sdcard/spoke-<state>.xml /tmp/
@@ -32,10 +35,11 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 
 ## Antes de PR
 
-- [ ] `cd apps/mobile && flutter analyze` clean.
-- [ ] `cd apps/mobile && flutter test` passa.
+- [ ] `cd apps/mobile && flutter analyze` clean. **NOTA:** o baseline tem 23 lints pré-existentes (ver ROADMAP-v2 §Gates do Slice 2); o gate é **nenhum lint NOVO** da sua mudança, não zero total — até o MS de burn-down zerar os 23.
+- [ ] `cd apps/mobile && flutter test` passa (baseline ≥ 249).
 - [ ] `cd apps/backend && bun run typecheck` clean (se mexeu backend).
-- [ ] `spoke-parity-checker` D4 dispatch — punch list resolvida. Must-fix bloqueia merge; should-fix vira tech debt explícita no TODO; nit ignora.
+- [ ] **`integration_test/` no device se mexeu navegação** (hard gate per ROADMAP-v2 §Gates + memory `lesson_slice_checklist_integration_test_gate`): qualquer área que toque `app.dart`/GoRouter/Android-back roda `cd apps/mobile && flutter test integration_test/ -d RQCW401G33T`. A pasta AINDA NÃO EXISTE — 1º teste = `area5_route_details_flow_test.dart` (Á5 MS9). Widget tests não pegam branch-stack do GoRouter.
+- [ ] `spoke-parity-checker` D4 dispatch — punch list resolvida. Must-fix bloqueia merge; should-fix vira tech debt explícita no TODO; nit ignora. **(NÃO dispatchar pras Áreas 1 e 11 — sem baseline Spoke.)**
 - [ ] **Smoke E2E no Samsung M54** — golden path do slice funciona com APK release contra prod API:
   ```bash
   flutter run -d RQCW401G33T --release \

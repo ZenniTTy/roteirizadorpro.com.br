@@ -2,6 +2,98 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-10 — Área 5 MS9 (integration_test + D4 + editar/remover pausa): ADR-0049 — **Área 5 fechada**
+
+Code change (MS-A5.9) with its documentation. Closes Área 5. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0049** ([break edit/remove + "Salvar como padrão" always-visible](decisions/0049-break-edit-remove-and-save-default-always-visible.md)) — the D4 parity check (run **dump-only**, Eduardo's steer to avoid licensed-account pollution) surfaced two gaps. **GAP-1:** an existing break's row was non-navigable (`onTap: null`) — but the dump proves Spoke reopens it in edit mode with a remove action (`BreakSetupArgs.AddBreak`/`EditBreak`/`UpdateBreak` sealed class + verbatim PT-BR `break_screen_remove_button`="Remover pausa", `remove_break_confirmation_dialog_title`/`_description`). Wired: tapping a break row pushes the page with the `BreakConfig` as `extra` → pre-filled + "Remover pausa"; the page returns a sealed `BreakSchedulerResult` (`BreakSaved`/`BreakRemoved`); `_onTapEditarPausa` does an exhaustive `switch` → `updateBreak`/`removeBreak`/no-op; remove requires a confirmation dialog. Microcopy stays original PT-BR (ADR-0035). **GAP-2:** "Salvar como padrão" is always visible (no first-route gate — same dump finding as ADR-0047). **First integration_test of the app** (`area5_route_details_flow_test.dart`): the sub-picker back-stack chain (Detalhes → Partida/Destino/Pausa, system Android-back popping exactly one level) + add+edit break, **VERDE on the M54** (`RQCW401G33T`). Two test-only fixes (no production change): a 400ms pop-transition settle before the edit tap, and the test `_router()` builder now reads `state.extra` (the production `app.dart` was always correct).
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap Área 5 → ✅ (status table + execution-order line + MS9 row); Slice-2 plan §MS-A5.9 checked; TODO.md MS9 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints = MS-DEBT, untouched); `flutter test` **284** host (baseline 281 at MS8 close, +3 edit/remove widget tests); `integration_test/area5_route_details_flow_test.dart` VERDE on M54 (run b7xqgulv8, "All tests passed!"). D4 parity dump-only (GAP-1/GAP-2 resolved in-MS, zero deferred divergence per `feedback_spoke_parity_zero_debt_per_ms`).
+
+## 2026-06-10 — Área 5 MS8 (route-defaults persistence, FTUE-cut): ADR-0047
+
+Code change (MS-A5.8) with its documentation. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0047** ([route-defaults persistence + no FTUE gate](decisions/0047-route-defaults-persistence-no-ftue-gate.md)) — wires the "Salvar como padrão" checkbox (`merge()` the current config on Concluído, best-effort: failure SnackBars + always pops) and seeds Detalhes from the saved `route_defaults_v1` envelope on open. **CUTS the FTUE auto-show** the plan/roadmap assumed: the static dump (ADR-0045) proves Spoke has **no first-route gate** (`grep firstRoute|isFirst|hasSeenSetup` across `RouteSetupViewModel`/`Fragment`/`ScreenKt` = empty; `ui/onboarding` is a survey; Detalhes is on-demand). Q8 "Salvar como padrão" UNCHECKED confirmed by live pixels. The dormant `firstRoute` flag stays (forward-compat). **Dump-first win:** the FTUE question was answered by decompiled code, avoiding test-route pollution on the licensed Spoke account — Eduardo's prompt ("temos o dump completo, isso não ajuda?") was right.
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap Área 5 MS8 ✅ + status table + execution-order line + §13.C.2 re-resolved (FTUE one-time → no gate, on-demand) + bloqueios table; Slice-2 plan §MS-A5.8 (struck-through FTUE Part-2); TODO.md MS8 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints = MS-DEBT); `flutter test` 281 (baseline 263 at session start, +18 across MS7+MS8); silent-failure-hunter 2 CRITICAL findings (best-effort write + `_seeded`-after-success) fixed + pinned by tests. integration_test deferred to MS-A5.9.
+
+## 2026-06-10 — Área 5 MS7 (active-route config summary): ADR-0046
+
+Code change (MS-A5.7) with its documentation. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0046** ([active-route "Configuração de rota" summary rows](decisions/0046-active-route-config-summary-rows.md)) — the plan's MS-A5.7 premise (*"3 inline config rows → reopen sub-pickers"*) was refuted by code + live Spoke on three counts: (1) `route_shell_page.dart` had **no** config rows to make clickable; (2) Spoke's active-route sheet shows a **2-row** "Configuração de rota" summary (Início + Ida-e-volta, **no Pausa**); (3) tapping a row opens the **full "Detalhes da rota" page** (`RouteDetailsPage`, previously orphaned — no production push), not the sub-pickers directly. The summary uses microcopy distinct from the Detalhes-page rows. `routeId` sourced from the existing `activeRouteIdProvider`. Phase-2 live-dump halt → escalated → Eduardo chose match-Spoke. Same dump-first discipline as ADR-0044.
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap Área 5 MS7 ✅ + status table + execution-order line + Área 3 "rows de config inline" wording corrected (they were created here, not pre-existing); Slice-2 plan §MS-A5.7 (premise correction, struck-through original); TODO.md MS7 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints untouched = MS-DEBT); `flutter test` 272 (baseline 263, +9); `flutter-perf-auditor` 0 must-fix, 2 should-fix applied (`.select` watch granularity + RepaintBoundary). integration_test deferred to MS-A5.9 (decision recorded in the ADR).
+
+## 2026-06-10 — Spoke static dump baseline (ADR-0045) + harness dump-first sweep
+
+The recurring "baseline inferido" failure mode (ADR-0041/0042/0043/0044 — four route-config sub-pickers shipped/nearly-shipped the wrong widget from a stale or never-drilled Spoke baseline) is structurally closed by a **complete static dump of Spoke v3.65.1**.
+
+**New ADR:**
+- **ADR-0045** ([Spoke static dump baseline](decisions/0045-spoke-static-dump-baseline.md)) — `adb pull` the 4 splits → APKEditor 1.4.9 merge → apktool 3.0.2 (resources) + jadx 1.5.5 (`--deobf`, code). Inverts the method: dump = **what exists** (frozen fact), runtime = **how it behaves** (live confirm, only where flagged). 20 "Não drilled" inventory gaps become facts.
+
+**New artifacts (light, in repo under `docs/inventory/spoke-dump-v3.65.1/`):**
+- `MASTER-TABLE.md` — string→resource→screen→data-model for the 20 screens (17 high / 3 medium / 1 low confidence), with defaults/enums/verbatim PT-BR strings + a `Precisa-runtime` field per row.
+- `strings-pt-rBR.xml` (2.404 PT-BR texts) + `strings-default.xml` + `AndroidManifest.xml` + `ui-screen-tree.txt` (full nav tree) + `README.md` (regeneration command + caveats).
+- Heavy artifacts (merged APK ~106 MB, 53k decompiled `.java`) stay at `~/spoke-dump` outside git; `.gitignore` blocks them.
+
+**Findings beyond the inventory:** `break_detail_sheet` (Pausa behavior during delivery, beyond ADR-0044); exact order + subtitles of the 3 Destino options (corroborates ADR-0043); Partida/Início/Término at high confidence with code line refs (Área 5 unblocked); §13.C.5 PENDING resolved (Compartilhar/Transferir são peer-transfer B2B — cut confirmed by the dump text).
+
+**Harness dump-first sweep (verified by a 40-agent adversarial audit, workflow `w9685qno1`):** updated `CLAUDE.md` (header date, Recent-ADRs 0041–0045, Onboarding step 8a, Source-of-truth hierarchy + Spoke deep-dive dump-first, References), this CHANGELOG, `docs/08-ROADMAP-v2.md`, `docs/M2-SLICE-CHECKLIST.md`, the Slice-2 sprint plan+spec (Phase 2 = consult MASTER-TABLE then confirm), `.claude/agents/spoke-parity-checker.md` (Step 1 reads the dump first), and the inventory banner. So the next agent following the Onboarding Ritual discovers the dump and uses it dump-first.
+
+## 2026-06-09 — Área 5 MS6 (Pausa): ADR-0044 + break scheduler page
+
+Code change (MS-A5.6) with its documentation. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0044** ([break scheduler page + window domain](decisions/0044-break-scheduler-window-domain-and-page.md)) — Spoke's "Adicionar pausa" is a **full-screen "Configure a pausa" page** (NOT a sheet), and a break is a **time window** (`fromTime`/`toTime`, default 08:00–15:00) + **free integer minutes** (numeric dialog, default 30, NOT 15/30/60 chips). `BreakConfig` realigned from single `startTime` to the window shape; `route_defaults_v1` JSON arms updated (`startTime`→`fromTime`/`toTime`). Time fields reuse the ADR-0042 numpad. Same un-drilled-baseline failure mode as ADR-0042/0043 — the picker was marked "Não drilled" in inventory §16 (now drilled). Phase-2 live-dump halt → escalated → Eduardo chose match-Spoke.
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap MS6 ✅ + Área 5 status; Slice-2 plan §MS-A5.6 (sheet→page, chips→minutes dialog) + execution-order line; Slice-2 spec sub-slice table; old 2026-06-02 spec Q7 marked REFUTADO; inventory §16 marked DRILLED; TODO.md MS6 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints untouched = MS-DEBT); `flutter test` 261 (baseline 249, +12).
+
+## 2026-06-06 — ROADMAP-v2 clean rewrite + Slice-2 sprint + 2 pending sprints + harness drift sweep
+
+Major documentation realignment to a single source of truth, plus a verified harness-drift cleanup.
+
+**Roadmap:** `docs/08-ROADMAP-v2.md` fully rewritten (407→~290 lines) and synced to real code — Áreas 1–4 done, 3+5 partial, 6–11 not started; Á5 Destino is the ADR-0043 3-card sheet; "Salvar como padrão" UNCHECKED; Á4 uses live Google Places. Adds dependency-forced execution order, B2C/B2B boundary, and the 3 post-cutoff Flutter 3.44 breaking changes.
+
+**New sprints authored (NOT yet executed):**
+- `docs/superpowers/{specs,plans}/2026-06-06-slice2-completion.md` — finishes Slice 2 area-by-area via a mandatory 5-phase per-area pipeline (modern-stack research → fresh live Spoke dump → implement → validate → harness-current) + a 30-item NEVER-AGAIN bad-practices catalogue.
+- `docs/superpowers/{specs,plans}/2026-06-06-restructure-b2c-clarity-and-harden.md` — B2C/B2B boundary doc + ADR-0044 + generalize `area5-microsprint.js`→`spoke-microsprint.js` + live-inspect contract.
+- `docs/superpowers/{specs,plans}/2026-06-04-revalidation-backfill-sprint.md` — revalidate the built surface (analyze→0, fresh baselines, integration_test).
+
+**Harness drift sweep (verified by a 5-agent adversarial workflow):** 34 confirmed drifts fixed across README, CLAUDE.md, TODO.md, M2-SLICE-CHECKLIST.md, BUSINESS-RULES.md, the verify-slice skill, the old Á5 spec/plan (superseded-banner + MS5 marked done + checkbox/Concluído facts), the inventory (checkbox UNCHECKED), and 4 harness files referencing dead MCP tool names (`inspect_view_hierarchy`/`tap_on`/`back`/`launch_app` → `inspect_screen`+`run`; `resolve_workspace_symbol`/`hover`/`signature_help`/`run_tests` → `lsp`). The 3 subagent `tools:` frontmatter lines need a separate human-authorized edit (auto-mode permission guard).
+
+> **Known gap (still not backfilled):** ADRs **0031–0040** have no Changelog entry (owned by the unrun revalidation-backfill sprint).
+
+## 2026-06-04 — Área 5 (Detalhes da rota) docs: ADRs 0041–0043 + audit + spec/plan
+
+Documentation artifacts produced across the Área 5 microsprints (MS1–MS5 + MS-FIX) on `feat/m2-slice-2-area-5-route-details`. Code lives in git; this entry records the docs.
+
+**New ADRs:**
+- **ADR-0041** ([wheel_picker time drum](decisions/0041-wheel-picker-time-drum.md)) — adopted `wheel_picker` for the time picker. **Superseded by ADR-0042** the same area after live Spoke re-inspection.
+- **ADR-0042** ([time picker = numpad](decisions/0042-time-picker-numpad-spoke-fidelity.md)) — Spoke's time picker is a 4×3 numeric keypad, not a wheel; custom widget, no external dep. Documents the inference-vs-measurement failure mode (baseline was 0 bytes) + a spec-drafting protocol amendment.
+- **ADR-0043** ([Destino picker = bottom sheet + 3-state domain](decisions/0043-destination-picker-sheet-three-state-domain.md)) — Destino is a bottom sheet with 3 action cards, not a full-screen RadioListTile page; `Destination` family realigned to `RoundTrip`/`SpecificAddress`/`NoDestination` (`BackToStart` removed). Same mislabeled-baseline failure mode as ADR-0042. §Decision 3 carries the canonical row↔sheet `#N` divergence table; §Decision 4 records the deliberate "Salvar como padrão" unchecked override of spec Q8.
+
+**New audit doc:** `docs/audits/2026-06-03-area5-ms1-ms5-retro-audit.md` — read-only retrospective audit of MS1–MS5 (6 dimensions, adversarial-verified 30→21 findings, verdict `minor-issues`). First entry under the new `docs/audits/` directory.
+
+**Spec/plan:** `docs/superpowers/specs/2026-06-02-area5-route-details.md` (Q3 numpad rewrite, Q6/Q11 Destino sheet, Goal #10 + Risks numpad, app_router→app.dart) + `docs/superpowers/plans/2026-06-02-area5-route-details.md` (Phase 4/5 rewrites) + new MS-FIX plan `docs/superpowers/plans/2026-06-03-area5-msfix-audit-remediation.md`.
+
+**Process:** memory directive "fresh live Spoke inspection per feature — never trust a prior-session baseline" locked after the MS4/MS5 mislabeled-baseline failures.
+
+> **Known gap (not backfilled):** this Changelog jumps 2026-05-26 → 2026-06-04; ADRs **0031–0040** (Stripe, Maestro, and other sprints between the M2 reset and Área 5) have no Changelog entry. Pre-existing; decide whether to backfill before M2 closes.
+
 ## 2026-05-26 — M2 reset to baseline (white-label Spoke restart)
 
 Após 30 dias de slice-2 acumular entropia (16 microsprints + 43 session logs + 37 ADRs + 12 specs/plans + 522 LOC TODO), Eduardo redirecionou: **estratégia M2 = white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Branch `chore/m2-reset-to-zero` executou limpeza completa:

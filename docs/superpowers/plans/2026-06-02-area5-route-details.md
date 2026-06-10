@@ -1,0 +1,408 @@
+# Area 5 (Slice 2): Detalhes da rota — Implementation Plan
+
+> ⚠️ **PARCIALMENTE SUPERSEDIDO (2026-06-06).** Execução da Área 5 agora regida por [`docs/superpowers/plans/2026-06-06-slice2-completion.md`](./2026-06-06-slice2-completion.md) (MS-A5.6 … MS-A5.9). **Phases MS1–MS5 + MS-FIX foram ENTREGUES** (commit `5dea345`; ADR-0042 numpad; ADR-0043 Destino 3-card sheet, `BackToStart` removido / `NoDestination` adicionado; MS-FIX: Concluído sempre habilitado, checkbox UNCHECKED). NÃO re-executar MS1–MS5. Este plano é a **referência detalhada dos passos MS6–MS9 apenas**.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` to implement this plan task-by-task. One subagent per MS (microsprint). Two-stage review after each MS: spec compliance first, then code quality.
+
+**Goal:** Ship the Spoke-aligned "Detalhes da rota" screen with 5 sub-pickers + Area 3 sheet wiring + SharedPreferencesAsync persistence + FTUE trigger; total 14 testable acceptance steps on Samsung M54.
+
+**Architecture:** New `apps/mobile/lib/features/route_config/` module with sealed `RouteConfig` + 3 pages + 4 widgets + 2 Riverpod controllers + 1 repository. Extend `AddStopPage` (Area 4) with `PickerMode` nullable enum to reuse search pipeline for Partida + Destino pickers. Wire Area 3 sheet rows. Time picker = custom numeric keypad widget (no external package) per ADR-0042 — supersedes the earlier wheel_picker plan after live Spoke re-inspection 2026-06-03 confirmed Spoke uses a numpad.
+
+**Tech Stack:** Flutter 3.44 + Dart 3.12, Riverpod 3 (`@riverpod` codegen), GoRouter, Material 3, `SharedPreferencesAsync`. (No `wheel_picker` — removed 2026-06-03 per ADR-0042.)
+
+**Spec:** `docs/superpowers/specs/2026-06-02-area5-route-details.md`
+
+**Branch:** `feat/m2-slice-2-area-5-route-details` (off `develop` at `b4d2d0a`, already created).
+
+---
+
+## Working directory
+
+`/Users/eduardorodrigues/Documents/Projetos/Clientes/ueslei-workana/app-roteirizadorpro` (no spaces — direct cwd from repo root).
+
+## Plan execution rules
+
+1. **One MS = one logical group of commits.** Each MS ends with both spec-reviewer ✅ + code-quality-reviewer ✅ before next MS starts.
+2. **TDD red→green→commit** per task within MS.
+3. **No `--no-verify`.**
+4. **Riverpod codegen** — `dart run build_runner build --delete-conflicting-outputs` after every `@riverpod` edit; PostToolUse hook runs it automatically. **Do NOT commit `.g.dart` files** — `apps/mobile/.gitignore` excludes them per ADR-0005 (regenerate on every build is the codebase policy).
+5. **Hot reload first** (`r` in `flutter run`). Hot restart only for new providers / new routes.
+6. **Surgical edits only.** Touching `add_stop_page.dart` is in-scope for MS3; touching `route_sheet.dart` is in-scope for MS7. Nothing else outside `lib/features/route_config/` should change.
+7. **Schema source-of-truth** — no backend changes in Area 5; field names of `RouteDefaults` JSON must mirror future TypeBox names (`startTime`/`endTime`/`destination` in camelCase).
+8. **Push after each completed MS.** Open PR only at MS9.
+9. **`git diff HEAD --stat` after each subagent dispatch** to catch stealth cross-scope edits (lesson `lesson_git_diff_head_before_commit_after_workflows`).
+10. **Spoke screenshot evidence** — D-mid parity checks MUST cite pixel evidence from PNG screenshots, never XML alone (lesson `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
+
+## File structure created/modified
+
+### Mobile (`apps/mobile/lib/features/route_config/` — new module)
+
+```
+apps/mobile/lib/features/route_config/
+├── domain/
+│   ├── route_config.dart                  (CREATE, ~150 LOC sealed family)
+│   └── route_defaults.dart                (CREATE, ~80 LOC envelope + JSON)
+├── data/
+│   └── route_defaults_repository.dart     (CREATE, ~60 LOC SharedPreferencesAsync)
+├── state/
+│   ├── route_config_controller.dart       (CREATE, ~120 LOC @riverpod family)
+│   ├── route_defaults_controller.dart     (CREATE, ~80 LOC @riverpod)
+│   └── picker_mode.dart                   (CREATE, ~10 LOC enum)
+└── presentation/
+    ├── pages/
+    │   ├── route_details_page.dart        (CREATE, ~250 LOC shell)
+    │   └── break_picker_page.dart         (CREATE, ~150 LOC)
+    └── widgets/
+        ├── route_details_section.dart     (CREATE, ~80 LOC)
+        ├── route_config_row.dart          (CREATE, ~60 LOC)
+        ├── time_picker_sheet.dart         (CREATE, ~120 LOC stateful numpad — 4×3 GridView + FAB + backspace + buffer String, per ADR-0042)
+        ├── destination_picker_sheet.dart  (CREATE, ~120 LOC — bottom sheet, header + 3 cards + "Concluído", per ADR-0043)
+        └── break_chip_groups.dart         (CREATE, ~100 LOC)
+```
+
+### Mobile (touch points)
+
+```
+apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart  (MODIFY: +PickerMode? mode param + AppBar branch)
+apps/mobile/lib/features/routes/presentation/widgets/route_sheet.dart  (MODIFY: 3 rows → onTap push)
+apps/mobile/lib/features/routes/state/route_creation_controller.dart   (MODIFY: FTUE push after complete())
+apps/mobile/lib/app.dart                                        (MODIFY: +6 GoRoutes)
+apps/mobile/pubspec.yaml                                                (no time-picker deps — wheel_picker removed 2026-06-03 per ADR-0042)
+apps/mobile/scripts/area5_route_details_flow.yaml                       (CREATE: Maestro smoke)
+```
+
+### Tests (`apps/mobile/test/features/route_config/`)
+
+```
+apps/mobile/test/features/route_config/
+├── domain/
+│   ├── route_config_test.dart                (CREATE)
+│   └── route_defaults_test.dart              (CREATE)
+├── data/
+│   └── route_defaults_repository_test.dart   (CREATE)
+├── state/
+│   ├── route_config_controller_test.dart     (CREATE)
+│   └── route_defaults_controller_test.dart   (CREATE)
+└── presentation/
+    ├── pages/
+    │   ├── route_details_page_test.dart        (CREATE)
+    │   ├── destination_picker_page_test.dart   (CREATE)
+    │   └── break_picker_page_test.dart         (CREATE)
+    └── widgets/
+        ├── route_details_section_test.dart     (CREATE)
+        ├── route_config_row_test.dart          (CREATE)
+        ├── time_picker_sheet_test.dart         (CREATE)
+        └── break_chip_groups_test.dart         (CREATE)
+
+apps/mobile/integration_test/area5_route_details_flow_test.dart  (CREATE MS9)
+```
+
+### Docs
+
+```
+docs/decisions/0042-time-picker-numpad-spoke-fidelity.md  (CREATE 2026-06-03 — supersedes ADR-0041)
+docs/sessions/2026-06-XX-area5-*.md            (CREATE per-MS as needed)
+TODO.md                                         (UPDATE MS9)
+```
+
+---
+
+## Phase 0 — Pre-flight (no commits)
+
+### Task 0: Verify environment
+
+**Files:** none (read-only).
+
+- [x] **Step 0.1:** `git status` — clean, branch = `feat/m2-slice-2-area-5-route-details`, HEAD = `b4d2d0a` or descendant.
+- [x] **Step 0.2:** `flutter --version` ≥ 3.44, `bun --version` ≥ 1.3, `node --version` 20.x.
+- [x] **Step 0.3:** `adb devices` shows `RQCW401G33T device` (Samsung M54).
+- [x] **Step 0.4:** `ls /tmp/spoke-a5-*` returns 21 artefatos (baseline preserved).
+- [x] **Step 0.5:** Read spec one more time (`docs/superpowers/specs/2026-06-02-area5-route-details.md`).
+
+No commit.
+
+---
+
+## Phase 1 — Domain + State (MS1)
+
+**Delivers:** sealed `RouteConfig`, `RouteDefaults` envelope, 2 Riverpod controllers, `PickerMode` enum, full unit + state tests. Zero UI.
+
+### Task MS1: Domain + State foundation
+
+**Files:**
+- Create: `apps/mobile/lib/features/route_config/domain/route_config.dart`
+- Create: `apps/mobile/lib/features/route_config/domain/route_defaults.dart`
+- Create: `apps/mobile/lib/features/route_config/data/route_defaults_repository.dart`
+- Create: `apps/mobile/lib/features/route_config/state/route_config_controller.dart`
+- Create: `apps/mobile/lib/features/route_config/state/route_defaults_controller.dart`
+- Create: `apps/mobile/lib/features/route_config/state/picker_mode.dart`
+- Create: `apps/mobile/test/features/route_config/domain/route_config_test.dart`
+- Create: `apps/mobile/test/features/route_config/domain/route_defaults_test.dart`
+- Create: `apps/mobile/test/features/route_config/data/route_defaults_repository_test.dart`
+- Create: `apps/mobile/test/features/route_config/state/route_config_controller_test.dart`
+- Create: `apps/mobile/test/features/route_config/state/route_defaults_controller_test.dart`
+- (MS1 originally added `wheel_picker: ^0.3.0` to pubspec — removed in the 2026-06-03 reset commit alongside ADR-0042. MS1 history preserved in git log; this plan reflects the post-reset state.)
+- Create: `docs/decisions/0042-time-picker-numpad-spoke-fidelity.md` (2026-06-03)
+
+**Steps grouped — implementer subagent will TDD each:**
+
+- [x] **Step MS1.1:** (Historical: MS1 added `wheel_picker: ^0.3.0`. Removed 2026-06-03 per ADR-0042. New MS1 does NOT add it.)
+- [x] **Step MS1.2:** Write ADR-0041 (renumbered — 0040 belongs to Area 4 google-places). Later superseded by ADR-0042.
+- [x] **Step MS1.3:** Create `picker_mode.dart` enum (extended to 3 values: `addStop`, `startLocation`, `endLocation`).
+- [x] **Step MS1.4:** TDD `RouteConfig` sealed family — write failing tests for all 5 sub-types + invariants (e.g. `TimeStart.before(TimeEnd)`), then implement.
+- [x] **Step MS1.5:** TDD `RouteDefaults` envelope — schema v1 JSON roundtrip + nullable field handling (NO `copyWith` for nullable — build manually per `lesson_copywith_nullable_field_pitfall`).
+- [x] **Step MS1.6:** TDD `RouteDefaultsRepository` — read with `SharedPreferencesAsync.setMockInitialValues({})` (no envelope → returns `RouteDefaults.empty(firstRoute: true)`); write/read roundtrip; corrupted JSON → returns empty.
+- [x] **Step MS1.7:** TDD `routeConfigControllerProvider` (`@riverpod` family per routeId, autoDispose) — updates startLocation/timeStart/timeEnd/destination/breaks independently; `isValid` derived (endTime > startTime); autoDispose isolation across route IDs.
+- [x] **Step MS1.8:** TDD `routeDefaultsControllerProvider` (`@riverpod`) — emits from repository; `merge(patch)` writes + emits new value; `markFirstRouteComplete()` mutates `firstRoute` flag.
+- [x] **Step MS1.9:** `flutter analyze` clean, `flutter test test/features/route_config/` all passing.
+- [x] **Step MS1.10:** Commits landed pre-pivot. ADR-0041 superseded by ADR-0042 on 2026-06-03 (`a00a0a6`); `wheel_picker` removed from `pubspec.yaml` in the same commit.
+
+**Spec compliance review focuses:** sealed exhaustiveness, JSON envelope field names match Q4 names, autoDispose family pattern, no UI imports leaking into domain.
+
+**Code quality review focuses:** no dead code, no premature abstraction, test coverage of edge cases, follows existing conventions in `apps/mobile/lib/features/routes/`.
+
+---
+
+## Phase 2 — Shell page (MS2)
+
+**Delivers:** `RouteDetailsPage` full-screen with topbar (X + Concluído), 3 sections (Partida/Destino/Pausas), 5 rows with placeholder onTap that prints to console (rows not yet wired to sub-pickers).
+
+### Task MS2: Shell tela "Detalhes da rota"
+
+**Files:**
+- Create: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart`
+- Create: `apps/mobile/lib/features/route_config/presentation/widgets/route_details_section.dart`
+- Create: `apps/mobile/lib/features/route_config/presentation/widgets/route_config_row.dart`
+- Modify: `apps/mobile/lib/app.dart` (+ `/home/routes/active/details` route)
+- Create: 3 paired widget test files
+- Capture: `/tmp/spoke-a5-shell.png` already exists; compare against new RotPro screenshot
+
+**Steps:**
+
+- [x] MS2.1: TDD `RouteConfigRow` — renders label + leading icon + Semantics identifier set; tap dispatches callback. Use `prototipo/tokens.js` colors.
+- [x] MS2.2: TDD `RouteDetailsSection` — section header + list of rows. (Footer checkbox "Salvar como padrão" moved to page level per Spoke re-inspection — one global checkbox, not per section.)
+- [x] MS2.3: TDD `RouteDetailsPage` — Spoke parity: NO AppBar (X floats top-left inside scrollable content, body-level h1 "Detalhes da rota", "Concluído" full-width filled button pinned at bottom, single screen-level "Salvar como padrão" checkbox below it).
+- [x] MS2.4: Add GoRoute `/home/routes/active/:routeId/details` to `app.dart`.
+- [x] MS2.5: Hot restart + manual nav → tela renderiza.
+- [x] MS2.6: D-mid screenshot — `adb shell screencap` RotPro screen; compare side-by-side with `/tmp/spoke-a5-shell.png` (pixel evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`).
+- [x] MS2.7: Commits landed + `git diff HEAD --stat` verified.
+
+---
+
+## Phase 3 — Partida picker (MS3)
+
+**Delivers:** `PickerMode` plumbing wired to `AddStopPage`; Partida row → push `AddStopPage(mode: startLocation)` → on selection callback updates `routeConfigController`.
+
+### Task MS3: Reuse AddStopPage com PickerMode
+
+**Files:**
+- Modify: `apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart` (+ `PickerMode? mode` constructor + AppBar title branch + return value branch)
+- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Partida row onTap)
+- Modify: `apps/mobile/lib/app.dart` (+ `/home/routes/active/details/start-location` route)
+- Create: paired widget test for new `AddStopPage` branches
+- Verify: existing Area 4 widget tests still PASS (regression check)
+
+**Steps:**
+
+- [x] MS3.1: TDD: `AddStopPage(mode: PickerMode.startLocation)` shows Spoke-aligned hint + redirect-arrow icon (commits `52e9211`).
+- [x] MS3.2: Add `mode` param + branches in `AddStopPage`. Default `PickerMode.addStop` preserves existing behavior.
+- [x] MS3.3: Run ALL Area 4 tests — PASS (regression gate green).
+- [x] MS3.4: Wire Partida row in `route_details_page.dart` → `context.push<StartLocation>('/home/routes/active/:routeId/details/start-location')` and await result.
+- [x] MS3.5: Add GoRoute.
+- [x] MS3.6: M54 tap → back gesture → returns to Detalhes da rota.
+- [x] MS3.7: Commits `52e9211` (hint + icon + dead-route removal) and `95c0eaf` (scope addStop providers by (routeId, PickerMode)).
+
+---
+
+## Phase 4 — Time pickers (MS4) — numpad per ADR-0042
+
+**Delivers:** `TimePickerSheet` widget — Material `showModalBottomSheet` containing a 4×3 numeric keypad (`GridView.count`), live-text header showing buffer or placeholder, FAB confirm (enabled only when buffer represents a valid 24h `HH:MM`), backspace key, tap-outside dismisses without saving. Two instances: Início (title `Definir horário de início`) and Término (title `Definir horário de término`). Same widget, different title param. Wired to Detalhes da rota rows `partida_inicio` and `destino_horario_termino`. No external package — pure stdlib.
+
+### Task MS4: TimePickerSheet (numpad)
+
+**Files:**
+- Create: `apps/mobile/lib/features/route_config/presentation/widgets/time_picker_sheet.dart`
+- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Início + Término rows)
+- Modify: `apps/mobile/lib/app.dart` (+ 2 modal routes OR use showModalBottomSheet)
+- Create: paired widget tests
+
+**Steps:**
+
+- [x] MS4.1: TDD: `TimePickerSheet` renders header + 4×3 `GridView.count` (digits 1-9, `:00`, 0, `:30`) + backspace + FAB. Sheet pop returns `TimeOfDay` or null on tap-outside. 14 widget tests pinning invariants.
+- [x] MS4.2: Buffer logic — `String _buffer = ''` in `_TimePickerSheetState`. Digit key appends (max 4 chars). `:00`/`:30` shortcuts gated on buffer length ∈ {1, 2} + validity. Backspace removes last char. FAB enabled when `_buffer` parses to a valid 24h `HH:MM` (`_parseTime` accepts both H:MM and HH:MM).
+- [x] MS4.3: `showModalBottomSheet` config implemented in `_showTimePicker(title)` shared launcher (`isScrollControlled`, `useSafeArea`, `useRootNavigator`, `barrierColor: Colors.black54`, rounded top corners via `AppRadii.sheet`).
+- [x] MS4.4: Wired Início + Término rows. On confirm: `setTimeStart` / `setTimeEnd`. Buffer always opens empty (Spoke contract). Partida-Início label collapses from `'Iniciar agora mesmo'` → `'HH:MM'` after confirm (Spoke parity fix `23ff0ff` per `/tmp/spoke-a5-inspection/ms4-live-detalhes-final.xml` bounds `[203,752][314,810]`).
+- [x] MS4.5: D-mid screenshots captured live via Maestro MCP in `/tmp/spoke-a5-inspection/ms4-live-*.png` (timepicker + termino + detalhes-final). Spec/plan/code cite the EXACT baseline file paths.
+- [x] MS4.6: Perf gate — buffer is local `StatefulWidget` state, NOT Riverpod global → no rebuild storms on rapid digit taps. Verified by widget tests (`tester.pump()` after each digit assertion-clean).
+- [x] MS4.7: Commits `bf89e63` (widget + tests), `413713f` (wire + 4 integration tests), `bc236ff` (style), `23ff0ff` (Spoke parity fix). Workflow template `area5-microsprint.js` created (`9c7f1e7`, `ad51424`, `1935e9d`) for MS5-MS8 reuse.
+
+---
+
+## Phase 5 — Destino sub-picker (MS5) — bottom sheet per ADR-0043
+
+**Delivers:** `DestinationPickerSheet` (a `showModalBottomSheet<Destination>` modal, NOT a page) with header "Destino" + "Concluído" text button + 3 tappable cards (icon + title + subtitle); card "Destino em outro endereço" reuses `AddStopPage(mode: endLocation)` on tap. Domain `Destination` family realigned to Spoke's 3 states (`RoundTrip` / `SpecificAddress` / `NoDestination`); `BackToStart` removed. Live Spoke baseline re-captured 2026-06-03 (`/tmp/spoke-a5-inspection/ms5-live-destino-*.png`) — the spec's original full-screen-RadioListTile design was drawn from a mislabeled baseline (same failure mode as ADR-0042). See ADR-0043.
+
+### Task MS5: DestinationPickerSheet + 3-state domain
+
+**Files:**
+- Create: `apps/mobile/lib/features/route_config/presentation/widgets/destination_picker_sheet.dart` (sheet body: header row + Divider + 3 `_DestinationCard`s; pops `Destination` on card tap, `null` on dismiss)
+- Modify: `apps/mobile/lib/features/route_config/domain/route_config.dart` (remove `BackToStart`; add `final class NoDestination extends Destination`)
+- Modify: `apps/mobile/lib/features/route_config/domain/route_defaults.dart` (JSON arms: drop `'backToStart'`, add `'noDestination'`)
+- Modify: `apps/mobile/lib/features/routes/presentation/pages/add_stop_page.dart` (replace the `endLocation` `throw UnsupportedError` with `_popWithEndLocation` returning a `SpecificAddress`-bearing result, mirroring `_popWithStartLocation`)
+- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire Destino row `onTap` → `_showDestinationPicker()` launcher mirroring `_showTimePicker`; on result `setDestination`; "Destino em outro endereço" card → push `AddStopPage(mode: endLocation)` and translate the popped address into `SpecificAddress`; update `_destinationLabel`/`_destinationSubtitle`/`_destinationIcon` switch arms for the new 3-state family — `BackToStart` arm removed, `NoDestination` arm added)
+- Modify (MS1 test churn, in-scope per ADR-0043): `test/.../domain/route_config_test.dart`, `test/.../domain/route_defaults_test.dart`, `test/.../data/route_defaults_repository_test.dart`, `test/.../state/route_config_controller_test.dart`, `test/.../presentation/pages/route_details_page_test.dart` — replace `BackToStart` assertions; add `NoDestination` coverage
+- Create: `test/.../presentation/widgets/destination_picker_sheet_test.dart` (paired widget tests)
+- NOTE: the GoRouter config lives in `apps/mobile/lib/app.dart` (there is no separate `app_router` file). No new GoRoute needed for the sheet (it's a modal). The `endLocation` AddStopPage push uses the existing `/...details/start-location`-style route OR an in-place `Navigator.push` consistent with how Partida is wired.
+
+**Steps (implementer TDD red→green per change):**
+
+- [x] MS5.1: TDD domain: `NoDestination` added (no fields, equals itself); `BackToStart` removed; `RouteConfig.empty()` still defaults `RoundTrip`. Update MS1 domain tests. — DONE (commit `5dea345`, ADR-0043)
+- [x] MS5.2: TDD JSON: `route_defaults.dart` `_destinationToJson`/`_destinationFromJson` arms → `'roundTrip'|'specificAddress'|'noDestination'`; unknown tag still throws → caller degrades to empty. Update roundtrip tests. — DONE
+- [x] MS5.3: TDD widget: `DestinationPickerSheet` renders header "Destino" + "Concluído" + 3 cards with exact Spoke strings/subtitles/icons (`cornerUpLeft`/`mapPin`/`x`). Tap card N pops the matching `Destination`. Tap "Concluído" / dismiss → pops null (or current selection — match Spoke). `Semantics(identifier:)` on each card + Concluído. — DONE
+- [x] MS5.4: Implement `_showDestinationPicker` launcher in `route_details_page.dart` mirroring `_showTimePicker`; wire Destino row `onTap`; on non-null result `setDestination`. — DONE
+- [x] MS5.5: Wire "Destino em outro endereço" card → `AddStopPage(mode: endLocation)`; implement `_popWithEndLocation` in `add_stop_page.dart` (resolve place details → pop `SpecificAddress` payload). Run ALL Area 4 add-stop tests — regression gate green. — DONE (returns-intent pattern, Flutter #155746)
+- [x] MS5.6: Update `route_details_page.dart` `_destination*` switch arms for the 3-state family; update its widget tests. — DONE
+- [x] MS5.7: D-mid screenshot RotPro sheet side-by-side with `/tmp/spoke-a5-inspection/ms5-live-destino-clean.png` — card order + strings + icon pixels (screenshot evidence per `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`). — DONE (on-device golden path deferred to MS9 per session log)
+- [x] MS5.8: `flutter analyze` clean + `flutter test` ≥ baseline. `git diff <base> HEAD --stat` shows only the in-scope files. Commit per Conventional Commits. — DONE (240 tests at MS5; 249 after MS-FIX)
+
+---
+
+## Phase 6 — Pausa sub-tela (MS6)
+
+**Delivers:** `BreakPickerPage` with 2 ChoiceChip Wraps (horário: 11/12/13 + Personalizar; duração: 15/30/60min + Personalizar); Confirmar appends `BreakConfig` to `RouteConfig.breaks`.
+
+### Task MS6: BreakPickerPage
+
+**Files:**
+- Create: `apps/mobile/lib/features/route_config/presentation/pages/break_picker_page.dart`
+- Create: `apps/mobile/lib/features/route_config/presentation/widgets/break_chip_groups.dart`
+- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (wire + Adicionar pausa CTA + render list of existing breaks)
+- Modify: `apps/mobile/lib/app.dart` (+ `/break/:breakIndex?` route)
+- Create: paired widget tests
+
+**Steps:**
+
+- [ ] MS6.1: BEFORE implementation — re-dispatch `spoke-parity-checker` on Spoke "Adicionar pausa" to capture FULL chips list (não vi 11/12/13, só 08:00 + 15:00 na primeira inspeção). New capture → `/tmp/spoke-a5-pause-full.xml + .png`.
+- [ ] MS6.2: TDD: `BreakChipGroups` widget with 2 `Wrap` of `ChoiceChip<int>` (horário in seconds since midnight + duração in minutes). "Personalizar" chip dispatches Personalizar callback.
+- [ ] MS6.3: TDD: `BreakPickerPage` — AppBar (X + Confirmar) + 2 sections + nullable `breakIndex` constructor (edit mode).
+- [ ] MS6.4: Wire Adicionar pausa CTA in `route_details_page.dart`.
+- [ ] MS6.5: Render existing breaks as rows above CTA (Pausa N • HH:MM • Xmin).
+- [ ] MS6.6: D-mid screenshot chips side-by-side with `/tmp/spoke-a5-pause-full.png`.
+- [ ] MS6.7: Commit.
+
+---
+
+## Phase 7 — Area 3 wire (MS7)
+
+**Delivers:** 3 rows of "Configuração de rota" in Area 3 sheet become tappable → push `/home/routes/active/details`. Rows display current config values (não placeholder).
+
+### Task MS7: Wire Area 3 sheet rows
+
+**Files:**
+- Modify: `apps/mobile/lib/features/routes/presentation/widgets/route_sheet.dart` (3 rows: onTap + computed display value)
+- Modify: maybe also `apps/mobile/lib/features/routes/state/active_route_controller.dart` (expose `RouteConfig` for display)
+- Create: paired widget tests verifying onTap dispatches correct push
+
+**Steps:**
+
+- [ ] MS7.1: TDD: tap on each of 3 rows pushes `/home/routes/active/details`.
+- [ ] MS7.2: TDD: row trailing text reflects current `RouteConfig` (e.g. "08:00" for Início row).
+- [ ] MS7.3: Implement (minimal touch — Karpathy 3 surgical).
+- [ ] MS7.4: Regression: ALL Area 3 widget tests still PASS.
+- [ ] MS7.5: D-mid manual M54 — tap → opens Detalhes → back → returns to Area 3 sheet at correct snap point (mid).
+- [ ] MS7.6: Commit.
+
+---
+
+## Phase 8 — Persistência + FTUE (MS8)
+
+**Delivers:** "Concluído" save persists via `RouteDefaultsRepository`; wizard "Criar rota" complete checks `firstRoute` flag and pushes Detalhes if true; mark flag false on first save.
+
+### Task MS8: SharedPreferencesAsync + FTUE
+
+**Files:**
+- Modify: `apps/mobile/lib/features/route_config/presentation/pages/route_details_page.dart` (Concluído onPressed → save flow)
+- Modify: `apps/mobile/lib/features/routes/state/route_creation_controller.dart` (FTUE branch)
+- Modify: maybe `app.dart` (redirect after wizard complete)
+- Create/Modify: widget tests covering save flow + FTUE behavior
+- Create: `apps/mobile/integration_test/area5_route_details_flow_test.dart` (initial structure; expanded MS9)
+
+**Steps:**
+
+- [ ] MS8.1: TDD: Concluído tap → calls `routeDefaultsControllerProvider.notifier.merge()` with patch built from per-section "Salvar" checkbox state.
+- [ ] MS8.2: TDD: FTUE — when `routeDefaultsControllerProvider.firstRoute == true` and wizard completes, push `/home/routes/active/details`.
+- [ ] MS8.3: TDD: After first save, `firstRoute` flag flips false (no re-trigger).
+- [ ] MS8.4: Implement save flow + FTUE wire.
+- [ ] MS8.5: Manual M54: install fresh APK, create 1st route → Detalhes opens automatic → Concluído → 2nd route created via wizard → wizard pula Detalhes.
+- [ ] MS8.6: Commit.
+
+---
+
+## Phase 9 — D4 closing + PR (MS9)
+
+**Delivers:** D4 closing `spoke-parity-checker` dispatch + integration_test covering nav stack + Maestro YAML smoke + PR opened with full body.
+
+### Task MS9: Closing parity + PR
+
+**Files:**
+- Expand: `apps/mobile/integration_test/area5_route_details_flow_test.dart`
+- Create: `apps/mobile/scripts/area5_route_details_flow.yaml`
+- Modify: `TODO.md` (Area 5 ✅, tech debt entries)
+- Modify: `docs/sessions/0001-INDEX.md` (+ Area 5 session log)
+- Create: `docs/sessions/2026-06-XX-area5-route-details.md`
+- Open: PR via `gh pr create`
+
+**Steps:**
+
+- [ ] MS9.1: D4 `spoke-parity-checker` full dispatch — compare ALL 6 screen states (shell + partida + time + destino + pausa + back-orchestration) with screenshot pixel evidence per the discipline rule.
+- [ ] MS9.2: Address parity report (must-fix only; should-fix gets ADR or tech debt).
+- [ ] MS9.3: Expand integration_test covering 14-step golden path from spec §Goals.
+- [ ] MS9.4: Author Maestro YAML smoke `area5_route_details_flow.yaml` using `${MAESTRO_EMAIL}` env vars (lesson `lesson_maestro_yaml_env_vars_not_embedded_credentials`).
+- [ ] MS9.5: Run `flutter analyze`, `flutter test`, `bun run typecheck`, `/verify-slice`.
+- [ ] MS9.6: Build release APK + manual install M54 + run 14-step golden path + screenshots.
+- [ ] MS9.7: Update TODO + INDEX + session log.
+- [ ] MS9.8: `git push -u origin feat/m2-slice-2-area-5-route-details`.
+- [ ] MS9.9: `gh pr create` with body following `M2-SLICE-CHECKLIST.md` template.
+
+---
+
+## Self-review
+
+**Spec coverage:**
+- §Decisions Q1 (FTUE) → MS8
+- §Decisions Q2 (Area 3 rows) → MS7
+- §Decisions Q3 (numpad per ADR-0042 supersedes ADR-0041 wheel_picker) → MS4 only (MS1 no longer touches pubspec for time-picker deps)
+- §Decisions Q4 (SharedPrefs envelope) → MS1 + MS8
+- §Decisions Q5 (wire agora) → MS7
+- §Decisions Q6 (reuse AddStopPage) → MS3 + MS5
+- §Decisions Q7-Q8 (chips + checkbox) → MS6 + MS2
+- §Decisions Q9 (GoRouter back default) → covered by integration_test MS9
+- §Decisions Q10 (endTime>startTime validation) → MS1 controller domain validity only (NO UI gate; Concluído sempre habilitado per MS-FIX S2; validade reservada pro solver da Slice-3)
+- §Goals 14-step path → MS9 integration_test + manual run
+- §Architecture file tree → covered MS1-MS8
+- §Risks → mitigations embedded in MS1 (sealed/autoDispose/no copyWith for nullable), MS2 (Semantics), MS4 (perf-auditor), MS6 (re-dispatch parity), MS8 (FTUE flag), MS9 (integration_test)
+- §Accessibility → Semantics identifiers MS2 onwards; M3 Radio/Chip tap targets default ≥48dp
+- §Verification gates → MS9 closing tasks
+
+**Placeholder scan:** none. Some MS bodies are bullet-level instead of step-level — that's intentional for MS2-MS9 since the implementer subagent receives full spec context including this plan + spec; they TDD inside each MS without needing me to write the test code verbatim. MS1 has detailed sub-tasks because it's the foundation.
+
+**Type consistency:** `RouteConfig`, `RouteDefaults`, `PickerMode`, `routeConfigControllerProvider`, `routeDefaultsControllerProvider`, `RouteDetailsPage`, `DestinationPickerPage`, `BreakPickerPage` names consistent across all MSs and tests.
+
+**Scope check:** single area (Area 5 of Slice 2), single PR, single branch.
+
+The plan is ready.
+
+---
+
+## Execution Handoff
+
+Plan complete. Using `superpowers:subagent-driven-development`:
+
+- One implementer subagent per MS.
+- After each MS: spec-reviewer dispatch first, then code-quality-reviewer.
+- Loop until both ✅.
+- Mark TodoWrite item completed.
+- Move to next MS.
+- After MS9: open PR.
+
+Approved by Eduardo 2026-06-02.

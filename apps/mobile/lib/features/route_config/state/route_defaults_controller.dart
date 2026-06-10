@@ -1,0 +1,67 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../data/route_defaults_repository.dart';
+import '../domain/route_defaults.dart';
+
+part 'route_defaults_controller.g.dart';
+
+/// Singleton repository binding. Override in tests to inject an
+/// `InMemorySharedPreferencesAsync`-backed instance.
+@Riverpod(keepAlive: true)
+RouteDefaultsRepository routeDefaultsRepository(Ref ref) {
+  return RouteDefaultsRepository(SharedPreferencesAsync());
+}
+
+/// User's saved route defaults envelope. Singleton across the app — there is
+/// only one user, only one envelope.
+///
+/// `keepAlive: true` because callers (wizard, route-details screen) read this
+/// asynchronously at navigation boundaries; dropping it would re-read
+/// SharedPrefs every time.
+@Riverpod(keepAlive: true)
+class RouteDefaultsController extends _$RouteDefaultsController {
+  @override
+  Future<RouteDefaults> build() async {
+    final repo = ref.read(routeDefaultsRepositoryProvider);
+    return repo.read();
+  }
+
+  /// Merges [patch] into the current state — only non-null sub-states from
+  /// [patch] override. [RouteDefaults.firstRoute] and
+  /// [RouteDefaults.schemaVersion] are preserved from the current envelope;
+  /// they are NOT readable from [patch] (defaults of the bool/int ctor params
+  /// would silently clobber `markFirstRouteComplete()` and pin the schema
+  /// forever). Use [markFirstRouteComplete] to mutate `firstRoute`.
+  ///
+  /// ADDITIVE-ONLY by design: because each field pre-coalesces
+  /// (`patch.x ?? current.x`), `merge()` can SET or KEEP a field but never
+  /// CLEAR one — a null in [patch] means "leave unchanged", not "erase". This
+  /// matches the per-section save flow (the user adds/updates defaults, never
+  /// blanks them through this path). If a future caller needs to clear a field,
+  /// do NOT pass null through `merge()`; call `copyWith` directly with the
+  /// `_omit` sentinel semantics (see `RouteDefaults.copyWith`). The clear-path
+  /// is pinned by a `copyWith(x: null)` test so this constraint can't silently
+  /// regress.
+  Future<void> merge(RouteDefaults patch) async {
+    final current = await future;
+    final next = current.copyWith(
+      startLocation: patch.startLocation ?? current.startLocation,
+      timeStart: patch.timeStart ?? current.timeStart,
+      timeEnd: patch.timeEnd ?? current.timeEnd,
+      destination: patch.destination ?? current.destination,
+      breaks: patch.breaks.isNotEmpty ? patch.breaks : current.breaks,
+    );
+    await ref.read(routeDefaultsRepositoryProvider).write(next);
+    state = AsyncData(next);
+  }
+
+  /// Flips [RouteDefaults.firstRoute] off and persists. Idempotent.
+  Future<void> markFirstRouteComplete() async {
+    final current = await future;
+    if (!current.firstRoute) return;
+    final next = current.copyWith(firstRoute: false);
+    await ref.read(routeDefaultsRepositoryProvider).write(next);
+    state = AsyncData(next);
+  }
+}
