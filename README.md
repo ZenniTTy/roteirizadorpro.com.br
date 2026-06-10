@@ -29,7 +29,7 @@ Two artifacts, each canonical only for what it is authoritative on:
 
 Per [ADR-0010](./docs/decisions/0010-clone-positioning.md) (functional fork positioning) and [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (this hierarchy): replicate Spoke's *functionality*; never replicate its *visual assets*.
 
-Documentation: [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md) (canonical Spoke↔RotPro catalogue), [`docs/06-DESIGN-SYSTEM.md`](./docs/06-DESIGN-SYSTEM.md).
+Documentation: [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md) (canonical Spoke↔RotPro catalogue — paraphrase), [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) (static dump of Spoke v3.65.1 — the structural baseline of FACT, read first per [ADR-0045](./docs/decisions/0045-spoke-static-dump-baseline.md)), [`docs/06-DESIGN-SYSTEM.md`](./docs/06-DESIGN-SYSTEM.md).
 
 ## Tech Stack
 

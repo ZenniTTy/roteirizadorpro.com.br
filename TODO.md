@@ -1,6 +1,6 @@
 # TODO
 
-> **Estratégia M2 = white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Roadmap canônico (fonte única, reescrito limpo 2026-06-06): [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md). Catálogo de paridade: [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md). Sprint de execução do Slice 2: [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./docs/superpowers/specs/2026-06-06-slice2-completion.md).
+> **Estratégia M2 = white-label do Spoke** (replicar 100% funcional/estrutural com nossa stack; polish visual no final). Roadmap canônico (fonte única, reescrito limpo 2026-06-06): [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md). Catálogo de paridade (paráfrase): [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./docs/inventory/2026-05-26-spoke-vs-rotpro.md). **Baseline de FATO (dump estático v3.65.1, ADR-0045): [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md)** — consultar primeiro. Sprint de execução do Slice 2: [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./docs/superpowers/specs/2026-06-06-slice2-completion.md).
 
 ## M1 — closed 2026-05-09 (BRL 2.000 escrow)
 

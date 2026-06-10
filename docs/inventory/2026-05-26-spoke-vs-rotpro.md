@@ -6,6 +6,8 @@
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
 > **Sobre escopo:** este inventário é **engineering documentation** que descreve funcionalidades, navegação e estrutura UX da Spoke pra guiar implementação. Quotes Spoke aparecem livremente aqui (engenharia, não shipped product). O que rege legalmente é apenas o **shipped APK** ter identidade visual original per [ADR-0010](../decisions/0010-clone-positioning.md) Decision section + [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (Lucide icons, prototipo tokens, original PT-BR microcopy). Engineering artifacts (este inventário, hierarchy dumps em `docs/inventory/dumps/`, screenshots) podem entrar no repo livremente per ADR-0010 Amendment 1.
 
+> ⚡ **DUMP-FIRST (ADR-0045, 2026-06-09):** este inventário é **paráfrase** (observação runtime). A baseline estrutural de FATO agora é o dump estático em **[`spoke-dump-v3.65.1/MASTER-TABLE.md`](./spoke-dump-v3.65.1/MASTER-TABLE.md)** (string→recurso→tela→modelo, com defaults/enums/strings verbatim). Os 20 gaps "Não drilled" da §11 (#4–#25) estão **superseded** pela MASTER-TABLE — consulte-a PRIMEIRO; este inventário e o runtime confirmam comportamento dinâmico. Ver o banner detalhado na §11 e o `README.md` do dump.
+
 ---
 
 ## ⚠️ Como ler este inventário (post-audit 2026-05-26)

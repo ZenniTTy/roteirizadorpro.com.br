@@ -73,8 +73,9 @@ Every area MS (MS-A5.6 … MS-A11) executes these five phases. The per-area sect
 - [ ] WebSearch only for post-cutoff release notes.
 - [ ] **Output:** the current 3.44 idiom for each widget/pattern the area needs + cited source + gotcha. MUST confirm the relevant post-cutoff breaking change(s).
 
-### Phase 2 — Fresh live Spoke dump of ONLY this area  *(SKIP for MS-A1, MS-A11 — no Spoke baseline)*
-- [ ] Confirm M54 + Spoke logged in. Dispatch `spoke-parity-checker` UPFRONT with a description that EXPLICITLY requests the `bounds | content-desc/text | visual pattern | SPECIFIC Flutter widget` table.
+### Phase 2 — Consult MASTER-TABLE (dump-first, ADR-0045), then confirm via fresh live Spoke dump of ONLY this area  *(SKIP for MS-A1, MS-A11 — no Spoke baseline)*
+- [ ] **FIRST (ADR-0045):** read the row(s) for this area in [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](../../inventory/spoke-dump-v3.65.1/MASTER-TABLE.md). The structural baseline (fields, defaults, enums, verbatim PT-BR strings, code package) is ALREADY fact — Áreas 6/7/9 each have rows there. The live dump below CONFIRMS dynamic behavior (the row's `Precisa-runtime`), it does NOT re-discover structure greenfield. (A `low`-confidence row like #5 Localizador de pacotes is the exception — treat it as greenfield.)
+- [ ] Confirm M54 + Spoke logged in. Dispatch `spoke-parity-checker` UPFRONT with a description that EXPLICITLY requests the `bounds | content-desc/text | visual pattern | SPECIFIC Flutter widget` table — to CONFIRM the MASTER-TABLE hypotheses, not to start from zero.
 - [ ] Maestro MCP `inspect_screen` + `take_screenshot` at EVERY state of the area's screen(s). Save PNGs to `/tmp/spoke-<areaSlug>-inspection/`.
 - [ ] Cite screenshot PIXELS for every icon presence/absence claim (XML is blind to Compose icons).
 - [ ] **Halt condition:** if the live capture contradicts the roadmap/inventory STRUCTURALLY (widget shape / nav model / state model / persistence model), escalate to Eduardo and file a new ADR BEFORE implementing. Do NOT implement either version. A prior `/tmp` capture is corroboration only.

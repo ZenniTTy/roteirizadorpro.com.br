@@ -22,6 +22,8 @@ Eduardo's goal: **finish Slice 2 completely**, executed area-by-area in future s
 
 This spec encodes that discipline. The recurring failures it must prevent are real and costly — see §Bad practices (the never-again list), distilled from 33 deduped anti-patterns across memory + audits + sessions.
 
+> **UPDATE 2026-06-09 (ADR-0045 — dump estático):** a complete static dump of Spoke v3.65.1 now exists at [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](../../inventory/spoke-dump-v3.65.1/MASTER-TABLE.md), resolving the 20 "Não drilled" gaps into structural FACT (fields, defaults, enums, verbatim PT-BR strings, code package). This **inverts Phase 2** for Áreas 6–11: the "fresh live Spoke dump" step (2) is now CONFIRMATION of the MASTER-TABLE hypotheses (where the row's `Precisa-runtime` field flags it), not greenfield discovery. Read the table FIRST, then confirm live. The cure for the ADR-0041/0042/0043/0044 stale-inference rework is now upfront, not per-area.
+
 ### Why this is a spec and not just "keep building"
 
 Two consecutive microsprints (MS4 numpad, MS5 Destino) shipped wrong widget shapes from **stale Spoke baselines** — re-work across two ADRs. The cure is process: the per-area discipline below makes live-inspection + modern-stack verification a mechanical precondition, not a hope. The roadmap is the *what*; this spec+plan is the *how*, encoded so a future session can't skip the step that failed twice.

@@ -43,9 +43,11 @@ You map the input to one or more concrete user journeys (steps from app launch t
 
 ## Workflow
 
-### Step 1 — Read the inventory first
+### Step 1 — Read the static dump baseline first (per ADR-0045), then the inventory
 
-Open `docs/inventory/2026-05-26-spoke-vs-rotpro.md`. Find the section(s) covering the requested flow (§3, §5, §6 are the most relevant). Use this as **prior knowledge** — what's already documented about how Spoke behaves here. If the flow appears in §9's "not inspected" list, that's a flag that this run is also a chance to amend the inventory.
+**Dump-first (ADR-0045):** open `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` and find the row(s) for the requested flow. The dump is the **frozen structural fact** (fields, defaults, enums, verbatim PT-BR strings, code package) for Spoke v3.65.1 — it already resolved the 20 screens that were "Não drilled". Treat each row as the hypothesis to CONFIRM, and read its `Precisa-runtime` field: that tells you exactly which dynamic behavior the runtime inspection below must verify (which screen a tap opens, back-stack, animations, disabled states). If a flow is NOT in the table, or its row is `low` confidence (e.g. #5 Localizador de pacotes), this run is greenfield discovery — proceed as before.
+
+Then open `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (§3, §5, §6 most relevant) as secondary **prior knowledge** (paraphrase). Note: §11's "Não drilled" gaps #4–#25 are superseded by the MASTER-TABLE — prefer the table where they disagree. If the flow appears in §9's "not inspected" list and isn't in the table either, this run is also a chance to amend the inventory.
 
 ### Step 2 — Inspect Spoke
 

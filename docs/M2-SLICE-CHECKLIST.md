@@ -5,13 +5,14 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 ## Antes de qualquer trabalho num slice
 
 - [ ] Ler `CLAUDE.md`, `docs/08-ROADMAP-v2.md` (a seção do slice), `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (as seções funcionalmente relevantes).
-- [ ] M54 conectado (`adb devices` mostra `RQCW401G33T`). Spoke logado pra inspeção.
+- [ ] **Para telas com equivalente Spoke: consultar [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) PRIMEIRO** (ADR-0045, dump-first) — string→recurso→tela→modelo com defaults/enums/strings verbatim das 20 telas. A baseline estrutural sai do dump; o runtime só confirma o que o `Precisa-runtime` da linha indicar. É a inversão que evita a inferência que custou ADR-0041/0042/0043/0044.
+- [ ] M54 conectado (`adb devices` mostra `RQCW401G33T`). Spoke logado pra inspeção (confirmação runtime).
 - [ ] `git status` em develop está limpo. Branch nova `feat/m2-slice-N-<topic>`.
 
 ## Implementação
 
 - [ ] **Tela por tela.** Cada tela do Spoke vira um ciclo curto: olha como Spoke faz → implementa com nossa stack → testa no M54 → commit. Sem subdividir em microsprints A/B.
-- [ ] **Inventário descreve, Spoke decide.** Antes de escrever spec de QUALQUER tela Spoke-aligned, dump live obrigatório do Spoke no estado-alvo (collapsed/expanded/empty/populated). Comando padrão:
+- [ ] **MASTER-TABLE primeiro, dump live confirma (ADR-0045).** Para telas cobertas pela [`MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md), a estrutura (campos/defaults/enums/strings) já é fato do dump estático — o dump live runtime CONFIRMA comportamento dinâmico, não descobre estrutura. Para telas FORA da tabela (ou linha `low` como #5 Localizador de pacotes), vale o protocolo clássico abaixo. **Inventário descreve, Spoke decide.** Antes de escrever spec de QUALQUER tela Spoke-aligned, dump live obrigatório do Spoke no estado-alvo (collapsed/expanded/empty/populated). Comando padrão:
   ```bash
   adb -s RQCW401G33T shell uiautomator dump /sdcard/spoke-<state>.xml
   adb -s RQCW401G33T pull /sdcard/spoke-<state>.xml /tmp/

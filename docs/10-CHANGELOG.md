@@ -2,6 +2,22 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-10 — Spoke static dump baseline (ADR-0045) + harness dump-first sweep
+
+The recurring "baseline inferido" failure mode (ADR-0041/0042/0043/0044 — four route-config sub-pickers shipped/nearly-shipped the wrong widget from a stale or never-drilled Spoke baseline) is structurally closed by a **complete static dump of Spoke v3.65.1**.
+
+**New ADR:**
+- **ADR-0045** ([Spoke static dump baseline](decisions/0045-spoke-static-dump-baseline.md)) — `adb pull` the 4 splits → APKEditor 1.4.9 merge → apktool 3.0.2 (resources) + jadx 1.5.5 (`--deobf`, code). Inverts the method: dump = **what exists** (frozen fact), runtime = **how it behaves** (live confirm, only where flagged). 20 "Não drilled" inventory gaps become facts.
+
+**New artifacts (light, in repo under `docs/inventory/spoke-dump-v3.65.1/`):**
+- `MASTER-TABLE.md` — string→resource→screen→data-model for the 20 screens (17 high / 3 medium / 1 low confidence), with defaults/enums/verbatim PT-BR strings + a `Precisa-runtime` field per row.
+- `strings-pt-rBR.xml` (2.404 PT-BR texts) + `strings-default.xml` + `AndroidManifest.xml` + `ui-screen-tree.txt` (full nav tree) + `README.md` (regeneration command + caveats).
+- Heavy artifacts (merged APK ~106 MB, 53k decompiled `.java`) stay at `~/spoke-dump` outside git; `.gitignore` blocks them.
+
+**Findings beyond the inventory:** `break_detail_sheet` (Pausa behavior during delivery, beyond ADR-0044); exact order + subtitles of the 3 Destino options (corroborates ADR-0043); Partida/Início/Término at high confidence with code line refs (Área 5 unblocked); §13.C.5 PENDING resolved (Compartilhar/Transferir são peer-transfer B2B — cut confirmed by the dump text).
+
+**Harness dump-first sweep (verified by a 40-agent adversarial audit, workflow `w9685qno1`):** updated `CLAUDE.md` (header date, Recent-ADRs 0041–0045, Onboarding step 8a, Source-of-truth hierarchy + Spoke deep-dive dump-first, References), this CHANGELOG, `docs/08-ROADMAP-v2.md`, `docs/M2-SLICE-CHECKLIST.md`, the Slice-2 sprint plan+spec (Phase 2 = consult MASTER-TABLE then confirm), `.claude/agents/spoke-parity-checker.md` (Step 1 reads the dump first), and the inventory banner. So the next agent following the Onboarding Ritual discovers the dump and uses it dump-first.
+
 ## 2026-06-09 — Área 5 MS6 (Pausa): ADR-0044 + break scheduler page
 
 Code change (MS-A5.6) with its documentation. Code lives in git; this entry records the docs + the ADR.

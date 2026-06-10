@@ -27,7 +27,8 @@
 
 ## Fontes de verdade
 
-- **Comportamento/UX/estrutura:** Spoke ao vivo (M54) + catálogo [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./inventory/2026-05-26-spoke-vs-rotpro.md) (§10/§11/§12/§13). Em dúvida → dispatch `spoke-parity-checker`.
+- **Estrutura/fatos (O QUÊ existe — dump-first, ADR-0045):** [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) — dump estático do Spoke v3.65.1 (campos, defaults, enums, strings PT-BR verbatim, pacote de código das 20 telas antes "Não drilled"). **Consultar ANTES de qualquer inspeção runtime.**
+- **Comportamento/UX dinâmico (COMO se comporta — confirma o dump):** Spoke ao vivo (M54) + catálogo [`docs/inventory/2026-05-26-spoke-vs-rotpro.md`](./inventory/2026-05-26-spoke-vs-rotpro.md) (§10/§11/§12/§13). Dispatch `spoke-parity-checker` para CONFIRMAR as hipóteses da MASTER-TABLE onde o campo `Precisa-runtime` indicar, não para descobrir do zero.
 - **Identidade visual:** `prototipo/tokens.js` + `prototipo/ui.jsx`.
 - **Tiebreaker:** cliente Ueslei.
 
@@ -63,7 +64,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 
 ## Slice 2 — Telas Core Spoke-aligned 🟡 em progresso
 
-> **Sprint dedicada de execução:** [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./superpowers/specs/2026-06-06-slice2-completion.md) + [`docs/superpowers/plans/2026-06-06-slice2-completion.md`](./superpowers/plans/2026-06-06-slice2-completion.md). A sprint executa cada área restante com disciplina: websearch/Context7 (boas práticas modernas) → dump live fresco da Spoke só daquela área → implementa → valida → integration_test. Este roadmap é o catálogo; a sprint é o passo-a-passo.
+> **Sprint dedicada de execução:** [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./superpowers/specs/2026-06-06-slice2-completion.md) + [`docs/superpowers/plans/2026-06-06-slice2-completion.md`](./superpowers/plans/2026-06-06-slice2-completion.md). A sprint executa cada área restante com disciplina: websearch/Context7 (boas práticas modernas) → **[Áreas 6–11] consultar a MASTER-TABLE do dump estático (ADR-0045) para as hipóteses estruturais concretas** → dump live fresco da Spoke só daquela área para **CONFIRMAR** (não descobrir greenfield) onde o `Precisa-runtime` indicar → implementa → valida → integration_test. Este roadmap é o catálogo; a sprint é o passo-a-passo.
 
 ### Estado real por área (medido no código 2026-06-06)
 
