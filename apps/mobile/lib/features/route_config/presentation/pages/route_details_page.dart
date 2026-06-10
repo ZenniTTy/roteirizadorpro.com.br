@@ -260,8 +260,9 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
       for (var i = 0; i < config.breaks.length; i++)
         RouteConfigRow(
           semanticsKey: 'pausa_$i',
+          // Window range + duration (ADR-0044): "08:00–15:00 • 30min".
           label:
-              '${_formatTimeOfDay(config.breaks[i].startTime)} • ${config.breaks[i].durationMinutes}min',
+              '${_formatTimeOfDay(config.breaks[i].fromTime)}–${_formatTimeOfDay(config.breaks[i].toTime)} • ${config.breaks[i].durationMinutes}min',
           leading: LucideIcons.coffee,
           active: true,
           onTap: null,
@@ -271,10 +272,6 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
         label: 'Adicionar pausa',
         leading: LucideIcons.coffee,
         active: false,
-        // Interim affordance until the break scheduler ships (MS6). Spoke's
-        // Pausa row is clickable, so an inert chevron would be a broken
-        // affordance — the row must respond to a tap even before the real
-        // scheduler exists.
         onTap: _onTapAdicionarPausa,
       ),
     ];
@@ -282,13 +279,18 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
     return RouteDetailsSection(title: 'Pausa', children: rows);
   }
 
-  /// Interim handler for the "Adicionar pausa" CTA until MS6 wires the break
-  /// scheduler sheet. Shows a placeholder SnackBar so the row is a working
-  /// affordance rather than an inert chevron.
-  void _onTapAdicionarPausa() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Pausa em breve')),
+  /// Push the full-screen "Configure a pausa" page (ADR-0044) and, on a
+  /// returned [BreakConfig], append it via `addBreak`. The page pops `null` on
+  /// back/cancel — leave the breaks list untouched. Spoke renders this picker
+  /// as a routed page, not a sheet (live capture 2026-06-09).
+  Future<void> _onTapAdicionarPausa() async {
+    final result = await context.push<BreakConfig>(
+      '/home/routes/active/${widget.routeId}/details/break-scheduler',
     );
+    if (result == null) return;
+    ref
+        .read(routeConfigControllerProvider(widget.routeId).notifier)
+        .addBreak(result);
   }
 
   /// Maps a [Destination] subtype to its primary row display string.

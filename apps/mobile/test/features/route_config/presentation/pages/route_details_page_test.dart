@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
+import 'package:roteirizador_pro/features/route_config/presentation/pages/break_scheduler_page.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/pages/route_details_page.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/destination_picker_sheet.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
@@ -11,9 +12,20 @@ import 'package:roteirizador_pro/features/route_config/presentation/widgets/rout
 import 'package:roteirizador_pro/features/route_config/state/route_config_controller.dart';
 
 GoRouter _router(Widget home) => GoRouter(
-      initialLocation: '/',
+      initialLocation: '/home/routes/active/r1/details',
       routes: [
-        GoRoute(path: '/', builder: (_, __) => home),
+        GoRoute(
+          // Mount RouteDetailsPage at the real path so its sub-picker pushes
+          // (`.../details/break-scheduler`, ADR-0044) resolve in-harness.
+          path: '/home/routes/active/:routeId/details',
+          builder: (_, __) => home,
+          routes: [
+            GoRoute(
+              path: 'break-scheduler',
+              builder: (_, __) => const BreakSchedulerPage(),
+            ),
+          ],
+        ),
       ],
     );
 
@@ -590,17 +602,46 @@ void main() {
   });
 
   testWidgets(
-      'Adicionar pausa row is tappable and shows the interim "Pausa em breve" '
-      'SnackBar (S4 — broken-affordance fix until MS6 scheduler)',
-      (tester) async {
+      'Adicionar pausa row pushes the "Configure a pausa" page (ADR-0044 — '
+      'real scheduler, no interim SnackBar)', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await tester.pumpWidget(_wrap(routeId: 'r1'));
     await tester.pumpAndSettle();
 
     await tester
         .tap(find.bySemanticsIdentifier('route_details_row_adicionar_pausa'));
-    await tester.pump(); // let the SnackBar appear
+    await tester.pumpAndSettle();
 
-    expect(find.text('Pausa em breve'), findsOneWidget);
+    // We are now on the pushed full-screen scheduler page.
+    expect(find.text('Configure a pausa'), findsOneWidget);
+    // The old interim affordance is gone.
+    expect(find.text('Pausa em breve'), findsNothing);
+  });
+
+  testWidgets(
+      'a break returned from the scheduler renders as a window row '
+      '"08:00–15:00 • 30min" on Detalhes da rota (ADR-0044)', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrap(routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    // Open the scheduler and confirm with the Spoke defaults (08:00–15:00/30).
+    await tester
+        .tap(find.bySemanticsIdentifier('route_details_row_adicionar_pausa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('break_scheduler_confirm'));
+    await tester.pumpAndSettle();
+
+    // Back on Detalhes da rota, the new break shows as a window range row.
+    expect(find.text('08:00–15:00 • 30min'), findsOneWidget);
   });
 
   testWidgets(

@@ -128,24 +128,39 @@ final class NoDestination extends Destination {
 }
 
 /// Named `BreakConfig` (not `Break`) — `break` is a reserved keyword.
+///
+/// Spoke models a break as a time WINDOW (live capture 2026-06-09, ADR-0044):
+/// "take a [durationMinutes]-minute break sometime between [fromTime] and
+/// [toTime]". The solver places the actual break inside that window. The
+/// Spoke defaults are 08:00–15:00 / 30 min. This is NOT a single fixed start
+/// time — that was an un-drilled inference the live "Configure a pausa" page
+/// corrected (inventory §16 had it marked "Não drilled").
 final class BreakConfig extends RouteConfigPart {
   const BreakConfig({
-    required this.startTime,
+    required this.fromTime,
+    required this.toTime,
     required this.durationMinutes,
   });
 
-  final TimeOfDay startTime;
+  /// Earliest the break may start ("Entre" field; Spoke default 08:00).
+  final TimeOfDay fromTime;
+
+  /// Latest the break may start ("E" field; Spoke default 15:00).
+  final TimeOfDay toTime;
+
+  /// Break length in minutes (free integer; Spoke default 30).
   final int durationMinutes;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BreakConfig &&
-          other.startTime == startTime &&
+          other.fromTime == fromTime &&
+          other.toTime == toTime &&
           other.durationMinutes == durationMinutes;
 
   @override
-  int get hashCode => Object.hash(startTime, durationMinutes);
+  int get hashCode => Object.hash(fromTime, toTime, durationMinutes);
 }
 
 /// Aggregate of one route's user-configurable state.

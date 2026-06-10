@@ -31,7 +31,7 @@ Repo root: `/Users/eduardorodrigues/Documents/Projetos/Clientes/ueslei-workana/a
 ## Execution order (dependency-forced — do NOT reorder)
 
 ```
-1. MS-A5.6  Área 5 — Pausa sheet            ┐
+1. MS-A5.6  Área 5 — Pausa page ✅ DONE     ┐
 2. MS-A5.7  Área 5 — wire Á3 config rows    │ finish Área 5 (current branch)
 3. MS-A5.8  Área 5 — persistence + FTUE     │
 4. MS-A5.9  Área 5 — integration_test+D4+PR ┘  ← FIRST integration_test authored
@@ -100,14 +100,16 @@ Every area MS (MS-A5.6 … MS-A11) executes these five phases. The per-area sect
 
 ---
 
-## Phase MS-A5.6 — Área 5: Pausa sheet
+## Phase MS-A5.6 — Área 5: Pausa page ✅ DONE (2026-06-09 — ADR-0044)
 
-**Files:** Create `apps/mobile/lib/features/route_config/presentation/widgets/break_scheduler_sheet.dart` + test; Modify `route_details_page.dart` (replace the `:290` "Pausa em breve" SnackBar), `route_config.dart`/controllers if the Pausa state isn't modeled.
+> **Live-dump correction (Phase-2 halt, ADR-0044):** Spoke's "Adicionar pausa" is a **full-screen page** ("Configure a pausa"), NOT a sheet, and the break is a **time WINDOW** (Entre/E, default 08:00–15:00) + **free integer minutes** (numeric dialog, default 30), NOT a single time + 15/30/60 chips. The file shipped as `break_scheduler_page.dart` (page, not sheet). The original wording below is kept struck-through for the audit trail.
 
-- [ ] **Phase 1:** verify `showTimePicker` Material 3 + chip selection (FilterChip/ChoiceChip) idioms.
-- [ ] **Phase 2:** live-dump the Spoke Pausa sub-flow (tap "Adicionar pausa" → capture the picker: horário field + duração options 15/30/60/custom).
-- [ ] **Phase 3:** build `break_scheduler_sheet.dart` (returns-intent pattern — pop the chosen break; parent applies). Wire `route_details_page.dart:290` to open it. TDD.
-- [ ] **Phase 4 + 5.** Commit `feat(route-config): Área 5 MS6 break scheduler sheet`.
+**Files:** Created `apps/mobile/lib/features/route_config/presentation/pages/break_scheduler_page.dart` + test; Modified `route_config.dart` (BreakConfig → window) + `route_defaults.dart` (JSON arms) + `route_details_page.dart` (push the page, render window range) + `app.dart` (`break-scheduler` sub-route) + 6 affected tests.
+
+- [x] **Phase 1:** ~~verify `showTimePicker` Material 3 + chip selection idioms~~ → confirmed the reused ADR-0042 numpad for time + a numeric-input dialog for minutes (live capture refuted chips).
+- [x] **Phase 2:** live-dumped the Spoke Pausa sub-flow → structural contradiction found (window + page + minutes dialog) → escalated → ADR-0044.
+- [x] **Phase 3:** built `break_scheduler_page.dart` (returns-intent: pops a `BreakConfig`; parent `addBreak`). Wired `route_details_page.dart` `_onTapAdicionarPausa` to push it. TDD.
+- [x] **Phase 4 + 5.** analyze clean (scope), 261 tests. Commit `feat(route-config): Área 5 MS6 break scheduler page (window model, ADR-0044)`.
 
 ## Phase MS-A5.7 — Área 5: wire Área 3 config rows
 

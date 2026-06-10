@@ -92,13 +92,15 @@ void main() {
       final notifier = c.read(routeConfigControllerProvider('r1').notifier)
         ..addBreak(
           const BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         )
         ..addBreak(
           const BreakConfig(
-            startTime: TimeOfDay(hour: 15, minute: 30),
+            fromTime: TimeOfDay(hour: 9, minute: 0),
+            toTime: TimeOfDay(hour: 17, minute: 0),
             durationMinutes: 15,
           ),
         );
@@ -111,20 +113,23 @@ void main() {
       final notifier = c.read(routeConfigControllerProvider('r1').notifier)
         ..addBreak(
           const BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         );
       notifier.updateBreak(
         0,
         const BreakConfig(
-          startTime: TimeOfDay(hour: 13, minute: 0),
+          fromTime: TimeOfDay(hour: 10, minute: 0),
+          toTime: TimeOfDay(hour: 13, minute: 0),
           durationMinutes: 60,
         ),
       );
       final breaks = c.read(routeConfigControllerProvider('r1')).breaks;
       expect(breaks.length, 1);
-      expect(breaks[0].startTime.hour, 13);
+      expect(breaks[0].fromTime.hour, 10);
+      expect(breaks[0].toTime.hour, 13);
       expect(breaks[0].durationMinutes, 60);
     });
 
@@ -133,20 +138,22 @@ void main() {
       final notifier = c.read(routeConfigControllerProvider('r1').notifier)
         ..addBreak(
           const BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         )
         ..addBreak(
           const BreakConfig(
-            startTime: TimeOfDay(hour: 15, minute: 30),
+            fromTime: TimeOfDay(hour: 9, minute: 0),
+            toTime: TimeOfDay(hour: 17, minute: 0),
             durationMinutes: 15,
           ),
         );
       notifier.removeBreak(0);
       final breaks = c.read(routeConfigControllerProvider('r1')).breaks;
       expect(breaks.length, 1);
-      expect(breaks[0].startTime.hour, 15);
+      expect(breaks[0].fromTime.hour, 9);
     });
 
     test('clear resets to RouteConfig.empty()', () {
@@ -156,7 +163,8 @@ void main() {
         ..setDestination(const RoundTrip())
         ..addBreak(
           const BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         );

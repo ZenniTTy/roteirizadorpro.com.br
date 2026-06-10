@@ -38,7 +38,8 @@ void main() {
         destination: NoDestination(),
         breaks: [
           BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         ],
@@ -86,11 +87,13 @@ void main() {
       final original = RouteDefaults.empty().copyWith(
         breaks: const [
           BreakConfig(
-            startTime: TimeOfDay(hour: 11, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 11, minute: 0),
             durationMinutes: 15,
           ),
           BreakConfig(
-            startTime: TimeOfDay(hour: 15, minute: 30),
+            fromTime: TimeOfDay(hour: 12, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 30),
             durationMinutes: 60,
           ),
         ],
@@ -99,6 +102,9 @@ void main() {
       expect(restored.breaks.length, 2);
       expect(restored.breaks[0].durationMinutes, 15);
       expect(restored.breaks[1].durationMinutes, 60);
+      // Window endpoints survive the round-trip (ADR-0044).
+      expect(restored.breaks[0].fromTime, const TimeOfDay(hour: 8, minute: 0));
+      expect(restored.breaks[1].toTime, const TimeOfDay(hour: 15, minute: 30));
     });
   });
 
@@ -158,6 +164,24 @@ void main() {
         'schemaVersion': 1,
         'firstRoute': true,
         'destination': {'type': 'backToStart'},
+      });
+      expect(restored, RouteDefaults.empty());
+    });
+
+    test('legacy break shape {startTime} (pre-ADR-0044) → empty()', () {
+      // ADR-0044 changed the break entry from {startTime, durationMinutes} to
+      // {fromTime, toTime, durationMinutes}. A pre-change envelope is missing
+      // fromTime/toTime, so _breaksFromJson's shape guard throws and the whole
+      // envelope degrades to empty() (with a debugPrint, anti-pattern #11) —
+      // it must NOT silently accept or mis-parse the old shape. This guards the
+      // shape check at route_defaults.dart so a future refactor can't quietly
+      // start swallowing legacy data.
+      final restored = RouteDefaults.fromJson({
+        'schemaVersion': 1,
+        'firstRoute': true,
+        'breaks': [
+          {'startTime': '08:00', 'durationMinutes': 30},
+        ],
       });
       expect(restored, RouteDefaults.empty());
     });

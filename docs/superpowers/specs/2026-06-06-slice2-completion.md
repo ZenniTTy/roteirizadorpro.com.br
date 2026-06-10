@@ -135,7 +135,7 @@ Per-area; detailed in the plan. The cross-cutting flows the sprint must respect:
 
 | MS | Area | Spoke baseline? | Key 3.44 idiom | integration_test? |
 |---|---|---|---|---|
-| MS-A5.6 | Área 5 Pausa | yes (live dump Pausa sheet) | showTimePicker + chips | — |
+| MS-A5.6 ✅ | Área 5 Pausa (page, ADR-0044) | yes — live dump found window+page, NOT sheet/chips | reused numpad + minutes dialog | — |
 | MS-A5.7 | Área 5 wire Á3 rows | yes (re-confirm rows) | — | yes (rows nav) |
 | MS-A5.8 | Área 5 persistence+FTUE | yes (re-confirm Q8 default) | SharedPreferencesAsync | — |
 | MS-A5.9 | Área 5 integration_test+D4+PR | D4 closing | — | **yes (5-route chain — FIRST authored)** |

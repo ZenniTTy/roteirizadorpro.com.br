@@ -73,7 +73,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 | 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto |
 | 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~80% — controles de mapa e ações kebab/bottom-bar são stubs `_comingSoon` |
 | 4 | Adicionar parada (texto) | ✅ pronto (usa Google Places **live**, não stub) · ⏳ OCR/Voz/tap-mapa são stubs (Área 7/5) |
-| 5 | Detalhes da rota (Partida/Destino/Pausa) | 🟡 MS1–MS5+MS-FIX prontos · ⏳ MS6 Pausa, MS7 wire-rows, MS8 persistência+FTUE, MS9 integration_test+PR abertos |
+| 5 | Detalhes da rota (Partida/Destino/Pausa) | 🟡 MS1–MS5+MS-FIX+MS6 Pausa prontos · ⏳ MS7 wire-rows, MS8 persistência+FTUE, MS9 integration_test+PR abertos |
 | 6 | Editar parada (sheet, 14 campos) | ⏳ não iniciada |
 | 7 | Otimizar rota (3 estados + 3 modais FTUE) | ⏳ não iniciada |
 | 8 | Modo Delivery (running route) | ⏳ não iniciada |
@@ -142,7 +142,7 @@ Pronto: texto + autocomplete via **Google Places API live** (`places_repository.
 
 Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 body-level, sem AppBar) + Partida picker + TimePickerSheet **numpad 4×3** (ADR-0042, pivot do wheel ADR-0041) + Destino **bottom sheet 3-cards** (ADR-0043 — `RoundTrip` "Voltar ao ponto de partida" / `SpecificAddress` "Destino em outro endereço" / `NoDestination` "Não usar destino"; `BackToStart` removido) + Concluído sempre habilitado + checkbox "Salvar como padrão" **UNCHECKED** (ADR-0043 §Q8). **Falta:**
 
-- [ ] **MS6 Sub-tela Pausa** — sheet com horário (`showTimePicker`) + duração (chips 15/30/60/custom). Hoje SnackBar "Pausa em breve" (`route_details_page.dart:290`).
+- [x] **MS6 Sub-tela Pausa** ✅ (2026-06-09, ADR-0044) — página full-screen "Configure a pausa" (NÃO sheet): janela de horário Entre/E (default 08:00–15:00) via numpad reusado + duração em minutos (dialog numérico, default 30; NÃO chips). `BreakConfig` virou janela (`fromTime`/`toTime`/`durationMinutes`). SnackBar interino removido. 261 testes.
 - [ ] **MS7 Wire rows da Área 3** — as 3 rows de config inline (Início / Ida e volta / Pausa) clickáveis → reabrem sub-telas.
 - [ ] **MS8 Persistência + FTUE** — `SharedPreferencesAsync` envelope `route_defaults_v1` + trigger FTUE. Re-confirmar Q8 "Salvar como padrão" default vs Spoke fresh.
 - [ ] **MS9 integration_test + D4 + PR** — `area5_route_details_flow_test.dart` (5-route Android-back chain) + spoke-parity D4 + Maestro YAML + PR.

@@ -91,22 +91,40 @@ void main() {
     });
   });
 
-  group('BreakConfig', () {
-    test('equality', () {
+  group('BreakConfig (window: fromTime/toTime/durationMinutes — ADR-0044)', () {
+    test('equality compares all three fields', () {
       const a = BreakConfig(
-        startTime: TimeOfDay(hour: 12, minute: 0),
+        fromTime: TimeOfDay(hour: 8, minute: 0),
+        toTime: TimeOfDay(hour: 15, minute: 0),
         durationMinutes: 30,
       );
       const b = BreakConfig(
-        startTime: TimeOfDay(hour: 12, minute: 0),
+        fromTime: TimeOfDay(hour: 8, minute: 0),
+        toTime: TimeOfDay(hour: 15, minute: 0),
         durationMinutes: 30,
       );
-      const c = BreakConfig(
-        startTime: TimeOfDay(hour: 12, minute: 0),
+      const differentDuration = BreakConfig(
+        fromTime: TimeOfDay(hour: 8, minute: 0),
+        toTime: TimeOfDay(hour: 15, minute: 0),
         durationMinutes: 60,
       );
       expect(a, b);
-      expect(a, isNot(c));
+      expect(a, isNot(differentDuration));
+    });
+
+    test('a different toTime makes two breaks unequal', () {
+      const a = BreakConfig(
+        fromTime: TimeOfDay(hour: 8, minute: 0),
+        toTime: TimeOfDay(hour: 15, minute: 0),
+        durationMinutes: 30,
+      );
+      const widerWindow = BreakConfig(
+        fromTime: TimeOfDay(hour: 8, minute: 0),
+        toTime: TimeOfDay(hour: 16, minute: 0),
+        durationMinutes: 30,
+      );
+      expect(a, isNot(widerWindow));
+      expect(a.hashCode, isNot(widerWindow.hashCode));
     });
   });
 
@@ -138,7 +156,8 @@ void main() {
         destination: NoDestination(),
         breaks: [
           BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         ],
@@ -155,7 +174,8 @@ void main() {
         destination: NoDestination(),
         breaks: [
           BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         ],
@@ -255,7 +275,8 @@ void main() {
       test('withBreaks replaces the list (not append)', () {
         final filled = RouteConfig.empty().withBreaks(const [
           BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         ]);

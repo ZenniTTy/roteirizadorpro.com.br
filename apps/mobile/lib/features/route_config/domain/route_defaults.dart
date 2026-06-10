@@ -82,7 +82,8 @@ class RouteDefaults {
         'breaks': breaks
             .map(
               (b) => {
-                'startTime': _timeOfDayToJson(b.startTime),
+                'fromTime': _timeOfDayToJson(b.fromTime),
+                'toTime': _timeOfDayToJson(b.toTime),
                 'durationMinutes': b.durationMinutes,
               },
             )
@@ -246,13 +247,15 @@ List<BreakConfig> _breaksFromJson(Object? raw) {
     if (e is! Map<String, dynamic>) {
       throw const FormatException('break entry not a map');
     }
-    final startTime = e['startTime'];
+    final fromTime = e['fromTime'];
+    final toTime = e['toTime'];
     final durationMinutes = e['durationMinutes'];
-    if (startTime is! String || durationMinutes is! int) {
+    if (fromTime is! String || toTime is! String || durationMinutes is! int) {
       throw const FormatException('break entry bad shape');
     }
     return BreakConfig(
-      startTime: _timeOfDayFromString(startTime),
+      fromTime: _timeOfDayFromString(fromTime),
+      toTime: _timeOfDayFromString(toTime),
       durationMinutes: durationMinutes,
     );
   }).toList(growable: false);

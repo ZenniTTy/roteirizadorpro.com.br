@@ -1820,7 +1820,7 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 | 13 | Detalhes da rota — Iniciar agora time picker | Não drilled |
 | 14 | Detalhes da rota — Ida e volta destination | Não drilled |
 | 15 | Detalhes da rota — Definir horário término | Não drilled |
-| 16 | Detalhes da rota — Adicionar pausa picker | Não drilled |
+| 16 | Detalhes da rota — Adicionar pausa picker | ✅ DRILLED 2026-06-09 (MS-A5.6) — página full-screen "Configure a pausa": janela de horário (Entre/E, default 08:00–15:00) via numpad reusado + duração em minutos (dialog numérico, default 30). Estruturalmente ≠ inferência (era assumido single-time + chips). Ver ADR-0044 + `/tmp/spoke-a56-pausa-inspection/EVIDENCE.md` |
 | 17 | Kebab rota — Compartilhar (ShareSheet?) | Não drilled |
 | 18 | Kebab rota — Transferir paradas | Não drilled |
 | 19 | Kebab rota — Copiar paradas (full flow) | Não drilled |

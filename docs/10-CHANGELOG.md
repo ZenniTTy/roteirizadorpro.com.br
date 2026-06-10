@@ -2,6 +2,17 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-09 — Área 5 MS6 (Pausa): ADR-0044 + break scheduler page
+
+Code change (MS-A5.6) with its documentation. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0044** ([break scheduler page + window domain](decisions/0044-break-scheduler-window-domain-and-page.md)) — Spoke's "Adicionar pausa" is a **full-screen "Configure a pausa" page** (NOT a sheet), and a break is a **time window** (`fromTime`/`toTime`, default 08:00–15:00) + **free integer minutes** (numeric dialog, default 30, NOT 15/30/60 chips). `BreakConfig` realigned from single `startTime` to the window shape; `route_defaults_v1` JSON arms updated (`startTime`→`fromTime`/`toTime`). Time fields reuse the ADR-0042 numpad. Same un-drilled-baseline failure mode as ADR-0042/0043 — the picker was marked "Não drilled" in inventory §16 (now drilled). Phase-2 live-dump halt → escalated → Eduardo chose match-Spoke.
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap MS6 ✅ + Área 5 status; Slice-2 plan §MS-A5.6 (sheet→page, chips→minutes dialog) + execution-order line; Slice-2 spec sub-slice table; old 2026-06-02 spec Q7 marked REFUTADO; inventory §16 marked DRILLED; TODO.md MS6 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints untouched = MS-DEBT); `flutter test` 261 (baseline 249, +12).
+
 ## 2026-06-06 — ROADMAP-v2 clean rewrite + Slice-2 sprint + 2 pending sprints + harness drift sweep
 
 Major documentation realignment to a single source of truth, plus a verified harness-drift cleanup.

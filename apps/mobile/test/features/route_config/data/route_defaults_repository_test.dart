@@ -79,7 +79,8 @@ void main() {
         destination: RoundTrip(),
         breaks: [
           BreakConfig(
-            startTime: TimeOfDay(hour: 12, minute: 0),
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
             durationMinutes: 30,
           ),
         ],
