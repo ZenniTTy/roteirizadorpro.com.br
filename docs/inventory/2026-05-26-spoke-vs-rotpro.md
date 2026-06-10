@@ -1803,6 +1803,8 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 
 **Gaps REAIS pendentes (∼25 items, NÃO 13 como §10.22 sub-estimou):**
 
+> ⚡ **ATUALIZAÇÃO 2026-06-09 (ADR-0045 — dump estático):** 20 destes gaps "Não drilled" foram resolvidos por **dump estático completo do Spoke v3.65.1** (apktool + jadx) — NÃO mais por inferência. A baseline de fato (string→recurso→tela→modelo, com defaults/enums/comportamento verbatim) está em **[`spoke-dump-v3.65.1/MASTER-TABLE.md`](./spoke-dump-v3.65.1/MASTER-TABLE.md)**. Status por gap: **17 `high`** (implementáveis, runtime só confirma) · **3 `medium`** (#4/#7/#20 — confirmar range/branch ao vivo) · **1 `low`** (#5 Localizador de pacotes — NÃO codar sem runtime dedicado ou cortar como B2B). A coluna "Bloqueio pra drillar" abaixo está SUPERSEDIDA para os gaps #4–#25; cada um agora tem um campo `Precisa-runtime` na MASTER-TABLE dizendo o que falta confirmar. Regenerar o dump: ver `spoke-dump-v3.65.1/README.md`.
+
 | # | Item | Bloqueio pra drillar |
 |---|---|---|
 | 1 | Pacotes stepper habilitar trigger | Hipóteses não testadas (a-d em §11.5) |

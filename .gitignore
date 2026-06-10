@@ -119,6 +119,20 @@ apps/mobile/integration_test/.spoke-cache/
 # the ADR-0010 legal boundary (no asset extraction).
 docs/inventory/dumps/
 
+### Spoke static dump — heavy artifacts (per ADR-0045) ###
+# The full static dump (merged APK + jadx decompiled sources + binary
+# drawables) lives OUTSIDE the repo at ~/spoke-dump (regenerable in minutes —
+# see docs/inventory/spoke-dump-v3.65.1/README.md). Only the LIGHT artifacts
+# (strings-pt-rBR.xml, strings-default.xml, AndroidManifest.xml,
+# ui-screen-tree.txt, MASTER-TABLE.md) are committed under
+# docs/inventory/spoke-dump-v3.65.1/. These rules block accidental commit of
+# the heavy ones if a script ever copies them in.
+docs/inventory/spoke-dump-*/jadx-out/
+docs/inventory/spoke-dump-*/res-decoded/
+docs/inventory/spoke-dump-*/*.apk
+docs/inventory/spoke-dump-*/**/*.png
+docs/inventory/spoke-dump-*/**/*.webp
+
 ### Maestro MCP working caches (per ADR-0037) ###
 # Maestro CLI writes session state, screenshots, and recording artifacts.
 # Inventory dumps go to /tmp/spoke-inspection/ (already covered above);
