@@ -2,7 +2,7 @@
 
 Operating manual for AI agents acting on this repository (Claude Code, Cursor, Claude web). Read this in full before any action.
 
-> **Last updated:** 2026-06-10 (ADR-0045 — dump estático completo do Spoke v3.65.1 como baseline funcional; `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` substitui paráfrase por fato e INVERTE o método: dump-first → runtime-confirm. ADR-0044 Pausa = página full-screen + janela de horário. Previous 2026-06-06: drift sweep — `docs/08-ROADMAP-v2.md` reescrito limpo como fonte única; ADR-0042 numpad + ADR-0043 Destino 3-card sheet. Previous 2026-05-27: ADR-0010 Amendments 1+2 — engineering artifacts da inspeção podem entrar no repo livremente; inspeção é escolha do operador; o que rege é o **shipped product** ter identidade visual original per ADR-0035. Foundational: ADR-0035 pivot + ADR-0036 parity gate + ADR-0037 Maestro MCP.)
+> **Last updated:** 2026-06-10 (ADR-0048 — dump-first vira gate signal-only: hook `warn-dump-first.sh` (Stop) avisa runtime/websearch sem dump antes + SessionStart re-injeta a regra; websearch/Context7 só para libs, não para comportamento Spoke. ADR-0046 config-summary na tela ativa + ADR-0047 persistência route-defaults (FTUE cortado, dump provou que a Spoke não tem gate de 1ª rota). ADR-0045 — dump estático completo do Spoke v3.65.1 como baseline funcional; `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` substitui paráfrase por fato e INVERTE o método: dump-first → runtime-confirm. ADR-0044 Pausa = página full-screen + janela de horário. Previous 2026-06-06: drift sweep — `docs/08-ROADMAP-v2.md` reescrito limpo como fonte única; ADR-0042 numpad + ADR-0043 Destino 3-card sheet. Previous 2026-05-27: ADR-0010 Amendments 1+2 — engineering artifacts da inspeção podem entrar no repo livremente; inspeção é escolha do operador; o que rege é o **shipped product** ter identidade visual original per ADR-0035. Foundational: ADR-0035 pivot + ADR-0036 parity gate + ADR-0037 Maestro MCP.)
 > **Maintainer:** Eduardo Rodrigues — `eduardo@ianelli.tech`
 
 ## Executable Commands (the ones you actually run)
@@ -161,6 +161,8 @@ Reference template: `apps/mobile/lib/features/auth/data/dto/_template.dart`. Pla
 
 Before proposing OR installing any external library/framework, query Context7 (`resolve-library-id` then `query-docs`). Training-data knowledge has a cutoff; Context7 has current docs. **No exceptions for libraries within reach of the cutoff date.** Stdlib and well-established APIs (HTTP, SQL) are exempt.
 
+> **Scope (ADR-0048 — websearch/Context7 only when needed):** Context7 and `WebSearch` answer **library/framework** questions (a new dependency, a post-cutoff API, a modern best-practice for a tool). They are **NOT** the source for **Spoke behavior** — that is **dump-first** (the static dump baseline `docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md` + `~/spoke-dump/jadx-out` for gating logic), then runtime confirmation. Do not websearch "how does Spoke do X"; read the dump. The `warn-dump-first.sh` Stop hook signals a session that ran runtime/websearch without consulting the dump first. See §"Source-of-truth hierarchy" + ADR-0045/0048.
+
 **Precedence after ADR-0023 (Dart & Flutter MCP server adopted):**
 
 1. **Dart MCP first** — for any symbol, class, or method from a Dart/Flutter package **already installed** in `apps/mobile/pubspec.yaml` (i.e. resolvable from local `.pub-cache/`), use the Dart MCP tools (`resolve_symbol`, `analyze`, etc.) instead of `Read`ing pub-cache files or hitting Context7. The MCP returns the real signature from the local analyzer — zero hallucination, zero token spent on file traversal.
@@ -180,15 +182,18 @@ Per Anthropic's official guidance, this is the single highest-leverage thing you
 - **For mobile TDD (opcional pós-reset), dispatch the `flutter-test-author` subagent BEFORE implementing any new widget/provider/service in `apps/mobile/lib/`.** It writes the failing test first, creates a `throw UnimplementedError()` stub so the test fails on the assertion (not on import), and hands off to the implementer with the required API surface. It refuses to write production code itself — the bias-break is the point + um hook `block-test-author-impl.sh` em `.claude/hooks/` enforça mecanicamente. Mock library is `mocktail ^1.0.5` (no codegen); manual fakes under `test/<feature>/_helpers/` remain the default. See ADR-0025.
 - **For mobile perf review, dispatch the `flutter-perf-auditor` subagent AFTER finishing a screen and BEFORE opening the slice PR.** Read-only, produces a Markdown punch-list categorized must-fix / should-fix / nit across 9 canonical checks (ListView.builder discipline, missing `const`, `ref.watch` granularity, UI-thread heavy work, RepaintBoundary, tile cache, list keys, image decoding, StatefulWidget overuse). It cannot edit code — the allowlist excludes Edit/Write/MultiEdit.
 
-### In-Loop Auto-Validation (ADR-0018 + ADR-0024)
+### In-Loop Auto-Validation (ADR-0018 + ADR-0024 + ADR-0048)
 
-Four hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
+Hooks run automatically around every assistant edit/turn — non-blocking, signal-only:
 
 **Stop hooks** (fire once at end of turn, batched across all edits):
 
 - `analyze-changed-dart.sh` — `flutter analyze --no-pub` over `.dart` files edited in `apps/mobile/lib/` this turn.
 - `check-dto-mirror.sh` — warns when an `apps/backend/src/<feature>/schemas.ts` edit lacks its paired Dart DTO update (ADR-0013 contract).
 - `warn-adr-drift.sh` — warns when `pubspec.yaml`/`package.json`/`schema.prisma`/`docker-compose.yml` was edited this turn but no ADR was added/modified.
+- `warn-dump-first.sh` (ADR-0048) — warns when the session ran live Spoke runtime inspection (Maestro/`adb`/`uiautomator`) or a `WebSearch` **without** consulting the static dump baseline (`MASTER-TABLE.md` or a `~/spoke-dump/jadx-out` grep) first this session. The in-loop nudge for dump-first; mirrors `warn-adr-drift`. Exceptions: Áreas without a Spoke baseline (Á1, Á11) and genuinely-new libraries.
+
+**SessionStart hook** (`reinject-roadmap.sh`, matcher `compact`) also re-injects the dump-first + websearch-only-when-needed rule after compaction, so a resumed session stays aware of it.
 
 **PostToolUse hook** (fires per Edit/Write/MultiEdit, debounced):
 

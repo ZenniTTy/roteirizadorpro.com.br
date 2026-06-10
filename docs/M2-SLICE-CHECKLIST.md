@@ -6,6 +6,8 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 
 - [ ] Ler `CLAUDE.md`, `docs/08-ROADMAP-v2.md` (a seção do slice), `docs/inventory/2026-05-26-spoke-vs-rotpro.md` (as seções funcionalmente relevantes).
 - [ ] **Para telas com equivalente Spoke: consultar [`docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) PRIMEIRO** (ADR-0045, dump-first) — string→recurso→tela→modelo com defaults/enums/strings verbatim das 20 telas. A baseline estrutural sai do dump; o runtime só confirma o que o `Precisa-runtime` da linha indicar. É a inversão que evita a inferência que custou ADR-0041/0042/0043/0044.
+- [ ] **Pergunta de COMPORTAMENTO/GATE da Spoke (existe flag X? qual o default? qual branch?) → grep o dump pesado `~/spoke-dump/jadx-out` ANTES de ir ao runtime** (ADR-0047/0048). O código decompilado responde gating/lógica que a tabela light não carrega — e evita poluir a conta Spoke licenciada com estado de teste. Foi assim que o FTUE da Detalhes foi cortado (ADR-0047).
+- [ ] **websearch/Context7 só quando necessário** (ADR-0048): são para **bibliotecas** (dep nova ou API pós-cutoff), NÃO para comportamento Spoke. O Stop hook `warn-dump-first.sh` avisa quem rodou runtime/websearch sem consultar o dump antes (signal-only). Exceções: Á1/Á11 (sem baseline Spoke) e libs genuinamente novas.
 - [ ] M54 conectado (`adb devices` mostra `RQCW401G33T`). Spoke logado pra inspeção (confirmação runtime).
 - [ ] `git status` em develop está limpo. Branch nova `feat/m2-slice-N-<topic>`.
 
