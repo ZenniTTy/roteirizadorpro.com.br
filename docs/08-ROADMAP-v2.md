@@ -154,6 +154,8 @@ Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 b
 
 `DraggableScrollableSheet` (NÃO route GoRouter; Área 4 e 6 compartilham a route `/home/routes/add-stop`). Topbar: Ajuda (esq) + "Editar parada" + "Concluído" primary (save+pop). Campos: chip cor (sheet 5 cores) · chip package-ID "A1" (display pós-otimização) · card endereço read-mostly · botão "Instruções de acesso" (2º sheet, **sticky AO ENDEREÇO** não à parada — §13.C.3 resolvida) · notas + camera attach · "Localizador de pacotes" · stepper Pacotes · SegmentedButton Ordem (Primeira/Automática/Última) · SegmentedButton Tipo (Entrega/Coleta) · "Horário de chegada" (B2C) · "Tempo estimado na parada" (default do setting global) · "Mudar endereço" · "Duplicar parada" · "Remover parada" (VERMELHO + AlertDialog confirm). Detalhe §10.6 + §11.1 + §11.5. **§13.C.1 RESOLVIDA: Pacotes/Ordem/Tipo sempre ativos.** SEM picker de razão de falha (é Dispatch B2B).
 
+📊 **Dump (ADR-0045) — consome #4/#5/#6/#7/#8/#9/#10 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** `high` (codar direto) → **#8** Mudar endereço, **#9** Duplicar parada, **#10** Remover parada, **#6** Horário de chegada. `medium` (confirmar range/default ao vivo) → **#4** stepper Pacotes, **#7** Tempo na parada (default vem do setting global da Área 10; é campo DISTINTO da duração de Pausa — Achado #1). `low` (**NÃO codar sem runtime dedicado**, ou cortar B2B) → **#5** Localizador de pacotes.
+
 ### Área 7 — Otimizar rota (3 estados + 3 modais FTUE) ⏳ depende de Área 6 (chips) + Área 3 (CTA Otimizar)
 
 Funil: modal FTUE "IDs ajustados" → estado PRE-CONFIRM (mapa metade + polyline + markers 1-N + sheet mid + summary "X min · N paradas · D km" + 3 CTAs: X min verde / Refinar / Confirmar) → modal FTUE "IDs definitivos" → modal FTUE "Carregar veículo?" → estado **Ready-to-Run** (CTAs: X min verde / Editar / **Iniciar rota** = gateway pro modo delivery). 3 flags FTUE em SharedPrefsAsync. Otimização é **grátis** (paywall só em "Navegar"). Detalhe §10.8–10.12.
@@ -163,12 +165,16 @@ Funil: modal FTUE "IDs ajustados" → estado PRE-CONFIRM (mapa metade + polyline
 - 📌 **§13.C.4 PENDENTE:** opções do "Refinar" não inspecionadas. Live-inspect no MS; fallback = re-run simples do solver (1 botão), registrado como decisão explícita.
 - 🔧 Usar `ReorderableListView.onReorderItem` (3.44), não `onReorder`.
 
+📊 **Dump (ADR-0045) — consome #20 + #21/#22/#25-Voz da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** **#20** Pular otimização (`medium`) — strings `optimization_failed_*` prontas; agrupar a confirmação do dialog no MESMO drill runtime do "Refinar" (§13.C.4). **#21** OCR / **#22** Importar CSV-PDF / **#25-Voz** — `high` em estrutura MAS dependem de ML Kit + gravação + upload assíncrono (timeout 240s = pressupõe backend Slice 3). **Manter stub no Slice 2; reavaliar pós-Slice 3** (são as features mais caras do app).
+
 ### Área 8 — Modo Delivery (running route) ⏳ depende de Área 7 (Iniciar rota)
 
 Foco em UMA parada por vez. Mapa metade superior centrado na parada atual (following) + sheet mid (h1 nome rua + X close + subtitle "N/total, HH:MM"). **3 botões status (conditional por `Stop.type`):** "Navegar" (filled BLUE, sempre, handoff `url_launcher` geo: URI) · "Não entregue" (sempre, marca Failed **silenciosamente** + auto-advance, SEM picker de razão — §10.14) · "Entregue" (se delivery) / "Coletado" (se pickup). Lista inline + marker encoding por status. Estado "Destino final" (retorno Ida e volta): só 2 botões. **PAYWALL TRIGGER:** 1º "Navegar" verifica `user.isPaid` (Slice 4). Detalhe §10.13–10.17.
 
 - 🔧 `AsyncValue.guard` pras mutações de status; `switch` exaustivo na AsyncValue selada.
 - 🔧 Mapa following com `_followUser` flag + `distanceFilter`; pausar camera no pan do usuário.
+
+📊 **Dump (ADR-0045):** o Modo Delivery não estava nas 20 telas "Não drilled", mas o dump REVELOU o `break_detail_sheet` (Pausa DURANTE a entrega: "Faça uma pausa" / "Pausa feita" / "Pular pausa" / "Editar pausa" / "Entre as paradas %1$d e %2$d") — uma surface desta Área que o ADR-0044 (agendamento) não cobre. Ver Achado #1 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md). Drillar ao vivo no MS da Área 8.
 
 ### Área 9 — Conclusão + telas core ⏳ depende de Área 8 (estado terminal)
 
@@ -181,6 +187,8 @@ Foco em UMA parada por vez. Mapa metade superior centrado na parada atual (follo
 
 ⚠️ **CORTADAS (B2B-adjacent, postergadas pós-M2):** "Compartilhar cópia da rota" (peer transfer driver-to-driver) + "Transferir paradas" — §6.4. 📌 **§13.C.5 PENDENTE** (semântica das duas).
 
+📊 **Dump (ADR-0045) — consome #17/#18/#19/#23/#24/#25-Duplicar da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** `high` (codar direto) → **#24** Remover paradas (2 branches todas/só-feitas, textos verbatim), **#19** Copiar paradas + **#25** Duplicar rota (fluxo "Manter/Redefinir progresso", alimenta o CTA "Copiar paradas para nova rota"). **#23** Imprimir rota (`high`, baixo esforço Android print) — item NOVO que o dump revelou; **decisão de Eduardo**: incluir como extra B2C ou cortar. **§13.C.5 PODE FECHAR:** o dump confirma que **#17** Compartilhar-cópia e **#18** Transferir são peer-transfer driver-to-driver ("outros usuários do Spoke" / QR code) — o corte está correto (≠ ShareSheet original RotPro em `/settings/share`).
+
 ### Área 10 — Settings completas (13 rows) ⏳ independente · precede Área 11
 
 `ListView` + `ListTile`/`SwitchListTile.adaptive` + section headers (equivalente ao PreferenceActivity do Spoke). **Pickers radio: usar `RadioGroup<T>` ancestral (3.44), não groupValue por-Radio.**
@@ -189,6 +197,8 @@ Foco em UMA parada por vez. Mapa metade superior centrado na parada atual (follo
 - **Assinatura (1):** Comparar planos — tela informacional do pass único R$ 25,90 (NÃO picker de tiers). Abre paywall (Slice 4).
 - **Rodapé legal:** Endereço de casa (stub, real Slice 5) · Indicações (→ ShareSheet) · Licenças (Slice 6) · Privacidade (Slice 6) · Termos (Slice 6) · Versão (display) · **Sair** (VERMELHO).
 - ❌ **Tema:** DESCARTADO (tema único). Section "Preferências gerais" removível.
+
+📊 **Dump (ADR-0045):** Settings não tem linha-gap própria na [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) (o dump focou no fluxo de rota; Settings é `PreferenceActivity` com XML extraível à parte). **Dependência:** o setting "Tempo médio na parada" (1/2/3/5/10/custom) **alimenta o default do #7** ("Tempo na parada" da Área 6) — implementar Área 10 antes/junto da Área 6 para o default ter origem real, não hard-coded.
 
 Detalhe §10.19 + §10.6.1.
 
