@@ -27,8 +27,12 @@ GoRouter _router(Widget home) => GoRouter(
           builder: (_, __) => home,
           routes: [
             GoRoute(
+              // Mirror app.dart: read the optional BreakConfig `extra` so the
+              // EDIT-mode push (ADR-0049) pre-fills the page in-harness.
               path: 'break-scheduler',
-              builder: (_, __) => const BreakSchedulerPage(),
+              builder: (_, state) => BreakSchedulerPage(
+                initialBreak: state.extra as BreakConfig?,
+              ),
             ),
           ],
         ),
@@ -648,8 +652,9 @@ void main() {
   });
 
   testWidgets(
-      'a break returned from the scheduler renders as a window row '
-      '"08:00–15:00 • 30min" on Detalhes da rota (ADR-0044)', (tester) async {
+      'a break returned from the scheduler renders as a two-line row '
+      '"Pausa de 30 min" / "Entre 08:00 e 15:00" (ADR-0044 + GAP-3)',
+      (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -665,8 +670,142 @@ void main() {
     await tester.tap(find.bySemanticsIdentifier('break_scheduler_confirm'));
     await tester.pumpAndSettle();
 
-    // Back on Detalhes da rota, the new break shows as a window range row.
-    expect(find.text('08:00–15:00 • 30min'), findsOneWidget);
+    // Back on Detalhes da rota, the new break shows as the Spoke two-line row
+    // (title "Pausa de N min" + subtitle "Entre A e B") — not a concat string.
+    expect(find.text('Pausa de 30 min'), findsOneWidget);
+    expect(find.text('Entre 08:00 e 15:00'), findsOneWidget);
+    expect(find.text('08:00–15:00 • 30min'), findsNothing);
+  });
+
+  testWidgets(
+      'tapping an existing break row reopens the scheduler in EDIT mode '
+      '(pre-filled + Remover pausa) and editing updates it (GAP-1)',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Seed a route that already has one break.
+    await tester.pumpWidget(
+      _wrap(
+        routeId: 'r1',
+        initialConfig: const RouteConfig(
+          breaks: [
+            BreakConfig(
+              fromTime: TimeOfDay(hour: 8, minute: 0),
+              toTime: TimeOfDay(hour: 15, minute: 0),
+              durationMinutes: 30,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The existing break row is present and tappable.
+    expect(find.text('Pausa de 30 min'), findsOneWidget);
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_pausa_0'));
+    await tester.pumpAndSettle();
+
+    // EDIT mode: scheduler is pre-filled AND shows "Remover pausa".
+    expect(find.text('Configure a pausa'), findsOneWidget);
+    expect(
+      find.bySemanticsIdentifier('break_scheduler_remove'),
+      findsOneWidget,
+    );
+
+    // Change the duration to 45 and confirm.
+    await tester.tap(find.bySemanticsIdentifier('break_duration'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.bySemanticsIdentifier('break_duration_input'),
+      '45',
+    );
+    await tester.pump();
+    await tester.tap(find.bySemanticsIdentifier('break_duration_confirm'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('break_scheduler_confirm'));
+    await tester.pumpAndSettle();
+
+    // Back on Detalhes: the break now reads 45 min (updateBreak applied).
+    expect(find.text('Pausa de 45 min'), findsOneWidget);
+    expect(find.text('Pausa de 30 min'), findsNothing);
+  });
+
+  testWidgets(
+      'EDIT mode "Remover pausa" → confirm dialog → removes the break (GAP-1)',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _wrap(
+        routeId: 'r1',
+        initialConfig: const RouteConfig(
+          breaks: [
+            BreakConfig(
+              fromTime: TimeOfDay(hour: 8, minute: 0),
+              toTime: TimeOfDay(hour: 15, minute: 0),
+              durationMinutes: 30,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_pausa_0'));
+    await tester.pumpAndSettle();
+
+    // Remover pausa → confirm dialog → Remover.
+    await tester.tap(find.bySemanticsIdentifier('break_scheduler_remove'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remover pausa'), findsWidgets);
+    await tester.tap(find.bySemanticsIdentifier('break_remove_confirm'));
+    await tester.pumpAndSettle();
+
+    // Back on Detalhes: the break is gone, only "Adicionar pausa" remains.
+    expect(find.text('Pausa de 30 min'), findsNothing);
+    expect(find.text('Adicionar pausa'), findsOneWidget);
+  });
+
+  testWidgets('EDIT mode "Remover pausa" → Cancelar keeps the break (GAP-1)',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _wrap(
+        routeId: 'r1',
+        initialConfig: const RouteConfig(
+          breaks: [
+            BreakConfig(
+              fromTime: TimeOfDay(hour: 8, minute: 0),
+              toTime: TimeOfDay(hour: 15, minute: 0),
+              durationMinutes: 30,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsIdentifier('route_details_row_pausa_0'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('break_scheduler_remove'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('break_remove_cancel'));
+    await tester.pumpAndSettle();
+    // Still on the scheduler (not removed); back out leaves the break intact.
+    await tester.tap(find.bySemanticsIdentifier('break_scheduler_confirm'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pausa de 30 min'), findsOneWidget);
   });
 
   testWidgets(

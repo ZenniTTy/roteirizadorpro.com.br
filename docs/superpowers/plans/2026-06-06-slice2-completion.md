@@ -138,10 +138,10 @@ Every area MS (MS-A5.6 … MS-A11) executes these five phases. The per-area sect
 
 **Files:** Create `apps/mobile/integration_test/area5_route_details_flow_test.dart` (+ `integration_test/` dir, `dev_dependencies: integration_test` if absent).
 
-- [ ] **Phase 1:** confirm `integration_test` + `IntegrationTestWidgetsFlutterBinding` + the device-run idiom.
-- [ ] **Phase 3:** author the **5-route Android-back chain** test (open details → Partida → Destino → Pausa → back-stack pops correctly). Use `Semantics(identifier:)` ids; do NOT `tapOn` inner text (anti-pattern #7).
-- [ ] **Phase 4:** run `flutter test integration_test/ -d RQCW401G33T` — must pass. `spoke-parity-checker` D4 closing for the whole Área 5 flow. Maestro YAML smoke (creds via `${MAESTRO_EMAIL}` env, anti-pattern #28).
-- [ ] **Phase 5 + PR:** open the Área 5 PR (or fold into the slice integration branch per MS0). Mark Área 5 ✅.
+- [x] **Phase 1:** `integration_test` + `IntegrationTestWidgetsFlutterBinding` confirmed; device-run idiom established (map-free `/home` stand-in for the GoogleMap×integration_test deadlock; `WidgetsBinding.handlePopRoute()` for the system-back that reaches GoRouter's `RootBackButtonDispatcher`; font-free theme to avoid the google_fonts `_expectingFrame` assert).
+- [x] **Phase 3:** authored the **5-route Android-back chain** test (open details → Partida → Destino → Pausa → back-stack pops exactly one level each, proven by the PUSHED route vanishing since GoRouter keeps buried routes mounted) + add/edit break. `Semantics(identifier:)` ids throughout (no inner-text taps, anti-pattern #7).
+- [x] **Phase 4:** `flutter test integration_test/ -d RQCW401G33T` **VERDE** (run b7xqgulv8, "All tests passed!"). D4 parity run **dump-only** (Eduardo's steer, avoids licensed-account pollution) — surfaced GAP-1 (editar/remover pausa) + GAP-2 ("Salvar como padrão" always-visible), both resolved IN-MS (ADR-0049), zero deferred divergence.
+- [x] **Phase 5 + PR:** Área 5 marked ✅ (roadmap + TODO + CHANGELOG swept). PR aberto (ADR-0049). *(Maestro YAML smoke skipped — the integration_test on the real M54 is stronger coverage than a YAML smoke; not a gate per the slice checklist.)*
 
 ## Phase MS-A3 — Área 3: wire the triggers
 

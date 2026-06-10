@@ -163,6 +163,45 @@ final class BreakConfig extends RouteConfigPart {
   int get hashCode => Object.hash(fromTime, toTime, durationMinutes);
 }
 
+/// Result the "Configure a pausa" page pops (ADR-0049). Mirrors Spoke's
+/// `BreakSetupResult` sealed family (`BreakChanged` / `BreakRemoved`,
+/// `~/spoke-dump/.../breaks/BreakSetupResult.java`): a single typed return that
+/// distinguishes "save this break" from "remove this break", so the parent can
+/// route to `addBreak` / `updateBreak` / `removeBreak` without a second channel.
+/// A `null` pop (system back / `←`) means "cancel — leave the break list
+/// untouched", as before.
+sealed class BreakSchedulerResult {
+  const BreakSchedulerResult();
+}
+
+/// The user confirmed a break (add OR edit) — apply [config]. In add mode the
+/// parent appends it; in edit mode the parent replaces the break at its index.
+final class BreakSaved extends BreakSchedulerResult {
+  const BreakSaved(this.config);
+  final BreakConfig config;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is BreakSaved && other.config == config;
+
+  @override
+  int get hashCode => config.hashCode;
+}
+
+/// The user removed the break being edited (Spoke's "Remover pausa" →
+/// `BreakRemoved`). Only reachable in edit mode; the parent drops the break at
+/// its index. Carries no payload — the index is owned by the call site.
+final class BreakRemoved extends BreakSchedulerResult {
+  const BreakRemoved();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is BreakRemoved;
+
+  @override
+  int get hashCode => (BreakRemoved).hashCode;
+}
+
 /// Aggregate of one route's user-configurable state.
 ///
 /// All sub-states except [breaks] and [destination] are nullable to model

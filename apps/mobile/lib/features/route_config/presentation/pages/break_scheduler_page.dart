@@ -14,9 +14,19 @@ import '../widgets/time_picker_sheet.dart';
 /// ("Qual será a duração da pausa?" → "Padrão (30 min)", a free integer of
 /// minutes), and a pinned full-width "Adicionar pausa" CTA.
 ///
-/// Returns-intent: the page pops a [BreakConfig] via `context.pop` on confirm;
-/// system Back / the `←` pops `null` (cancel). The parent
-/// (`RouteDetailsPage._onTapAdicionarPausa`) applies it via `addBreak`.
+/// Returns-intent (ADR-0049): the page pops a [BreakSchedulerResult] —
+/// [BreakSaved] on confirm, [BreakRemoved] when the user removes an existing
+/// break; system Back / the `←` pops `null` (cancel). The parent
+/// (`RouteDetailsPage`) routes the result to `addBreak` / `updateBreak` /
+/// `removeBreak`. Mirrors Spoke's `BreakSetupArgs` (Add/Edit) +
+/// `BreakSetupResult` (Changed/Removed).
+///
+/// [initialBreak] selects the mode: `null` → ADD (fields start at the Spoke
+/// defaults, no remove button); non-null → EDIT (fields pre-filled from it, a
+/// "Remover pausa" button appears). The primary CTA reads "Concluído" in BOTH
+/// modes — Spoke's `BreakSetupState.primaryButtonText` defaults to
+/// `R.string.done` (the `break_screen_add_break_button` string exists but is
+/// NOT this CTA). Confirmed in the static dump (D4, 2026-06-10).
 ///
 /// The two time fields reuse the shipped numpad [TimePickerSheet] (ADR-0042) —
 /// the same widget Spoke's `bsp_time_picker` renders for these fields, with the
@@ -24,7 +34,11 @@ import '../widgets/time_picker_sheet.dart';
 /// the live capture. The duration uses a numeric-input dialog, exactly as
 /// Spoke's "Duração da pausa (minutos)" AlertDialog does.
 class BreakSchedulerPage extends StatefulWidget {
-  const BreakSchedulerPage({super.key});
+  const BreakSchedulerPage({super.key, this.initialBreak});
+
+  /// When non-null, the page opens in EDIT mode pre-filled with this break and
+  /// shows the "Remover pausa" action. When null, it opens in ADD mode.
+  final BreakConfig? initialBreak;
 
   /// Spoke's verbatim window defaults (live capture).
   static const TimeOfDay defaultFrom = TimeOfDay(hour: 8, minute: 0);
@@ -38,9 +52,14 @@ class BreakSchedulerPage extends StatefulWidget {
 }
 
 class _BreakSchedulerPageState extends State<BreakSchedulerPage> {
-  TimeOfDay _fromTime = BreakSchedulerPage.defaultFrom;
-  TimeOfDay _toTime = BreakSchedulerPage.defaultTo;
-  int _durationMinutes = BreakSchedulerPage.defaultDurationMinutes;
+  late TimeOfDay _fromTime =
+      widget.initialBreak?.fromTime ?? BreakSchedulerPage.defaultFrom;
+  late TimeOfDay _toTime =
+      widget.initialBreak?.toTime ?? BreakSchedulerPage.defaultTo;
+  late int _durationMinutes = widget.initialBreak?.durationMinutes ??
+      BreakSchedulerPage.defaultDurationMinutes;
+
+  bool get _isEdit => widget.initialBreak != null;
 
   String _formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -101,14 +120,32 @@ class _BreakSchedulerPageState extends State<BreakSchedulerPage> {
     setState(() => _durationMinutes = picked);
   }
 
-  void _onAddBreak() {
-    Navigator.of(context).pop<BreakConfig>(
-      BreakConfig(
-        fromTime: _fromTime,
-        toTime: _toTime,
-        durationMinutes: _durationMinutes,
+  /// Confirm ("Concluído") — pops [BreakSaved] with the current window/duration.
+  /// The parent appends (add mode) or replaces at index (edit mode).
+  void _onConfirm() {
+    Navigator.of(context).pop<BreakSchedulerResult>(
+      BreakSaved(
+        BreakConfig(
+          fromTime: _fromTime,
+          toTime: _toTime,
+          durationMinutes: _durationMinutes,
+        ),
       ),
     );
+  }
+
+  /// "Remover pausa" (edit mode only) — confirms via Spoke's
+  /// `remove_break_confirmation_dialog` ("Quer remover a pausa…?"), then pops
+  /// [BreakRemoved] so the parent drops the break at its index. Cancel keeps
+  /// the user on the editor with no change.
+  Future<void> _onRemove() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      useRootNavigator: true,
+      builder: (_) => const _RemoveBreakDialog(),
+    );
+    if (confirmed != true || !mounted) return;
+    Navigator.of(context).pop<BreakSchedulerResult>(const BreakRemoved());
   }
 
   @override
@@ -181,7 +218,18 @@ class _BreakSchedulerPageState extends State<BreakSchedulerPage> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              child: _AddBreakButton(onPressed: _onAddBreak),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _ConfirmButton(onPressed: _onConfirm),
+                  // Edit mode only: Spoke's "Remover pausa" destructive action
+                  // (BreakSetupState.hasRemoveButton). Absent in add mode.
+                  if (_isEdit) ...[
+                    const SizedBox(height: 8),
+                    _RemoveBreakButton(onPressed: _onRemove),
+                  ],
+                ],
+              ),
             ),
           ],
         ),
@@ -372,9 +420,12 @@ class _DurationField extends StatelessWidget {
   }
 }
 
-/// Pinned full-width "Adicionar pausa" CTA.
-class _AddBreakButton extends StatelessWidget {
-  const _AddBreakButton({required this.onPressed});
+/// Pinned full-width primary CTA. Reads "Concluído" in BOTH add and edit modes
+/// — Spoke's `BreakSetupState.primaryButtonText` defaults to `R.string.done`
+/// (D4 dump finding, 2026-06-10). The semantics id stays `break_scheduler_confirm`
+/// (the integration_test + widget tests target it).
+class _ConfirmButton extends StatelessWidget {
+  const _ConfirmButton({required this.onPressed});
   final VoidCallback onPressed;
 
   @override
@@ -395,11 +446,86 @@ class _AddBreakButton extends StatelessWidget {
           ),
           onPressed: onPressed,
           child: const Text(
-            'Adicionar pausa',
+            'Concluído',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Edit-mode destructive "Remover pausa" action (Spoke's
+/// `break_screen_remove_button`). Red text button below the primary CTA.
+class _RemoveBreakButton extends StatelessWidget {
+  const _RemoveBreakButton({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: 'break_scheduler_remove',
+      button: true,
+      child: SizedBox(
+        width: double.infinity,
+        height: 48,
+        child: TextButton(
+          onPressed: onPressed,
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: const Text(
+            'Remover pausa',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Spoke's `remove_break_confirmation_dialog` — "Quer mesmo remover esta
+/// pausa?" with Cancelar / Remover. Pops `true` on confirm, `null`/`false`
+/// otherwise. (Original PT-BR microcopy per ADR-0035 — Spoke's verbatim
+/// "Quer remover a pausa de %1$s da sua rota?" is paraphrased, not cloned.)
+class _RemoveBreakDialog extends StatelessWidget {
+  const _RemoveBreakDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.bg,
+      title: const Text('Remover pausa'),
+      content: const Text('Quer mesmo remover esta pausa da sua rota?'),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: Semantics(
+                identifier: 'break_remove_confirm',
+                button: true,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Remover'),
+                ),
+              ),
+            ),
+            Semantics(
+              identifier: 'break_remove_cancel',
+              button: true,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

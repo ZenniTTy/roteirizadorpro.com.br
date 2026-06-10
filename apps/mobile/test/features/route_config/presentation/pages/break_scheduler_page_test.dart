@@ -4,16 +4,26 @@ import 'package:roteirizador_pro/features/route_config/domain/route_config.dart'
 import 'package:roteirizador_pro/features/route_config/presentation/pages/break_scheduler_page.dart';
 
 /// Pumps a launcher button that pushes [BreakSchedulerPage] as a route and
-/// records the popped [BreakConfig] (or null), mirroring how
-/// `RouteDetailsPage._onTapAdicionarPausa` awaits the page result. Returns a
-/// getter into the recorded value so a test can push, interact, then assert
-/// what the page popped.
+/// records the popped [BreakSchedulerResult] (ADR-0049), mirroring how
+/// `RouteDetailsPage` awaits the page result. [popped] exposes the
+/// [BreakConfig] when the result is [BreakSaved] (so the existing add-mode
+/// assertions keep reading `popped?.fromTime` etc.); [result] exposes the raw
+/// sealed result so edit/remove tests can assert [BreakRemoved] / null.
 class _Harness {
-  BreakConfig? popped;
+  BreakSchedulerResult? result;
   bool resolved = false;
+
+  /// The saved config, or null if the result was a removal / cancel.
+  BreakConfig? get popped =>
+      result is BreakSaved ? (result! as BreakSaved).config : null;
 }
 
-Future<_Harness> _pushPage(WidgetTester tester) async {
+/// Pushes the page in ADD mode (default) or EDIT mode when [initialBreak] is
+/// given.
+Future<_Harness> _pushPage(
+  WidgetTester tester, {
+  BreakConfig? initialBreak,
+}) async {
   // Match the numpad test's viewport so the 4×3 grid + FAB are fully laid out
   // and hittable (the numpad sheet is tall; the default 800×600 test view
   // clips its lower keys, making taps silently miss).
@@ -30,9 +40,11 @@ Future<_Harness> _pushPage(WidgetTester tester) async {
           builder: (context) => Center(
             child: ElevatedButton(
               onPressed: () async {
-                harness.popped = await Navigator.of(context).push<BreakConfig>(
+                harness.result =
+                    await Navigator.of(context).push<BreakSchedulerResult>(
                   MaterialPageRoute(
-                    builder: (_) => const BreakSchedulerPage(),
+                    builder: (_) =>
+                        BreakSchedulerPage(initialBreak: initialBreak),
                   ),
                 );
                 harness.resolved = true;

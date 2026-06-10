@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/login_page.dart';
 import 'features/auth/presentation/register_page.dart';
 import 'features/auth/state/auth_controller.dart';
+import 'features/route_config/domain/route_config.dart' show BreakConfig;
 import 'features/route_config/presentation/pages/break_scheduler_page.dart';
 import 'features/route_config/presentation/pages/route_details_page.dart';
 import 'features/route_config/state/picker_mode.dart';
@@ -106,12 +107,16 @@ final _routerProvider = Provider<GoRouter>((ref) {
               ),
               GoRoute(
                 // Pausa sub-picker — full-screen "Configure a pausa" page.
-                // The "Adicionar pausa" row on Detalhes da rota pushes this
-                // route and awaits a `BreakConfig` (typed pop result; null on
-                // back/cancel). Spoke renders this as a routed page, not a
-                // sheet (live capture 2026-06-09). ADR-0044.
+                // The "Adicionar pausa" row pushes this with no `extra` (ADD
+                // mode); an existing-break row pushes it with the BreakConfig as
+                // `extra` (EDIT mode → pre-filled + "Remover pausa"). Awaits a
+                // `BreakSchedulerResult` (BreakSaved/BreakRemoved; null on
+                // back/cancel). Spoke renders this as a routed page, not a sheet
+                // (live capture 2026-06-09). ADR-0044 + ADR-0049.
                 path: 'break-scheduler',
-                builder: (_, __) => const BreakSchedulerPage(),
+                builder: (_, state) => BreakSchedulerPage(
+                  initialBreak: state.extra as BreakConfig?,
+                ),
               ),
             ],
           ),

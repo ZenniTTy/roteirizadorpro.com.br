@@ -2,6 +2,17 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-10 — Área 5 MS9 (integration_test + D4 + editar/remover pausa): ADR-0049 — **Área 5 fechada**
+
+Code change (MS-A5.9) with its documentation. Closes Área 5. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0049** ([break edit/remove + "Salvar como padrão" always-visible](decisions/0049-break-edit-remove-and-save-default-always-visible.md)) — the D4 parity check (run **dump-only**, Eduardo's steer to avoid licensed-account pollution) surfaced two gaps. **GAP-1:** an existing break's row was non-navigable (`onTap: null`) — but the dump proves Spoke reopens it in edit mode with a remove action (`BreakSetupArgs.AddBreak`/`EditBreak`/`UpdateBreak` sealed class + verbatim PT-BR `break_screen_remove_button`="Remover pausa", `remove_break_confirmation_dialog_title`/`_description`). Wired: tapping a break row pushes the page with the `BreakConfig` as `extra` → pre-filled + "Remover pausa"; the page returns a sealed `BreakSchedulerResult` (`BreakSaved`/`BreakRemoved`); `_onTapEditarPausa` does an exhaustive `switch` → `updateBreak`/`removeBreak`/no-op; remove requires a confirmation dialog. Microcopy stays original PT-BR (ADR-0035). **GAP-2:** "Salvar como padrão" is always visible (no first-route gate — same dump finding as ADR-0047). **First integration_test of the app** (`area5_route_details_flow_test.dart`): the sub-picker back-stack chain (Detalhes → Partida/Destino/Pausa, system Android-back popping exactly one level) + add+edit break, **VERDE on the M54** (`RQCW401G33T`). Two test-only fixes (no production change): a 400ms pop-transition settle before the edit tap, and the test `_router()` builder now reads `state.extra` (the production `app.dart` was always correct).
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap Área 5 → ✅ (status table + execution-order line + MS9 row); Slice-2 plan §MS-A5.9 checked; TODO.md MS9 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints = MS-DEBT, untouched); `flutter test` **284** host (baseline 281 at MS8 close, +3 edit/remove widget tests); `integration_test/area5_route_details_flow_test.dart` VERDE on M54 (run b7xqgulv8, "All tests passed!"). D4 parity dump-only (GAP-1/GAP-2 resolved in-MS, zero deferred divergence per `feedback_spoke_parity_zero_debt_per_ms`).
+
 ## 2026-06-10 — Área 5 MS8 (route-defaults persistence, FTUE-cut): ADR-0047
 
 Code change (MS-A5.8) with its documentation. Code lives in git; this entry records the docs + the ADR.

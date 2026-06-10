@@ -345,12 +345,16 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
       for (var i = 0; i < config.breaks.length; i++)
         RouteConfigRow(
           semanticsKey: 'pausa_$i',
-          // Window range + duration (ADR-0044): "08:00–15:00 • 30min".
-          label:
-              '${_formatTimeOfDay(config.breaks[i].fromTime)}–${_formatTimeOfDay(config.breaks[i].toTime)} • ${config.breaks[i].durationMinutes}min',
+          // Spoke's two-line row (D4 dump, GAP-3): bold "Pausa de N min" title +
+          // muted "Entre A e B" subtitle (route_setup_break_option_title/_subtitle),
+          // NOT a single concatenated string. Tappable → reopens in edit mode
+          // (Spoke's BreakSetupArgs.EditBreak).
+          label: 'Pausa de ${config.breaks[i].durationMinutes} min',
+          subtitle:
+              'Entre ${_formatTimeOfDay(config.breaks[i].fromTime)} e ${_formatTimeOfDay(config.breaks[i].toTime)}',
           leading: LucideIcons.coffee,
           active: true,
-          onTap: null,
+          onTap: () => _onTapEditarPausa(i, config.breaks[i]),
         ),
       RouteConfigRow(
         semanticsKey: 'adicionar_pausa',
@@ -364,18 +368,39 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
     return RouteDetailsSection(title: 'Pausa', children: rows);
   }
 
-  /// Push the full-screen "Configure a pausa" page (ADR-0044) and, on a
-  /// returned [BreakConfig], append it via `addBreak`. The page pops `null` on
-  /// back/cancel — leave the breaks list untouched. Spoke renders this picker
-  /// as a routed page, not a sheet (live capture 2026-06-09).
+  /// Push the "Configure a pausa" page in ADD mode (no `initialBreak`). On a
+  /// returned [BreakSaved], append via `addBreak`; `null`/[BreakRemoved] are
+  /// no-ops here (remove is unreachable in add mode). ADR-0044 + ADR-0049.
   Future<void> _onTapAdicionarPausa() async {
-    final result = await context.push<BreakConfig>(
+    final result = await context.push<BreakSchedulerResult>(
       '/home/routes/active/${widget.routeId}/details/break-scheduler',
     );
-    if (result == null) return;
+    if (result is! BreakSaved) return;
     ref
         .read(routeConfigControllerProvider(widget.routeId).notifier)
-        .addBreak(result);
+        .addBreak(result.config);
+  }
+
+  /// Push the "Configure a pausa" page in EDIT mode (ADR-0049), pre-filled with
+  /// the break at [index] (passed as GoRouter `extra`). On [BreakSaved] replace
+  /// it via `updateBreak`; on [BreakRemoved] drop it via `removeBreak`; `null`
+  /// (cancel) leaves the list untouched. Mirrors Spoke's EditBreak flow.
+  Future<void> _onTapEditarPausa(int index, BreakConfig current) async {
+    final result = await context.push<BreakSchedulerResult>(
+      '/home/routes/active/${widget.routeId}/details/break-scheduler',
+      extra: current,
+    );
+    if (!mounted) return;
+    final notifier =
+        ref.read(routeConfigControllerProvider(widget.routeId).notifier);
+    switch (result) {
+      case null:
+        return;
+      case BreakSaved(:final config):
+        notifier.updateBreak(index, config);
+      case BreakRemoved():
+        notifier.removeBreak(index);
+    }
   }
 
   /// Maps a [Destination] subtype to its primary row display string.

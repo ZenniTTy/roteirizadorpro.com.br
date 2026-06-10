@@ -74,7 +74,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 | 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto |
 | 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~80% — controles de mapa e ações kebab/bottom-bar são stubs `_comingSoon` |
 | 4 | Adicionar parada (texto) | ✅ pronto (usa Google Places **live**, não stub) · ⏳ OCR/Voz/tap-mapa são stubs (Área 7/5) |
-| 5 | Detalhes da rota (Partida/Destino/Pausa) | 🟡 MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows+MS8 persistência prontos · ⏳ MS9 integration_test+PR aberto |
+| 5 | Detalhes da rota (Partida/Destino/Pausa) | ✅ **fechada** — MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows+MS8 persistência+MS9 integration_test/D4/editar-remover-pausa (ADR-0049). 1º integration_test do app VERDE no M54. PR aberto. |
 | 6 | Editar parada (sheet, 14 campos) | ⏳ não iniciada |
 | 7 | Otimizar rota (3 estados + 3 modais FTUE) | ⏳ não iniciada |
 | 8 | Modo Delivery (running route) | ⏳ não iniciada |
@@ -85,7 +85,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 ### Ordem de execução (forçada por dependências — NÃO é livre)
 
 ```
-[em andamento]  Finalizar Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência ✅ (FTUE-cut ADR-0047) → MS9 integration_test+PR)
+[✅ FECHADA]     Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência ✅ (FTUE-cut ADR-0047) → MS9 integration_test+D4+editar/remover pausa ✅ (ADR-0049))
        │        Finalizar gatilhos da Área 3 (Otimizar CTA, tap no stop card, kebab/bottom-bar)
        ▼
    Área 6 (Editar parada)  ──► chips A1/A2 e lista inline dependem dela
@@ -107,7 +107,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 ### Gates do Slice 2 (pré-existentes que bloqueiam "Done")
 
 - [ ] `flutter analyze` clean — hoje **23 lints pré-existentes** (reuse_stops_page ×11, add_stop_map_page ×5, places_repository ×4, drawer ×2, test ×1). A sprint inclui um MS de burn-down OU aceita explicitamente fora-de-escopo.
-- [ ] `apps/mobile/integration_test/` existe — hoje **ABSENTE** (gate blocking; várias áreas tocam navegação). 1º teste a criar: `area5_route_details_flow_test.dart` (Área 5 MS9).
+- [x] `apps/mobile/integration_test/` existe — **CRIADO** na Área 5 MS9: `area5_route_details_flow_test.dart` (back-stack dos sub-pickers + add/editar pausa, VERDE no M54). Idiom estabelecido (map-free stand-in p/ o deadlock GoogleMap×integration_test, `WidgetsBinding.handlePopRoute()` p/ system-back, font-free theme) p/ as próximas áreas.
 - [ ] `flutter test` ≥ 249 (baseline atual).
 
 ### Área 1 — Auth (completar UI) · independente · SEM baseline Spoke
@@ -139,14 +139,14 @@ Pronto: texto + autocomplete via **Google Places API live** (`places_repository.
 - [ ] **Tap no mapa** (`add_stop_map_page.dart` — hoje grey-box mock `:26`, reverse geocode não wirado) — Área 5 / PR isolado.
 - [ ] **CSV upload** — Slice 3.
 
-### Área 5 — Detalhes da rota 🟡 MS1–MS5+MS-FIX prontos
+### Área 5 — Detalhes da rota ✅ FECHADA
 
 Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 body-level, sem AppBar) + Partida picker + TimePickerSheet **numpad 4×3** (ADR-0042, pivot do wheel ADR-0041) + Destino **bottom sheet 3-cards** (ADR-0043 — `RoundTrip` "Voltar ao ponto de partida" / `SpecificAddress` "Destino em outro endereço" / `NoDestination` "Não usar destino"; `BackToStart` removido) + Concluído sempre habilitado + checkbox "Salvar como padrão" **UNCHECKED** (ADR-0043 §Q8). **Falta:**
 
 - [x] **MS6 Sub-tela Pausa** ✅ (2026-06-09, ADR-0044) — página full-screen "Configure a pausa" (NÃO sheet): janela de horário Entre/E (default 08:00–15:00) via numpad reusado + duração em minutos (dialog numérico, default 30; NÃO chips). `BreakConfig` virou janela (`fromTime`/`toTime`/`durationMinutes`). SnackBar interino removido. 261 testes.
 - [x] **MS7 Seção "Configuração de rota" na tela ativa** ✅ (2026-06-10, ADR-0046) — Phase-2 halt corrigiu a premissa do plano: a tela ativa NÃO tinha rows de config (a Spoke mostra **2 rows-resumo** Início + Ida-e-volta, SEM Pausa) e elas abrem a **página Detalhes da rota** inteira, NÃO os sub-pickers direto. Criado `_ConfigSummarySection` em `route_shell_page.dart` (microcopy de resumo distinta da página Detalhes); `RouteDetailsPage` antes órfã agora tem entrypoint de produção. 272 testes.
 - [x] **MS8 Persistência + FTUE-cut** ✅ (2026-06-10, ADR-0047) — DUMP-FIRST: o dump decompilado prova que a Spoke **não tem gate de "primeira rota"** (sem `firstRoute`/`isFirst` em `RouteSetupViewModel`; `ui/onboarding` é survey). **FTUE auto-show CORTADO** (era inferência). Wirado só persistência: "Salvar como padrão" → `merge()` no Concluído (best-effort) + seed da Detalhes do envelope `route_defaults_v1` ao abrir. Q8 UNCHECKED confirmado por pixels. 281 testes.
-- [ ] **MS9 integration_test + D4 + PR** — `area5_route_details_flow_test.dart` (5-route Android-back chain) + spoke-parity D4 + Maestro YAML + PR.
+- [x] **MS9 integration_test + D4 + editar/remover pausa + PR** ✅ (2026-06-10, ADR-0049) — 1º `integration_test` do app (`area5_route_details_flow_test.dart`, back-stack 5-rotas + add/editar pausa) **VERDE no M54**. D4 **dump-only** (sem poluir conta licenciada) fechou 2 gaps NO MESMO MS: **GAP-1** editar/remover pausa (row existente reabre em edit mode + "Remover pausa" + diálogo de confirmação — dump `BreakSetupArgs.EditBreak`/`UpdateBreak` + strings `break_screen_remove_button`/`remove_break_confirmation_dialog_*`; resultado vira sealed `BreakSchedulerResult`); **GAP-2** "Salvar como padrão" sempre visível (sem gate de 1ª rota, mesmo achado do ADR-0047). 284 testes host. PR aberto.
 
 > Nota §13.C.2 RE-RESOLVIDA (ADR-0047, dump-first): a hipótese "Detalhes da rota é FTUE one-time" era **inferência** — o dump decompilado prova que a Spoke **NÃO tem gate de primeira rota** (sem `firstRoute`/`isFirst`/`hasSeenSetup` em `RouteSetupViewModel`; `ui/onboarding` é survey, não setup). A Detalhes é **on-demand** (aberta pelo resumo "Configuração de rota" da Área 3, ADR-0046), não auto-mostrada. FTUE auto-show **cortado**.
 
