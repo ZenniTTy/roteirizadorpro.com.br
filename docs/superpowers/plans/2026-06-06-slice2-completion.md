@@ -112,14 +112,16 @@ Every area MS (MS-A5.6 … MS-A11) executes these five phases. The per-area sect
 - [x] **Phase 3:** built `break_scheduler_page.dart` (returns-intent: pops a `BreakConfig`; parent `addBreak`). Wired `route_details_page.dart` `_onTapAdicionarPausa` to push it. TDD.
 - [x] **Phase 4 + 5.** analyze clean (scope), 261 tests. Commit `feat(route-config): Área 5 MS6 break scheduler page (window model, ADR-0044)`.
 
-## Phase MS-A5.7 — Área 5: wire Área 3 config rows
+## Phase MS-A5.7 — Área 5: active-route "Configuração de rota" summary ✅ DONE (2026-06-10 — ADR-0046)
 
-**Files:** Modify `apps/mobile/lib/features/routes/presentation/route_shell_page.dart` (the 3 inline config rows Início/Ida-e-volta/Pausa → clickable, reopen sub-pickers), `app.dart` if a row pushes a route.
+> **Live-dump correction (Phase-2 halt, ADR-0046):** the plan premise — *"the 3 inline config rows Início/Ida-e-volta/Pausa → clickable, reopen sub-pickers"* — was wrong on three counts. (1) `route_shell_page.dart` had **no config rows at all** to "make clickable". (2) Live Spoke shows a **2-row** "Configuração de rota" summary (Início + Ida-e-volta, **NO Pausa**), not 3. (3) Tapping a row opens the **full "Detalhes da rota" page** (`RouteDetailsPage`, previously orphaned — no production push), **not** the sub-pickers directly. Escalated → Eduardo chose Match-Spoke. The original wording is kept struck-through for the audit trail.
 
-- [ ] **Phase 1:** confirm sheet-returns-intent + GoRouter sub-route patterns (re-read lesson #5).
-- [ ] **Phase 2:** re-confirm the Spoke inline-config rows behavior (which row opens which sub-picker).
-- [ ] **Phase 3:** make each row clickable → reopen Partida/Destino/Pausa. NO silent onTap. TDD.
-- [ ] **Phase 4:** **integration_test if a row pushes a route.** Commit `feat(route-config): Área 5 MS7 wire active-route config rows`.
+**Files:** Modified `apps/mobile/lib/features/routes/presentation/route_shell_page.dart` (new `_ConfigSummarySection` ConsumerWidget + parent wiring; routeId from `activeRouteIdProvider`) + its test (+9). No `app.dart` change (the `routes/active/:routeId/details` route already existed).
+
+- [x] **Phase 1:** ~~confirm sheet-returns-intent~~ → confirmed `context.push` (already used in codebase), `activeRouteIdProvider` as routeId source, `RouteConfigRow` reuse. No returns-intent here (rows navigate, mutate nothing).
+- [x] **Phase 2:** ~~re-confirm which row opens which sub-picker~~ → live-dumped the active-route sheet (2-row summary → Detalhes page; distinct summary microcopy). Structural contradiction → ADR-0046.
+- [x] **Phase 3:** built `_ConfigSummarySection` (2 rows from live `RouteConfig` via `.select`; both push `routes/active/:id/details`). NO silent onTap. `Semantics(identifier:)` per row. TDD (red→green).
+- [x] **Phase 4:** widget test exercises the push (real GoRouter + sentinel). integration_test deferred to MS-A5.9 (the slice's first; decision recorded in ADR-0046 §Consequences). 272 tests, analyze clean (scope), perf-auditor 2 should-fix applied. Commit `feat(route-config): Área 5 MS7 active-route config summary (ADR-0046)`.
 
 ## Phase MS-A5.8 — Área 5: persistence + FTUE
 

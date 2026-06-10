@@ -2,6 +2,17 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-10 — Área 5 MS7 (active-route config summary): ADR-0046
+
+Code change (MS-A5.7) with its documentation. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0046** ([active-route "Configuração de rota" summary rows](decisions/0046-active-route-config-summary-rows.md)) — the plan's MS-A5.7 premise (*"3 inline config rows → reopen sub-pickers"*) was refuted by code + live Spoke on three counts: (1) `route_shell_page.dart` had **no** config rows to make clickable; (2) Spoke's active-route sheet shows a **2-row** "Configuração de rota" summary (Início + Ida-e-volta, **no Pausa**); (3) tapping a row opens the **full "Detalhes da rota" page** (`RouteDetailsPage`, previously orphaned — no production push), not the sub-pickers directly. The summary uses microcopy distinct from the Detalhes-page rows. `routeId` sourced from the existing `activeRouteIdProvider`. Phase-2 live-dump halt → escalated → Eduardo chose match-Spoke. Same dump-first discipline as ADR-0044.
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap Área 5 MS7 ✅ + status table + execution-order line + Área 3 "rows de config inline" wording corrected (they were created here, not pre-existing); Slice-2 plan §MS-A5.7 (premise correction, struck-through original); TODO.md MS7 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints untouched = MS-DEBT); `flutter test` 272 (baseline 263, +9); `flutter-perf-auditor` 0 must-fix, 2 should-fix applied (`.select` watch granularity + RepaintBoundary). integration_test deferred to MS-A5.9 (decision recorded in the ADR).
+
 ## 2026-06-10 — Spoke static dump baseline (ADR-0045) + harness dump-first sweep
 
 The recurring "baseline inferido" failure mode (ADR-0041/0042/0043/0044 — four route-config sub-pickers shipped/nearly-shipped the wrong widget from a stale or never-drilled Spoke baseline) is structurally closed by a **complete static dump of Spoke v3.65.1**.
