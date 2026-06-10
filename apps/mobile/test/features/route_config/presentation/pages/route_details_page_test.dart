@@ -3,13 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:roteirizador_pro/features/route_config/data/route_defaults_repository.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
+import 'package:roteirizador_pro/features/route_config/domain/route_defaults.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/pages/break_scheduler_page.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/pages/route_details_page.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/destination_picker_sheet.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_details_section.dart';
 import 'package:roteirizador_pro/features/route_config/state/route_config_controller.dart';
+import 'package:roteirizador_pro/features/route_config/state/route_defaults_controller.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 GoRouter _router(Widget home) => GoRouter(
       initialLocation: '/home/routes/active/r1/details',
@@ -34,9 +40,17 @@ Widget _wrap({
   RouteConfig? initialConfig,
   bool? validOverride,
 }) {
+  // MS-A5.8: the page's initState seeds from `routeDefaultsControllerProvider`,
+  // which hits SharedPreferencesAsync. Back it with an empty in-memory store so
+  // the seed is a no-op (empty envelope) and never touches a real platform.
+  SharedPreferencesAsyncPlatform.instance =
+      InMemorySharedPreferencesAsync.empty();
   final router = _router(RouteDetailsPage(routeId: routeId));
   return ProviderScope(
     overrides: [
+      routeDefaultsRepositoryProvider.overrideWithValue(
+        RouteDefaultsRepository(SharedPreferencesAsync()),
+      ),
       if (initialConfig != null)
         routeConfigControllerProvider(routeId)
             .overrideWith(() => _TestController(initialConfig)),
@@ -53,6 +67,17 @@ class _TestController extends RouteConfigController {
   final RouteConfig _initial;
   @override
   RouteConfig build(String routeId) => _initial;
+}
+
+/// A repository whose `write` always throws — exercises the best-effort
+/// persistence contract (silent-failure-hunter Finding 1): a save failure must
+/// still pop and never crash the screen.
+class _ThrowingWriteRepository extends RouteDefaultsRepository {
+  _ThrowingWriteRepository() : super(SharedPreferencesAsync());
+  @override
+  Future<void> write(RouteDefaults defaults) async {
+    throw StateError('simulated storage failure');
+  }
 }
 
 void main() {
@@ -989,5 +1014,201 @@ void main() {
     // Spoke renders the value inline — placeholder is gone, "18:00" shows.
     expect(find.text('18:00'), findsOneWidget);
     expect(find.text('Definir horário de término'), findsNothing);
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // MS-A5.8 — persistence wiring (ADR-0047).
+  // Opening Detalhes seeds the config from saved defaults (returning user);
+  // tapping Concluído with "Salvar como padrão" CHECKED persists the current
+  // config into the route_defaults_v1 envelope; UNCHECKED persists nothing.
+  // (FTUE auto-show is CUT — the dump proved Spoke has no first-route gate.)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Builds a wrapper backed by a real in-memory route_defaults envelope. The
+  // [seeded] envelope is written to the store FIRST (awaited), so the page's
+  // initial read seeds the config from it deterministically.
+  Future<Widget> wrapWithDefaults({
+    required RouteDefaults seeded,
+    String routeId = 'r1',
+  }) async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    final repo = RouteDefaultsRepository(SharedPreferencesAsync());
+    await repo.write(seeded);
+    final router = _router(RouteDetailsPage(routeId: routeId));
+    return ProviderScope(
+      overrides: [routeDefaultsRepositoryProvider.overrideWithValue(repo)],
+      child: MaterialApp.router(routerConfig: router),
+    );
+  }
+
+  testWidgets(
+      'opening Detalhes seeds the Partida-Início row from a saved timeStart '
+      'default (returning user)', (tester) async {
+    await tester.pumpWidget(
+      await wrapWithDefaults(
+        seeded: const RouteDefaults(
+          firstRoute: false,
+          timeStart: TimeStart(time: TimeOfDay(hour: 7, minute: 15)),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The seeded start time collapses the row to its lone HH:MM (Spoke).
+    expect(find.text('07:15'), findsOneWidget);
+    expect(find.text('Iniciar agora mesmo'), findsNothing);
+  });
+
+  testWidgets(
+      'opening Detalhes with an EMPTY envelope shows the bootstrap defaults '
+      '(no seed, no crash)', (tester) async {
+    await tester
+        .pumpWidget(await wrapWithDefaults(seeded: RouteDefaults.empty()));
+    await tester.pumpAndSettle();
+
+    // Empty envelope → RouteConfig.empty() shape: placeholder + Ida e volta.
+    expect(find.text('Iniciar agora mesmo'), findsOneWidget);
+    expect(find.text('Ida e volta'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  // A router with a seeded back-stack so `context.pop()` on Concluído has
+  // somewhere to land (the bare details route is the stack root otherwise →
+  // "nothing to pop"). Mirrors the existing "pops back to sender" test.
+  GoRouter persistRouter() {
+    return GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (_, __) => const Scaffold(body: Text('SENDER')),
+        ),
+        GoRoute(
+          path: '/details',
+          builder: (_, __) => const RouteDetailsPage(routeId: 'r1'),
+        ),
+      ],
+    );
+  }
+
+  testWidgets(
+      'Concluído with "Salvar como padrão" CHECKED persists the current config '
+      'into the defaults envelope', (tester) async {
+    // Tall frame so the bottom "Salvar como padrão" checkbox is hit-testable
+    // (the default 800×600 clips it — same reason the toggle test goes tall).
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    final repo = RouteDefaultsRepository(SharedPreferencesAsync());
+    const config = RouteConfig(
+      timeStart: TimeStart(time: TimeOfDay(hour: 6, minute: 45)),
+      destination: NoDestination(),
+    );
+    final router = persistRouter();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          routeDefaultsRepositoryProvider.overrideWithValue(repo),
+          routeConfigControllerProvider('r1')
+              .overrideWith(() => _TestController(config)),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    router.push('/details');
+    await tester.pumpAndSettle();
+
+    // Check "Salvar como padrão", then tap Concluído.
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('route_details_confirm'));
+    await tester.pumpAndSettle();
+
+    // The envelope now holds the saved config.
+    final persisted = await repo.read();
+    expect(persisted.timeStart?.time, const TimeOfDay(hour: 6, minute: 45));
+    expect(persisted.destination, const NoDestination());
+  });
+
+  testWidgets(
+      'Concluído with "Salvar como padrão" UNCHECKED persists NOTHING '
+      '(envelope stays empty)', (tester) async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    final repo = RouteDefaultsRepository(SharedPreferencesAsync());
+    const config = RouteConfig(
+      timeStart: TimeStart(time: TimeOfDay(hour: 6, minute: 45)),
+    );
+    final router = persistRouter();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          routeDefaultsRepositoryProvider.overrideWithValue(repo),
+          routeConfigControllerProvider('r1')
+              .overrideWith(() => _TestController(config)),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    router.push('/details');
+    await tester.pumpAndSettle();
+
+    // Do NOT check the box; tap Concluído directly.
+    await tester.tap(find.bySemanticsIdentifier('route_details_confirm'));
+    await tester.pumpAndSettle();
+
+    // Nothing persisted → store still empty.
+    final persisted = await repo.read();
+    expect(persisted, RouteDefaults.empty());
+  });
+
+  testWidgets(
+      'Concluído still pops + shows a SnackBar when the defaults WRITE fails '
+      '(best-effort save, silent-failure-hunter Finding 1)', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    const config = RouteConfig(
+      timeStart: TimeStart(time: TimeOfDay(hour: 6, minute: 45)),
+    );
+    final router = persistRouter();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          routeDefaultsRepositoryProvider
+              .overrideWithValue(_ThrowingWriteRepository()),
+          routeConfigControllerProvider('r1')
+              .overrideWith(() => _TestController(config)),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+    router.push('/details');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier('route_details_confirm'));
+    await tester.pumpAndSettle();
+
+    // No crash; a failure SnackBar surfaced; the page popped back to SENDER.
+    expect(tester.takeException(), isNull);
+    expect(
+      find.textContaining('Não foi possível salvar como padrão'),
+      findsOneWidget,
+    );
+    expect(find.text('SENDER'), findsOneWidget);
   });
 }

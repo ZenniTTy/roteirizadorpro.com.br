@@ -217,4 +217,85 @@ void main() {
       expect(populated.copyWith().startLocation, isNotNull);
     });
   });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // MS-A5.8 — RouteConfig <-> RouteDefaults mapping (persistence wiring).
+  // The two share the same sub-types (StartLocation/TimeStart/TimeEnd/
+  // Destination/BreakConfig); the mapping is a field copy. `fromConfig` builds
+  // a patch for `merge()` (firstRoute/schemaVersion left at ctor defaults — the
+  // controller's merge preserves the persisted ones); `RouteConfig.fromDefaults`
+  // seeds the Detalhes page from a saved envelope.
+  // ───────────────────────────────────────────────────────────────────────
+
+  group('RouteDefaults.fromConfig', () {
+    test('copies every configurable sub-state from a RouteConfig', () {
+      const config = RouteConfig(
+        startLocation: StartLocation(
+          address: 'Av Paulista, 1000',
+          lat: -23.561,
+          lng: -46.656,
+          isUserCurrentLocation: false,
+        ),
+        timeStart: TimeStart(time: TimeOfDay(hour: 8, minute: 30)),
+        timeEnd: TimeEnd(time: TimeOfDay(hour: 18, minute: 0)),
+        destination: NoDestination(),
+        breaks: [
+          BreakConfig(
+            fromTime: TimeOfDay(hour: 8, minute: 0),
+            toTime: TimeOfDay(hour: 15, minute: 0),
+            durationMinutes: 30,
+          ),
+        ],
+      );
+
+      final defaults = RouteDefaults.fromConfig(config);
+
+      expect(defaults.startLocation, config.startLocation);
+      expect(defaults.timeStart, config.timeStart);
+      expect(defaults.timeEnd, config.timeEnd);
+      expect(defaults.destination, config.destination);
+      expect(defaults.breaks, config.breaks);
+    });
+
+    test(
+        'leaves firstRoute/schemaVersion at ctor defaults (merge() protects the '
+        'persisted ones)', () {
+      final defaults = RouteDefaults.fromConfig(RouteConfig.empty());
+      expect(defaults.firstRoute, isTrue);
+      expect(defaults.schemaVersion, 1);
+    });
+  });
+
+  group('RouteDefaults.toConfig', () {
+    test('seeds a RouteConfig from a populated envelope', () {
+      const defaults = RouteDefaults(
+        firstRoute: false,
+        startLocation: StartLocation(
+          address: 'R. Augusta, 500',
+          lat: -23.55,
+          lng: -46.66,
+          isUserCurrentLocation: false,
+        ),
+        timeStart: TimeStart(time: TimeOfDay(hour: 9, minute: 0)),
+        destination: RoundTrip(),
+      );
+
+      final config = defaults.toConfig();
+
+      expect(config.startLocation, defaults.startLocation);
+      expect(config.timeStart, defaults.timeStart);
+      expect(config.destination, defaults.destination);
+    });
+
+    test('an empty envelope maps to RouteConfig.empty() (RoundTrip default)',
+        () {
+      final config = RouteDefaults.empty().toConfig();
+      // RouteDefaults.empty() has destination null; toConfig() must still honor
+      // the Spoke bootstrap default (RoundTrip) rather than leave it null,
+      // matching RouteConfig.empty().
+      expect(config.destination, const RoundTrip());
+      expect(config.startLocation, isNull);
+      expect(config.timeStart, isNull);
+    });
+  });
 }

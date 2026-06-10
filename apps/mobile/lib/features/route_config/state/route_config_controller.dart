@@ -44,6 +44,13 @@ class RouteConfigController extends _$RouteConfigController {
     state = state.withBreaks(next);
   }
 
+  /// Replaces the whole config in one shot (MS-A5.8). Used by
+  /// `RouteDetailsPage` to seed a returning user's saved defaults
+  /// (`RouteDefaults.toConfig()`) when the screen opens.
+  void seed(RouteConfig value) {
+    state = value;
+  }
+
   void clear() {
     state = RouteConfig.empty();
   }

@@ -74,7 +74,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 | 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto |
 | 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~80% — controles de mapa e ações kebab/bottom-bar são stubs `_comingSoon` |
 | 4 | Adicionar parada (texto) | ✅ pronto (usa Google Places **live**, não stub) · ⏳ OCR/Voz/tap-mapa são stubs (Área 7/5) |
-| 5 | Detalhes da rota (Partida/Destino/Pausa) | 🟡 MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows prontos · ⏳ MS8 persistência+FTUE, MS9 integration_test+PR abertos |
+| 5 | Detalhes da rota (Partida/Destino/Pausa) | 🟡 MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows+MS8 persistência prontos · ⏳ MS9 integration_test+PR aberto |
 | 6 | Editar parada (sheet, 14 campos) | ⏳ não iniciada |
 | 7 | Otimizar rota (3 estados + 3 modais FTUE) | ⏳ não iniciada |
 | 8 | Modo Delivery (running route) | ⏳ não iniciada |
@@ -85,7 +85,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 ### Ordem de execução (forçada por dependências — NÃO é livre)
 
 ```
-[em andamento]  Finalizar Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência+FTUE → MS9 integration_test+PR)
+[em andamento]  Finalizar Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência ✅ (FTUE-cut ADR-0047) → MS9 integration_test+PR)
        │        Finalizar gatilhos da Área 3 (Otimizar CTA, tap no stop card, kebab/bottom-bar)
        ▼
    Área 6 (Editar parada)  ──► chips A1/A2 e lista inline dependem dela
@@ -145,10 +145,10 @@ Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 b
 
 - [x] **MS6 Sub-tela Pausa** ✅ (2026-06-09, ADR-0044) — página full-screen "Configure a pausa" (NÃO sheet): janela de horário Entre/E (default 08:00–15:00) via numpad reusado + duração em minutos (dialog numérico, default 30; NÃO chips). `BreakConfig` virou janela (`fromTime`/`toTime`/`durationMinutes`). SnackBar interino removido. 261 testes.
 - [x] **MS7 Seção "Configuração de rota" na tela ativa** ✅ (2026-06-10, ADR-0046) — Phase-2 halt corrigiu a premissa do plano: a tela ativa NÃO tinha rows de config (a Spoke mostra **2 rows-resumo** Início + Ida-e-volta, SEM Pausa) e elas abrem a **página Detalhes da rota** inteira, NÃO os sub-pickers direto. Criado `_ConfigSummarySection` em `route_shell_page.dart` (microcopy de resumo distinta da página Detalhes); `RouteDetailsPage` antes órfã agora tem entrypoint de produção. 272 testes.
-- [ ] **MS8 Persistência + FTUE** — `SharedPreferencesAsync` envelope `route_defaults_v1` + trigger FTUE. Re-confirmar Q8 "Salvar como padrão" default vs Spoke fresh.
+- [x] **MS8 Persistência + FTUE-cut** ✅ (2026-06-10, ADR-0047) — DUMP-FIRST: o dump decompilado prova que a Spoke **não tem gate de "primeira rota"** (sem `firstRoute`/`isFirst` em `RouteSetupViewModel`; `ui/onboarding` é survey). **FTUE auto-show CORTADO** (era inferência). Wirado só persistência: "Salvar como padrão" → `merge()` no Concluído (best-effort) + seed da Detalhes do envelope `route_defaults_v1` ao abrir. Q8 UNCHECKED confirmado por pixels. 281 testes.
 - [ ] **MS9 integration_test + D4 + PR** — `area5_route_details_flow_test.dart` (5-route Android-back chain) + spoke-parity D4 + Maestro YAML + PR.
 
-> Nota §13.C.2 RESOLVIDA: "Detalhes da rota" é FTUE one-time (rotas seguintes vão direto pro sheet). RotPro pode pular a tela no wizard com defaults sensatos.
+> Nota §13.C.2 RE-RESOLVIDA (ADR-0047, dump-first): a hipótese "Detalhes da rota é FTUE one-time" era **inferência** — o dump decompilado prova que a Spoke **NÃO tem gate de primeira rota** (sem `firstRoute`/`isFirst`/`hasSeenSetup` em `RouteSetupViewModel`; `ui/onboarding` é survey, não setup). A Detalhes é **on-demand** (aberta pelo resumo "Configuração de rota" da Área 3, ADR-0046), não auto-mostrada. FTUE auto-show **cortado**.
 
 ### Área 6 — Editar parada (sheet, 14 campos) ⏳ depende de Área 3 (tap stop card) + Área 4 (Mudar endereço reusa add-stop)
 
@@ -265,7 +265,7 @@ Subapp Next.js em `apps/admin/` (ou expansão de `apps/landing/`). Auth separada
 | Item | Severidade | Estado | Bloqueia |
 |---|---|---|---|
 | §13.C.1 Pacotes/Ordem/Tipo gating | 🔴 | ✅ RESOLVIDO — sempre ativos | Área 6 |
-| §13.C.2 Detalhes da rota FTUE? | 🟡 | ✅ RESOLVIDO — FTUE one-time | Área 5 |
+| §13.C.2 Detalhes da rota FTUE? | 🟡 | ✅ RESOLVIDO (ADR-0047) — SEM gate FTUE; Detalhes é on-demand (dump) | Área 5 |
 | §13.C.3 Instruções de acesso UI | 🟡 | ✅ RESOLVIDO — 2º sheet sticky-ao-endereço | Área 6 |
 | §13.C.4 "Refinar" CTA opções | 🟢 | 📌 PENDENTE — drillar no MS Área 7 | Área 7 |
 | §13.C.5 Compartilhar cópia vs Transferir | 🟢 | 📌 PENDENTE — ambas postergadas | Área 9 |

@@ -27,6 +27,19 @@ class RouteDefaults {
   /// Bootstrap envelope written on first launch.
   factory RouteDefaults.empty() => const RouteDefaults();
 
+  /// Builds a defaults patch from a live [RouteConfig] (MS-A5.8). Copies every
+  /// configurable sub-state; [firstRoute] and [schemaVersion] stay at the ctor
+  /// defaults because `RouteDefaultsController.merge` preserves the persisted
+  /// ones (a patch never clobbers them). Used by the Detalhes da rota
+  /// "Concluído" save when "Salvar como padrão" is checked.
+  factory RouteDefaults.fromConfig(RouteConfig config) => RouteDefaults(
+        startLocation: config.startLocation,
+        timeStart: config.timeStart,
+        timeEnd: config.timeEnd,
+        destination: config.destination,
+        breaks: config.breaks,
+      );
+
   final int schemaVersion;
   final bool firstRoute;
   final StartLocation? startLocation;
@@ -89,6 +102,21 @@ class RouteDefaults {
             )
             .toList(),
       };
+
+  /// Seeds a live [RouteConfig] from this persisted envelope (MS-A5.8). Used
+  /// when "Detalhes da rota" opens for a returning user who saved defaults. A
+  /// null [destination] (e.g. [RouteDefaults.empty]) maps to Spoke's bootstrap
+  /// default [RoundTrip], not null — mirroring [RouteConfig.empty] so the
+  /// Destino row never blanks. Lives here (not on [RouteConfig]) because this
+  /// is the higher-level type: `route_defaults.dart` already imports
+  /// `route_config.dart`; the reverse would be a circular import.
+  RouteConfig toConfig() => RouteConfig(
+        startLocation: startLocation,
+        timeStart: timeStart,
+        timeEnd: timeEnd,
+        destination: destination ?? const RoundTrip(),
+        breaks: breaks,
+      );
 
   /// Build a new envelope overriding only the listed fields.
   /// Nullable fields use sentinel-via-Object.is to distinguish "omit" from

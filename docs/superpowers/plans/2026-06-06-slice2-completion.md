@@ -123,14 +123,16 @@ Every area MS (MS-A5.6 … MS-A11) executes these five phases. The per-area sect
 - [x] **Phase 3:** built `_ConfigSummarySection` (2 rows from live `RouteConfig` via `.select`; both push `routes/active/:id/details`). NO silent onTap. `Semantics(identifier:)` per row. TDD (red→green).
 - [x] **Phase 4:** widget test exercises the push (real GoRouter + sentinel). integration_test deferred to MS-A5.9 (the slice's first; decision recorded in ADR-0046 §Consequences). 272 tests, analyze clean (scope), perf-auditor 2 should-fix applied. Commit `feat(route-config): Área 5 MS7 active-route config summary (ADR-0046)`.
 
-## Phase MS-A5.8 — Área 5: persistence + FTUE
+## Phase MS-A5.8 — Área 5: persistence + FTUE ✅ DONE (2026-06-10 — ADR-0047)
 
-**Files:** Modify `route_defaults_controller.dart` + `route_defaults.dart` (SharedPreferencesAsync `route_defaults_v1` envelope), FTUE trigger in the wizard/details flow.
+> **Dump-first correction (ADR-0047):** the plan's Part-2 ("wire FTUE-once") assumed Spoke shows Detalhes once on the first route then skips it. The **static dump refuted this** — `grep` for `firstRoute|isFirst|hasSeenSetup|shouldShowSetup` across `RouteSetupViewModel`/`Fragment`/`ScreenKt` returns nothing; `ui/onboarding` is a survey, not a setup FTUE; Detalhes is on-demand (`route_offering_..._subtitle` = "Confira os detalhes da rota no menu"). So **FTUE auto-show is CUT** and MS-A5.8 ships **persistence only**. The `firstRoute` flag stays dormant (forward-compat). Original wording struck-through for the audit trail.
 
-- [ ] **Phase 1:** confirm `SharedPreferencesAsync` API (the project standard, not legacy `SharedPreferences`).
-- [ ] **Phase 2:** **re-confirm the open Q8** — "Salvar como padrão" default (currently UNCHECKED per ADR-0043) against a FRESH Spoke account; and whether Detalhes is FTUE one-time (§13.C.2 resolved FTUE).
-- [ ] **Phase 3:** persist the envelope; wire FTUE-once. Respect the `_omit` sentinel clear-path (anti-pattern #9) + test it. Bare-catch logging (anti-pattern #11).
-- [ ] **Phase 4 + 5.** Commit `feat(route-config): Área 5 MS8 persist route defaults + FTUE`.
+**Files:** Modified `route_details_page.dart` (initState seed + `_onConcluido` persist), `route_config_controller.dart` (`seed()`), `route_defaults.dart` (`fromConfig`/`toConfig` mapping) + their tests.
+
+- [x] **Phase 1:** confirmed `SharedPreferencesAsync` is the project standard (already in the controller) + `InMemorySharedPreferencesAsync` test infra.
+- [x] **Phase 2 (dump-first):** Q8 "Salvar como padrão" UNCHECKED confirmed by live pixels (M54, 2026-06-10); the **dump** proved Spoke has no first-route gate → FTUE auto-show cut (ADR-0047). No test-route pollution on the licensed account needed.
+- [x] **Phase 3:** wired "Salvar como padrão" → `merge(RouteDefaults.fromConfig(config))` on Concluído (best-effort: failure SnackBars + always pops); seed Detalhes from the saved envelope on open (one-shot post-frame, degrades on error). `_omit` clear-path preserved; bare-catch logging (anti-pattern #11). TDD.
+- [x] **Phase 4 + 5.** analyze clean (scope), 281 tests. silent-failure-hunter: 2 CRITICAL fixed + tested. Commit `feat(route-config): Área 5 MS8 persist route defaults (no FTUE gate, ADR-0047)`.
 
 ## Phase MS-A5.9 — Área 5: integration_test + D4 + PR  *(FIRST integration_test authored)*
 

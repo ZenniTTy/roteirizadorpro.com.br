@@ -5,7 +5,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/route_config.dart';
+import '../../domain/route_defaults.dart';
 import '../../state/route_config_controller.dart';
+import '../../state/route_defaults_controller.dart';
 import '../widgets/destination_picker_sheet.dart';
 import '../widgets/route_config_row.dart';
 import '../widgets/route_details_section.dart';
@@ -28,8 +30,91 @@ class RouteDetailsPage extends ConsumerStatefulWidget {
 
 class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
   /// Single global "Salvar como padrão" flag — Spoke uses one screen-level
-  /// checkbox, NOT one per section. Default is UNCHECKED (per Spoke).
+  /// checkbox, NOT one per section. Default is UNCHECKED (per Spoke,
+  /// live-confirmed 2026-06-10, ADR-0047).
   bool _saveAsDefault = false;
+
+  /// Guards the one-shot seed so a rebuild never re-applies saved defaults
+  /// over the user's in-screen edits.
+  bool _seeded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // MS-A5.8 (ADR-0047): a returning user who saved route defaults sees them
+    // pre-filled. Seed the config from the persisted envelope once, after the
+    // first frame (the defaults read is async; mutating Riverpod state in
+    // initState directly is unsafe). An empty envelope maps to
+    // RouteConfig.empty() via toConfig(), so a fresh user is a no-op.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _seedFromDefaults());
+  }
+
+  Future<void> _seedFromDefaults() async {
+    // The `_seeded` precondition defends against a rebuild re-triggering the
+    // seed (which would clobber the user's in-screen edits). It is committed
+    // only AFTER a successful, applied read below — NOT here — so a transient
+    // first-read failure does not permanently foreclose seeding for the page's
+    // lifetime. (Seeding is triggered from exactly one post-frame callback in
+    // initState; if a second trigger is ever added, this early guard + the
+    // single registration still hold the re-entrancy line.)
+    if (_seeded || !mounted) return;
+    final RouteDefaults defaults;
+    try {
+      defaults = await ref.read(routeDefaultsControllerProvider.future);
+    } catch (e) {
+      // A defaults-read failure must never crash the screen — degrade to the
+      // unseeded RouteConfig.empty() the page already shows (anti-pattern #11:
+      // log, don't swallow silently). `_seeded` stays false so the failure is
+      // not recorded as a completed seed. debugPrint is the codebase logging
+      // primitive today; this site + the write catch below are the first
+      // candidates to graduate to a real reporter when one lands on Flutter.
+      debugPrint(
+        '[route_details] seed from defaults failed for ${widget.routeId}, '
+        'degrading to empty config: $e',
+      );
+      return;
+    }
+    if (!mounted || defaults == RouteDefaults.empty()) return;
+    _seeded = true; // only after a successful, applied read
+    ref
+        .read(routeConfigControllerProvider(widget.routeId).notifier)
+        .seed(defaults.toConfig());
+  }
+
+  /// "Concluído" handler (MS-A5.8, ADR-0047). When "Salvar como padrão" is
+  /// checked, persist the current config into the `route_defaults_v1` envelope
+  /// BEFORE popping; otherwise pop unchanged. `merge` preserves the persisted
+  /// `firstRoute`/`schemaVersion` (the patch's ctor defaults don't clobber).
+  ///
+  /// Saving the default is BEST-EFFORT: a persistence failure must never trap
+  /// the user on the screen or pop silently as if it succeeded. So the write is
+  /// guarded, the failure surfaces a SnackBar (the loudest channel here) + a
+  /// log, and the page ALWAYS pops afterwards — Concluído is never gated (Spoke
+  /// parity). (silent-failure-hunter Finding 1.)
+  Future<void> _onConcluido() async {
+    if (_saveAsDefault) {
+      final config = ref.read(routeConfigControllerProvider(widget.routeId));
+      try {
+        await ref
+            .read(routeDefaultsControllerProvider.notifier)
+            .merge(RouteDefaults.fromConfig(config));
+      } catch (e) {
+        debugPrint('[route_details] could not persist defaults: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Não foi possível salvar como padrão. Sua rota foi mantida; '
+                'tente novamente.',
+              ),
+            ),
+          );
+        }
+      }
+    }
+    if (!mounted) return;
+    context.pop();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +142,7 @@ class _RouteDetailsPageState extends ConsumerState<RouteDetailsPage> {
               // (endTime > startTime, isRouteConfigValidProvider /
               // RouteConfig.isValid) stays in the DOMAIN for the Slice-3 solver
               // but must NOT gate this screen's affordance.
-              _ConcluidoButton(onPressed: () => context.pop()),
+              _ConcluidoButton(onPressed: _onConcluido),
               const SizedBox(height: 8),
               _SalvarComoPadraoCheckbox(
                 value: _saveAsDefault,

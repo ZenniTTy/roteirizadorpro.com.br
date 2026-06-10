@@ -2,6 +2,17 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-10 — Área 5 MS8 (route-defaults persistence, FTUE-cut): ADR-0047
+
+Code change (MS-A5.8) with its documentation. Code lives in git; this entry records the docs + the ADR.
+
+**New ADR:**
+- **ADR-0047** ([route-defaults persistence + no FTUE gate](decisions/0047-route-defaults-persistence-no-ftue-gate.md)) — wires the "Salvar como padrão" checkbox (`merge()` the current config on Concluído, best-effort: failure SnackBars + always pops) and seeds Detalhes from the saved `route_defaults_v1` envelope on open. **CUTS the FTUE auto-show** the plan/roadmap assumed: the static dump (ADR-0045) proves Spoke has **no first-route gate** (`grep firstRoute|isFirst|hasSeenSetup` across `RouteSetupViewModel`/`Fragment`/`ScreenKt` = empty; `ui/onboarding` is a survey; Detalhes is on-demand). Q8 "Salvar como padrão" UNCHECKED confirmed by live pixels. The dormant `firstRoute` flag stays (forward-compat). **Dump-first win:** the FTUE question was answered by decompiled code, avoiding test-route pollution on the licensed Spoke account — Eduardo's prompt ("temos o dump completo, isso não ajuda?") was right.
+
+**Docs swept (same commit set, anti-pattern #22):** roadmap Área 5 MS8 ✅ + status table + execution-order line + §13.C.2 re-resolved (FTUE one-time → no gate, on-demand) + bloqueios table; Slice-2 plan §MS-A5.8 (struck-through FTUE Part-2); TODO.md MS8 ✅.
+
+**Verification:** `flutter analyze` clean in scope (23 pre-existing lints = MS-DEBT); `flutter test` 281 (baseline 263 at session start, +18 across MS7+MS8); silent-failure-hunter 2 CRITICAL findings (best-effort write + `_seeded`-after-success) fixed + pinned by tests. integration_test deferred to MS-A5.9.
+
 ## 2026-06-10 — Área 5 MS7 (active-route config summary): ADR-0046
 
 Code change (MS-A5.7) with its documentation. Code lives in git; this entry records the docs + the ADR.
