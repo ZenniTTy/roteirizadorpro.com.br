@@ -2,6 +2,22 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-11 — Área 3 MS-A3 (gatilhos: controles de mapa reais + Copiar paradas)
+
+Code change (MS-A3) with its documentation. **No new ADR** — no stack change (`geolocator`/`google_maps_flutter`/`permission_handler`/`shared_preferences` já estavam no `pubspec`, sem bump de versão; o `adr-guardian` não aplica).
+
+**O que mudou (dump-first, ADR-0045):** baseline 100% do código decompilado do Spoke (`EditRouteFragment`, `MapController`, `MapToolbarControlsController` em `~/spoke-dump/jadx-out`) — sem runtime/poluir conta licenciada.
+- **Layer toggle** (`Alternar modo de mapa`) — `MapTypeClick` do Spoke → `MapType` 2-estados (normal↔satélite) persistido em `MapPrefsRepository` (`SharedPreferencesAsync`, key `map_type_v1`) + toast PT-BR original (não verbatim Circuit, ADR-0035). `MapTypeLongClick` é dev-tool interno do Spoke — NÃO replicado.
+- **Recenter** (`Alternar para o mapa`) — `ReCenterButtonClick` → `MapControllerMode.FollowMyLocation` via `LocationService` (wrapper `geolocator`, sealed `LocationResult` ready/denied/unavailable, injeção de callbacks p/ testabilidade) + fallback gracioso sem permissão (toast, nunca crash — espelha `EditRouteViewModel.m9428W`). Race-fix: contador pending-move no `MapControlsController` consome o `onCameraMoveStarted` da própria animação, então o recenter não derruba o follow que acabou de ligar (ordem-independente de quando `animateCamera` resolve).
+- **"Copiar paradas de uma rota anterior"** — empty-state secondary CTA agora faz `push('/home/routes/reuse-stops')` (rota já existia; matou um `_comingSoon`).
+- **Achado dump-first corrigido no inventário:** §6.2bis dizia "controles visíveis só com sheet collapsed" (inferência de 1 snapshot). O código prova visibilidade por **flow ativo** (`MapToolbarControlsController` é uma `Stack<Flow>`), NÃO por altura do sheet → os controles ficam sempre visíveis no flow base = match-Spoke já correto (nenhuma mudança de código; teste de regressão adicionado).
+
+**Fora deste MS (decisão registrada):** os 3 gatilhos restantes (CTA Otimizar→A7, tap stop-card→A6, kebab→A9) apontam pra telas ainda não construídas → cada um vira a 1ª task do MS da sua área (não wirar contra placeholder "em breve" — proibido per plano da sprint).
+
+**Docs swept (mesmo commit set, anti-pattern #22):** roadmap Área 3 → ~90% (tabela + seção); TODO.md Area 3; inventário §6.2bis corrigido.
+
+**Verification:** `flutter analyze` clean em escopo (23 lints pré-existentes = MS-DEBT, intocados); `flutter test` **308** host (baseline 284 no fecho da Á5, +24: 10 controller + 6 location service + 8 widget); smoke E2E no M54 (`RQCW401G33T`). 2 reviewers adversariais (perf-auditor + code-reviewer): 1 Important (race no follow-flag) + 1 should-fix (RepaintBoundary dos controles) — **ambos corrigidos no MS com teste**, zero deferido (per `feedback_spoke_parity_zero_debt_per_ms`).
+
 ## 2026-06-10 — Área 5 MS9 (integration_test + D4 + editar/remover pausa): ADR-0049 — **Área 5 fechada**
 
 Code change (MS-A5.9) with its documentation. Closes Área 5. Code lives in git; this entry records the docs + the ADR.

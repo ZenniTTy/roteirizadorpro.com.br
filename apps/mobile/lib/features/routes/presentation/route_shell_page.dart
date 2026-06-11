@@ -9,7 +9,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../route_config/domain/route_config.dart';
 import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
+import '../data/location_service.dart';
 import '../state/active_route_provider.dart';
+import '../state/map_controls_controller.dart';
 import 'widgets/app_drawer.dart';
 
 /// Shell that hosts the active route's map + sheet.
@@ -72,6 +74,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             ),
           );
 
+    // Map layer preference (normal <-> satellite). While it loads we render the
+    // Spoke default (normal) so the map never flickers a wrong layer.
+    final mapType = ref.watch(
+          mapControlsControllerProvider.select((s) => s.value?.mapType),
+        ) ??
+        MapType.normal;
+
     // Collapsed = handle (24) + pill row height (48 + 16 vertical padding) +
     // bottom system nav inset + a small breathing pad. Não inclui os
     // big buttons — eles só aparecem quando o sheet sobe pra medium+.
@@ -109,10 +118,24 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                 children: [
                   Positioned.fill(
                     child: GoogleMap(
-                      mapType: MapType.normal,
+                      mapType: mapType,
                       initialCameraPosition: _initialPosition,
                       onMapCreated: (GoogleMapController controller) {
                         _controller.complete(controller);
+                      },
+                      // Render the blue GPS dot; our own button replaces the
+                      // native recenter FAB (which we keep disabled).
+                      myLocationEnabled: true,
+                      // A user-initiated pan drops follow mode (Spoke's exit to
+                      // `MapControllerMode.Manual`). Our recenter animation also
+                      // fires this callback; the controller's pending-move
+                      // counter (set in `_onRecenter`) consumes our own moves so
+                      // only a real user pan drops follow — order-independent of
+                      // when `animateCamera` resolves.
+                      onCameraMoveStarted: () {
+                        ref
+                            .read(mapControlsControllerProvider.notifier)
+                            .onCameraMoveStarted();
                       },
                       zoomControlsEnabled: false,
                       mapToolbarEnabled: false,
@@ -132,22 +155,26 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                   Positioned(
                     right: 16,
                     bottom: 12,
-                    child: Column(
-                      children: [
-                        _FloatingCircleButton(
-                          semanticsLabel: 'Alternar modo de mapa',
-                          icon: LucideIcons.layers,
-                          onTap: () =>
-                              _comingSoon(context, 'Alternar modo de mapa'),
-                          iconColor: AppColors.primary,
-                        ),
-                        const SizedBox(height: 12),
-                        _FloatingCircleButton(
-                          semanticsLabel: 'Alternar para o mapa',
-                          icon: LucideIcons.locateFixed,
-                          onTap: () => _comingSoon(context, 'Centrar no mapa'),
-                        ),
-                      ],
+                    // Own RepaintBoundary: an InkWell ripple on either map
+                    // control must not invalidate the GoogleMap PlatformView
+                    // layer they share with it (perf-auditor MS-A3).
+                    child: RepaintBoundary(
+                      child: Column(
+                        children: [
+                          _FloatingCircleButton(
+                            semanticsLabel: 'Alternar modo de mapa',
+                            icon: LucideIcons.layers,
+                            onTap: _onToggleMapType,
+                            iconColor: AppColors.primary,
+                          ),
+                          const SizedBox(height: 12),
+                          _FloatingCircleButton(
+                            semanticsLabel: 'Alternar para o mapa',
+                            icon: LucideIcons.locateFixed,
+                            onTap: _onRecenter,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -186,6 +213,71 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
         ],
       ),
     );
+  }
+
+  /// Layer toggle (Spoke `MapTypeClick`). Flips the persisted map layer and
+  /// confirms the new state with an original-microcopy toast (ADR-0035 — not
+  /// Spoke's verbatim "Satélite ativado/desativado", but the same two states).
+  Future<void> _onToggleMapType() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await ref.read(mapControlsControllerProvider.notifier).toggleMapType();
+    if (!mounted) return;
+    final isSatellite =
+        ref.read(mapControlsControllerProvider).value?.mapType ==
+            MapType.satellite;
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            isSatellite ? 'Modo Satélite ativado' : 'Modo Mapa ativado',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
+
+  /// Recenter (Spoke `ReCenterButtonClick`). Resolves the device location and,
+  /// on success, enters follow mode + animates the camera. Degrades gracefully
+  /// with a toast when permission is denied or the position is unavailable —
+  /// never throws (mirrors `EditRouteViewModel.m9428W`'s no-permission branch).
+  Future<void> _onRecenter() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final result = await ref.read(locationServiceProvider).currentLocation();
+    if (!mounted) return;
+
+    switch (result) {
+      case LocationReady(:final latitude, :final longitude):
+        final notifier = ref.read(mapControlsControllerProvider.notifier);
+        await notifier.startFollowing();
+        final controller = await _controller.future;
+        if (!mounted) return;
+        // Attribute the upcoming onCameraMoveStarted to us (consumed by the
+        // controller's pending-move counter), so our own animation does not
+        // get mistaken for a user pan and drop the follow we just enabled.
+        notifier.beginProgrammaticMove();
+        await controller.animateCamera(
+          CameraUpdate.newLatLng(LatLng(latitude, longitude)),
+        );
+      case LocationDenied():
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Permita o acesso à localização para centralizar no mapa.',
+              ),
+            ),
+          );
+      case LocationUnavailable():
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Não foi possível obter sua localização agora.'),
+            ),
+          );
+    }
   }
 
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
@@ -230,12 +322,6 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
     return closest;
   }
-}
-
-void _comingSoon(BuildContext context, String label) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('$label — em breve')),
-  );
 }
 
 class _FloatingCircleButton extends StatelessWidget {
@@ -409,7 +495,7 @@ class _ActiveRouteSheet extends StatelessWidget {
                       const SizedBox(height: 10),
                       _SheetOutlinedButton(
                         label: 'Copiar paradas de uma rota anterior',
-                        onTap: () => _comingSoon(context, 'Copiar paradas'),
+                        onTap: () => context.push('/home/routes/reuse-stops'),
                       ),
                     ],
                   ),
