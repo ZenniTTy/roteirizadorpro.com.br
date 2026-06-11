@@ -283,9 +283,11 @@ A **navegação turn-by-turn default é proprietária Spoke** ("Navegação do S
 | Voice `IconButton` | [833,2081][901,2149] | "Dite o endereço" | Tap → voice capture (1 tap depth) |
 | 3-dot kebab `IconButton` | [968,2081][1036,2149] | "Menu" | Tap → bottom-sheet modal com 5 opções |
 
-**Floating map controls (lado direito, visíveis só com sheet collapsed):**
-- Map layer toggle [934,1699][1002,1767] — content-desc "Alternar modo de mapa" — tap troca padrão↔satélite; long-click pode expor mais opções.
-- Map recenter button [934,1867][1002,1935] — content-desc "Alternar para o mapa" — recentra na GPS location.
+**Floating map controls (lado direito):**
+- Map layer toggle [934,1699][1002,1767] — content-desc "Alternar modo de mapa" — tap troca padrão↔satélite (`MapTypeClick` → `MapType` 2-estados persistido em `MapTypePreferences` + toast `map_action_toast_satellite_on/off`). `MapTypeLongClick` é dev-tool interno (`TestingToolsViewModel`) — NÃO replicar.
+- Map recenter button [934,1867][1002,1935] — content-desc "Alternar para o mapa" — recentra na GPS location (`ReCenterButtonClick` → `MapControllerMode.FollowMyLocation`; sai pra `Manual` no pan do usuário; fallback gracioso sem permissão em `EditRouteViewModel.m9428W`).
+
+> ⚠️ **CORREÇÃO dump-first (MS-A3, 2026-06-11):** a nota anterior "visíveis só com sheet collapsed" era **inferência** de 1 snapshot (rota vazia). O código decompilado (`MapToolbarControlsController`, `~/spoke-dump/jadx-out`) prova que a visibilidade dos controles é governada por **flow ativo** (rota base / otimização §10.9 / delivery §10.13 — uma `Stack<Flow>`), **NÃO** por altura do sheet. No flow base os controles ficam **sempre visíveis** (os bounds Y diferentes entre §6.2bis/§10.9/§10.13 são flows distintos, não estados do mesmo sheet). RotPro mantém os 2 controles sempre visíveis no shell ativo = match-Spoke. Achado registrado em [[lesson_master_table_covers_setup_not_active_shell]].
 
 **Hamburger:** floating button [46,138][181,273] content-desc "Menu" — abre o drawer lateral (§6.2).
 

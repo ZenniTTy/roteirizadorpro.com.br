@@ -72,7 +72,7 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 |---|---|---|
 | 1 | Auth (Login/Register) | ✅ pronto · ⏳ falta UI de recuperar-senha + botão Google |
 | 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto |
-| 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~80% — controles de mapa e ações kebab/bottom-bar são stubs `_comingSoon` |
+| 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~90% — controles de mapa REAIS (MS-A3) + Copiar paradas wirado; faltam só os gatilhos Otimizar/stop-card/kebab (entrypoints de A7/A6/A9) |
 | 4 | Adicionar parada (texto) | ✅ pronto (usa Google Places **live**, não stub) · ⏳ OCR/Voz/tap-mapa são stubs (Área 7/5) |
 | 5 | Detalhes da rota (Partida/Destino/Pausa) | ✅ **fechada** — MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows+MS8 persistência+MS9 integration_test/D4/editar-remover-pausa (ADR-0049). 1º integration_test do app VERDE no M54. PR aberto. |
 | 6 | Editar parada (sheet, 14 campos) | ⏳ não iniciada |
@@ -119,14 +119,15 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 
 Drawer (90% width, scrim, sem swipe-from-edge) + lista agrupada por 4 períodos dinâmicos + 3-dot popup (Definir nome e data / Duplicar / Excluir) + wizard criar/editar (reusado por `:routeId` path param) + tela Reutilizar paradas. Detalhe inventory §6.2 + §10.1–10.3 + §11.3/§11.6. **Duplicar/Excluir rota e Reutilizar paradas dependem de backend (Slice 3) pra persistir.**
 
-### Área 3 — Tela ativa de rota (mapa + sheet) 🟡 ~80%
+### Área 3 — Tela ativa de rota (mapa + sheet) 🟡 ~90%
 
-Pronto: GoogleMap base + sheet manual 3-snap (direction-based snap) + search pill + hamburger flutuante → drawer + **seção "Configuração de rota" (2 rows-resumo → página Detalhes; via Área 5 MS7, ADR-0046)**. **Falta wirar (a sprint termina antes de 6/7/9):**
+Pronto: GoogleMap base + sheet manual 3-snap (direction-based snap) + search pill + hamburger flutuante → drawer + **seção "Configuração de rota" (2 rows-resumo → página Detalhes; via Área 5 MS7, ADR-0046)** + **controles de mapa reais (MS-A3, 2026-06-11)** + **"Copiar paradas de uma rota anterior" → Reutilizar paradas (MS-A3)**.
 
-- [ ] **Controles de mapa** (layer toggle + recenter) — hoje visual-only stub (`route_shell_page.dart:17`, SnackBar `:205`).
-- [ ] **CTA "Otimizar rota"** sticky bottom → entra na Área 7. Hoje stub.
-- [ ] **Tap no stop card** → abre Área 6 (edit-stop sheet). Hoje SnackBar (`add_stop_page.dart:103`).
-- [ ] **Kebab + bottom-bar actions** → Área 9 surfaces. Hoje `_comingSoon` (`:483`).
+- [x] **Controles de mapa** (layer toggle + recenter) ✅ **MS-A3 (2026-06-11)** — dump-first (`EditRouteFragment`/`MapController`/`MapToolbarControlsController` em `~/spoke-dump/jadx-out`). Layer toggle = `MapType` 2-estados persistido (`MapPrefsRepository` + `SharedPreferencesAsync`) + toast PT-BR original; recenter = follow-my-location via `LocationService` (geolocator wrapper, sealed `LocationResult`) + fallback gracioso sem permissão + contador pending-move p/ não derrubar o follow na própria animação. Estado em `MapControlsController` (`@riverpod` keepAlive). +24 testes (controller + service + widget). **Achado dump-first:** a nota §6.2bis "controles visíveis só com sheet collapsed" era inferência — o código prova visibilidade por **flow ativo**, não por altura do sheet (corrigido no inventário).
+- [x] **"Copiar paradas de uma rota anterior"** ✅ **MS-A3** — empty-state secondary CTA agora faz `push('/home/routes/reuse-stops')` (rota já existia; matou o `_comingSoon`).
+- [ ] **CTA "Otimizar rota"** sticky bottom → entra na Área 7. **Wirar como 1ª task do MS-A7** (é o entrypoint da Área 7; CTA ainda não existe no shell — nasce com a lista de stops).
+- [ ] **Tap no stop card** → abre Área 6 (edit-stop sheet). **Wirar como 1ª task do MS-A6** (`add_stop_page.dart:103`).
+- [ ] **Kebab + bottom-bar actions** → Área 9 surfaces. **Wirar como 1ª task do MS-A9** (`route_shell_page.dart` kebab "Opções da rota").
 
 > Layout crítico (lição travada): mapa + sheet em `Column { Expanded(GoogleMap), sheet }`, NUNCA `Stack` (o PlatformView do GoogleMap ganha toda arena de gesto).
 

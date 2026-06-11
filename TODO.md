@@ -37,7 +37,7 @@ Roadmap canônico: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (reescrito
 
 - [ ] **Area 1 (Auth — completar UI, SEM baseline Spoke)** — Login/Register prontos; FALTA UI: tela `/auth/forgot-password` + botão "Continuar com Google" (backend ambos Slice 3). NÃO é fora-de-escopo — é UI restante do Slice 2.
 - [x] **Area 2 (Drawer + Shell + Wizard + Popup 3-dot)** — shipped via `cd37a65` (branch `feat/m2-slice-2-area-2-drawer`, mergeada).
-- [ ] **Area 3 (Tela ativa de rota — mapa + sheet)** — ~80% pronta. FALTA wirar 4 stubs FUNCIONAIS (não é polish): controles de mapa (layer/recenter), CTA "Otimizar rota"→Á7, tap no stop card→Á6, kebab/bottom-bar→Á9. Estão no caminho forçado pras Áreas 6/7/9.
+- [ ] **Area 3 (Tela ativa de rota — mapa + sheet)** — ~90% pronta. MS-A3 (2026-06-11): controles de mapa REAIS (layer toggle persistido + recenter follow-my-location, dump-first) + "Copiar paradas"→reuse-stops wirados. FALTAM só os 3 gatilhos que apontam pra telas ainda não construídas → cada um vira 1ª task do MS da sua área: CTA "Otimizar rota"→1ª task MS-A7, tap no stop card→1ª task MS-A6, kebab→1ª task MS-A9 (não wirar contra placeholder "em breve").
 - [ ] **Area 4 (Adicionar parada)** — TEXT method **em andamento** na branch `feat/m2-slice-2-area-4-add-stop-text`:
   - [x] MS1 Domain (sealed `AddStopUiState` + 5-branch `from` factory) — commits `d0331a3`, `220479d`, `bc27ba7`, `19abe5e`. 14 unit tests pinning invariants.
   - [x] MS2 State (`searchQueryProvider` + `currentRouteStopsProvider` + `addStopUiStateProvider`) — commits `3a603af`, `fe6d05d`, `0672635`. +9 unit tests.

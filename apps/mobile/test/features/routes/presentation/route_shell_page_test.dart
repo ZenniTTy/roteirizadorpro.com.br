@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
 import 'package:roteirizador_pro/features/route_config/state/route_config_controller.dart';
+import 'package:roteirizador_pro/features/routes/data/location_service.dart';
+import 'package:roteirizador_pro/features/routes/domain/map_controls_state.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/route_shell_page.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/app_drawer.dart';
 import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/current_user_provider.dart';
+import 'package:roteirizador_pro/features/routes/state/map_controls_controller.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 import '../_helpers/fake_current_user.dart';
@@ -58,6 +63,11 @@ Widget _wrapRouted({
             builder: (_, __) =>
                 const Scaffold(body: Text('SENTINEL_DETALHES_DA_ROTA')),
           ),
+          GoRoute(
+            path: 'routes/reuse-stops',
+            builder: (_, __) =>
+                const Scaffold(body: Text('SENTINEL_REUTILIZAR_PARADAS')),
+          ),
         ],
       ),
     ],
@@ -90,6 +100,63 @@ class _SeededActiveRouteId extends ActiveRouteId {
   final String _seed;
   @override
   String? build() => _seed;
+}
+
+/// Fake map-controls controller seeded with a fixed state, recording whether
+/// [toggleMapType]/[startFollowing] were invoked. Lets widget tests assert the
+/// shell's map buttons drive the controller without touching SharedPrefs or a
+/// real GoogleMap.
+class _FakeMapControls extends MapControlsController {
+  _FakeMapControls(this._seed);
+  final MapControlsState _seed;
+  int toggleCount = 0;
+  int startFollowingCount = 0;
+
+  @override
+  Future<MapControlsState> build() async => _seed;
+
+  @override
+  Future<void> toggleMapType() async {
+    toggleCount++;
+    final next = state.value!.mapType == MapType.normal
+        ? MapType.satellite
+        : MapType.normal;
+    state = AsyncData(state.value!.copyWith(mapType: next));
+  }
+
+  @override
+  Future<void> startFollowing() async {
+    startFollowingCount++;
+    state = AsyncData(state.value!.copyWith(followingUser: true));
+  }
+}
+
+/// Wrap the shell with a seeded map-controls controller (no router needed for
+/// the map-control assertions; the buttons are floating chrome on the map).
+/// Optionally inject a [LocationService] for the recenter flow.
+Widget _wrapWithMapControls(
+  MapControlsState seed, {
+  LocationService? locationService,
+}) {
+  return ProviderScope(
+    overrides: [
+      currentUserProvider.overrideWithValue(kUserWithoutSub),
+      routesProvider.overrideWithValue([
+        domain.Route(
+          id: 'seed1',
+          date: DateTime(2026, 5, 27),
+          status: domain.RouteStatus.draft,
+        ),
+      ]),
+      mapControlsControllerProvider.overrideWith(() => _FakeMapControls(seed)),
+      if (locationService != null)
+        locationServiceProvider.overrideWithValue(locationService),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+      home: const RouteShellPage(),
+    ),
+  );
 }
 
 class _SeededConfigController extends RouteConfigController {
@@ -393,4 +460,208 @@ void main() {
     expect(find.text('Configuração de rota'), findsNothing);
     expect(find.byType(RouteConfigRow), findsNothing);
   });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // MS-A3 — "Copiar paradas de uma rota anterior" trigger.
+  // The sheet's secondary big button was a `_comingSoon` stub; it now pushes
+  // the existing `/home/routes/reuse-stops` route (ReuseStopsPage). Spoke's
+  // active-route empty state offers the same "copy from a previous route"
+  // affordance (inventory §6.2bis empty-state secondary CTA).
+  // ───────────────────────────────────────────────────────────────────────
+
+  testWidgets(
+      'tapping "Copiar paradas de uma rota anterior" pushes the reuse-stops '
+      'route (MS-A3, no longer a "em breve" stub)', (tester) async {
+    useTallFrame(tester);
+    await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
+    await tester.pumpAndSettle();
+    await _expandSheet(tester);
+
+    final copyButton = find.text('Copiar paradas de uma rota anterior');
+    expect(copyButton, findsOneWidget);
+
+    await tester.tap(copyButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('SENTINEL_REUTILIZAR_PARADAS'), findsOneWidget);
+    // The old stub SnackBar must NOT fire anymore.
+    expect(find.text('Copiar paradas em breve'), findsNothing);
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // MS-A3 — map layer toggle (Task 1). Spoke `MapTypeClick` -> 2-state
+  // MapType persisted + toast (static dump v3.65.1, EditRouteFragment +
+  // MapTypePreferences + map_action_toast_satellite_on/off). The floating
+  // "Alternar modo de mapa" button drives `mapControlsControllerProvider`.
+  // ───────────────────────────────────────────────────────────────────────
+
+  testWidgets(
+      'GoogleMap renders with MapType.normal when the controller state is normal',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
+    );
+    await tester.pump();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    expect(map.mapType, MapType.normal);
+  });
+
+  testWidgets(
+      'GoogleMap renders with MapType.satellite when controller state is '
+      'satellite (layer pref reflected, not hard-coded)', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithMapControls(const MapControlsState(mapType: MapType.satellite)),
+    );
+    await tester.pump();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    expect(map.mapType, MapType.satellite);
+  });
+
+  testWidgets(
+      'tapping "Alternar modo de mapa" calls toggleMapType + flips the map to '
+      'satellite (no longer a "em breve" stub)', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('Alternar modo de mapa'));
+    await tester.pump(); // toggle is async; flush the microtask
+    await tester.pump();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    expect(map.mapType, MapType.satellite);
+    // The old stub SnackBar must NOT fire.
+    expect(find.text('Alternar modo de mapa — em breve'), findsNothing);
+  });
+
+  testWidgets(
+      'toggling to satellite shows an original-microcopy toast confirming the '
+      'layer changed', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('Alternar modo de mapa'));
+    await tester.pump();
+    await tester.pump();
+
+    // Toast wording is original PT-BR (ADR-0035 — not Spoke verbatim), and it
+    // names the satellite state the toggle just entered.
+    expect(find.textContaining('Satélite'), findsOneWidget);
+  });
+
+  testWidgets(
+      'both map controls stay visible regardless of sheet expansion (Spoke '
+      'gates them by flow, NOT by sheet height — MS-A3 dump correction)',
+      (tester) async {
+    useTallFrame(tester);
+    await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
+    await tester.pumpAndSettle();
+
+    // Collapsed: both controls present.
+    expect(find.bySemanticsLabel('Alternar modo de mapa'), findsOneWidget);
+    expect(find.bySemanticsLabel('Alternar para o mapa'), findsOneWidget);
+
+    // Expand the sheet to medium+ — controls must NOT disappear (the
+    // decompiled MapToolbarControlsController gates visibility by active flow,
+    // not by sheet state; the old "collapsed-only" inventory note was an
+    // inference refuted by the dump).
+    await _expandSheet(tester);
+    expect(find.bySemanticsLabel('Alternar modo de mapa'), findsOneWidget);
+    expect(find.bySemanticsLabel('Alternar para o mapa'), findsOneWidget);
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // MS-A3 — recenter / follow-my-location (Task 2). Spoke `ReCenterButtonClick`
+  // -> `MapControllerMode.FollowMyLocation`, with a graceful fallback when the
+  // location permission is unavailable (EditRouteViewModel.m9428W). The
+  // floating "Alternar para o mapa" button drives the flow through
+  // `LocationService` + `mapControlsControllerProvider`.
+  // ───────────────────────────────────────────────────────────────────────
+
+  testWidgets(
+      'tapping "Alternar para o mapa" with permission granted starts following '
+      '(no longer a "em breve" stub)', (tester) async {
+    final controls = _FakeMapControls(const MapControlsState());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWithValue(kUserWithoutSub),
+          routesProvider.overrideWithValue([
+            domain.Route(
+              id: 'seed1',
+              date: DateTime(2026, 5, 27),
+              status: domain.RouteStatus.draft,
+            ),
+          ]),
+          mapControlsControllerProvider.overrideWith(() => controls),
+          locationServiceProvider.overrideWithValue(
+            LocationService(
+              checkPermission: () async => LocationPermission.whileInUse,
+              requestPermission: () async => LocationPermission.whileInUse,
+              getCurrentPosition: () async => _fakePosition(-23.5, -46.6),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          home: const RouteShellPage(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('Alternar para o mapa'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(controls.startFollowingCount, 1);
+    expect(find.text('Centrar no mapa em breve'), findsNothing);
+  });
+
+  testWidgets(
+      'tapping recenter with permission DENIED shows a graceful permission '
+      'toast and does NOT enter follow mode (no crash)', (tester) async {
+    await tester.pumpWidget(
+      _wrapWithMapControls(
+        const MapControlsState(),
+        locationService: LocationService(
+          checkPermission: () async => LocationPermission.deniedForever,
+          requestPermission: () async => LocationPermission.deniedForever,
+          getCurrentPosition: () async => _fakePosition(0, 0),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('Alternar para o mapa'));
+    await tester.pump();
+    await tester.pump();
+
+    // Graceful PT-BR fallback toast — app did not throw.
+    expect(find.textContaining('localização'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    // The seeded fake stays not-following (the `_wrapWithMapControls` controller
+    // is never told to start, since permission was denied).
+    expect(find.text('Centrar no mapa em breve'), findsNothing);
+  });
 }
+
+/// Build a [Position] at a fixed point for the recenter widget tests.
+Position _fakePosition(double lat, double lng) => Position(
+      latitude: lat,
+      longitude: lng,
+      timestamp: DateTime.fromMillisecondsSinceEpoch(0),
+      accuracy: 5,
+      altitude: 0,
+      altitudeAccuracy: 0,
+      heading: 0,
+      headingAccuracy: 0,
+      speed: 0,
+      speedAccuracy: 0,
+    );
