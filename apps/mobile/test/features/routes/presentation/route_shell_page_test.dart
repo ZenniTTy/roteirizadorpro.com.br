@@ -11,6 +11,7 @@ import 'package:roteirizador_pro/features/route_config/state/route_config_contro
 import 'package:roteirizador_pro/features/routes/data/location_service.dart';
 import 'package:roteirizador_pro/features/routes/domain/map_controls_state.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
+import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/route_shell_page.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/app_drawer.dart';
 import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
@@ -39,7 +40,8 @@ Widget _wrapPage() => ProviderScope(
       ),
     );
 
-/// Router-aware wrapper for the MS-A5.7 "Configuração de rota" summary rows.
+/// Router-aware wrapper for the MS-A5.7 "Configuração de rota" summary rows
+/// and MS-A6 stop-list tests.
 ///
 /// The summary rows push `/home/routes/active/:routeId/details` (ADR-0046), so
 /// the shell must be mounted inside a [GoRouter] that registers that path (a
@@ -47,9 +49,15 @@ Widget _wrapPage() => ProviderScope(
 /// the page). [activeRouteId] is seeded via [ActiveRouteId] override because
 /// the section only renders when there IS an active route — the production
 /// shell reads [activeRouteIdProvider] (`String?`, null = no section).
+///
+/// [stops] seeds the route with pre-existing stops (MS-A6 §3.2.1 tests).
+/// The router includes two new sentinels added for MS-A6 (H8, H19):
+///   - `routes/:routeId/edit` — tapping the route name in the sheet header.
+///   - `routes/active/:routeId/stops/:stopId/edit` — tapping a stop card.
 Widget _wrapRouted({
   required String activeRouteId,
   RouteConfig? initialConfig,
+  List<domain.Stop> stops = const [],
 }) {
   final router = GoRouter(
     initialLocation: '/home',
@@ -68,6 +76,24 @@ Widget _wrapRouted({
             builder: (_, __) =>
                 const Scaffold(body: Text('SENTINEL_REUTILIZAR_PARADAS')),
           ),
+          // MS-A6 H8 — tapping the route name opens the edit-route screen.
+          GoRoute(
+            path: 'routes/:routeId/edit',
+            builder: (context, state) => Scaffold(
+              body: Text(
+                'SENTINEL_EDIT_ROUTE_${state.pathParameters['routeId']}',
+              ),
+            ),
+          ),
+          // MS-A6 H19 — tapping a stop card opens the edit-stop screen.
+          GoRoute(
+            path: 'routes/active/:routeId/stops/:stopId/edit',
+            builder: (context, state) => Scaffold(
+              body: Text(
+                'SENTINEL_EDIT_STOP_${state.pathParameters['stopId']}',
+              ),
+            ),
+          ),
         ],
       ),
     ],
@@ -80,6 +106,7 @@ Widget _wrapRouted({
           id: activeRouteId,
           date: DateTime(2026, 5, 27),
           status: domain.RouteStatus.draft,
+          stops: stops,
         ),
       ]),
       activeRouteIdProvider
@@ -650,7 +677,463 @@ void main() {
     // is never told to start, since permission was denied).
     expect(find.text('Centrar no mapa em breve'), findsNothing);
   });
+
+  // ── MS-A6 Task 7 — Stop list in the active-route sheet (§3.2.1, H5–H8) ──
+
+  // ── H8: Header "N paradas" + route name tappable ─────────────────────────
+
+  testWidgets(
+      'MS-A6/H8: with 2 stops, sheet shows "2 paradas" + route displayName',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
+    await tester.pumpAndSettle();
+    // With ≥1 stop the sheet auto-expands (H6) — no manual _expandSheet needed.
+
+    expect(find.text('2 paradas'), findsOneWidget);
+    // The route was seeded on Wednesday 2026-05-27 → displayName() = 'quarta-feira'.
+    expect(find.textContaining('quarta-feira'), findsWidgets);
+  });
+
+  testWidgets(
+      'MS-A6/H8: route name in the stop-list header has Semantics identifier '
+      '"sheet_route_name"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1]));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsIdentifier('sheet_route_name'), findsOneWidget);
+  });
+
+  testWidgets(
+      'MS-A6/H8: tapping the route name in the header pushes '
+      'routes/:routeId/edit sentinel', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1], routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsIdentifier('sheet_route_name'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SENTINEL_EDIT_ROUTE_r1'), findsOneWidget);
+  });
+
+  // ── H19: Stop cards — badge, address lines, status dot, semantics ─────────
+
+  testWidgets(
+      'MS-A6/H19: with 2 stops, cards show badges "01" and "02", '
+      'streetName and fullAddress', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
+    await tester.pumpAndSettle();
+
+    expect(find.text('01'), findsOneWidget);
+    expect(find.text('02'), findsOneWidget);
+
+    expect(find.text('Rua Alfa, 100'), findsOneWidget);
+    expect(find.text('Rua Beta, 200'), findsOneWidget);
+
+    expect(
+      find.text('Rua Alfa, 100 - Centro, São Paulo'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Rua Beta, 200 - Vila Nova, São Paulo'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'MS-A6/H19: stop cards expose status dot via Keys '
+      'stop_card_1_status_dot and stop_card_2_status_dot', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
+    await tester.pumpAndSettle();
+
+    // Key-based lookup — does NOT assert color (implementation's choice).
+    expect(find.byKey(const Key('stop_card_1_status_dot')), findsOneWidget);
+    expect(find.byKey(const Key('stop_card_2_status_dot')), findsOneWidget);
+  });
+
+  testWidgets(
+      'MS-A6/H19: stop cards expose Semantics identifiers '
+      '"stop_card_1" and "stop_card_2"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsIdentifier('stop_card_1'), findsOneWidget);
+    expect(find.bySemanticsIdentifier('stop_card_2'), findsOneWidget);
+  });
+
+  testWidgets(
+      'MS-A6/H19: tapping stop card s1 pushes '
+      'routes/active/:routeId/stops/s1/edit sentinel', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1, _stop2], routeId: 'r1'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.bySemanticsIdentifier('stop_card_1'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SENTINEL_EDIT_STOP_s1'), findsOneWidget);
+  });
+
+  // ── H5: With ≥1 stop, big buttons absent; search pill present ────────────
+
+  testWidgets(
+      'MS-A6/H5: with ≥1 stop, "Adicionar parada" and '
+      '"Copiar paradas de uma rota anterior" are absent; '
+      'search pill stays visible', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1]));
+    await tester.pumpAndSettle();
+
+    // Big buttons must be gone with ≥1 stop (H5 — empty-state-only).
+    expect(find.text('Adicionar parada'), findsNothing);
+    expect(find.text('Copiar paradas de uma rota anterior'), findsNothing);
+
+    // Empty-state microcopy also absent.
+    expect(
+      find.textContaining('Adicione as primeiras paradas'),
+      findsNothing,
+    );
+
+    // Search pill always visible.
+    expect(find.text('Adicionar parada...'), findsOneWidget);
+  });
+
+  // ── H7: Config summary semantics still present when stops are listed ──────
+
+  testWidgets(
+      'MS-A6/H7: with 2 stops, config_summary_inicio and '
+      'config_summary_destino semantics are still present in the body',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
+    await tester.pumpAndSettle();
+
+    // Config summary = ListView item 0 (above the stop cards).
+    expect(
+      find.bySemanticsIdentifier('route_details_row_config_summary_inicio'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsIdentifier('route_details_row_config_summary_destino'),
+      findsOneWidget,
+    );
+  });
+
+  // ── H6: Auto-expand one-shot ──────────────────────────────────────────────
+
+  testWidgets(
+      'MS-A6/H6-i: mounting with ≥1 stop immediately expands sheet '
+      'to ~0.90 × screen height (±2%)', (tester) async {
+    // Frame: 1080×2400 physical, DPR 2.0 → 540×1200 logical.
+    // _expandedFraction 0.90 → expected AnimatedContainer height ~1080 logical px.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapWithStops([_stop1]));
+    await tester.pumpAndSettle();
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    const expandedFraction = 0.90;
+    const tolerance = 0.02; // ±2%
+
+    final sheetSize = tester.getSize(find.byType(AnimatedContainer).first);
+    final ratio = sheetSize.height / screenHeight;
+
+    expect(
+      ratio,
+      greaterThanOrEqualTo(expandedFraction - tolerance),
+      reason: 'Sheet height ratio ${ratio.toStringAsFixed(3)} is below '
+          '${(expandedFraction - tolerance).toStringAsFixed(3)} — '
+          'auto-expand one-shot did not fire on mount.',
+    );
+    expect(
+      ratio,
+      lessThanOrEqualTo(expandedFraction + tolerance),
+      reason: 'Sheet height ratio ${ratio.toStringAsFixed(3)} exceeds '
+          '${(expandedFraction + tolerance).toStringAsFixed(3)} — '
+          'unexpected overshoot.',
+    );
+  });
+
+  testWidgets(
+      'MS-A6/H6-ii: starting with 0 stops then adding the first stop '
+      'auto-expands the sheet to ~0.90', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(kUserWithoutSub),
+        routesProvider.overrideWith(
+          () => _MutableFakeRoutes([
+            domain.Route(
+              id: 'r1',
+              date: DateTime(2026, 5, 27),
+              status: domain.RouteStatus.draft,
+            ),
+          ]),
+        ),
+        activeRouteIdProvider.overrideWith(() => _SeededActiveRouteId('r1')),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          routerConfig: _buildSentinelRouter(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    // 0 stops → stays near collapsed.
+    final beforeRatio =
+        tester.getSize(find.byType(AnimatedContainer).first).height /
+            screenHeight;
+    expect(
+      beforeRatio,
+      lessThan(0.30),
+      reason:
+          'Sheet should start near collapsed with 0 stops (got $beforeRatio).',
+    );
+
+    // Add the first stop → ref.listen triggers auto-expand.
+    container.read(routesProvider.notifier).addStop('r1', _stop1);
+    await tester.pumpAndSettle();
+
+    const expandedFraction = 0.90;
+    const tolerance = 0.02;
+    final afterRatio =
+        tester.getSize(find.byType(AnimatedContainer).first).height /
+            screenHeight;
+    expect(
+      afterRatio,
+      greaterThanOrEqualTo(expandedFraction - tolerance),
+      reason: 'After adding first stop, sheet ratio '
+          '${afterRatio.toStringAsFixed(3)} did not reach expanded (~0.90). '
+          'ref.listen on stop count may be missing.',
+    );
+  });
+
+  testWidgets(
+      'MS-A6/H6-iii: one-shot — after manual collapse, adding a 2nd stop '
+      'does NOT re-expand the sheet', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(kUserWithoutSub),
+        routesProvider.overrideWith(
+          () => _MutableFakeRoutes([
+            domain.Route(
+              id: 'r1',
+              date: DateTime(2026, 5, 27),
+              status: domain.RouteStatus.draft,
+            ),
+          ]),
+        ),
+        activeRouteIdProvider.overrideWith(() => _SeededActiveRouteId('r1')),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          routerConfig: _buildSentinelRouter(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Step 1: add first stop → auto-expand fires.
+    container.read(routesProvider.notifier).addStop('r1', _stop1);
+    await tester.pumpAndSettle();
+
+    // Step 2: drag the sheet handle downward (strong flick) TWICE to
+    // collapse — the direction-based snap (MS-A5 contract) descends ONE
+    // snap per flick: expanded(0.90) → medium(0.40) → collapsed.
+    for (var i = 0; i < 2; i++) {
+      final sheetRect = tester.getRect(find.byType(AnimatedContainer).first);
+      final sheetTopCenter = sheetRect.topCenter;
+      // 12 px offset lands inside the 24 px handle area; 500 px delta +
+      // 150 ms gives enough velocity to trigger a downward flick snap.
+      await tester.timedDragFrom(
+        sheetTopCenter + const Offset(0, 12),
+        const Offset(0, 500),
+        const Duration(milliseconds: 150),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final collapsedRatio =
+        tester.getSize(find.byType(AnimatedContainer).first).height /
+            screenHeight;
+    expect(
+      collapsedRatio,
+      lessThan(0.30),
+      reason: 'Sheet did not collapse after drag '
+          '(got ratio ${collapsedRatio.toStringAsFixed(3)}).',
+    );
+
+    // Step 3: add a 2nd stop → must NOT re-expand (one-shot exhausted).
+    container.read(routesProvider.notifier).addStop('r1', _stop2);
+    await tester.pumpAndSettle();
+
+    final afterRatio =
+        tester.getSize(find.byType(AnimatedContainer).first).height /
+            screenHeight;
+    expect(
+      afterRatio,
+      lessThan(0.30),
+      reason: 'Sheet re-expanded after adding 2nd stop — '
+          'one-shot guard is missing '
+          '(got ratio ${afterRatio.toStringAsFixed(3)}).',
+    );
+  });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MS-A6 top-level helpers (outside main) — fakes, fixtures, router builder.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fake [Routes] notifier with mutable state — allows [addStop] to propagate
+/// via ref.listen in the H6 mutation tests. Starts with the provided seed;
+/// the real [Routes] methods (addStop, etc.) work normally because we only
+/// override [build].
+class _MutableFakeRoutes extends Routes {
+  _MutableFakeRoutes(this._seed);
+  final List<domain.Route> _seed;
+  @override
+  List<domain.Route> build() => _seed;
+}
+
+/// Convenience wrapper: [_wrapRouted] with an explicit [stops] list.
+Widget _wrapWithStops(
+  List<domain.Stop> stops, {
+  String routeId = 'r1',
+}) =>
+    _wrapRouted(activeRouteId: routeId, stops: stops);
+
+/// Fixture stop 1 — stable id 's1' reused across all MS-A6 tests.
+final _stop1 = domain.Stop(
+  id: 's1',
+  lat: -23.5,
+  lng: -46.6,
+  streetName: 'Rua Alfa, 100',
+  fullAddress: 'Rua Alfa, 100 - Centro, São Paulo',
+);
+
+/// Fixture stop 2 — stable id 's2'.
+final _stop2 = domain.Stop(
+  id: 's2',
+  lat: -23.51,
+  lng: -46.61,
+  streetName: 'Rua Beta, 200',
+  fullAddress: 'Rua Beta, 200 - Vila Nova, São Paulo',
+);
+
+/// Builds a [GoRouter] with all sentinels needed by the MS-A6 mutation tests
+/// (H6-ii and H6-iii) that use [UncontrolledProviderScope] + raw router.
+/// Mirrors the routes registered inside [_wrapRouted].
+GoRouter _buildSentinelRouter() => GoRouter(
+      initialLocation: '/home',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (_, __) => const RouteShellPage(),
+          routes: [
+            GoRoute(
+              path: 'routes/active/:routeId/details',
+              builder: (_, __) =>
+                  const Scaffold(body: Text('SENTINEL_DETALHES_DA_ROTA')),
+            ),
+            GoRoute(
+              path: 'routes/reuse-stops',
+              builder: (_, __) =>
+                  const Scaffold(body: Text('SENTINEL_REUTILIZAR_PARADAS')),
+            ),
+            GoRoute(
+              path: 'routes/:routeId/edit',
+              builder: (context, state) => Scaffold(
+                body: Text(
+                  'SENTINEL_EDIT_ROUTE_${state.pathParameters['routeId']}',
+                ),
+              ),
+            ),
+            GoRoute(
+              path: 'routes/active/:routeId/stops/:stopId/edit',
+              builder: (context, state) => Scaffold(
+                body: Text(
+                  'SENTINEL_EDIT_STOP_${state.pathParameters['stopId']}',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
 
 /// Build a [Position] at a fixed point for the recenter widget tests.
 Position _fakePosition(double lat, double lng) => Position(
