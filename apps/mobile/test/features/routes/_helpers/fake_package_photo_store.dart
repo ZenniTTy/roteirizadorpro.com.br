@@ -11,6 +11,7 @@ import 'package:roteirizador_pro/features/routes/data/package_photo_store.dart';
 /// ```dart
 /// final fake = FakePackagePhotoStore();
 /// fake.copyAllResult = ['novo1.jpg', 'novo2.jpg'];
+/// fake.saveForResult = '/fake/path.jpg';
 /// container = ProviderContainer(overrides: [
 ///   packagePhotoStoreProvider.overrideWithValue(fake),
 /// ]);
@@ -27,6 +28,9 @@ class FakePackagePhotoStore extends PackagePhotoStore {
   // Configuração de retorno
   // -------------------------------------------------------------------------
 
+  /// Valor retornado pela próxima chamada a [saveFor]. null simula falha de I/O.
+  String? saveForResult;
+
   /// Valor retornado pela próxima chamada a [copyAll].
   List<String> copyAllResult = const [];
 
@@ -37,6 +41,9 @@ class FakePackagePhotoStore extends PackagePhotoStore {
   // Registro de chamadas
   // -------------------------------------------------------------------------
 
+  /// Cada elemento é (routeId, stopId). Registrado por [saveFor].
+  final List<(String, String)> saveForCalls = [];
+
   /// Cada elemento é (routeId, fromStopId, toStopId).
   final List<(String, String, String)> copyAllCalls = [];
 
@@ -46,6 +53,16 @@ class FakePackagePhotoStore extends PackagePhotoStore {
   // -------------------------------------------------------------------------
   // Overrides
   // -------------------------------------------------------------------------
+
+  @override
+  Future<String?> saveFor(
+    String routeId,
+    String stopId,
+    File sourceFile,
+  ) async {
+    saveForCalls.add((routeId, stopId));
+    return saveForResult;
+  }
 
   @override
   Future<List<String>> copyAll(

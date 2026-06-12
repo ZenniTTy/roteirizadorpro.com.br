@@ -16,6 +16,7 @@ import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_page.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/stop_notes_section.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 // ---------------------------------------------------------------------------
@@ -801,6 +802,36 @@ void main() {
       final route = routes.firstWhere((r) => r.id == 'r1');
       final stop = route.stops.firstWhere((s) => s.id == 's1');
       expect(stop.color, isNull);
+    });
+  });
+
+  // ── 12. Integração — EditStopPage renderiza StopNotesSection ─────────────
+  //
+  // Verifica que a página usa o widget real StopNotesSection no lugar do
+  // placeholder _buildNotesSection (que era um Container com Text/IconButton
+  // estático). Este teste FALHA até que o implementador substitua
+  // _buildNotesSection por StopNotesSection na EditStopPage.
+
+  group('12 — Integração StopNotesSection na página', () {
+    testWidgets(
+        'EditStopPage renderiza StopNotesSection (find.byType) no lugar '
+        'do placeholder _buildNotesSection', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // StopNotesSection deve estar na árvore de widgets.
+      // Este finder falha enquanto a página ainda usa o placeholder interno.
+      expect(
+        find.byType(StopNotesSection),
+        findsOneWidget,
+        reason: 'EditStopPage deve usar StopNotesSection, não o placeholder',
+      );
     });
   });
 }

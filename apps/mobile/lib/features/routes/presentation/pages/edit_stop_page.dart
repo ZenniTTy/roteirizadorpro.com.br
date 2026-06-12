@@ -8,6 +8,7 @@ import '../../domain/stop.dart';
 import '../../domain/stop_order_policy.dart';
 import '../../state/routes_provider.dart';
 import '../widgets/color_picker_sheet.dart';
+import '../widgets/stop_notes_section.dart';
 
 /// Página full-screen de edição de parada (MS-A6 T8, D1).
 ///
@@ -109,7 +110,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                   const SizedBox(height: 8),
                   _buildAccessInstructionsButton(stop),
                   const SizedBox(height: 16),
-                  _buildNotesSection(stop),
+                  StopNotesSection(routeId: widget.routeId, stop: stop),
                   const SizedBox(height: 16),
                   _EditStopRow(
                     semanticsId: 'edit_stop_finder',
@@ -400,44 +401,6 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  /// Notas + câmera — placeholder em T8; TextField + foto reais na T11.
-  Widget _buildNotesSection(Stop stop) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              stop.notes ?? 'Adicionar notas',
-              style: TextStyle(
-                fontSize: 14,
-                color:
-                    stop.notes == null ? AppColors.textMuted : AppColors.text,
-              ),
-            ),
-          ),
-          Semantics(
-            identifier: 'edit_stop_camera',
-            button: true,
-            child: IconButton(
-              icon: const Icon(
-                LucideIcons.camera,
-                size: 20,
-                color: AppColors.primary,
-              ),
-              onPressed: () => _stub('Foto do pacote'),
-            ),
-          ),
-        ],
       ),
     );
   }
