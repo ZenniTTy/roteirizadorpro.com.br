@@ -154,14 +154,15 @@ Every area MS (MS-A5.6 … MS-A11) executes these five phases. The per-area sect
 
 > Note: MS-A3 can interleave with MS-A6/7/9 — wire each trigger as its target area lands, to avoid a dead "em breve" shipping.
 
-## Phase MS-A6 — Área 6: Editar parada (sheet, 14 fields)
+## Phase MS-A6 — Área 6: Editar parada (página GoRouter, 14 fields) — design aprovado 2026-06-11
 
-**Files:** Create `apps/mobile/lib/features/routes/presentation/widgets/edit_stop_sheet.dart` + color/instructions sub-sheets + tests; Modify `add_stop_page.dart:103` (replace "Editar parada em breve"), the shared `/home/routes/add-stop` route mounting, Stop domain/controllers for the 14 fields.
+> **SUPERSEDED EM PARTE (2026-06-11):** o deep-grep do jadx refutou a premissa "sheet": no Spoke, Editar parada é o `EditStopDialogFragment` (modal destination quase-full-screen), e o RotPro decidiu **página GoRouter full-screen** (D1). Escopo, fatos (F1–F16) e decisões (D1–D8) canônicos em [`docs/superpowers/specs/2026-06-11-area6-edit-stop-design.md`](../specs/2026-06-11-area6-edit-stop-design.md). Phase 2 (live-dump) já executada como **deep-grep estático** (workflow `wxcu78nhu` + greps manuais) — D4 runtime reduzido a 2 cliques.
 
-- [ ] **Phase 1:** `showModalBottomSheet(isScrollControlled:true, useSafeArea:true, showDragHandle:true)` + `SingleChildScrollView` + `viewInsets.bottom` for the 14-field form; `SegmentedButton<T>` (Set selection); destructive `ListTile` + `colorScheme.error` + `AlertDialog`. (Spec §best-practices.)
-- [ ] **Phase 2:** live-dump Editar parada at EVERY state — the 14 fields, the color sub-sheet (5 colors, Limpar/Concluído), the "Instruções de acesso" 2nd sheet (sticky-to-address, §13.C.3). Cite pixels for icons.
-- [ ] **Phase 3:** build the sheet. Sheet-returns-intent for any navigation (anti-pattern #5). "Remover parada" → AlertDialog confirm. Pacotes/Ordem/Tipo always active (§13.C.1). NO failure-reason picker (B2B). "Mudar endereço" re-enters Á4 (inherits live Places key). TDD each field.
-- [ ] **Phase 4:** integration_test (sheet open/edit/close nav). `spoke-parity-checker` D4. Commit `feat(routes): Área 6 edit-stop sheet`.
+**Files:** Create `edit_stop_page.dart` + sub-sheets (color, access-instructions, package-finder, package-count, time-at-stop) + `settings_repository.dart` + `address_instructions_repository.dart` + tests; Modify `route_shell_page.dart` (seção "Paradas" + auto-expand + toast pós-add), `add_stop_page.dart` (`_onSectionATap` + `PickerMode.changeAddress`), `app.dart` (rota edit-stop), `stop.dart` (domínio F8–F12), `routes_provider.dart` (updateStop/removeStop/duplicateStop), `pubspec.yaml` (`path_provider` — ADR curta).
+
+- [x] **Phase 1+2 (dump-first deep-grep, 2026-06-11):** baseline completa por código (design doc §1). Dart MCP/Context7 pendente só para `path_provider` + `image_picker` API atual na implementação.
+- [ ] **Phase 3:** build per design doc §3 — TDD por widget/provider (flutter-test-author primeiro). Página (não sheet); edits live por campo; "Remover parada" → AlertDialog confirm (microcopy original); Pacotes/Ordem/Tipo sempre ativos (§13.C.1); NO failure-reason picker (B2B); "Mudar endereço" re-enters Á4 com `PickerMode.changeAddress`; fotos local-only via `image_picker`+`path_provider`.
+- [ ] **Phase 4:** integration_test (shell → edit → sub-pickers → Android-back chain, idiom Á5 MS9). D4 dump-only + 2 cliques runtime (toast pós-add; tap-no-número Pacotes). perf-auditor. Commit `feat(routes): Área 6 edit-stop page`.
 
 ## Phase MS-A7 — Área 7: Otimizar (3 states + 3 FTUE)
 

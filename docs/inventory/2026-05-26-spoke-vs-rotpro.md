@@ -1754,14 +1754,16 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
   - Remover parada → não drilled (provavelmente confirm dialog)
 
 **Bottom sheet behavior NOVO documentado:**
-- Após adicionar parada via texto §11.4, a sheet expanded auto-mostra "Editar parada" da última adicionada (não a lista de stops)
-- Swipe-down fecha sheet e volta pra lista; swipe-up dá full screen Editar parada
-- Padrão: Spoke trata Editar parada como bottom sheet draggable (NÃO full-screen route)
+- ~~Após adicionar parada via texto §11.4, a sheet expanded auto-mostra "Editar parada" da última adicionada (não a lista de stops)~~
+- ~~Swipe-down fecha sheet e volta pra lista; swipe-up dá full screen Editar parada~~
+- ~~Padrão: Spoke trata Editar parada como bottom sheet draggable (NÃO full-screen route)~~
 
-**Implicação pro RotPro:**
-- Editar parada deve ser `DraggableScrollableSheet` com snap points; NÃO uma rota separada no GoRouter
-- Auto-show edit sheet após adicionar parada nova (better UX que apenas "stop added" toast)
-- Pacotes/Ordem/Tipo sempre ativos (não gated por estado da rota)
+> **⚠️ AMENDED 2026-06-11 (dump-first MS-A6, ADR-0045 — dump ganha de inferência runtime):** o código decompilado v3.65.1 REFUTA os 3 bullets acima. (1) "Editar parada" é o `EditStopDialogFragment` — um `AdaptiveModalFragment` **destination próprio** no nav graph (`nav_main.xml:39`, action `action_edit_stop`), NÃO um estado/snap do sheet do shell. (2) Pós-add via texto o Spoke mostra **toast "Parada adicionada" + ação "Ver"** (`BottomToasts.kt`/`nq0.java:285` + `kq0.java:37`); o "auto-show" observado em 2026-05-26 era inferência de um snapshot. (3) O tap num stop card de rota **em edição** abre o EditStopDialog; numa rota **em execução** abre `EditRoutePage.StopDetails` (pager interno — Área 8). Fonte: `EditRouteViewModel.m9465r0`/`m9461p0`. Baseline completa: `docs/superpowers/specs/2026-06-11-area6-edit-stop-design.md` §1.
+
+**Implicação pro RotPro (revisada 2026-06-11):**
+- Editar parada = **página GoRouter full-screen** (`/home/routes/active/:routeId/stops/:stopId/edit`) — decisão D1 do design MS-A6 (o modal do Spoke ocupa ~tela toda em phone; idiom Á5; evita Flutter #155746)
+- Pós-add: toast "Parada adicionada" + action "Ver" → abre o editor (match-Spoke F4)
+- Pacotes/Ordem/Tipo sempre ativos (não gated por estado da rota) — mantido (§13.C.1)
 
 ### 11.6 — Drawer pós-criação de novas rotas (delta sobre §10.20)
 

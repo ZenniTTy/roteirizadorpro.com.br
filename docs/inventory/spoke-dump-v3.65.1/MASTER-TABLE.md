@@ -24,6 +24,8 @@
 
 Estas linhas pertencem ao sheet de detalhe de parada (`ui/home/editroute/components/detailsheet`) e às ações de parada (`ui/home/editroute/stopactions`). Alimentam a **Área 6 (Editar parada)** do roadmap RotPro.
 
+> **⚠️ AMENDED 2026-06-11 (deep-grep MS-A6 — ver §"Amendment 2026-06-11" no fim deste arquivo):** o rótulo "StopDetailSheet" destas rows era impreciso. O Spoke tem **duas surfaces** que compartilham os campos #4–#10: `EditStopDialogFragment` (`ui/edit`, "Editar parada", aberto pelo tap num stop de rota **em edição** — é a surface da Área 6) e o `StopDetailSheet` (`detailsheet`, página do pager do sheet em rota **em execução** — surface da Área 8). Vários `Precisa-runtime` abaixo foram resolvidos por código; ver a tabela do amendment.
+
 | Gap | Tela | Widget | Pacote-código | Strings-chave (PT-BR verbatim) | Campos | Defaults | Enums/Opções | Comportamento | Confiança | Precisa-runtime |
 |---|---|---|---|---|---|---|---|---|---|---|
 | **#4 Chip ID de pacote (A1 picker)** | StopDetailSheet (Parada — Detalhes) | Diálogo numérico com incrementor/decrementador | `com/circuit/ui/dialogs/packagecount` | `stop_setting_package_count` = "Número de pacotes"; `stop_setting_packages_title` (usado na UI) | Campo numérico para quantidade de pacotes; incrementor/decrementador visível | Não encontrado no decompilado | n/a (campo numérico, não picker) | Diálogo modal que confirma e salva a quantidade; confirmar fecha o diálogo e atualiza o estado | medium | Validação de range mín/máx para quantidade de pacotes; se há máximo permitido |
@@ -174,3 +176,25 @@ Para cada Área do roadmap que consome linhas desta tabela, o que está **pronto
 > 21 linhas no total (os dois `#25` contam como 2). As 17 `high` incluem #21/#22/#25-Voz, que são `high` em ESTRUTURA mas estão fora do escopo imediato do Slice 2 por dependerem de backend/ML Kit (ver Área 7).
 
 > Cada linha desta tabela é um snapshot frozen de **v3.65.1**. Se o Spoke atualizar, re-puxar o dump e bumpar o nome da pasta. O risco #1 desta tabela é **version skew**, não erro de transcrição.
+
+---
+
+## Amendment 2026-06-11 — deep-grep MS-A6 (Área 6, rows #4–#10)
+
+Grep profundo no `~/spoke-dump/jadx-out` (workflow `wxcu78nhu` com verificação adversarial + greps manuais) resolveu por CÓDIGO a maioria dos `Precisa-runtime` da Área funcional A. Baseline completa com evidência `arquivo:linha`: [`docs/superpowers/specs/2026-06-11-area6-edit-stop-design.md`](../../superpowers/specs/2026-06-11-area6-edit-stop-design.md) §1.
+
+| Row | Era | Virou (fato de código) |
+|---|---|---|
+| (surface) | "StopDetailSheet" única | **Duas surfaces**: `EditStopDialogFragment` (`ui/edit`, rota em edição → Área 6) vs `StopDetailSheet` pager (`detailsheet`, rota em execução → Área 8). Dispatch em `EditRouteViewModel.m9465r0`/`m9461p0` |
+| #4 Pacotes | "diálogo com incrementor"; runtime p/ range | Row = `CircuitStepper` inline [−/N/+] **e** tap no número abre dialog free-text (placeholder "1", 4 dígitos, `coerceIn(1..9999)`, null quando ≤1, commit-on-dismiss). `EditStopEditorKt:1971-1995`, `jy3.java`, `s85.m43910U` |
+| #5 Localizador | `low` — "não codar sem runtime" | **Estrutura completa** (→ `high`): "ID de parada" row + chips "Descrição do pacote" (Pequeno/Médio/Grande × Caixa/Sacola/Carta) + "Lugar no veículo" 3 eixos (Frente/Meio/Atrás · Esquerda/Direita · Chão/Prateleira). Armazena `PackageDetails(type?,dimension?)` + `PlaceInVehicle(x?,y?,z?)`; "Não definido" → "Pequeno, Caixa, …"/"FEC". B2C (`PlanFeature.PackageFinder`). `C3290b.java`, `PackageDetails/PlaceInVehicle.java`, `fr0.java` |
+| #6 Horário de chegada | "Material3 hora:minuto" (single) | **JANELA** — `TimeWindowPickerDialog` com 2 `LocalTime?` ("Chegar entre"/"E"), vazio = "Qualquer momento", parcial "Após %s"/"Antes de %s". `DialogC3312c.java` |
+| #7 Tempo na parada | "numeric spinner"; default não achado | Dialog **min+seg** (`DurationInputField` compartilhado c/ o setting global), null = herda default; **default global = "Tempo médio na parada", fallback `Duration.ofMinutes(1)`** (`hj4.f104611a`); override nullable em `StopData.estimatedTimeAtStop`. `ide.java`, `C2644a.java`, `UiFormatters.m8465u` |
+| #9 Duplicar | "Precisa-runtime: imediato vs dialog" | **Imediato** (use-case + 250ms) → **abre o editor da duplicata** com badge "Adicionada". `StopActionsController$onDuplicateStop$1`, `bkd.java` |
+| #10 Remover | "texto do confirm não achado" | Achado: `remove_stop_confirmation_dialog_text` = "Quer remover \"%1$s\" da rota?" + `remove_stop_title`. `strings.xml:1990-1992` |
+| (pós-add) | §11.5 "auto-show edit" | Toast "Parada adicionada" + ação "Ver" (`added_stop_toast_message`, `BottomToasts.kt`). Inventário §11.5 amendado |
+| (semântica save) | "Concluído = save+pop" | Edits **live por campo** (`StopChange.*` commit-on-dismiss de cada sub-dialog); Concluído só fecha (result `stop_edited`) |
+| (campos extras) | — | Cliente/Destinatário/Valor a cobrar existem no editor mas são **feature-gated** (Dispatch/B2B) — fora do RotPro |
+| (fotos) | — | Câmera in-app → storage **100% local** (`package_photos/<user>/<route>/<stop>`), cleanup 30d, sem upload; POD é modelo separado (Dispatch). `PackagePhotoManager`, `CleanupPackagePhotosWorker` |
+
+`Precisa-runtime` remanescente (2 cliques, D4 da MS-A6): visual do toast pós-add + tap-no-número abre o dialog de Pacotes.
