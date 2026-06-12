@@ -12,12 +12,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:roteirizador_pro/features/routes/data/address_instructions_repository.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_page.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/access_instructions_sheet.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/stop_notes_section.dart';
+import 'package:roteirizador_pro/features/routes/state/address_instructions_controller.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -136,6 +142,71 @@ Future<void> _scrollUntilVisible(
     await tester.pump(const Duration(milliseconds: 50));
   }
   await tester.pumpAndSettle();
+}
+
+// ---------------------------------------------------------------------------
+// Helper para grupos 13–17 (fora do main para evitar local-variable-with-underscore)
+// ---------------------------------------------------------------------------
+
+/// Monta a EditStopPage com [routesProvider] e
+/// [addressInstructionsRepositoryProvider] injetados.
+/// Retorna o [ProviderContainer] para inspeção de estado pós-ação.
+/// O caller é responsável por `addTearDown(container.dispose)`.
+Future<ProviderContainer> pumpPageWithInstructions(
+  WidgetTester tester, {
+  required AddressInstructionsRepository repo,
+  required List<domain.Stop> stops,
+}) async {
+  tester.view.physicalSize = const Size(1080, 3200);
+  tester.view.devicePixelRatio = 2.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  final container = ProviderContainer(
+    overrides: [
+      routesProvider.overrideWith(
+        () => _FakeRoutes([
+          domain.Route(
+            id: 'r1',
+            date: DateTime(2026, 5, 27),
+            status: domain.RouteStatus.running,
+            stops: stops,
+          ),
+        ]),
+      ),
+      addressInstructionsRepositoryProvider.overrideWithValue(repo),
+    ],
+  );
+
+  const location = '/home/routes/active/r1/stops/s1/edit';
+  final router = GoRouter(
+    initialLocation: location,
+    routes: [
+      GoRoute(
+        path: '/home',
+        builder: (_, __) =>
+            const Scaffold(body: Center(child: Text('SENTINEL_HOME'))),
+        routes: [
+          GoRoute(
+            path: 'routes/active/:routeId/stops/:stopId/edit',
+            builder: (context, state) => EditStopPage(
+              routeId: state.pathParameters['routeId']!,
+              stopId: state.pathParameters['stopId']!,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(routerConfig: router),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return container;
 }
 
 // ---------------------------------------------------------------------------
@@ -832,6 +903,250 @@ void main() {
         findsOneWidget,
         reason: 'EditStopPage deve usar StopNotesSection, não o placeholder',
       );
+    });
+  });
+
+  // ── 13–17. Integração AccessInstructionsSheet (F13 / H18) ─────────────────
+  //
+  // Setup: InMemorySharedPreferencesAsync via plataforma global (padrão do
+  // projeto — ver route_defaults_controller_test.dart). Cada teste seta
+  // SharedPreferencesAsyncPlatform.instance fresh (instância isolada) antes
+  // de criar o repositório.
+  //
+  // A chave normalizada do fixture _stop1 é:
+  //   AddressInstructionsRepository.normalizeKey('Rua Alfa, 100 - Centro, São Paulo')
+  //   == 'rua alfa, 100 - centro, são paulo'
+
+  group(
+      '13 — tap em edit_stop_access_instructions abre AccessInstructionsSheet',
+      () {
+    testWidgets(
+        'tap no botão "Instruções de acesso" abre sheet '
+        '(switch label "Salvar como padrão para este endereço" visível)',
+        (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+      final container = await pumpPageWithInstructions(
+        tester,
+        repo: repo,
+        stops: [_stop1],
+      );
+      addTearDown(container.dispose);
+
+      final btn = find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, btn);
+      await tester.tap(btn);
+      await tester.pumpAndSettle();
+
+      // Sheet aberta: switch label é âncora inequívoca (não ambígua com o
+      // texto do botão da página).
+      expect(
+        find.text('Salvar como padrão para este endereço'),
+        findsOneWidget,
+      );
+
+      // Nenhum SnackBar de stub deve aparecer.
+      expect(find.byType(SnackBar), findsNothing);
+    });
+  });
+
+  group(
+      '14 — pré-preenchimento H18: stop sem accessInstructions + sticky no repo',
+      () {
+    testWidgets(
+        'stop sem accessInstructions + repo semeado com sticky → '
+        'sheet abre com TextField contendo o sticky', (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+      await repo.saveDefault(_stop1.fullAddress, 'portão lateral');
+
+      final container = await pumpPageWithInstructions(
+        tester,
+        repo: repo,
+        stops: [_stop1], // accessInstructions == null
+      );
+      addTearDown(container.dispose);
+
+      final btn = find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, btn);
+      await tester.tap(btn);
+      await tester.pumpAndSettle();
+
+      // O TextField deve conter o texto sticky do endereço.
+      expect(find.text('portão lateral'), findsAtLeastNWidgets(1));
+    });
+
+    testWidgets(
+        'stop COM accessInstructions próprio → sheet mostra o do stop '
+        '(prioridade stop > sticky)', (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+      await repo.saveDefault(_stop1.fullAddress, 'portão lateral');
+
+      final stopWithInstructions =
+          _stop1.copyWith(accessInstructions: 'portão verde');
+
+      final container = await pumpPageWithInstructions(
+        tester,
+        repo: repo,
+        stops: [stopWithInstructions],
+      );
+      addTearDown(container.dispose);
+
+      final btn = find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, btn);
+      await tester.tap(btn);
+      await tester.pumpAndSettle();
+
+      // Deve exibir o texto do stop, não o sticky.
+      expect(find.text('portão verde'), findsAtLeastNWidgets(1));
+      expect(find.text('portão lateral'), findsNothing);
+    });
+  });
+
+  group('15 — Salvar com switch ON → grava no stop E no repositório', () {
+    testWidgets(
+        '"Salvar" com texto + switch ON → stop.accessInstructions == texto '
+        'E repo.instructionFor(fullAddress) == texto', (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+
+      final container = await pumpPageWithInstructions(
+        tester,
+        repo: repo,
+        stops: [_stop1],
+      );
+      addTearDown(container.dispose);
+
+      final btn = find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, btn);
+      await tester.tap(btn);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AccessInstructionsSheet),
+          matching: find.byType(TextField),
+        ),
+        'campainha 3x',
+      );
+      await tester.pump();
+
+      // Liga o switch.
+      await tester.tap(find.byType(Switch));
+      await tester.pump();
+
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      // Stop no provider deve ter accessInstructions atualizado.
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(stop.accessInstructions, 'campainha 3x');
+
+      // Repositório também deve ter o sticky gravado.
+      final sticky = await repo.instructionFor(_stop1.fullAddress);
+      expect(sticky, 'campainha 3x');
+    });
+  });
+
+  group('16 — Salvar com switch OFF → grava só no stop, não no repositório',
+      () {
+    testWidgets(
+        '"Salvar" com texto + switch OFF → stop atualizado, '
+        'repo.instructionFor == null (sem sticky gravado)', (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+
+      final container = await pumpPageWithInstructions(
+        tester,
+        repo: repo,
+        stops: [_stop1],
+      );
+      addTearDown(container.dispose);
+
+      final btn = find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, btn);
+      await tester.tap(btn);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AccessInstructionsSheet),
+          matching: find.byType(TextField),
+        ),
+        'tocar campainha',
+      );
+      await tester.pump();
+
+      // Switch permanece OFF.
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+
+      // Stop deve ter a instrução.
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(stop.accessInstructions, 'tocar campainha');
+
+      // Repositório NÃO deve ter sticky.
+      final sticky = await repo.instructionFor(_stop1.fullAddress);
+      expect(sticky, isNull);
+    });
+  });
+
+  group('17 — Limpar com switch ON → remove do stop E do repositório', () {
+    testWidgets(
+        '"Limpar" com switch ON → stop.accessInstructions == null '
+        'E repo.instructionFor == null (sticky removido)', (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+
+      await repo.saveDefault(_stop1.fullAddress, 'código 5678');
+      final stopWithInstructions =
+          _stop1.copyWith(accessInstructions: 'código 5678');
+
+      final container = await pumpPageWithInstructions(
+        tester,
+        repo: repo,
+        stops: [stopWithInstructions],
+      );
+      addTearDown(container.dispose);
+
+      final btn = find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, btn);
+      await tester.tap(btn);
+      await tester.pumpAndSettle();
+
+      // Liga o switch (o texto 'código 5678' já está no TextField).
+      await tester.tap(find.byType(Switch));
+      await tester.pump();
+
+      await tester.tap(find.text('Limpar'));
+      await tester.pumpAndSettle();
+
+      // Stop deve ter accessInstructions == null.
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(stop.accessInstructions, isNull);
+
+      // Repositório deve ter o sticky removido.
+      final sticky = await repo.instructionFor(_stop1.fullAddress);
+      expect(sticky, isNull);
     });
   });
 }

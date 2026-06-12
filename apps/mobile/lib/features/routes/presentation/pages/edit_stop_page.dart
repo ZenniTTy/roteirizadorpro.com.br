@@ -7,6 +7,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/stop.dart';
 import '../../domain/stop_order_policy.dart';
 import '../../state/routes_provider.dart';
+import '../../state/address_instructions_controller.dart';
+import '../widgets/access_instructions_sheet.dart';
 import '../widgets/color_picker_sheet.dart';
 import '../widgets/stop_notes_section.dart';
 
@@ -47,6 +49,39 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text('$feature em breve')));
+  }
+
+  /// Instruções de acesso (F13/H18): pré-preenche com a instrução desta
+  /// parada OU o default sticky do endereço; Salvar com switch ON grava nos
+  /// dois; Limpar limpa o stop (e o default, se switch ON).
+  Future<void> _openAccessInstructions(Stop stop) async {
+    final repo = ref.read(addressInstructionsRepositoryProvider);
+    final sticky = await repo.instructionFor(stop.fullAddress);
+    if (!mounted) return;
+    final result = await AccessInstructionsSheet.show(
+      context,
+      initialText: stop.accessInstructions ?? sticky,
+    );
+    if (!mounted) return;
+    switch (result) {
+      case AccessInstructionsSaved(:final text, :final saveAsDefault):
+        final next = text.isEmpty ? null : text;
+        ref.read(routesProvider.notifier).updateStop(
+              widget.routeId,
+              stop.copyWith(accessInstructions: next),
+            );
+        if (saveAsDefault && next != null) {
+          await repo.saveDefault(stop.fullAddress, next);
+        }
+      case AccessInstructionsCleared(:final clearDefault):
+        ref.read(routesProvider.notifier).updateStop(
+              widget.routeId,
+              stop.copyWith(accessInstructions: null),
+            );
+        if (clearDefault) await repo.clearDefault(stop.fullAddress);
+      case null:
+        break;
+    }
   }
 
   /// Chip de cor → ColorPickerSheet; commit-on-dismiss live via updateStop
@@ -378,7 +413,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
       identifier: 'edit_stop_access_instructions',
       button: true,
       child: InkWell(
-        onTap: () => _stub('Instruções de acesso'),
+        onTap: () => _openAccessInstructions(stop),
         borderRadius: BorderRadius.circular(10),
         child: const Padding(
           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
