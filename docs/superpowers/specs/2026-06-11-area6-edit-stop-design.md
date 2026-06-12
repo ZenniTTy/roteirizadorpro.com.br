@@ -41,6 +41,8 @@
 
 ## 3. Escopo da MS-A6
 
+> **Precedência:** o §6 (hardening pré-plano, 2026-06-11) refina este escopo com 21 resoluções anti-retrabalho. Onde §3 e §6 divergirem em detalhe, **o §6 governa** (ex.: migração `timeWindow* → TimeOfDay?`, footer do sheet com stops, mecânica do toast "Ver", `_omit` em todos os nullables).
+
 ### 3.1 Domínio + estado
 
 - `Stop` += `orderPolicy` (enum `StopOrderPolicy { first, auto, last }`, default `auto`), `packageDetails` (`PackageDimension? small/medium/large` + `PackageType? box/bag/letter`), `placeInVehicle` (`PlaceX? left/right`, `PlaceY? front/middle/back`, `PlaceZ? floor/shelf`), `photoPaths: List<String>`, `accessInstructions: String?` (instrução só-desta-parada; a sticky vive no repository por endereço), `estimatedTimeAtStop: Duration?` (substitui `customDurationMinutes`), `color: StopColor?` (enum 5 valores → tokens prototipo; substitui `colorHex`). Campos nullable: copyWith com sentinela `_omit` + teste clears-it (lição `lesson_copywith_nullable_field_pitfall`).
@@ -75,3 +77,53 @@
 ## 5. Gates
 
 TDD (flutter-test-author antes de cada widget/provider novo) · `flutter analyze` sem lint novo (23 MS-DEBT intocados) · `flutter test` ≥ 308 · `integration_test` da cadeia de navegação (shell → edit → sub-pickers → Android-back) no M54 · perf-auditor na `EditStopPage` + lista do shell · D4 §4 · amendments inventário/MASTER-TABLE no mesmo commit set · branch `feat/m2-slice-2-area-6-edit-stop` → PR contra `develop`.
+
+## 6. Hardening pré-plano (verificação de boas práticas + revisão adversarial, 2026-06-11)
+
+> Phase-1 da sprint executada (Dart MCP no pub-cache local + Context7 + 3 lentes adversariais, workflow `wyyqa8zga`) ANTES do plano, a pedido do Eduardo. Baseline re-verificada: `flutter analyze` = 23 lints (só MS-DEBT, zero novos) · `flutter test` = 308/308. Cada finding abaixo está RESOLVIDO aqui — o plano herda estas decisões como fato.
+
+### 6.1 Domínio (must-fix da revisão)
+
+| # | Finding | Resolução |
+|---|---|---|
+| H1 | `timeWindowStart/End` hoje são `DateTime?`; F7 exige hora-do-dia com **lado único opcional** ("Após %s"/"Antes de %s"); `BreakConfig` exige ambos | Migrar para `TimeOfDay?`/`TimeOfDay?` (zero usos fora de `stop.dart` — grep confirmado). A página de janela REUSA o numpad ADR-0042 mas **diverge da BreakSchedulerPage**: salvar com um lado só ou ambos vazios (= limpar) é válido. Não copiar a validação ambos-obrigatórios. |
+| H2 | `copyWith` com `?? this.x` em TODOS os nullables pré-existentes — `copyWith(timeWindowStart: null)` preserva em vez de limpar ("Qualquer momento" nunca limparia) | A migração do `Stop` aplica sentinela `_omit` a **TODOS** os campos nullable (novos E pré-existentes: `notes`, `timeWindowStart`, `timeWindowEnd`, `priority`, `deliveryId`, `positionInRoute`, `accessInstructions`, `color`, `packageDetails`, `placeInVehicle`, `estimatedTimeAtStop`) + 1 teste clears-it por campo, na MESMA task da entidade. |
+| H3 | `packagesCount` (`int` default 1) vs F8 "null quando ≤1" + stepper 0..9999 vs dialog 1..9999 | **Mantém `int` não-nulável default 1** (divergência consciente — display idêntico, Karpathy #2). Stepper E dialog clampam em **1..9999**; o botão "−" no mínimo fica ATIVO e clampa (sem estado disabled inventado — anti-pattern #12; o 0 do CircuitStepper é detalhe interno do widget Spoke, não estado persistível). |
+| H4 | `priority: int?` ficaria órfão com `orderPolicy` | São conceitos DISTINTOS: `priority` = prioridade de atendimento do solver (B2C confirmado, consumido no Slice 3); `orderPolicy` = constraint de posição (Primeira/Automática/Última). **Ambos ficam.** Nota no código. |
+
+### 6.2 Shell / lista de stops (must-fix)
+
+| # | Finding | Resolução |
+|---|---|---|
+| H5 | Footer do sheet com ≥1 parada não especificado | **Spoke-fiel (§10.5):** com ≥1 parada os 2 big buttons ("Adicionar parada"/"Copiar paradas") **somem** — eles são empty-state-only; o footer fica vazio até a Á7 trazer o CTA "Otimizar rota" full-width (slot nasce lá). "Adicionar parada" permanece acessível pela search pill. Com 0 paradas (mesmo com config summary), o corpo preserva exatamente o estado atual (config + empty state + 2 botões). |
+| H6 | Auto-expand sem semântica; ~12 testes assertam collapsed-default | **One-shot**: ao construir o shell com rota ativa de ≥1 parada (ou na transição 0→≥1 via `ref.listen` na contagem), snap para `_expandedFraction` (0.90, §10.5 "AUTO-EXPANDED"). Colapso manual posterior **não** é revertido. Os asserts collapsed-default existentes são amendados para semear rota sem stops; teste novo cobre o auto-expand. |
+| H7 | `ListView.builder` no corpo quebra 4 coisas (arena de gestos scroll-vs-resize; empty state Center/FittedBox; contrato `configSummary`; falta `ref.listen`) | Corpo vira `ListView.builder` **apenas no branch com stops** (config summary = item 0 achatado; empty-state branch permanece fora do builder, estrutura atual intacta). **Gesto:** com lista transbordando, drag no corpo SCROLLA (não redimensiona) — match-Spoke (§10.5: stepList é scrollable; resize fica no handle+search-row). Declarado intencional. Contrato do `_ActiveRouteSheet` reformulado para receber rows. |
+| H8 | Header expandido do Spoke tem contador "N paradas" + nome da rota clicável (§10.5) — design silente | **Incluir na MS-A6**: linha contador ("N paradas") + nome da rota (clicável → wizard edit já existente `routes/:routeId/edit`) entre search-row e corpo, visível em medium+. Senão o D4 flagra. |
+
+### 6.3 Navegação / entrypoints (must/should-fix)
+
+| # | Finding | Resolução |
+|---|---|---|
+| H9 | Toast "Ver" dispara após o pop da AddStopPage — context morto; não há navigatorKey global | **O shell é o dono do toast**: os pushes para add-stop passam a `await context.push<String>(...)`; `_addStopFromPrediction` faz `context.pop(stop.id)`. Ao retornar id, o **shell** (context vivo) mostra o SnackBar "Parada adicionada" + action "Ver" (hide + `context.push` da rota de edit). Sem keys globais. `addStop` no provider permanece void (id é gerado no caller). |
+| H10 | `PickerMode.changeAddress`: result type + rota inexistentes | Result = record `({double lat, double lng, String streetName, String fullAddress})` (nenhum tipo atual carrega os 4). Rota aninhada `change-address` sob a rota de edit, **modo via constructor arg na rota dedicada — `state.extra` PROIBIDO** (anti-pattern #10; o precedente correto são as rotas start/end-location). |
+| H11 | Pilha do Duplicar e da Section A indefinida | Duplicar: **`pushReplacement`** do editor da duplicata (back volta pra lista, não pro editor da original — espelha o Spoke que fecha o sheet da original ao abrir a duplicata). Section A da add-stop: pop do add-stop com intent + shell pusha o editor (mesmo mecanismo H9 — evita editor empilhado sobre add-stop). |
+| H12 | `EditStopPage` com `stopId` que não resolve (removida na janela do toast, deep-link stale) | A página observa a parada por id; se não resolver, `pop` pós-frame (cobre Remover, Ver-tardio, restore). Teste dedicado. |
+
+### 6.4 Sub-surfaces / repositories / I-O (should-fix)
+
+| # | Finding | Resolução |
+|---|---|---|
+| H13 | Sub-sheets sem regra `useRootNavigator`/return-intent | Toda sheet da Á6: `showModalBottomSheet(useRootNavigator: true, useSafeArea: true)` (precedente `route_details_page.dart:309`), **commit-on-dismiss pura, zero `context.push` de dentro do body** (#155746). "Lugar no veículo" é seção INLINE da PackageFinderSheet (F11: mesma dialog no Spoke), não sheet aninhada. |
+| H14 | Repositories novos sem forma de provider/AsyncValue | `SettingsController` + `AddressInstructionsController` espelham `RouteDefaultsController` (`@Riverpod(keepAlive: true)`, `Future<T> build()`); consumo na página via `valueOrNull` com fallback DECLARADO (1 min) só no controller — **nunca constante de widget**; escrita via notifier (`state = AsyncData(next)` pós-persist). |
+| H15 | Bare-catch / I/O silencioso (envelopes JSON + fotos) | Repositories replicam `route_defaults_repository.dart:32-39` (catch + `debugPrint` + default) **+ teste de envelope corrompido**. Falha ao copiar foto → SnackBar (nunca drop silencioso). Thumbnail tolera arquivo morto: placeholder + `debugPrint` + teste (`Image.file` de path apagado lança em release). |
+| H16 | Ciclo de vida das fotos em remove/duplicate | `removeStop` apaga `package_photos/<routeId>/<stopId>/`; `duplicateStop` **copia os arquivos** para o diretório da duplicata (paths NUNCA compartilhados — F12: diretório por-stop). Órfãos por restart aceitos até a persistência do Slice 3 (TODO já registrado §3.3). |
+| H17 | Câmera: CAMERA já no manifest (OCR) → `image_picker` exige grant runtime (fonte: `ImagePickerDelegate.java:50-51` + `ImagePickerUtils.needRequestCameraPermission`) | O plugin pede a permissão sozinho; o app trata `PlatformException('camera_access_denied')` + cancelamento → SnackBar microcopy original, sem mudança de estado (padrão `_onRecenter`). `pickImage(maxWidth: 1280, imageQuality: 80)` comprime. **`aapt2` delta de permissões esperado: ZERO.** Persistência: `getApplicationSupportDirectory()` (paralelo fiel ao `getFilesDir()` do Spoke). `path_provider` latest = **2.1.5** (ADR curta no MS). |
+| H18 | AddressInstructions: chave + precedência indefinidas | Chave = `fullAddress.trim().toLowerCase()`. Sheet pré-preenche `stop.accessInstructions ?? repository[chave]`. Salvar com switch ON grava nos dois; OFF grava só no Stop. Pós-Mudar-endereço a resolução sticky usa automaticamente o novo `fullAddress`. |
+
+### 6.5 Processo / testes (should-fix)
+
+| # | Finding | Resolução |
+|---|---|---|
+| H19 | Semantics ausentes nos tappables novos | Todo widget interativo novo: `Semantics(identifier:)` prefixo `edit_stop_*` / `stop_card_<n>` (padrão `RouteConfigRow.semanticsKey`) + widget test assertando que o onTap dispara (lição Maestro/ListTile). Spec da sprint §Accessibility nomeia "Á6 Concluído" — coberto. |
+| H20 | `app.dart` fora do allowlist de workflows (incidente MS5) | Qualquer dispatch de Workflow da MS-A6 lista `app.dart`, `route_shell_page.dart`, `add_stop_page.dart` + arquivos de registro no `filesToTouch`. |
+| H21 | `SegmentedButton` 3.44 (SDK local verificado) | `selected: Set<T>` single-select default; **`showSelectedIcon: false`** (Spoke não mostra check nos segments — §10.6 bounds). |
