@@ -10,6 +10,7 @@ import '../../state/routes_provider.dart';
 import '../../state/address_instructions_controller.dart';
 import '../widgets/access_instructions_sheet.dart';
 import '../widgets/color_picker_sheet.dart';
+import '../widgets/package_count_row.dart';
 import '../widgets/stop_notes_section.dart';
 
 /// Página full-screen de edição de parada (MS-A6 T8, D1).
@@ -154,12 +155,13 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                     value: 'Não definido',
                     onTap: () => _stub('Localizador de pacotes'),
                   ),
-                  _EditStopRow(
-                    semanticsId: 'edit_stop_packages',
-                    icon: LucideIcons.package,
-                    label: 'Pacotes',
-                    value: '${stop.packagesCount}',
-                    onTap: () => _stub('Pacotes'),
+                  PackageCountRow(
+                    count: stop.packagesCount,
+                    onChanged: (v) =>
+                        ref.read(routesProvider.notifier).updateStop(
+                              widget.routeId,
+                              stop.copyWith(packagesCount: v),
+                            ),
                   ),
                   _EditStopRow(
                     semanticsId: 'edit_stop_order',

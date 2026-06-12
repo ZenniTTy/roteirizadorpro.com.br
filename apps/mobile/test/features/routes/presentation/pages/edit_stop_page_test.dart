@@ -18,6 +18,7 @@ import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_page.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/access_instructions_sheet.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/package_count_row.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/stop_notes_section.dart';
 import 'package:roteirizador_pro/features/routes/state/address_instructions_controller.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
@@ -613,7 +614,11 @@ void main() {
       expect(find.byType(SnackBar), findsOneWidget);
     });
 
-    testWidgets('toque em "Pacotes" exibe SnackBar (stub)', (tester) async {
+    // Teste 'Pacotes exibe SnackBar (stub)' AMENDADO para o contrato T13:
+    // a página renderiza PackageCountRow no lugar da _EditStopRow genérica.
+    testWidgets(
+        '11 (T13) — página renderiza PackageCountRow para "Pacotes" '
+        'e NÃO exibe SnackBar ao tocar "+"', (tester) async {
       _useTallFrame(tester);
       await tester.pumpWidget(
         _buildApp(
@@ -623,13 +628,24 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final row = find.text('Pacotes');
-      await _scrollUntilVisible(tester, row);
+      // PackageCountRow deve estar na árvore.
+      expect(
+        find.byType(PackageCountRow),
+        findsOneWidget,
+        reason: 'EditStopPage deve usar PackageCountRow, não _EditStopRow stub',
+      );
 
-      await tester.tap(row);
+      // Tap no botão "+" NÃO deve exibir SnackBar de stub.
+      final plusBtn = find.bySemanticsIdentifier('edit_stop_packages_plus');
+      await _scrollUntilVisible(tester, plusBtn);
+      await tester.tap(plusBtn);
       await tester.pump();
 
-      expect(find.byType(SnackBar), findsOneWidget);
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: '"+" não deve mostrar SnackBar — é ação live do stepper',
+      );
     });
   });
 
@@ -1147,6 +1163,142 @@ void main() {
       // Repositório deve ter o sticky removido.
       final sticky = await repo.instructionFor(_stop1.fullAddress);
       expect(sticky, isNull);
+    });
+  });
+
+  // ── 12–13. Integração PackageCountRow na página (F3, F8) ──────────────────
+
+  group('12 — Integração live stepper (F3)', () {
+    testWidgets(
+        'tap "+" 2× → provider: stop.packagesCount == 3 (seed 1); '
+        'tap "−" 1× → 2', (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // packagesCount == 1
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final plusBtn = find.bySemanticsIdentifier('edit_stop_packages_plus');
+      await _scrollUntilVisible(tester, plusBtn);
+
+      // Tap "+" 2×
+      await tester.tap(plusBtn);
+      await tester.pump();
+      await tester.tap(plusBtn);
+      await tester.pump();
+
+      var routes = container.read(routesProvider);
+      var stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.packagesCount,
+        3,
+        reason: 'seed 1 + 2 taps "+" = 3',
+      );
+
+      // Tap "−" 1×
+      final minusBtn = find.bySemanticsIdentifier('edit_stop_packages_minus');
+      await tester.tap(minusBtn);
+      await tester.pump();
+
+      routes = container.read(routesProvider);
+      stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.packagesCount,
+        2,
+        reason: '3 - 1 tap "−" = 2',
+      );
+    });
+  });
+
+  group('13 — Integração dialog (F8): digitar no dialog → provider', () {
+    testWidgets(
+        'tap no número → dialog; digitar "15" + barrier dismiss → '
+        'provider: stop.packagesCount == 15', (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final valueBtn = find.bySemanticsIdentifier('edit_stop_packages_value');
+      await _scrollUntilVisible(tester, valueBtn);
+
+      await tester.tap(valueBtn);
+      await tester.pumpAndSettle();
+
+      // Dialog aberto — digita '15'. Escopa ao Dialog: a página também tem um
+      // TextField (notas da StopNotesSection) e find.byType acharia os dois.
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(Dialog),
+          matching: find.byType(TextField),
+        ),
+        '15',
+      );
+      await tester.pump();
+
+      // Dismiss via barrier
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.packagesCount,
+        15,
+        reason: 'commit-on-dismiss do dialog deve aplicar 15 no provider',
+      );
     });
   });
 }
