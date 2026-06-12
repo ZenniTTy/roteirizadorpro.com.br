@@ -15,6 +15,7 @@ import 'features/routes/presentation/wizard_route_page.dart';
 import 'features/routes/presentation/reuse_stops_page.dart';
 import 'features/routes/presentation/pages/add_stop_page.dart';
 import 'features/routes/presentation/pages/add_stop_map_page.dart';
+import 'features/routes/presentation/pages/edit_stop_page.dart';
 
 class RoteirizadorProApp extends ConsumerWidget {
   const RoteirizadorProApp({super.key});
@@ -77,6 +78,18 @@ final _routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, __) => const AddStopMapPage(),
               ),
             ],
+          ),
+          GoRoute(
+            // Full-screen "Editar parada" (MS-A6, D1) — opened from the
+            // active-route sheet's stop cards, from the post-add toast "Ver"
+            // and after Duplicar. `?new=1` shows the "Adicionada" badge
+            // (F4/F5). Edits apply live per field (F3).
+            path: 'routes/active/:routeId/stops/:stopId/edit',
+            builder: (_, state) => EditStopPage(
+              routeId: state.pathParameters['routeId']!,
+              stopId: state.pathParameters['stopId']!,
+              showAddedBadge: state.uri.queryParameters['new'] == '1',
+            ),
           ),
           GoRoute(
             // Full-screen "Detalhes da rota" — opened from active-route

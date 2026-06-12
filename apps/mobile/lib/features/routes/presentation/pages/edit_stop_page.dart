@@ -1,0 +1,515 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../../../core/theme/app_theme.dart';
+import '../../domain/stop.dart';
+import '../../domain/stop_order_policy.dart';
+import '../../state/routes_provider.dart';
+
+/// Página full-screen de edição de parada (MS-A6 T8, D1).
+///
+/// Rota: `/home/routes/active/:routeId/stops/:stopId/edit`
+/// Query param: `?new=1` → [showAddedBadge] = true (via toast-"Ver" /
+/// Duplicar, F4/F5).
+///
+/// Edits são aplicados LIVE por campo (F3 — cada sub-surface commit-on-dismiss
+/// chama `updateStop`); o botão "Concluído" apenas fecha a página.
+/// As rows abaixo nascem com stub-SnackBar POR ROW e são substituídas pelas
+/// sub-surfaces reais nas tasks T10–T16 (nunca `onTap: () {}` silencioso).
+class EditStopPage extends ConsumerStatefulWidget {
+  const EditStopPage({
+    super.key,
+    required this.routeId,
+    required this.stopId,
+    this.showAddedBadge = false,
+  });
+
+  final String routeId;
+  final String stopId;
+
+  /// Exibe o badge "Adicionada" quando `true`.
+  final bool showAddedBadge;
+
+  @override
+  ConsumerState<EditStopPage> createState() => _EditStopPageState();
+}
+
+class _EditStopPageState extends ConsumerState<EditStopPage> {
+  // H12: garante UM único pop agendado quando o stopId não resolve
+  // (removida na janela do toast "Ver", deep-link stale, restore).
+  bool _popScheduled = false;
+
+  void _stub(String feature) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$feature em breve')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Observa a parada por id — mutações externas (updateStop/removeStop)
+    // re-renderizam a página (F3: as sub-surfaces escrevem no provider e a
+    // página reflete).
+    final stop = ref.watch(
+      routesProvider.select(
+        (routes) => routes
+            .where((r) => r.id == widget.routeId)
+            .firstOrNull
+            ?.stops
+            .where((s) => s.id == widget.stopId)
+            .firstOrNull,
+      ),
+    );
+
+    if (stop == null) {
+      if (!_popScheduled) {
+        _popScheduled = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && context.canPop()) context.pop();
+        });
+      }
+      return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox());
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(context),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                children: [
+                  _buildChipsRow(stop),
+                  const SizedBox(height: 12),
+                  _buildAddressCard(stop),
+                  const SizedBox(height: 8),
+                  _buildAccessInstructionsButton(stop),
+                  const SizedBox(height: 16),
+                  _buildNotesSection(stop),
+                  const SizedBox(height: 16),
+                  _EditStopRow(
+                    semanticsId: 'edit_stop_finder',
+                    icon: LucideIcons.packageSearch,
+                    label: 'Localizador de pacotes',
+                    value: 'Não definido',
+                    onTap: () => _stub('Localizador de pacotes'),
+                  ),
+                  _EditStopRow(
+                    semanticsId: 'edit_stop_packages',
+                    icon: LucideIcons.package,
+                    label: 'Pacotes',
+                    value: '${stop.packagesCount}',
+                    onTap: () => _stub('Pacotes'),
+                  ),
+                  _EditStopRow(
+                    semanticsId: 'edit_stop_order',
+                    icon: LucideIcons.listOrdered,
+                    label: 'Ordem',
+                    value: switch (stop.orderPolicy) {
+                      StopOrderPolicy.first => 'Primeira',
+                      StopOrderPolicy.auto => 'Automática',
+                      StopOrderPolicy.last => 'Última',
+                    },
+                    onTap: () => _stub('Ordem'),
+                  ),
+                  _EditStopRow(
+                    semanticsId: 'edit_stop_type',
+                    icon: LucideIcons.tag,
+                    label: 'Tipo',
+                    value: switch (stop.type) {
+                      StopType.delivery => 'Entrega',
+                      StopType.pickup => 'Coleta',
+                    },
+                    onTap: () => _stub('Tipo'),
+                  ),
+                  _EditStopRow(
+                    semanticsId: 'edit_stop_window',
+                    icon: LucideIcons.clock,
+                    label: 'Horário de chegada',
+                    value: 'Qualquer momento',
+                    onTap: () => _stub('Horário de chegada'),
+                  ),
+                  _EditStopRow(
+                    semanticsId: 'edit_stop_duration',
+                    icon: LucideIcons.timer,
+                    label: 'Tempo na parada',
+                    value: 'Padrão',
+                    onTap: () => _stub('Tempo na parada'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1, color: AppColors.border),
+                  const SizedBox(height: 8),
+                  _ActionRow(
+                    semanticsId: 'edit_stop_change_address',
+                    icon: LucideIcons.mapPin,
+                    label: 'Mudar endereço',
+                    onTap: () => _stub('Mudar endereço'),
+                  ),
+                  _ActionRow(
+                    semanticsId: 'edit_stop_duplicate',
+                    icon: LucideIcons.copy,
+                    label: 'Duplicar parada',
+                    onTap: () => _stub('Duplicar parada'),
+                  ),
+                  _ActionRow(
+                    semanticsId: 'edit_stop_remove',
+                    icon: LucideIcons.trash2,
+                    label: 'Remover parada',
+                    color: AppColors.error,
+                    onTap: () => _stub('Remover parada'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Header custom (sem AppBar — idiom Á5): Ajuda à esquerda (stub D7),
+  /// título central (+ badge "Adicionada" quando `?new=1`), "Concluído" à
+  /// direita — que APENAS fecha (F3).
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 4, 8, 4),
+      child: Row(
+        children: [
+          Semantics(
+            identifier: 'edit_stop_help',
+            button: true,
+            child: IconButton(
+              icon: const Icon(
+                LucideIcons.circleHelp,
+                color: AppColors.textMuted,
+                size: 22,
+              ),
+              onPressed: () => _stub('Ajuda'),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Flexible(
+                  child: Text(
+                    'Editar parada',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.text,
+                    ),
+                  ),
+                ),
+                if (widget.showAddedBadge) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.successBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'Adicionada',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.success,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Semantics(
+            identifier: 'edit_stop_done',
+            button: true,
+            child: TextButton(
+              onPressed: () => context.pop(),
+              child: const Text(
+                'Concluído',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Chips de cor (T10) e ID (D7 — tela "Formato do ID" pertence à Á10).
+  Widget _buildChipsRow(Stop stop) {
+    return Row(
+      children: [
+        Semantics(
+          identifier: 'edit_stop_color_chip',
+          button: true,
+          child: InkWell(
+            onTap: () => _stub('Cor'),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    LucideIcons.palette,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Cor',
+                    style: TextStyle(fontSize: 13, color: AppColors.text),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Semantics(
+          identifier: 'edit_stop_id_chip',
+          button: true,
+          child: InkWell(
+            onTap: () => _stub('ID de parada'),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border.all(color: AppColors.border),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                stop.deliveryId ?? 'Pendente',
+                style: const TextStyle(fontSize: 13, color: AppColors.text),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Card endereço read-only: rua (h6) + endereço completo (muted).
+  Widget _buildAddressCard(Stop stop) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            stop.streetName,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.text,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            stop.fullAddress,
+            style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccessInstructionsButton(Stop stop) {
+    return Semantics(
+      identifier: 'edit_stop_access_instructions',
+      button: true,
+      child: InkWell(
+        onTap: () => _stub('Instruções de acesso'),
+        borderRadius: BorderRadius.circular(10),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                LucideIcons.pencil,
+                size: 16,
+                color: AppColors.primary,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Instruções de acesso',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Notas + câmera — placeholder em T8; TextField + foto reais na T11.
+  Widget _buildNotesSection(Stop stop) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              stop.notes ?? 'Adicionar notas',
+              style: TextStyle(
+                fontSize: 14,
+                color:
+                    stop.notes == null ? AppColors.textMuted : AppColors.text,
+              ),
+            ),
+          ),
+          Semantics(
+            identifier: 'edit_stop_camera',
+            button: true,
+            child: IconButton(
+              icon: const Icon(
+                LucideIcons.camera,
+                size: 20,
+                color: AppColors.primary,
+              ),
+              onPressed: () => _stub('Foto do pacote'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Row padrão do editor: ícone + label + valor atual (muted) + chevron.
+class _EditStopRow extends StatelessWidget {
+  const _EditStopRow({
+    required this.semanticsId,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  final String semanticsId;
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: semanticsId,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 13),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppColors.textMuted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(fontSize: 15, color: AppColors.text),
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: AppColors.textMuted,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Row de ação do rodapé (Mudar endereço / Duplicar / Remover).
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.semanticsId,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
+
+  final String semanticsId;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final effective = color ?? AppColors.text;
+    return Semantics(
+      identifier: semanticsId,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 13),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: effective),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: effective,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
