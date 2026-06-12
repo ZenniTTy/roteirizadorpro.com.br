@@ -12,7 +12,10 @@ import 'package:roteirizador_pro/features/routes/domain/place_autocomplete_predi
 import 'package:roteirizador_pro/features/routes/domain/place_details.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/add_stop_page.dart';
+import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
+import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/add_stop_ui_state_provider.dart';
+import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 /// Manual fake for [PlacesRepository] used by the Partida sub-picker pop
 /// test — `mocktail ^1.0.5` is the project default for mocks but a manual
@@ -263,21 +266,220 @@ void main() {
     expect(find.text('Adicionar nova parada'), findsOneWidget);
   });
 
-  testWidgets('Section A tap shows SnackBar "Editar parada em breve"',
-      (tester) async {
-    final stop =
-        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+  // AMENDED (MS-A6/H11 / F5): Section A tap ALREADY pops with an editStopId
+  // record — the old SnackBar 'Editar parada em breve' was the pre-A6 stub.
+  // This test is replaced by the pop-with-intent test below; the SnackBar
+  // assertion is intentionally removed. The new behaviour must NOT show the
+  // old stub message.
+  testWidgets(
+      'Section A tap does NOT show SnackBar "Editar parada em breve" '
+      '(stub replaced by pop-with-intent — MS-A6/H11)', (tester) async {
+    final stop = Stop(
+      id: 's1',
+      lat: 0,
+      lng: 0,
+      streetName: 'Av Paulista, 500',
+      fullAddress: 'x',
+    );
+    // Mount with a parent route — in production AddStopPage is ALWAYS
+    // pushed, so _onSectionATap's pop needs a frame to return to.
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => ctx.push('/picker'),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(path: '/picker', builder: (_, __) => const AddStopPage()),
+      ],
+    );
     await tester.pumpWidget(
-      _wrap(
-        state: WithResults(matchesInRoute: [stop], newCandidates: const []),
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
+            (ref) =>
+                WithResults(matchesInRoute: [stop], newCandidates: const []),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Av Paulista, 500'));
     await tester.pump();
 
-    expect(find.text('Editar parada em breve'), findsOneWidget);
+    // The stub SnackBar must no longer appear after the A6 implementation.
+    expect(find.text('Editar parada em breve'), findsNothing);
+  });
+
+  // NEW — MS-A6/H11 / F5: Section A tap pops with ({String editStopId})
+  testWidgets(
+      'MS-A6/H11: Section A tap pops with ({String editStopId: stopId}) '
+      'record — no SnackBar, no push', (tester) async {
+    // Wire a router so pop() has a parent frame to return to.
+    Object? poppedResult;
+    bool popReturned = false;
+
+    final stop = Stop(
+      id: 's1',
+      lat: 0,
+      lng: 0,
+      streetName: 'Av Paulista, 500',
+      fullAddress: 'x',
+    );
+
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () async {
+                  poppedResult = await ctx.push<Object?>('/picker');
+                  popReturned = true;
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/picker',
+          builder: (_, __) => const AddStopPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
+            (ref) =>
+                WithResults(matchesInRoute: [stop], newCandidates: const []),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Av Paulista, 500'), findsOneWidget);
+    await tester.tap(find.text('Av Paulista, 500'));
+    await tester.pumpAndSettle();
+
+    expect(popReturned, isTrue);
+    // The result must be the anonymous record type ({String editStopId}).
+    expect(poppedResult, isNotNull);
+    // ignore_for_file does NOT apply here; we assert the type structurally.
+    final r = poppedResult;
+    expect(r, isA<({String editStopId})>());
+    expect((r as ({String editStopId})).editStopId, 's1');
+    // No stub SnackBar must appear.
+    expect(find.text('Editar parada em breve'), findsNothing);
+  });
+
+  // NEW — MS-A6/F4: Section B tap in addStop mode pops with the new stop's id
+  testWidgets(
+      'MS-A6/F4: Section B tap (addStop mode) pops with the new stop id '
+      '(String) — caller gets the id to open editor with ?new=1',
+      (tester) async {
+    Object? poppedResult;
+    bool popReturned = false;
+
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+
+    final fakeRepo = _FakePlacesRepository(
+      details: const PlaceDetails(
+        lat: -23.561,
+        lng: -46.656,
+        shortFormattedAddress: 'Av Paulista, 1000',
+        formattedAddress: 'Av Paulista, 1000 - Bela Vista, São Paulo - SP',
+      ),
+    );
+
+    // The test route needs an active route so _addStopFromPrediction can
+    // append a stop. We seed routeId 'r1' as active.
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () async {
+                  poppedResult = await ctx.push<Object?>('/picker');
+                  popReturned = true;
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/picker',
+          builder: (_, __) => const AddStopPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
+            (ref) => const WithResults(
+              matchesInRoute: [],
+              newCandidates: [pred],
+            ),
+          ),
+          placesRepositoryProvider.overrideWith((ref) => fakeRepo),
+          activeRouteIdProvider
+              .overrideWith(() => _SeededActiveRouteIdForAddStop('r1')),
+          routesProvider.overrideWith(
+            () => _MutableFakeRoutesForAddStop([
+              _routeR1WithNoStops(),
+            ]),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Av Paulista, 1000'), findsOneWidget);
+    await tester.tap(find.text('Av Paulista, 1000'));
+    await tester.pumpAndSettle();
+
+    expect(popReturned, isTrue);
+    expect(poppedResult, isNotNull);
+    // The result must be a String (the new stop's id).
+    expect(poppedResult, isA<String>());
+    final returnedId = poppedResult as String;
+    // The id must be non-empty (a UUID was generated by the Stop constructor).
+    expect(returnedId, isNotEmpty);
   });
 
   testWidgets('Footer tap navigates to /home/routes/add-stop/map',
@@ -609,3 +811,31 @@ void main() {
     expect(find.text('Voz'), findsOneWidget);
   });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers for MS-A6/F4 Section B pop-with-id test
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Minimal [ActiveRouteId] override that always returns a fixed seed.
+/// Mirrors the pattern already used in route_shell_page_test.dart.
+class _SeededActiveRouteIdForAddStop extends ActiveRouteId {
+  _SeededActiveRouteIdForAddStop(this._seed);
+  final String _seed;
+  @override
+  String? build() => _seed;
+}
+
+/// Mutable [Routes] notifier seeded with an initial list.
+/// Mirrors [_MutableFakeRoutes] in route_shell_page_test.dart.
+class _MutableFakeRoutesForAddStop extends Routes {
+  _MutableFakeRoutesForAddStop(this._seed);
+  final List<domain.Route> _seed;
+  @override
+  List<domain.Route> build() => _seed;
+}
+
+domain.Route _routeR1WithNoStops() => domain.Route(
+      id: 'r1',
+      date: DateTime(2026, 5, 27),
+      status: domain.RouteStatus.draft,
+    );

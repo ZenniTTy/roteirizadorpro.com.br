@@ -96,12 +96,10 @@ class AddStopPage extends ConsumerWidget {
   }
 
   void _onSectionATap(BuildContext context, Stop stop) {
-    // Section A is only rendered in add-stop mode (Partida picker omits the
-    // existing-stops list). Area 6 will replace this with a push to the
-    // edit-stop sheet.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Editar parada em breve')),
-    );
+    // Section A é uma parada EXISTENTE: popa com o intent record e o caller
+    // (RouteShellPage, context vivo) pusha o editor — evita empilhar o
+    // editor sobre o add-stop (H11; padrão sheet-returns-intent).
+    context.pop<Object?>((editStopId: stop.id));
   }
 
   Future<void> _onSectionBTap(
@@ -153,7 +151,9 @@ class AddStopPage extends ConsumerWidget {
       ref.read(routesProvider.notifier).addStop(activeRouteId, newStop);
       if (context.mounted) {
         messenger.hideCurrentSnackBar();
-        context.pop();
+        // Popa com o id do stop novo: o shell (caller) mostra o toast
+        // "Parada adicionada" + action "Ver" (F4/H9).
+        context.pop<Object?>(newStop.id);
       }
     } catch (e) {
       if (context.mounted) {

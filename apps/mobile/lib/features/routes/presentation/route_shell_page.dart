@@ -241,6 +241,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
               configSummary: configSummary,
               stops: stops,
               routeDisplayName: routeDisplayName,
+              onAddStopTap: _openAddStop,
               onRouteNameTap: activeRouteId == null
                   ? null
                   : () => context.push('/home/routes/$activeRouteId/edit'),
@@ -338,6 +339,49 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
   }
 
+  /// Abre o add-stop e trata o resultado do pop (H9 — o SHELL é o dono do
+  /// toast: o context daqui está vivo após o pop do add-stop):
+  ///   - `String id` → stop NOVO: SnackBar "Parada adicionada" + action
+  ///     "Ver" (hide + push do editor com `?new=1`, F4);
+  ///   - `({String editStopId})` → parada EXISTENTE (Section A): push
+  ///     direto do editor, sem toast e sem badge (H11);
+  ///   - null → cancelado/back: nada.
+  Future<void> _openAddStop() async {
+    final result = await context.push<Object?>('/home/routes/add-stop');
+    if (!mounted) return;
+    final activeRouteId = ref.read(activeRouteIdProvider);
+    if (activeRouteId == null) return;
+
+    switch (result) {
+      case final String newStopId:
+        final messenger = ScaffoldMessenger.of(context);
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Parada adicionada'),
+              action: SnackBarAction(
+                label: 'Ver',
+                onPressed: () {
+                  messenger.hideCurrentSnackBar();
+                  if (!mounted) return;
+                  context.push(
+                    '/home/routes/active/$activeRouteId'
+                    '/stops/$newStopId/edit?new=1',
+                  );
+                },
+              ),
+            ),
+          );
+      case (editStopId: final String stopId):
+        context.push(
+          '/home/routes/active/$activeRouteId/stops/$stopId/edit',
+        );
+      default:
+        break;
+    }
+  }
+
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
   ///   - Flick pra cima (velocity < -kFlick) → próximo snap MAIOR.
   ///   - Flick pra baixo (velocity > kFlick) → próximo snap MENOR.
@@ -426,6 +470,7 @@ class _ActiveRouteSheet extends StatelessWidget {
     required this.configSummary,
     required this.stops,
     required this.routeDisplayName,
+    required this.onAddStopTap,
     required this.onRouteNameTap,
     required this.onStopTap,
     required this.onHandleDragStart,
@@ -451,6 +496,10 @@ class _ActiveRouteSheet extends StatelessWidget {
 
   /// Nome de display da rota ativa (header da lista, H8). Null sem rota.
   final String? routeDisplayName;
+
+  /// Abre o add-stop com await-push e trata o resultado (toast "Ver" /
+  /// push direto do editor — H9/H11). Dono: `_RouteShellPageState`.
+  final Future<void> Function() onAddStopTap;
 
   /// Tap no nome da rota → wizard de edição (H8). Null sem rota ativa.
   final VoidCallback? onRouteNameTap;
@@ -574,7 +623,7 @@ class _ActiveRouteSheet extends StatelessWidget {
                       _SheetPrimaryButton(
                         icon: LucideIcons.plus,
                         label: 'Adicionar parada',
-                        onTap: () => context.push('/home/routes/add-stop'),
+                        onTap: onAddStopTap,
                       ),
                       const SizedBox(height: 10),
                       _SheetOutlinedButton(
@@ -732,7 +781,7 @@ class _ActiveRouteSheet extends StatelessWidget {
         children: [
           Expanded(
             child: InkWell(
-              onTap: () => context.push('/home/routes/add-stop'),
+              onTap: onAddStopTap,
               borderRadius: BorderRadius.circular(30),
               child: Container(
                 height: 48,

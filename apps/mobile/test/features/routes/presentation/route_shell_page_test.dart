@@ -1052,6 +1052,9 @@ void main() {
           '(got ratio ${afterRatio.toStringAsFixed(3)}).',
     );
   });
+
+  // MS-A6 Task 9 — H9/F4/H11 entrypoint tests (search pill + big button).
+  _registerH9Tests();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1148,3 +1151,276 @@ Position _fakePosition(double lat, double lng) => Position(
       speed: 0,
       speedAccuracy: 0,
     );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MS-A6 H9/F4/H11 — Search-pill and big-button entrypoints (Task 9).
+//
+// The shell's two "add-stop" call-sites (search pill + big button) both do
+// `context.push('/home/routes/add-stop')`.  After the A6 implementation:
+//   - A pop with a String id  → SnackBar 'Parada adicionada' + action 'Ver'
+//                               → tapping 'Ver' pushes the edit screen with ?new=1
+//   - A pop with ({editStopId}) → navigate DIRECTLY to the edit screen (no SnackBar)
+//   - A pop with null or other → no navigation (unchanged from current behaviour)
+//
+// To test these without AddStopPage's real logic, we register a fake page on
+// the `routes/add-stop` path that exposes two buttons:
+//   TextButton('POP_COM_ID')     → context.pop('s-novo')
+//   TextButton('POP_COM_INTENT') → context.pop((editStopId: 's1'))
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Builds a GoRouter identical to [_wrapRouted]'s router but with two extras:
+///  1. `routes/add-stop` path → [_FakeAddStopPage] (pop-with-id / pop-with-intent).
+///  2. `routes/active/:routeId/stops/:stopId/edit` echoes BOTH the stopId AND
+///     the `?new` query parameter so tests can verify F4's `new=1` badge contract.
+GoRouter _buildH9SentinelRouter() => GoRouter(
+      initialLocation: '/home',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (_, __) => const RouteShellPage(),
+          routes: [
+            GoRoute(
+              path: 'routes/active/:routeId/details',
+              builder: (_, __) =>
+                  const Scaffold(body: Text('SENTINEL_DETALHES_DA_ROTA')),
+            ),
+            GoRoute(
+              path: 'routes/reuse-stops',
+              builder: (_, __) =>
+                  const Scaffold(body: Text('SENTINEL_REUTILIZAR_PARADAS')),
+            ),
+            GoRoute(
+              path: 'routes/:routeId/edit',
+              builder: (context, state) => Scaffold(
+                body: Text(
+                  'SENTINEL_EDIT_ROUTE_${state.pathParameters['routeId']}',
+                ),
+              ),
+            ),
+            // MS-A6 H9/F4/H11 — fake add-stop page.
+            GoRoute(
+              path: 'routes/add-stop',
+              builder: (_, __) => const _FakeAddStopPage(),
+            ),
+            // MS-A6 H9/F4: sentinel echoes stopId + ?new query param.
+            GoRoute(
+              path: 'routes/active/:routeId/stops/:stopId/edit',
+              builder: (context, state) => Scaffold(
+                body: Text(
+                  'SENTINEL_EDIT_STOP_'
+                  '${state.pathParameters['stopId']}'
+                  '_new=${state.uri.queryParameters['new'] ?? '0'}',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+
+/// Fake page that sits at `routes/add-stop` in [_buildH9SentinelRouter].
+/// Two buttons allow the test to control what the page pops back:
+///   POP_COM_ID     → context.pop('s-novo')          (new stop created)
+///   POP_COM_INTENT → context.pop((editStopId: 's1')) (existing stop match)
+class _FakeAddStopPage extends StatelessWidget {
+  const _FakeAddStopPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          TextButton(
+            onPressed: () => context.pop<Object?>('s-novo'),
+            child: const Text('POP_COM_ID'),
+          ),
+          TextButton(
+            onPressed: () => context.pop<Object?>((editStopId: 's1')),
+            child: const Text('POP_COM_INTENT'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Convenience wrapper for the H9 entrypoint tests: seeds a route with
+/// the given [stops] list and mounts the shell inside [_buildH9SentinelRouter].
+Widget _wrapRoutedH9({
+  String routeId = 'r1',
+  List<domain.Stop> stops = const [],
+}) {
+  final router = _buildH9SentinelRouter();
+  return ProviderScope(
+    overrides: [
+      currentUserProvider.overrideWithValue(kUserWithoutSub),
+      routesProvider.overrideWithValue([
+        domain.Route(
+          id: routeId,
+          date: DateTime(2026, 5, 27),
+          status: domain.RouteStatus.draft,
+          stops: stops,
+        ),
+      ]),
+      activeRouteIdProvider.overrideWith(() => _SeededActiveRouteId(routeId)),
+    ],
+    child: MaterialApp.router(
+      theme: AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+      routerConfig: router,
+    ),
+  );
+}
+
+// ── H9/F4/H11 tests (Task 9) ────────────────────────────────────────────────
+
+// These tests live OUTSIDE `main()` intentionally — they share the H9 helpers
+// declared above and are grouped by a `group()` call injected into the test
+// runner via a separate test file extension. Per project pattern, widget tests
+// may be split across multiple top-level `testWidgets` calls; the runner picks
+// them all up as long as they are inside a `main()`.  We therefore declare a
+// second `main`-equivalent via a `void _h9Tests() {...}` called from the
+// primary main() … but that complicates the existing file. Instead, add these
+// directly inside the existing main() by editing above.
+//
+// Rather than edit inside main(), we APPEND a second `void main()` extension.
+// Dart test runner supports multiple `main()` declarations inside a single test
+// file via the `package:test` `group` + `test` calling conventions — however,
+// having two `main()` functions in the same file is not valid Dart.
+//
+// Correct approach: declare a helper function and call it from `main()`.
+// We cannot edit inside main() without re-reading the whole file; therefore
+// we declare the tests here as free functions and reference them from main()
+// by appending a call at the END of the existing main block. We do that via
+// the Edit tool targeting the closing brace of main().
+
+// Defined as top-level functions to be called from main().  Each becomes a
+// testWidgets() call.
+void _registerH9Tests() {
+  // ── H9 Test 1: search pill → POP_COM_ID → SnackBar 'Parada adicionada' with 'Ver' ──
+
+  testWidgets(
+      'MS-A6/H9-1: search-pill tap → fake page → POP_COM_ID → '
+      'SnackBar "Parada adicionada" visible with action "Ver"', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapRoutedH9());
+    await tester.pumpAndSettle();
+
+    // Tap the search pill to push the fake add-stop page.
+    await tester.tap(find.text('Adicionar parada...'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('POP_COM_ID'), findsOneWidget);
+
+    // Pop with a new-stop id.
+    await tester.tap(find.text('POP_COM_ID'));
+    await tester.pumpAndSettle();
+
+    // Shell must show 'Parada adicionada' SnackBar.
+    expect(find.text('Parada adicionada'), findsOneWidget);
+    // SnackBarAction 'Ver' must be present (note: SnackBarAction does not
+    // accept Semantics — interact via find.text per project lesson H9).
+    expect(find.text('Ver'), findsOneWidget);
+  });
+
+  // ── H9 Test 2: tap 'Ver' → navigate to editor with ?new=1 ─────────────────
+
+  testWidgets(
+      'MS-A6/H9-2: tapping "Ver" in the SnackBar navigates to the '
+      'edit-stop sentinel with stopId "s-novo" and ?new=1', (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapRoutedH9());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Adicionar parada...'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('POP_COM_ID'));
+    await tester.pumpAndSettle();
+
+    // Tap the 'Ver' action.
+    await tester.tap(find.text('Ver'));
+    await tester.pumpAndSettle();
+
+    // The editor sentinel must show the stop id AND new=1.
+    expect(
+      find.text('SENTINEL_EDIT_STOP_s-novo_new=1'),
+      findsOneWidget,
+      reason:
+          'Tapping "Ver" must push the editor for the new stop with ?new=1.',
+    );
+  });
+
+  // ── H9 Test 3: POP_COM_INTENT → direct editor navigation, no SnackBar ─────
+
+  testWidgets(
+      'MS-A6/H9-3: search-pill tap → POP_COM_INTENT → editor opens '
+      'directly for existing stop (no "Parada adicionada" SnackBar)',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Seed 1 stop so the sheet is expanded (H6 auto-expand) and the search
+    // pill is reachable.
+    await tester.pumpWidget(_wrapRoutedH9(stops: [_stop1]));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Adicionar parada...'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('POP_COM_INTENT'));
+    await tester.pumpAndSettle();
+
+    // Must navigate directly to the editor for 's1' with new=0.
+    expect(
+      find.text('SENTINEL_EDIT_STOP_s1_new=0'),
+      findsOneWidget,
+      reason: 'pop-with-intent must push the editor for the existing stop s1 '
+          'WITHOUT the new=1 badge.',
+    );
+    // No 'Parada adicionada' SnackBar for an existing-stop intent.
+    expect(find.text('Parada adicionada'), findsNothing);
+    // AddStopPage must NOT remain on the navigation stack: a back-press
+    // from the editor returns to the shell, not to the fake add-stop page.
+    // We verify by checking the fake page is gone.
+    expect(find.text('POP_COM_INTENT'), findsNothing);
+  });
+
+  // ── H9 Test 4: big button (0 stops) → POP_COM_ID → SnackBar 'Ver' ─────────
+
+  testWidgets(
+      'MS-A6/H9-4: big button "Adicionar parada" (0-stops state) → '
+      'POP_COM_ID → SnackBar "Parada adicionada" + action "Ver"',
+      (tester) async {
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // 0 stops: big buttons are visible when sheet is expanded.
+    await tester.pumpWidget(_wrapRoutedH9());
+    await tester.pumpAndSettle();
+    await _expandSheet(tester);
+
+    final bigButton = find.text('Adicionar parada');
+    expect(bigButton, findsOneWidget);
+
+    await tester.tap(bigButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('POP_COM_ID'), findsOneWidget);
+
+    await tester.tap(find.text('POP_COM_ID'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Parada adicionada'), findsOneWidget);
+    expect(find.text('Ver'), findsOneWidget);
+  });
+}
