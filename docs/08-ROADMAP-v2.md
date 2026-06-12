@@ -277,7 +277,7 @@ Subapp Next.js em `apps/admin/` (ou expansão de `apps/landing/`). Auth separada
 
 ## Validação contínua (subagents + gates)
 
-- **`spoke-parity-checker`** ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md)) — dispatch UPFRONT (baseline estrutural com tabela `bounds|desc|padrão|widget`, exigir screenshot pixels pra ícones Compose) + D4 closing. **NÃO** pra Áreas 1 e 11 (sem baseline Spoke).
+- **`spoke-parity-checker`** ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md), dump-first per ADR-0045/0049) — dispatch UPFRONT = **confirmar a baseline do dump** (MASTER-TABLE+amendments + jadx; runtime só o `Precisa-runtime`; screenshot pixels pra ícones Compose quando runtime rodar) + D4 closing = **dump-only por default** (runtime só os cliques listados; o `/verify-slice` dispatcha o D4 automaticamente desde 2026-06-11). **NÃO** pra Áreas 1 e 11 (sem baseline Spoke).
 - **`flutter-test-author`** ([ADR-0025](./decisions/0025-flutter-test-author-subagent.md)) — antes de widget/provider/service novo (TDD opcional).
 - **`flutter-perf-auditor`** — após terminar tela, antes do PR (9-check read-only).
 - **`adr-guardian`** — antes de PR que toca stack (pubspec/package.json/schema).

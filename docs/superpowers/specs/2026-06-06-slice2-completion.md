@@ -34,7 +34,7 @@ Two consecutive microsprints (MS4 numpad, MS5 Destino) shipped wrong widget shap
 |---|---|---|---|
 | Q1 | Scope of "finish Slice 2" | **All remaining areas: finish Área 3 triggers + Área 5 MS6–MS9, then Áreas 6,7,8,9,10,11 + Área 1 auth-UI.** No depth-cutting to fit a single day. | Eduardo: "cobre tudo do Slice 2 completamente." Executed across sessions, one area per MS. |
 | Q2 | Execution order | **Forced by dependency graph (NOT free):** finish Área 5 (MS6→MS9) + Área 3 triggers → Área 6 → Área 7 → Área 8 → Área 9. Áreas 1, 10, 11 are independent (10 before 11). | The critic confirmed 6/7/8/9 each hard-depend on a prior area's trigger; treating them greenfield repeats the MS5 scope-error. |
-| Q3 | Per-area discipline | **Mandatory 5-phase pipeline per area:** (1) modern-stack research (Dart MCP→Context7→WebSearch); (2) fresh LIVE Spoke dump of ONLY that area (Maestro MCP, screenshot+XML, bounds table); (3) implement TDD; (4) harness validation gates; (5) harness-current at end. | This IS Eduardo's instruction, verbatim. The live-dump-per-area step is the direct cure for the MS4/MS5 stale-baseline failures. |
+| Q3 | Per-area discipline | **Mandatory 5-phase pipeline per area:** (1) modern-stack research (Dart MCP→Context7→WebSearch — libraries ONLY, never Spoke behavior per ADR-0048); (2) **dump-first baseline** of ONLY that area (MASTER-TABLE+amendments → jadx deep-grep → runtime confirm SÓ do `Precisa-runtime`; rewritten 2026-06-11 per ADR-0045/0048/0049 — was "fresh LIVE dump"); (3) implement TDD; (4) harness validation gates; (5) harness-current at end. | The dump-first baseline per area is the direct cure for the MS4/MS5 stale-baseline failures AND the ADR-0041..0044 inference cycle. |
 | Q4 | Areas with NO Spoke baseline | **Área 1 (auth leftovers) + Área 11 (notifications): NO `spoke-parity-checker` dispatch.** They have no Spoke equivalent — Área 1 keeps our existing screens (directive #8), Área 11 is derived from directive #9 + the Slice-3 FCM plan. Spec them as declared-inference, not parity. | Dispatching parity-checker on a non-existent baseline wastes a cycle and invites inventing "parity" (a logged anti-pattern). |
 | Q5 | `integration_test/` (absent today) | **Hard per-area gate.** The FIRST authored test is `area5_route_details_flow_test.dart` (Área 5 MS9). Every subsequent area touching navigation adds its own `integration_test` task BEFORE its green commit. | Memory `lesson_slice_checklist_integration_test_gate`; widget tests can't catch GoRouter branch-stack/Android-back. Dir is absent despite 4+ nav-touching areas. |
 | Q6 | 23 pre-existing analyze lints | **Dedicated burn-down MS before the slice PR** (read each, fix root cause, never `// ignore:`). The Slice-2 "Done" gate requires analyze clean. | The slice can't close its own gate (roadmap line) while 23 lints persist; deferring them indefinitely is the debt this sprint exists to avoid. |
@@ -76,14 +76,21 @@ Phase 1 — MODERN-STACK RESEARCH (before any code)
   Output: the current 3.44 idiom for each widget/pattern the area needs + cited source + gotcha.
   MUST catch the 3 post-cutoff breaking changes where applicable.
 
-Phase 2 — FRESH LIVE SPOKE DUMP (ONLY this area)  [SKIP for Áreas 1, 11 — no Spoke baseline]
-  Confirm M54 connected + Spoke logged in. Dispatch spoke-parity-checker UPFRONT.
-  Maestro MCP inspect_screen + take_screenshot at EVERY state of the area's screen(s).
-  Output: bounds | content-desc/text | visual pattern | SPECIFIC Flutter widget table,
-  verbatim bounds, screenshot PIXELS cited for every icon claim (XML is blind to Compose icons).
-  If live capture contradicts the roadmap/inventory STRUCTURALLY → escalate to Eduardo
+Phase 2 — DUMP-FIRST BASELINE (ONLY this area)  [SKIP for Áreas 1, 11 — no Spoke baseline]
+  [REWRITTEN 2026-06-11 per ADR-0045/0048/0049 — was "fresh live Spoke dump"; the static
+   deep-grep SUPERSEDES the live dump wherever it resolves the question (MS-A6 precedent).]
+  (a) READ docs/inventory/spoke-dump-v3.65.1/MASTER-TABLE.md rows + dated Amendments for the
+      area; (b) for behavior/gating the table doesn't carry, GREP ~/spoke-dump/jadx-out
+      (decompiled code answers click handlers, branches, defaults with file:line evidence)
+      + res-decoded strings; (c) ONLY for items still flagged Precisa-runtime, dispatch
+      spoke-parity-checker to runtime-confirm (M54 connected + Spoke logged in; Maestro MCP
+      inspect_screen + take_screenshot; screenshot PIXELS cited for every icon claim — XML is
+      blind to Compose icons). NEVER WebSearch for Spoke behavior (ADR-0048).
+  Output: facts table with evidence (file:line or bounds), e.g. a *-design.md doc.
+  If the dump/runtime contradicts the roadmap/inventory STRUCTURALLY → escalate to Eduardo
   (new ADR if it changes widget shape / nav model / state model) BEFORE implementing. This is
-  the cure for MS4/MS5. A prior /tmp capture is corroboration ONLY, never the primary truth.
+  the cure for MS4/MS5 AND the ADR-0041..0044 cycle. A prior /tmp capture is corroboration
+  ONLY, never the primary truth.
 
 Phase 3 — IMPLEMENT (TDD, Spoke-faithful, zero debt)
   flutter-test-author (optional) writes failing test first. Implement with the 3.44 idioms from
@@ -190,7 +197,7 @@ Every new screen this sprint ships must clear, before its area closes:
 | Layer | Tool | Coverage |
 |---|---|---|
 | Modern-stack | Dart MCP + Context7 | per-area idiom verification (Phase 1) |
-| Spoke parity | `spoke-parity-checker` (Maestro MCP) | upfront baseline + D4 closing (NOT Áreas 1/11) |
+| Spoke parity | `spoke-parity-checker` (dump-first; runtime só `Precisa-runtime`; D4 **dump-only** per ADR-0049, dispatched via `/verify-slice`) | upfront confirm + D4 closing (NOT Áreas 1/11) |
 | Unit/widget | `flutter test` | each new widget/provider; assert Spoke shape + behavior (tap/callback/state), never tautological |
 | Integration | `integration_test/` on M54 | every nav-touching area; Á5 5-route chain is the first |
 | Perf | `flutter-perf-auditor` | per screen before PR (9-check) |
