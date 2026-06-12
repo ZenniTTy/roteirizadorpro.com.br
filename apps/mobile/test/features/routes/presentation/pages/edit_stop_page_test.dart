@@ -2996,6 +2996,417 @@ void main() {
       expect(stop.fullAddress, 'Rua Alfa, 100 - Centro, São Paulo');
     });
   });
+
+  // ── 18. Duplicar + Remover parada (F5/F6/H11) ────────────────────────────
+  //
+  // Spec: F5 — Duplicar é imediato (sem dialog); insere a cópia logo após a
+  // original; em seguida pushReplacement para o editor da duplicata com ?new=1.
+  // F6 — Remover mostra AlertDialog de confirmação com streetName do stop no
+  // corpo; 'Cancelar' fecha sem mudar nada; 'Remover' → removeStop + pop.
+  // H11 — pushReplacement na duplicação: back da duplicata leva a SENTINEL_HOME
+  // (editor da original saiu da pilha).
+  //
+  // Setup: _stop18 com campos custom (notes/color/packagesCount) para provar
+  // que a duplicata copia esses campos; _buildRouter18 é um alias do
+  // _buildRouter padrão (rota já suporta :stopId dinâmico + ?new=1).
+  //
+  // Os 6 testes FALHAM enquanto as rows usam _stub (SnackBar) em vez das
+  // ações reais.
+
+  group('18 — Duplicar + Remover (F5/F6/H11)', () {
+    // ── 18.1  Duplicar: provider ganha 2º stop logo após a original ──────────
+
+    testWidgets(
+        '18.1 — tap edit_stop_duplicate → provider: rota tem 2 stops; '
+        'índice 1 = duplicata (id ≠ s1, status=pending, campos copiados); '
+        'sem AlertDialog; sem SnackBar de stub', (tester) async {
+      _useTallFrame(tester);
+
+      // Stop com campos custom para provar que a duplicata os copia.
+      final seedStop = _stop1.copyWith(
+        notes: 'notas duplicar',
+        color: StopColor.blue,
+        packagesCount: 5,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [seedStop],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final dupRow = find.bySemanticsIdentifier('edit_stop_duplicate');
+      await _scrollUntilVisible(tester, dupRow);
+      await tester.tap(dupRow);
+      await tester.pumpAndSettle();
+
+      // Rota 'r1' deve ter 2 stops agora.
+      final routes = container.read(routesProvider);
+      final route = routes.firstWhere((r) => r.id == 'r1');
+      expect(
+        route.stops.length,
+        2,
+        reason: 'F5: duplicar deve inserir a cópia — rota passa de 1→2 stops',
+      );
+
+      // Stop no índice 1 é a duplicata: id novo.
+      final dup = route.stops[1];
+      expect(
+        dup.id,
+        isNot('s1'),
+        reason: 'a duplicata deve ter id gerado diferente do original',
+      );
+
+      // Status pending e campos de entrega zerados.
+      expect(
+        dup.status,
+        domain.StopStatus.pending,
+        reason: 'F5: duplicata deve ter status == pending',
+      );
+      expect(dup.deliveryId, isNull);
+      expect(dup.positionInRoute, isNull);
+      expect(dup.photoPaths, isEmpty);
+
+      // Campos copiados do original.
+      expect(dup.notes, 'notas duplicar');
+      expect(dup.color, StopColor.blue);
+      expect(dup.packagesCount, 5);
+      expect(dup.streetName, 'Rua Alfa, 100');
+
+      // F5: duplicar é IMEDIATO — sem AlertDialog de confirmação.
+      expect(
+        find.byType(AlertDialog),
+        findsNothing,
+        reason: 'F5: duplicar não exige confirmação — sem AlertDialog',
+      );
+
+      // Sem SnackBar de stub.
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'row deve agir, não emitir SnackBar de stub',
+      );
+    });
+
+    // ── 18.2  Duplicar: editor exibido é o da duplicata com badge ────────────
+
+    testWidgets(
+        '18.2 — após tap em edit_stop_duplicate, '
+        'badge "Adicionada" visível (pushReplacement com ?new=1)',
+        (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final dupRow = find.bySemanticsIdentifier('edit_stop_duplicate');
+      await _scrollUntilVisible(tester, dupRow);
+      await tester.tap(dupRow);
+      await tester.pumpAndSettle();
+
+      // pushReplacement para o editor da duplicata com ?new=1 → badge visível.
+      expect(
+        find.text('Adicionada'),
+        findsOneWidget,
+        reason:
+            'H11: pushReplacement com ?new=1 deve exibir badge "Adicionada"',
+      );
+    });
+
+    // ── 18.3  H11 pushReplacement: back leva a SENTINEL_HOME ─────────────────
+
+    testWidgets(
+        '18.3 — H11: após duplicar, tap em "Concluído" (pop da duplicata) → '
+        'SENTINEL_HOME visível (editor da original saiu da pilha)',
+        (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Duplica.
+      final dupRow = find.bySemanticsIdentifier('edit_stop_duplicate');
+      await _scrollUntilVisible(tester, dupRow);
+      await tester.tap(dupRow);
+      await tester.pumpAndSettle();
+
+      // Agora estamos no editor da duplicata (badge visível).
+      expect(find.text('Adicionada'), findsOneWidget);
+
+      // Popa via "Concluído" (header do editor da duplicata).
+      final doneBtn = find.bySemanticsIdentifier('edit_stop_done');
+      expect(doneBtn, findsOneWidget);
+      await tester.tap(doneBtn);
+      await tester.pumpAndSettle();
+
+      // H11: pushReplacement — a pilha tem apenas SENTINEL_HOME.
+      expect(
+        find.text('SENTINEL_HOME'),
+        findsOneWidget,
+        reason: 'H11: pushReplacement garante que pop da duplicata vai ao '
+            'SENTINEL_HOME, não ao editor da original',
+      );
+
+      // O editor (original ou duplicata) não deve estar visível.
+      expect(find.text('Editar parada'), findsNothing);
+    });
+
+    // ── 18.4  Remover: AlertDialog com título + streetName no corpo ───────────
+
+    testWidgets(
+        '18.4 — tap edit_stop_remove → AlertDialog visível; '
+        'título "Remover parada" (find.byType(AlertDialog)); '
+        'corpo contém streetName "Rua Alfa, 100"; sem SnackBar de stub',
+        (tester) async {
+      _useTallFrame(tester);
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final removeRow = find.bySemanticsIdentifier('edit_stop_remove');
+      await _scrollUntilVisible(tester, removeRow);
+      await tester.tap(removeRow);
+      await tester.pumpAndSettle();
+
+      // AlertDialog aberto.
+      expect(
+        find.byType(AlertDialog),
+        findsOneWidget,
+        reason: 'F6: tap em "Remover parada" deve abrir AlertDialog',
+      );
+
+      // Título: "Remover parada" aparece 2× — label da row + título do dialog.
+      // Usamos findsNWidgets(2) ou ancoramos no descendant do AlertDialog.
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Remover parada'),
+        ),
+        findsOneWidget,
+        reason: 'AlertDialog deve ter título "Remover parada"',
+      );
+
+      // Corpo contém streetName — pin no streetName, não na frase inteira.
+      expect(
+        find.textContaining('Rua Alfa, 100'),
+        findsAtLeastNWidgets(1),
+        reason: 'corpo do dialog deve conter streetName do stop '
+            '(remove_stop_confirmation_dialog_text)',
+      );
+
+      // Botões presentes.
+      expect(find.text('Cancelar'), findsOneWidget);
+      expect(find.text('Remover'), findsOneWidget);
+
+      // Sem SnackBar de stub.
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'row deve abrir dialog, não emitir SnackBar de stub',
+      );
+    });
+
+    // ── 18.5  Remover → Cancelar: dialog fecha, stop persiste ────────────────
+
+    testWidgets(
+        '18.5 — "Cancelar" no AlertDialog → dialog fecha; '
+        'stop AINDA no provider; editor visível', (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final removeRow = find.bySemanticsIdentifier('edit_stop_remove');
+      await _scrollUntilVisible(tester, removeRow);
+      await tester.tap(removeRow);
+      await tester.pumpAndSettle();
+
+      // AlertDialog aberto — toca "Cancelar".
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      // Dialog deve ter fechado.
+      expect(
+        find.byType(AlertDialog),
+        findsNothing,
+        reason: '"Cancelar" deve fechar o dialog',
+      );
+
+      // Stop AINDA no provider.
+      final routes = container.read(routesProvider);
+      final route = routes.firstWhere((r) => r.id == 'r1');
+      expect(
+        route.stops.length,
+        1,
+        reason: '"Cancelar" não deve remover o stop',
+      );
+      expect(route.stops.first.id, 's1');
+
+      // Editor ainda visível.
+      expect(find.text('Editar parada'), findsOneWidget);
+    });
+
+    // ── 18.6  Remover → Remover: stop some + editor popa ────────────────────
+
+    testWidgets(
+        '18.6 — "Remover" no AlertDialog → stop FORA do provider '
+        '(rota com 0 stops); SENTINEL_HOME visível (editor popou)',
+        (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final removeRow = find.bySemanticsIdentifier('edit_stop_remove');
+      await _scrollUntilVisible(tester, removeRow);
+      await tester.tap(removeRow);
+      await tester.pumpAndSettle();
+
+      // AlertDialog aberto — toca "Remover".
+      await tester.tap(find.text('Remover'));
+      await tester.pumpAndSettle();
+
+      // Stop fora do provider.
+      final routes = container.read(routesProvider);
+      final route = routes.firstWhere((r) => r.id == 'r1');
+      expect(
+        route.stops.length,
+        0,
+        reason: 'F6: "Remover" deve remover o stop do provider',
+      );
+
+      // Editor popou — SENTINEL_HOME visível.
+      expect(
+        find.text('SENTINEL_HOME'),
+        findsOneWidget,
+        reason:
+            'F6: após removeStop, a página deve popar (via handler ou guard H12)',
+      );
+
+      // Editor não deve mais estar visível.
+      expect(find.text('Editar parada'), findsNothing);
+
+      // Nenhum dialog residual.
+      expect(find.byType(AlertDialog), findsNothing);
+    });
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -260,6 +260,65 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
     }
   }
 
+  /// Duplicar parada (F5/H11): duplicateStop IMEDIATO (sem dialog) e
+  /// pushReplacement do editor da duplicata com ?new=1 — back da duplicata
+  /// volta pra lista/home, não pro editor da original.
+  void _duplicateStop() {
+    final newId = ref
+        .read(routesProvider.notifier)
+        .duplicateStop(widget.routeId, widget.stopId);
+    if (newId == null) return;
+    context.pushReplacement(
+      '/home/routes/active/${widget.routeId}/stops/$newId/edit?new=1',
+    );
+  }
+
+  /// Remover parada (F6): AlertDialog de confirmação (microcopy original
+  /// equivalente ao remove_stop_confirmation_dialog_text do Spoke);
+  /// confirmar = removeStop + pop do editor; cancelar = nada.
+  Future<void> _confirmRemove(Stop stop) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppColors.bg,
+        title: const Text(
+          'Remover parada',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
+        ),
+        content: Text(
+          'Remover "${stop.streetName}" da rota?',
+          style: const TextStyle(fontSize: 14, color: AppColors.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Remover',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: AppColors.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    ref.read(routesProvider.notifier).removeStop(widget.routeId, stop.id);
+    if (mounted && context.canPop()) context.pop();
+  }
+
   /// Chip de cor → ColorPickerSheet; commit-on-dismiss live via updateStop
   /// (F3). Dismiss sem ação → nenhuma mudança.
   Future<void> _pickColor(Stop stop) async {
@@ -411,14 +470,14 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                     semanticsId: 'edit_stop_duplicate',
                     icon: LucideIcons.copy,
                     label: 'Duplicar parada',
-                    onTap: () => _stub('Duplicar parada'),
+                    onTap: _duplicateStop,
                   ),
                   _ActionRow(
                     semanticsId: 'edit_stop_remove',
                     icon: LucideIcons.trash2,
                     label: 'Remover parada',
                     color: AppColors.error,
-                    onTap: () => _stub('Remover parada'),
+                    onTap: () => _confirmRemove(stop),
                   ),
                 ],
               ),
