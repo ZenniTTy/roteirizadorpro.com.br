@@ -203,6 +203,10 @@ class _StopNotesSectionState extends ConsumerState<StopNotesSection> {
                       key: Key('stop_photo_$index'),
                       width: 64,
                       height: 64,
+                      // Decode já redimensionado: a foto vem da câmera com
+                      // até 1280px; sem cacheWidth o raster guarda o bitmap
+                      // inteiro para uma thumb de 64lp (perf audit MS-A6).
+                      cacheWidth: 128,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         // Arquivo morto (apagado fora do app) → placeholder,

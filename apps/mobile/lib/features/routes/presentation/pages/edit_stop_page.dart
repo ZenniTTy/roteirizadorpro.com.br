@@ -133,7 +133,10 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
   /// enquanto carrega (ou em erro) usa o fallback canônico declarado UMA vez
   /// em [Settings.fallbackStopDuration].
   Duration get _globalStopDuration =>
-      ref.watch(settingsControllerProvider).value?.defaultStopDuration ??
+      ref.watch(
+        settingsControllerProvider
+            .select((async) => async.value?.defaultStopDuration),
+      ) ??
       Settings.fallbackStopDuration;
 
   /// Formato curto de Duration (jadx UiFormatters.m8453f): partes não-zero
@@ -364,6 +367,114 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
       return const Scaffold(backgroundColor: AppColors.bg, body: SizedBox());
     }
 
+    // Configs construídos numa lista local; o ListView.builder abaixo adia a
+    // INFLAÇÃO dos elementos fora da viewport (perf audit MS-A6, checklist
+    // §1 — construir o config é barato, inflar/layoutar não).
+    final rows = <Widget>[
+      _buildChipsRow(stop),
+      const SizedBox(height: 12),
+      _buildAddressCard(stop),
+      const SizedBox(height: 8),
+      _buildAccessInstructionsButton(stop),
+      const SizedBox(height: 16),
+      StopNotesSection(routeId: widget.routeId, stop: stop),
+      const SizedBox(height: 16),
+      _EditStopRow(
+        semanticsId: 'edit_stop_finder',
+        icon: LucideIcons.packageSearch,
+        label: 'Localizador de pacotes',
+        value: _formatFinder(stop),
+        onTap: () => _openPackageFinder(stop),
+      ),
+      PackageCountRow(
+        count: stop.packagesCount,
+        onChanged: (v) => ref.read(routesProvider.notifier).updateStop(
+              widget.routeId,
+              stop.copyWith(packagesCount: v),
+            ),
+      ),
+      _SegmentedRow<StopOrderPolicy>(
+        semanticsId: 'edit_stop_order',
+        icon: LucideIcons.listOrdered,
+        label: 'Ordem',
+        segments: const [
+          ButtonSegment(
+            value: StopOrderPolicy.first,
+            label: Text('Primeira'),
+          ),
+          ButtonSegment(
+            value: StopOrderPolicy.auto,
+            label: Text('Automática'),
+          ),
+          ButtonSegment(
+            value: StopOrderPolicy.last,
+            label: Text('Última'),
+          ),
+        ],
+        selected: stop.orderPolicy,
+        onChanged: (policy) => ref.read(routesProvider.notifier).updateStop(
+              widget.routeId,
+              stop.copyWith(orderPolicy: policy),
+            ),
+      ),
+      _SegmentedRow<StopType>(
+        semanticsId: 'edit_stop_type',
+        icon: LucideIcons.tag,
+        label: 'Tipo',
+        segments: const [
+          ButtonSegment(
+            value: StopType.delivery,
+            label: Text('Entrega'),
+          ),
+          ButtonSegment(
+            value: StopType.pickup,
+            label: Text('Coleta'),
+          ),
+        ],
+        selected: stop.type,
+        onChanged: (type) => ref.read(routesProvider.notifier).updateStop(
+              widget.routeId,
+              stop.copyWith(type: type),
+            ),
+      ),
+      _EditStopRow(
+        semanticsId: 'edit_stop_window',
+        icon: LucideIcons.clock,
+        label: 'Horário de chegada',
+        value: _formatWindow(stop),
+        onTap: () => _openArrivalWindow(stop),
+      ),
+      _EditStopRow(
+        semanticsId: 'edit_stop_duration',
+        icon: LucideIcons.timer,
+        label: 'Tempo na parada',
+        value: _formatTimeAtStop(stop),
+        onTap: () => _openTimeAtStop(stop),
+      ),
+      const SizedBox(height: 16),
+      const Divider(height: 1, color: AppColors.border),
+      const SizedBox(height: 8),
+      _ActionRow(
+        semanticsId: 'edit_stop_change_address',
+        icon: LucideIcons.mapPin,
+        label: 'Mudar endereço',
+        onTap: () => _openChangeAddress(stop),
+      ),
+      _ActionRow(
+        semanticsId: 'edit_stop_duplicate',
+        icon: LucideIcons.copy,
+        label: 'Duplicar parada',
+        onTap: _duplicateStop,
+      ),
+      _ActionRow(
+        semanticsId: 'edit_stop_remove',
+        icon: LucideIcons.trash2,
+        label: 'Remover parada',
+        color: AppColors.error,
+        onTap: () => _confirmRemove(stop),
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -371,115 +482,10 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
           children: [
             _buildHeader(context),
             Expanded(
-              child: ListView(
+              child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                children: [
-                  _buildChipsRow(stop),
-                  const SizedBox(height: 12),
-                  _buildAddressCard(stop),
-                  const SizedBox(height: 8),
-                  _buildAccessInstructionsButton(stop),
-                  const SizedBox(height: 16),
-                  StopNotesSection(routeId: widget.routeId, stop: stop),
-                  const SizedBox(height: 16),
-                  _EditStopRow(
-                    semanticsId: 'edit_stop_finder',
-                    icon: LucideIcons.packageSearch,
-                    label: 'Localizador de pacotes',
-                    value: _formatFinder(stop),
-                    onTap: () => _openPackageFinder(stop),
-                  ),
-                  PackageCountRow(
-                    count: stop.packagesCount,
-                    onChanged: (v) =>
-                        ref.read(routesProvider.notifier).updateStop(
-                              widget.routeId,
-                              stop.copyWith(packagesCount: v),
-                            ),
-                  ),
-                  _SegmentedRow<StopOrderPolicy>(
-                    semanticsId: 'edit_stop_order',
-                    icon: LucideIcons.listOrdered,
-                    label: 'Ordem',
-                    segments: const [
-                      ButtonSegment(
-                        value: StopOrderPolicy.first,
-                        label: Text('Primeira'),
-                      ),
-                      ButtonSegment(
-                        value: StopOrderPolicy.auto,
-                        label: Text('Automática'),
-                      ),
-                      ButtonSegment(
-                        value: StopOrderPolicy.last,
-                        label: Text('Última'),
-                      ),
-                    ],
-                    selected: stop.orderPolicy,
-                    onChanged: (policy) =>
-                        ref.read(routesProvider.notifier).updateStop(
-                              widget.routeId,
-                              stop.copyWith(orderPolicy: policy),
-                            ),
-                  ),
-                  _SegmentedRow<StopType>(
-                    semanticsId: 'edit_stop_type',
-                    icon: LucideIcons.tag,
-                    label: 'Tipo',
-                    segments: const [
-                      ButtonSegment(
-                        value: StopType.delivery,
-                        label: Text('Entrega'),
-                      ),
-                      ButtonSegment(
-                        value: StopType.pickup,
-                        label: Text('Coleta'),
-                      ),
-                    ],
-                    selected: stop.type,
-                    onChanged: (type) =>
-                        ref.read(routesProvider.notifier).updateStop(
-                              widget.routeId,
-                              stop.copyWith(type: type),
-                            ),
-                  ),
-                  _EditStopRow(
-                    semanticsId: 'edit_stop_window',
-                    icon: LucideIcons.clock,
-                    label: 'Horário de chegada',
-                    value: _formatWindow(stop),
-                    onTap: () => _openArrivalWindow(stop),
-                  ),
-                  _EditStopRow(
-                    semanticsId: 'edit_stop_duration',
-                    icon: LucideIcons.timer,
-                    label: 'Tempo na parada',
-                    value: _formatTimeAtStop(stop),
-                    onTap: () => _openTimeAtStop(stop),
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1, color: AppColors.border),
-                  const SizedBox(height: 8),
-                  _ActionRow(
-                    semanticsId: 'edit_stop_change_address',
-                    icon: LucideIcons.mapPin,
-                    label: 'Mudar endereço',
-                    onTap: () => _openChangeAddress(stop),
-                  ),
-                  _ActionRow(
-                    semanticsId: 'edit_stop_duplicate',
-                    icon: LucideIcons.copy,
-                    label: 'Duplicar parada',
-                    onTap: _duplicateStop,
-                  ),
-                  _ActionRow(
-                    semanticsId: 'edit_stop_remove',
-                    icon: LucideIcons.trash2,
-                    label: 'Remover parada',
-                    color: AppColors.error,
-                    onTap: () => _confirmRemove(stop),
-                  ),
-                ],
+                itemCount: rows.length,
+                itemBuilder: (_, index) => rows[index],
               ),
             ),
           ],
