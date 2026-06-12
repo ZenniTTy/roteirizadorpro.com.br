@@ -2715,4 +2715,373 @@ void main() {
       );
     });
   });
+
+  // ── 17. Mudar endereço (H10/H18) ─────────────────────────────────────────
+  //
+  // Spec T17 (docs/superpowers/plans/2026-06-11-area6-edit-stop-plan.md).
+  //
+  // Setup: um _buildRouterWithChangeAddress que inclui a subrota
+  // 'change-address' apontando para _ChangeAddressStandIn — uma página
+  // mínima com botão 'POP_NEW_ADDRESS' que popa o record fixo de teste.
+  //
+  // NOTE: Os testes 17.1–17.4 falham por assertion enquanto a implementação
+  // não existir (edit_stop_page.dart row 'Mudar endereço' é stub SnackBar;
+  // add_stop_page.dart não tem o case changeAddress ainda; app.dart não tem
+  // a subrota). O 17.3 (H18) também depende de PickerMode.changeAddress, que
+  // deve ser adicionado ao enum pelo implementador.
+
+  group('17 — Mudar endereço (H10/H18)', () {
+    // ── 17.1  Tap na row → stand-in visível (push aconteceu; sem SnackBar) ─
+
+    testWidgets(
+        '17.1 — tap em edit_stop_change_address → _ChangeAddressStandIn '
+        'visível; sem SnackBar de stub', (tester) async {
+      _useTallFrame(tester);
+      final router = _buildRouterWithChangeAddress(
+        routeId: 'r1',
+        stopId: 's1',
+      );
+      await tester.pumpWidget(
+        _buildApp(router: router, stops: [_stop1]),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_change_address');
+      await _scrollUntilVisible(tester, row);
+
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Stand-in visível → push aconteceu.
+      expect(find.text('CHANGE_ADDRESS_STAND_IN'), findsOneWidget);
+      // Nenhum SnackBar de stub.
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    // ── 17.2  POP_NEW_ADDRESS → editor visível + provider atualizado ────────
+
+    testWidgets(
+        '17.2 — tap POP_NEW_ADDRESS → editor visível; provider: '
+        'lat/lng/streetName/fullAddress == novos valores; '
+        'notes/color/packagesCount preservados (campos não tocados)',
+        (tester) async {
+      _useTallFrame(tester);
+
+      // Seed com campos extras para verificar que NÃO são tocados.
+      final seedStop = _stop1.copyWith(
+        notes: 'nota X',
+        color: StopColor.blue,
+        packagesCount: 7,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [seedStop],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = _buildRouterWithChangeAddress(
+        routeId: 'r1',
+        stopId: 's1',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Abre o picker (stand-in).
+      final row = find.bySemanticsIdentifier('edit_stop_change_address');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Tap no botão que popa o record com os novos dados.
+      await tester.tap(find.text('POP_NEW_ADDRESS'));
+      await tester.pumpAndSettle();
+
+      // Editor deve estar visível de volta.
+      expect(find.text('Editar parada'), findsOneWidget);
+
+      // Verifica provider.
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+
+      // Os 4 campos de endereço devem ser os novos.
+      expect(stop.lat, closeTo(-23.55, 1e-6));
+      expect(stop.lng, closeTo(-46.63, 1e-6));
+      expect(stop.streetName, 'Rua Nova, 200');
+      expect(stop.fullAddress, 'Rua Nova, 200 - Centro, São Paulo');
+
+      // Os demais campos devem estar preservados.
+      expect(stop.notes, 'nota X');
+      expect(stop.color, StopColor.blue);
+      expect(stop.packagesCount, 7);
+    });
+
+    // ── 17.3  H18: sticky resolve para o NOVO endereço ──────────────────────
+
+    testWidgets(
+        '17.3 — H18: após POP_NEW_ADDRESS, tap em "Instruções de acesso" → '
+        'TextField pré-preenchido com a sticky do NOVO fullAddress '
+        '(não do endereço antigo)', (tester) async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final repo = AddressInstructionsRepository(SharedPreferencesAsync());
+
+      // Grava sticky para o NOVO endereço (chave normalizada).
+      await repo.saveDefault(
+        'Rua Nova, 200 - Centro, São Paulo',
+        'portão novo',
+      );
+      // Garante que o endereço antigo NÃO tem sticky (resolve null).
+      // (Não gravar nada para _stop1.fullAddress.)
+
+      // stop sem accessInstructions: a sheet vai tentar o sticky do endereço.
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // accessInstructions == null
+              ),
+            ]),
+          ),
+          addressInstructionsRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Router com a subrota change-address.
+      const location = '/home/routes/active/r1/stops/s1/edit';
+      final router = GoRouter(
+        initialLocation: location,
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (_, __) =>
+                const Scaffold(body: Center(child: Text('SENTINEL_HOME'))),
+            routes: [
+              GoRoute(
+                path: 'routes/active/:routeId/stops/:stopId/edit',
+                builder: (context, state) => EditStopPage(
+                  routeId: state.pathParameters['routeId']!,
+                  stopId: state.pathParameters['stopId']!,
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'change-address',
+                    builder: (_, __) => const _ChangeAddressStandIn(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+
+      // Configura tela alta.
+      tester.view.physicalSize = const Size(1080, 3200);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Muda o endereço via stand-in.
+      final changeRow = find.bySemanticsIdentifier('edit_stop_change_address');
+      await _scrollUntilVisible(tester, changeRow);
+      await tester.tap(changeRow);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('POP_NEW_ADDRESS'));
+      await tester.pumpAndSettle();
+
+      // Abre "Instruções de acesso" — deve usar o sticky do NOVO endereço.
+      final accessBtn =
+          find.bySemanticsIdentifier('edit_stop_access_instructions');
+      await _scrollUntilVisible(tester, accessBtn);
+      await tester.tap(accessBtn);
+      await tester.pumpAndSettle();
+
+      // TextField deve conter o sticky do novo endereço.
+      expect(find.text('portão novo'), findsAtLeastNWidgets(1));
+      // Sticky do endereço antigo NÃO deve aparecer.
+      expect(find.text('portão lateral'), findsNothing);
+    });
+
+    // ── 17.4  Back do stand-in (sem valor) → editor intacto ─────────────────
+
+    testWidgets(
+        '17.4 — back do stand-in (pop sem valor) → editor visível; '
+        'stop INALTERADO no provider', (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = _buildRouterWithChangeAddress(
+        routeId: 'r1',
+        stopId: 's1',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Abre o stand-in.
+      final row = find.bySemanticsIdentifier('edit_stop_change_address');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Volta sem valor (simula "Voltar" / pop sem record).
+      await tester.tap(find.text('BACK_NO_VALUE'));
+      await tester.pumpAndSettle();
+
+      // Editor deve estar visível de volta.
+      expect(find.text('Editar parada'), findsOneWidget);
+
+      // Stop deve estar inalterado.
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(stop.lat, closeTo(-23.5, 1e-6));
+      expect(stop.lng, closeTo(-46.6, 1e-6));
+      expect(stop.streetName, 'Rua Alfa, 100');
+      expect(stop.fullAddress, 'Rua Alfa, 100 - Centro, São Paulo');
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers top-level para o grupo 17 — Mudar endereço
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Constrói um [GoRouter] com a rota de edição aninhada com a subrota
+/// `change-address` apontando para [_ChangeAddressStandIn].
+///
+/// Usado nos testes 17.1, 17.2 e 17.4 onde não é necessário injetar
+/// [AddressInstructionsRepository]. Para o 17.3 um router inline equivalente
+/// é criado diretamente no teste com o override adicional do repositório.
+GoRouter _buildRouterWithChangeAddress({
+  required String routeId,
+  required String stopId,
+}) {
+  final location = '/home/routes/active/$routeId/stops/$stopId/edit';
+  return GoRouter(
+    initialLocation: location,
+    routes: [
+      GoRoute(
+        path: '/home',
+        builder: (_, __) =>
+            const Scaffold(body: Center(child: Text('SENTINEL_HOME'))),
+        routes: [
+          GoRoute(
+            path: 'routes/active/:routeId/stops/:stopId/edit',
+            builder: (context, state) => EditStopPage(
+              routeId: state.pathParameters['routeId']!,
+              stopId: state.pathParameters['stopId']!,
+            ),
+            routes: [
+              GoRoute(
+                path: 'change-address',
+                builder: (_, __) => const _ChangeAddressStandIn(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Stand-in para a subrota change-address (grupo 17)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Página stand-in que simula o [AddStopPage] no modo `changeAddress`.
+/// Expõe dois botões:
+/// - 'POP_NEW_ADDRESS': popa o record fixo
+///   `(lat:-23.55, lng:-46.63, streetName:'Rua Nova, 200',
+///     fullAddress:'Rua Nova, 200 - Centro, São Paulo')`.
+/// - 'BACK_NO_VALUE': popa sem valor (simula o botão Voltar).
+///
+/// O EditStopPage inspeciona o resultado: record presente → updateStop;
+/// null (back) → nenhuma ação.
+class _ChangeAddressStandIn extends StatelessWidget {
+  const _ChangeAddressStandIn();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('CHANGE_ADDRESS_STAND_IN'),
+            ElevatedButton(
+              onPressed: () => context.pop<Object?>(
+                (
+                  lat: -23.55,
+                  lng: -46.63,
+                  streetName: 'Rua Nova, 200',
+                  fullAddress: 'Rua Nova, 200 - Centro, São Paulo',
+                ),
+              ),
+              child: const Text('POP_NEW_ADDRESS'),
+            ),
+            ElevatedButton(
+              onPressed: () => context.pop<Object?>(null),
+              child: const Text('BACK_NO_VALUE'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

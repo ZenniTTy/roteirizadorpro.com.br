@@ -90,6 +90,19 @@ final _routerProvider = Provider<GoRouter>((ref) {
               stopId: state.pathParameters['stopId']!,
               showAddedBadge: state.uri.queryParameters['new'] == '1',
             ),
+            routes: [
+              GoRoute(
+                // Mudar endereço sub-picker (MS-A6 T17/H10). Reuses
+                // AddStopPage with `PickerMode.changeAddress` (mode via
+                // constructor — `state.extra` forbidden); the editor's
+                // "Mudar endereço" row pushes this and awaits the record
+                // ({lat, lng, streetName, fullAddress}) to swap ONLY those
+                // four Stop fields. Precedent: start/end-location below.
+                path: 'change-address',
+                builder: (_, __) =>
+                    const AddStopPage(mode: PickerMode.changeAddress),
+              ),
+            ],
           ),
           GoRoute(
             // Full-screen "Detalhes da rota" — opened from active-route

@@ -231,6 +231,35 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
         );
   }
 
+  /// Mudar endereço (T17/H10): pusha o sub-picker aninhado (AddStopPage em
+  /// PickerMode.changeAddress) e, ao receber o record, troca SÓ os 4 campos
+  /// de endereço do Stop — todos os demais campos preservados. Path absoluto
+  /// (não deriva da uri atual: `?new=1` corromperia o push relativo).
+  Future<void> _openChangeAddress(Stop stop) async {
+    final result = await context.push<Object?>(
+      '/home/routes/active/${widget.routeId}/stops/${widget.stopId}'
+      '/edit/change-address',
+    );
+    if (!mounted) return;
+    if (result
+        case (
+          lat: final double lat,
+          lng: final double lng,
+          streetName: final String streetName,
+          fullAddress: final String fullAddress,
+        )) {
+      ref.read(routesProvider.notifier).updateStop(
+            widget.routeId,
+            stop.copyWith(
+              lat: lat,
+              lng: lng,
+              streetName: streetName,
+              fullAddress: fullAddress,
+            ),
+          );
+    }
+  }
+
   /// Chip de cor → ColorPickerSheet; commit-on-dismiss live via updateStop
   /// (F3). Dismiss sem ação → nenhuma mudança.
   Future<void> _pickColor(Stop stop) async {
@@ -376,7 +405,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                     semanticsId: 'edit_stop_change_address',
                     icon: LucideIcons.mapPin,
                     label: 'Mudar endereço',
-                    onTap: () => _stub('Mudar endereço'),
+                    onTap: () => _openChangeAddress(stop),
                   ),
                   _ActionRow(
                     semanticsId: 'edit_stop_duplicate',

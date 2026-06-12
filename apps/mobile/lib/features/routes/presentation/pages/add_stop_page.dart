@@ -114,6 +114,8 @@ class AddStopPage extends ConsumerWidget {
         await _popWithStartLocation(context, ref, p);
       case PickerMode.endLocation:
         await _popWithEndLocation(context, ref, p);
+      case PickerMode.changeAddress:
+        await _popWithChangeAddress(context, ref, p);
     }
   }
 
@@ -238,6 +240,41 @@ class AddStopPage extends ConsumerWidget {
 
     if (context.mounted) {
       context.pop<SpecificAddress>(selected);
+    }
+  }
+
+  /// Change-address path (MS-A6 T17/H10): resolve place details and pop the
+  /// 4-field record the editor swaps into the [Stop]. On null details this
+  /// HARD-FAILS like the location pickers — SnackBar and no pop, never zero
+  /// coordinates.
+  Future<void> _popWithChangeAddress(
+    BuildContext context,
+    WidgetRef ref,
+    PlaceAutocompletePrediction p,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    ({double lat, double lng, String streetName, String fullAddress})? selected;
+    try {
+      final repo = ref.read(placesRepositoryProvider);
+      final details = await repo.getPlaceDetails(p.placeId);
+      if (details == null) {
+        throw Exception('Não foi possível obter os detalhes do endereço.');
+      }
+      selected = (
+        lat: details.lat,
+        lng: details.lng,
+        streetName: p.mainText,
+        fullAddress: details.formattedAddress,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      context.pop<Object?>(selected);
     }
   }
 }
