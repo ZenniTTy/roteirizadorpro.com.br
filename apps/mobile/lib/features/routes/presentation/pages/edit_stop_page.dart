@@ -4,12 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../settings/data/settings_repository.dart';
+import '../../../settings/state/settings_controller.dart';
+import '../../domain/package_details.dart';
+import '../../domain/place_in_vehicle.dart';
 import '../../domain/stop.dart';
 import '../../domain/stop_order_policy.dart';
 import '../../state/routes_provider.dart';
 import '../../state/address_instructions_controller.dart';
 import '../widgets/access_instructions_sheet.dart';
 import '../widgets/arrival_window_sheet.dart';
+import '../widgets/package_finder_sheet.dart';
+import '../widgets/time_at_stop_dialog.dart';
 import '../widgets/color_picker_sheet.dart';
 import '../widgets/package_count_row.dart';
 import '../widgets/stop_notes_section.dart';
@@ -123,6 +129,108 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
         );
   }
 
+  /// Default global do tempo na parada (H14): lê do settingsController;
+  /// enquanto carrega (ou em erro) usa o fallback canônico declarado UMA vez
+  /// em [Settings.fallbackStopDuration].
+  Duration get _globalStopDuration =>
+      ref.watch(settingsControllerProvider).value?.defaultStopDuration ??
+      Settings.fallbackStopDuration;
+
+  /// Formato curto de Duration (jadx UiFormatters.m8453f): partes não-zero
+  /// h/min/s juntadas por ' '; zero → '0 min'.
+  static String _formatDuration(Duration d) {
+    if (d == Duration.zero) return '0 min';
+    final h = d.inHours;
+    final m = d.inMinutes % 60;
+    final s = d.inSeconds % 60;
+    final parts = <String>[
+      if (h > 0) '$h h',
+      if (m > 0) '$m min',
+      if (s > 0) '$s s',
+    ];
+    return parts.join(' ');
+  }
+
+  /// Row 'Tempo na parada' (F9): override → duração formatada; herdando →
+  /// 'Padrão (`<default global>`)' (default_brackets_value).
+  String _formatTimeAtStop(Stop stop) {
+    final override = stop.estimatedTimeAtStop;
+    if (override != null) return _formatDuration(override);
+    return 'Padrão (${_formatDuration(_globalStopDuration)})';
+  }
+
+  /// Tempo na parada (F9/H14): dialog min+seg commit-on-dismiss; o record
+  /// retornado é o novo override (duration: null = herda o default global).
+  Future<void> _openTimeAtStop(Stop stop) async {
+    final result = await TimeAtStopDialog.show(
+      context,
+      current: stop.estimatedTimeAtStop,
+      defaultDuration: _globalStopDuration,
+    );
+    if (result == null || !mounted) return;
+    ref.read(routesProvider.notifier).updateStop(
+          widget.routeId,
+          stop.copyWith(estimatedTimeAtStop: result.duration),
+        );
+  }
+
+  /// Row 'Localizador de pacotes' (F11): componentes definidos juntados por
+  /// ', ' na ordem dimensão, tipo, Y, X, Z; nada definido → 'Não definido'.
+  String _formatFinder(Stop stop) {
+    final details = stop.packageDetails;
+    final place = stop.placeInVehicle;
+    final parts = <String>[
+      if (details?.dimension != null)
+        switch (details!.dimension!) {
+          PackageDimension.small => 'Pequeno',
+          PackageDimension.medium => 'Médio',
+          PackageDimension.large => 'Grande',
+        },
+      if (details?.type != null)
+        switch (details!.type!) {
+          PackageType.box => 'Caixa',
+          PackageType.bag => 'Sacola',
+          PackageType.letter => 'Carta',
+        },
+      if (place?.y != null)
+        switch (place!.y!) {
+          PlaceY.front => 'Frente',
+          PlaceY.middle => 'Meio',
+          PlaceY.back => 'Atrás',
+        },
+      if (place?.x != null)
+        switch (place!.x!) {
+          PlaceX.left => 'Esquerda',
+          PlaceX.right => 'Direita',
+        },
+      if (place?.z != null)
+        switch (place!.z!) {
+          PlaceZ.floor => 'Chão',
+          PlaceZ.shelf => 'Prateleira',
+        },
+    ];
+    return parts.isEmpty ? 'Não definido' : parts.join(', ');
+  }
+
+  /// Localizador de pacotes (F11/H13): sheet inline; record popado é o novo
+  /// estado completo (null explícito limpa via copyWith _omit).
+  Future<void> _openPackageFinder(Stop stop) async {
+    final result = await PackageFinderSheet.show(
+      context,
+      initialDetails: stop.packageDetails,
+      initialPlace: stop.placeInVehicle,
+      deliveryId: stop.deliveryId,
+    );
+    if (result == null || !mounted) return;
+    ref.read(routesProvider.notifier).updateStop(
+          widget.routeId,
+          stop.copyWith(
+            packageDetails: result.details,
+            placeInVehicle: result.place,
+          ),
+        );
+  }
+
   /// Chip de cor → ColorPickerSheet; commit-on-dismiss live via updateStop
   /// (F3). Dismiss sem ação → nenhuma mudança.
   Future<void> _pickColor(Stop stop) async {
@@ -190,8 +298,8 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                     semanticsId: 'edit_stop_finder',
                     icon: LucideIcons.packageSearch,
                     label: 'Localizador de pacotes',
-                    value: 'Não definido',
-                    onTap: () => _stub('Localizador de pacotes'),
+                    value: _formatFinder(stop),
+                    onTap: () => _openPackageFinder(stop),
                   ),
                   PackageCountRow(
                     count: stop.packagesCount,
@@ -258,8 +366,8 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                     semanticsId: 'edit_stop_duration',
                     icon: LucideIcons.timer,
                     label: 'Tempo na parada',
-                    value: 'Padrão',
-                    onTap: () => _stub('Tempo na parada'),
+                    value: _formatTimeAtStop(stop),
+                    onTap: () => _openTimeAtStop(stop),
                   ),
                   const SizedBox(height: 16),
                   const Divider(height: 1, color: AppColors.border),
@@ -541,11 +649,16 @@ class _EditStopRow extends StatelessWidget {
                   style: const TextStyle(fontSize: 15, color: AppColors.text),
                 ),
               ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textMuted,
+              Flexible(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
               const SizedBox(width: 4),

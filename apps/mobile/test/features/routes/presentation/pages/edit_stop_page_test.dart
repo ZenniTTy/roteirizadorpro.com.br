@@ -14,6 +14,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/time_picker_sheet.dart';
 import 'package:roteirizador_pro/features/routes/data/address_instructions_repository.dart';
+import 'package:roteirizador_pro/features/routes/domain/package_details.dart';
+import 'package:roteirizador_pro/features/routes/domain/place_in_vehicle.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
@@ -22,9 +24,13 @@ import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_pa
 import 'package:roteirizador_pro/features/routes/presentation/widgets/access_instructions_sheet.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/arrival_window_sheet.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/package_count_row.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/package_finder_sheet.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/stop_notes_section.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/time_at_stop_dialog.dart';
 import 'package:roteirizador_pro/features/routes/state/address_instructions_controller.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
+import 'package:roteirizador_pro/features/settings/data/settings_repository.dart';
+import 'package:roteirizador_pro/features/settings/state/settings_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -43,6 +49,14 @@ class _FakeRoutes extends Routes {
 
   @override
   List<domain.Route> build() => _seed;
+}
+
+/// Fake do [SettingsController] que retorna [defaultStopDuration] = 2 min.
+/// Usado no teste 16.8 para verificar que a página lê o global (H14).
+class _FakeSettingsController extends SettingsController {
+  @override
+  Future<Settings> build() async =>
+      const Settings(defaultStopDuration: Duration(minutes: 2));
 }
 
 // ---------------------------------------------------------------------------
@@ -597,8 +611,12 @@ void main() {
   });
 
   group('Rows stub — SnackBar para taps ainda não implementados', () {
-    testWidgets('toque em "Localizador de pacotes" exibe SnackBar (stub)',
-        (tester) async {
+    // Teste 'Localizador de pacotes exibe SnackBar (stub)' AMENDADO para o
+    // contrato T16: a row abre a PackageFinderSheet (fluxo completo no
+    // group 16) e NÃO emite mais SnackBar de stub.
+    testWidgets(
+        '(T16) — toque em "Localizador de pacotes" NÃO exibe SnackBar '
+        '(row deixou de ser stub)', (tester) async {
       _useTallFrame(tester);
       await tester.pumpWidget(
         _buildApp(
@@ -614,7 +632,7 @@ void main() {
       await tester.tap(row);
       await tester.pump();
 
-      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
     });
 
     // Teste 'Pacotes exibe SnackBar (stub)' AMENDADO para o contrato T13:
@@ -2107,6 +2125,593 @@ void main() {
         stop.timeWindowEnd,
         isNull,
         reason: 'H1: um lado só é válido — timeWindowEnd deve permanecer null',
+      );
+    });
+  });
+
+  // ── 16. Tempo na parada (F9/H14) + Localizador de pacotes (F11/H13) ────────
+  //
+  // ATENÇÃO: estes testes precisam de InMemorySharedPreferencesAsync porque a
+  // página passará a ref.watch(settingsControllerProvider) após implementação.
+  // O setUp global registra a plataforma em memória para que os grupos antigos
+  // (que não tocam settings) continuem verdes.
+
+  group('16 — Tempo na parada + Localizador (F9/F11/H14)', () {
+    setUp(() {
+      // Isola SharedPreferences de disco para todos os testes deste grupo.
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+    });
+
+    // ── 16.1  Formatação da row Tempo na parada ───────────────────────────────
+
+    testWidgets(
+        '16.1 — stop.estimatedTimeAtStop == null → row exibe '
+        '"Padrão (1 min)" (fallback Settings.fallbackStopDuration = 1 min)',
+        (tester) async {
+      _useTallFrame(tester);
+      // _stop1 tem estimatedTimeAtStop == null (default do construtor).
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+
+      expect(
+        find.text('Padrão (1 min)'),
+        findsOneWidget,
+        reason:
+            'sem override e defaultStopDuration == 1 min → "Padrão (1 min)"',
+      );
+    });
+
+    testWidgets('16.2 — override Duration(minutes:5) → row exibe "5 min"',
+        (tester) async {
+      _useTallFrame(tester);
+      final stop5 = _stop1.copyWith(
+        estimatedTimeAtStop: const Duration(minutes: 5),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stop5],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+
+      expect(find.text('5 min'), findsOneWidget);
+    });
+
+    testWidgets(
+        '16.3 — override Duration(minutes:1, seconds:30) → row exibe "1 min 30 s"',
+        (tester) async {
+      _useTallFrame(tester);
+      final stop130 = _stop1.copyWith(
+        estimatedTimeAtStop: const Duration(minutes: 1, seconds: 30),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stop130],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+
+      expect(find.text('1 min 30 s'), findsOneWidget);
+    });
+
+    testWidgets('16.4 — override Duration(seconds:30) → row exibe "30 s"',
+        (tester) async {
+      _useTallFrame(tester);
+      final stop30s = _stop1.copyWith(
+        estimatedTimeAtStop: const Duration(seconds: 30),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stop30s],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+
+      expect(find.text('30 s'), findsOneWidget);
+    });
+
+    // ── 16.5  Tap na row abre TimeAtStopDialog (sem SnackBar de stub) ─────────
+
+    testWidgets(
+        '16.5 — tap na row "Tempo na parada" abre TimeAtStopDialog '
+        '(find.text("Minutos") visível); sem SnackBar de stub', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(TimeAtStopDialog),
+        findsNothing, // dialog expõe apenas via showDialog — verifica o conteúdo
+        reason:
+            'TimeAtStopDialog.show usa showDialog, não StatefulWidget direto',
+      );
+      expect(
+        find.text('Minutos'),
+        findsAtLeastNWidgets(1),
+        reason: 'Tap em "Tempo na parada" deve abrir TimeAtStopDialog',
+      );
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'Row não deve mais emitir SnackBar de stub',
+      );
+    });
+
+    // ── 16.6  Fluxo commit: digitar + dismiss → provider ─────────────────────
+
+    testWidgets(
+        '16.6 — stop sem override → dialog → Minutos="5" + barrier dismiss → '
+        'provider: estimatedTimeAtStop == Duration(minutes:5)', (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // estimatedTimeAtStop == null
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Digita '5' no campo Minutos. O .at(0) vem DEPOIS do descendant —
+      // aplicado antes ele pegaria o TextField global 0 (notas da página).
+      await tester.enterText(
+        find
+            .descendant(
+              of: find.byType(Dialog),
+              matching: find.byType(TextField),
+            )
+            .at(0),
+        '5',
+      );
+      await tester.pump();
+
+      // Dismiss via barrier.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.estimatedTimeAtStop,
+        const Duration(minutes: 5),
+        reason: 'commit-on-dismiss: Minutos="5" → estimatedTimeAtStop = 5 min',
+      );
+    });
+
+    // ── 16.7  Fluxo clear: ambos vazios → provider null ──────────────────────
+
+    testWidgets(
+        '16.7 — stop com override → dialog → limpar ambos os campos + '
+        'dismiss → provider: estimatedTimeAtStop == null (prova _omit)',
+        (tester) async {
+      _useTallFrame(tester);
+      final stopWithDur =
+          _stop1.copyWith(estimatedTimeAtStop: const Duration(minutes: 3));
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [stopWithDur],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Limpa Minutos (pré-preenchido com '3'). O .at() vem DEPOIS do
+      // descendant — aplicado antes pegaria TextFields globais da página.
+      await tester.enterText(
+        find
+            .descendant(
+              of: find.byType(Dialog),
+              matching: find.byType(TextField),
+            )
+            .at(0),
+        '',
+      );
+      // Limpa Segundos (pré-preenchido com '0').
+      await tester.enterText(
+        find
+            .descendant(
+              of: find.byType(Dialog),
+              matching: find.byType(TextField),
+            )
+            .at(1),
+        '',
+      );
+      await tester.pump();
+
+      // Dismiss via barrier.
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.estimatedTimeAtStop,
+        isNull,
+        reason:
+            'ambos campos vazios → (duration: null) → estimatedTimeAtStop limpo via copyWith _omit',
+      );
+    });
+
+    // ── 16.8  Opção: default global ≠ fallback ────────────────────────────────
+    // Override settingsControllerProvider com 2 min → row exibe 'Padrão (2 min)'.
+
+    testWidgets(
+        '16.8 — override settingsController com defaultStopDuration=2min → '
+        'row exibe "Padrão (2 min)" (H14: widget lê o global, não re-declara)',
+        (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // estimatedTimeAtStop == null
+              ),
+            ]),
+          ),
+          // Injeta Settings com defaultStopDuration = 2 min.
+          settingsControllerProvider.overrideWith(
+            () => _FakeSettingsController(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_duration');
+      await _scrollUntilVisible(tester, row);
+
+      expect(
+        find.text('Padrão (2 min)'),
+        findsOneWidget,
+        reason:
+            'H14: row deve refletir o defaultStopDuration do settingsController',
+      );
+    });
+
+    // ── 16.9  Localizador — formatação da row ─────────────────────────────────
+
+    testWidgets(
+        '16.9 — stop sem packageDetails e placeInVehicle → row exibe '
+        '"Não definido" (place_in_vehicle_not_set)', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_finder');
+      await _scrollUntilVisible(tester, row);
+
+      expect(find.text('Não definido'), findsOneWidget);
+    });
+
+    testWidgets(
+        '16.10 — stop com PackageDetails(dimension:small, type:box) + '
+        'PlaceInVehicle(x:left, y:front, z:floor) → row exibe '
+        '"Pequeno, Caixa, Frente, Esquerda, Chão" (F11 — ordem dim,type,Y,X,Z)',
+        (tester) async {
+      _useTallFrame(tester);
+      final stopFull = _stop1.copyWith(
+        packageDetails: const PackageDetails(
+          dimension: PackageDimension.small,
+          type: PackageType.box,
+        ),
+        placeInVehicle: const PlaceInVehicle(
+          x: PlaceX.left,
+          y: PlaceY.front,
+          z: PlaceZ.floor,
+        ),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopFull],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_finder');
+      await _scrollUntilVisible(tester, row);
+
+      expect(
+        find.text('Pequeno, Caixa, Frente, Esquerda, Chão'),
+        findsOneWidget,
+        reason: 'F11: ordem dim, type, Y, X, Z separado por ", "',
+      );
+    });
+
+    testWidgets(
+        '16.11 — stop com PackageDetails(dimension:medium) apenas → '
+        'row exibe "Médio" (parcial)', (tester) async {
+      _useTallFrame(tester);
+      final stopPartial = _stop1.copyWith(
+        packageDetails:
+            const PackageDetails(dimension: PackageDimension.medium),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopPartial],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_finder');
+      await _scrollUntilVisible(tester, row);
+
+      expect(find.text('Médio'), findsOneWidget);
+    });
+
+    // ── 16.12  Tap na row abre PackageFinderSheet (sem SnackBar de stub) ──────
+
+    testWidgets(
+        '16.12 — tap na row "Localizador de pacotes" abre PackageFinderSheet '
+        '(find.text("Localizador de pacotes") aparece 2× — row + header da sheet); '
+        'sem SnackBar de stub', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_finder');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // PackageFinderSheet deve estar na árvore (showModalBottomSheet injeta
+      // o widget diretamente na árvore — diferente do showDialog).
+      expect(
+        find.byType(PackageFinderSheet),
+        findsOneWidget,
+        reason: 'Tap em "Localizador de pacotes" deve abrir PackageFinderSheet',
+      );
+      // 'Localizador de pacotes' aparece tanto na row (scroll view) quanto no
+      // header da sheet (root overlay) — findsNWidgets(2).
+      expect(
+        find.text('Localizador de pacotes'),
+        findsNWidgets(2),
+        reason: 'row + header da sheet devem exibir "Localizador de pacotes"',
+      );
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'Row não deve mais emitir SnackBar de stub',
+      );
+    });
+
+    // ── 16.13  Fluxo commit: chips + Concluído → provider ────────────────────
+
+    testWidgets(
+        '16.13 — sheet → tap finder_chip_small + finder_chip_front → '
+        '"Concluído" (.last) → provider: packageDetails=(small), '
+        'placeInVehicle=(y:front)', (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_finder');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsIdentifier('finder_chip_small'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsIdentifier('finder_chip_front'));
+      await tester.pump();
+
+      // 'Concluído' mais recente na árvore (header da sheet no root overlay).
+      await tester.tap(find.text('Concluído').last);
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.packageDetails,
+        const PackageDetails(dimension: PackageDimension.small),
+        reason: 'F3: "Concluído" deve gravar packageDetails live no provider',
+      );
+      expect(
+        stop.placeInVehicle,
+        const PlaceInVehicle(y: PlaceY.front),
+        reason: 'F3: "Concluído" deve gravar placeInVehicle live no provider',
+      );
+    });
+
+    // ── 16.14  Fluxo Limpar: stop com dados → Limpar → provider null/null ────
+
+    testWidgets(
+        '16.14 — stop com tudo definido → sheet → "Limpar" → '
+        'provider: packageDetails == null, placeInVehicle == null (prova _omit)',
+        (tester) async {
+      _useTallFrame(tester);
+      final stopFull = _stop1.copyWith(
+        packageDetails: const PackageDetails(
+          dimension: PackageDimension.large,
+          type: PackageType.bag,
+        ),
+        placeInVehicle: const PlaceInVehicle(
+          y: PlaceY.back,
+          x: PlaceX.right,
+          z: PlaceZ.shelf,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [stopFull],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_finder');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Limpar'));
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.packageDetails,
+        isNull,
+        reason: '"Limpar" deve zerar packageDetails via copyWith _omit',
+      );
+      expect(
+        stop.placeInVehicle,
+        isNull,
+        reason: '"Limpar" deve zerar placeInVehicle via copyWith _omit',
       );
     });
   });
