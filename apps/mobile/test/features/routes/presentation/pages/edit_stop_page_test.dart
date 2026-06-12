@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
+import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_page.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
@@ -656,6 +657,150 @@ void main() {
       await _scrollUntilVisible(tester, removeAction);
 
       expect(removeAction, findsOneWidget);
+    });
+  });
+
+  // ── 9–11. Chip de cor — integração com ColorPickerSheet (F3/F10/H13) ──────
+  //
+  // Estes testes pinam que o chip 'edit_stop_color_chip' abre a ColorPickerSheet
+  // real (não stub SnackBar), que commits da sheet aplicam updateStop live no
+  // provider, e que 'Limpar' limpa o campo color do stop.
+
+  group('Chip de cor — integração ColorPickerSheet', () {
+    testWidgets(
+        '9 — tap no chip abre ColorPickerSheet (header "Cor" visível); '
+        'sem SnackBar stub "Cor em breve"', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final colorChip = find.bySemanticsIdentifier('edit_stop_color_chip');
+      await _scrollUntilVisible(tester, colorChip);
+
+      await tester.tap(colorChip);
+      await tester.pumpAndSettle();
+
+      // Sheet aberta: 'Cor' agora aparece 2× (chip + header da sheet) e os
+      // 5 swatches estão presentes (âncora inequívoca da sheet).
+      expect(find.text('Cor'), findsNWidgets(2));
+      expect(
+        find.bySemanticsIdentifier('edit_stop_color_blue'),
+        findsOneWidget,
+      );
+
+      // Nenhum SnackBar de stub.
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets(
+        '10 — selecionar teal + "Concluído" → provider tem color == teal '
+        'e chip exibe dot colorido (Key edit_stop_color_chip_dot)',
+        (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Abre a sheet.
+      final colorChip = find.bySemanticsIdentifier('edit_stop_color_chip');
+      await _scrollUntilVisible(tester, colorChip);
+      await tester.tap(colorChip);
+      await tester.pumpAndSettle();
+
+      // Seleciona teal.
+      await tester.tap(find.bySemanticsIdentifier('edit_stop_color_teal'));
+      await tester.pump();
+
+      // Confirma com o Concluído DA SHEET (o header da página também tem
+      // 'Concluído' — a sheet, no root overlay, vem por último na árvore).
+      await tester.tap(find.text('Concluído').last);
+      await tester.pumpAndSettle();
+
+      // Provider deve ter color == teal.
+      final routes = container.read(routesProvider);
+      final route = routes.firstWhere((r) => r.id == 'r1');
+      final stop = route.stops.firstWhere((s) => s.id == 's1');
+      expect(stop.color, StopColor.teal);
+
+      // Chip deve exibir um dot colorido quando color != null.
+      expect(find.byKey(const Key('edit_stop_color_chip_dot')), findsOneWidget);
+    });
+
+    testWidgets(
+        '11 — stop já colorido (orange) → abrir sheet + "Limpar" → '
+        'provider tem color == null', (tester) async {
+      _useTallFrame(tester);
+
+      final orangeStop = _stop1.copyWith(color: StopColor.orange);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [orangeStop],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Abre a sheet.
+      final colorChip = find.bySemanticsIdentifier('edit_stop_color_chip');
+      await _scrollUntilVisible(tester, colorChip);
+      await tester.tap(colorChip);
+      await tester.pumpAndSettle();
+
+      // Limpa.
+      await tester.tap(find.text('Limpar'));
+      await tester.pumpAndSettle();
+
+      // Provider deve ter color == null.
+      final routes = container.read(routesProvider);
+      final route = routes.firstWhere((r) => r.id == 'r1');
+      final stop = route.stops.firstWhere((s) => s.id == 's1');
+      expect(stop.color, isNull);
     });
   });
 }

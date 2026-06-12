@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/stop.dart';
 import '../../domain/stop_order_policy.dart';
 import '../../state/routes_provider.dart';
+import '../widgets/color_picker_sheet.dart';
 
 /// Página full-screen de edição de parada (MS-A6 T8, D1).
 ///
@@ -45,6 +46,25 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text('$feature em breve')));
+  }
+
+  /// Chip de cor → ColorPickerSheet; commit-on-dismiss live via updateStop
+  /// (F3). Dismiss sem ação → nenhuma mudança.
+  Future<void> _pickColor(Stop stop) async {
+    final result = await ColorPickerSheet.show(context, current: stop.color);
+    if (!mounted) return;
+    switch (result) {
+      case ColorPicked(:final color):
+        ref
+            .read(routesProvider.notifier)
+            .updateStop(widget.routeId, stop.copyWith(color: color));
+      case ColorCleared():
+        ref
+            .read(routesProvider.notifier)
+            .updateStop(widget.routeId, stop.copyWith(color: null));
+      case null:
+        break;
+    }
   }
 
   @override
@@ -258,7 +278,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
           identifier: 'edit_stop_color_chip',
           button: true,
           child: InkWell(
-            onTap: () => _stub('Cor'),
+            onTap: () => _pickColor(stop),
             borderRadius: BorderRadius.circular(20),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
@@ -267,16 +287,27 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                 border: Border.all(color: AppColors.border),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    LucideIcons.palette,
-                    size: 16,
-                    color: AppColors.textMuted,
-                  ),
-                  SizedBox(width: 6),
-                  Text(
+                  if (stop.color == null)
+                    const Icon(
+                      LucideIcons.palette,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    )
+                  else
+                    Container(
+                      key: const Key('edit_stop_color_chip_dot'),
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: stopColorToken(stop.color!),
+                      ),
+                    ),
+                  const SizedBox(width: 6),
+                  const Text(
                     'Cor',
                     style: TextStyle(fontSize: 13, color: AppColors.text),
                   ),
