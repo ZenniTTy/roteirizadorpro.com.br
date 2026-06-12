@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:roteirizador_pro/features/route_config/presentation/widgets/time_picker_sheet.dart';
 import 'package:roteirizador_pro/features/routes/data/address_instructions_repository.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
@@ -19,6 +20,7 @@ import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop_order_policy.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_page.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/access_instructions_sheet.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/arrival_window_sheet.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/package_count_row.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/stop_notes_section.dart';
 import 'package:roteirizador_pro/features/routes/state/address_instructions_controller.dart';
@@ -1828,6 +1830,283 @@ void main() {
         stop.packagesCount,
         15,
         reason: 'commit-on-dismiss do dialog deve aplicar 15 no provider',
+      );
+    });
+  });
+
+  // ── 15. Horário de chegada (F7/H1/D8) ────────────────────────────────────
+  //
+  // Testa a row 'Horário de chegada' (edit_stop_window) que:
+  // 1. Exibe o valor formatado conforme o estado do stop (jadx UiFormatters).
+  // 2. Abre ArrivalWindowSheet ao tap (sem SnackBar de stub).
+  // 3. Commit de 'Limpar' limpa timeWindowStart/End no provider (prova _omit).
+  // 4. Commit de um lado só é válido (H1) e grava no provider.
+
+  group('15 — Horário de chegada (F7/H1/D8)', () {
+    // ── 15.1  Formatação conforme estado do stop ─────────────────────────────
+
+    testWidgets('15.1 — stop sem janela → row exibe "Qualquer momento"',
+        (tester) async {
+      _useTallFrame(tester);
+      // _stop1 tem timeWindowStart == null e timeWindowEnd == null (default).
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_window');
+      await _scrollUntilVisible(tester, row);
+
+      // Valor exibido na row.
+      expect(find.text('Qualquer momento'), findsOneWidget);
+    });
+
+    testWidgets(
+        '15.2 — só start (09:30) → row exibe "Após 09:30" '
+        '(edit_time_window_after_time, jadx UiFormatters.m8466v)',
+        (tester) async {
+      _useTallFrame(tester);
+      final stopStart = _stop1.copyWith(
+        timeWindowStart: const TimeOfDay(hour: 9, minute: 30),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopStart],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.bySemanticsIdentifier('edit_stop_window'),
+      );
+
+      expect(find.text('Após 09:30'), findsOneWidget);
+    });
+
+    testWidgets(
+        '15.3 — só end (18:00) → row exibe "Antes de 18:00" '
+        '(edit_time_window_before_time, jadx UiFormatters.m8466v)',
+        (tester) async {
+      _useTallFrame(tester);
+      final stopEnd = _stop1.copyWith(
+        timeWindowEnd: const TimeOfDay(hour: 18, minute: 0),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopEnd],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.bySemanticsIdentifier('edit_stop_window'),
+      );
+
+      expect(find.text('Antes de 18:00'), findsOneWidget);
+    });
+
+    testWidgets(
+        '15.4 — ambos (09:30/18:00) → row exibe "09:30 - 18:00" '
+        '(separador " - " verbatim do jadx)', (tester) async {
+      _useTallFrame(tester);
+      final stopBoth = _stop1.copyWith(
+        timeWindowStart: const TimeOfDay(hour: 9, minute: 30),
+        timeWindowEnd: const TimeOfDay(hour: 18, minute: 0),
+      );
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopBoth],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.bySemanticsIdentifier('edit_stop_window'),
+      );
+
+      expect(find.text('09:30 - 18:00'), findsOneWidget);
+    });
+
+    // ── 15.5  Tap abre ArrivalWindowSheet (sem SnackBar de stub) ─────────────
+
+    testWidgets(
+        '15.5 — tap na row "Horário de chegada" abre ArrivalWindowSheet '
+        '(find.byType); sem SnackBar de stub', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_window');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(ArrivalWindowSheet),
+        findsOneWidget,
+        reason: 'Tap em "Horário de chegada" deve abrir ArrivalWindowSheet',
+      );
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'Row não deve mais emitir SnackBar de stub',
+      );
+    });
+
+    // ── 15.6  Fluxo commit: 'Limpar' → provider null/null ────────────────────
+
+    testWidgets(
+        '15.6 — stop com janela 09:30/18:00 → abre sheet → tap "Limpar" → '
+        'provider: timeWindowStart == null && timeWindowEnd == null '
+        '(prova _omit: copyWith null explícito LIMPA — lesson copyWith-null-fallback)',
+        (tester) async {
+      _useTallFrame(tester);
+      final stopBoth = _stop1.copyWith(
+        timeWindowStart: const TimeOfDay(hour: 9, minute: 30),
+        timeWindowEnd: const TimeOfDay(hour: 18, minute: 0),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [stopBoth],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_window');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Sheet aberta — toca 'Limpar'.
+      await tester.tap(find.text('Limpar'));
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.timeWindowStart,
+        isNull,
+        reason:
+            '"Limpar" deve chamar copyWith(timeWindowStart: null) — _omit LIMPA',
+      );
+      expect(
+        stop.timeWindowEnd,
+        isNull,
+        reason:
+            '"Limpar" deve chamar copyWith(timeWindowEnd: null) — _omit LIMPA',
+      );
+    });
+
+    // ── 15.7  Fluxo set: stop sem janela → numpad row1 → confirmar → provider ─
+
+    testWidgets(
+        '15.7 — stop sem janela → sheet → numpad "Chegar entre" → 9 + :30 + '
+        'confirm → "Concluído" → provider: timeWindowStart == 09:30, '
+        'timeWindowEnd == null (H1: um lado só é válido)', (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // timeWindowStart == null
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final row = find.bySemanticsIdentifier('edit_stop_window');
+      await _scrollUntilVisible(tester, row);
+      await tester.tap(row);
+      await tester.pumpAndSettle();
+
+      // Sheet aberta — toca a row 'Chegar entre' para abrir o numpad.
+      await tester.tap(find.bySemanticsIdentifier('edit_stop_window_start'));
+      await tester.pumpAndSettle();
+
+      // Digita '9' + ':30' no numpad.
+      await tester.tap(find.bySemanticsIdentifier('time_picker_digit_9'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsIdentifier('time_picker_shortcut_30'));
+      await tester.pump();
+
+      // Confirma no numpad.
+      await tester.tap(find.bySemanticsIdentifier('time_picker_confirm'));
+      await tester.pumpAndSettle();
+
+      // Numpad fechou; a sheet principal ainda está aberta.
+      expect(find.byType(TimePickerSheet), findsNothing);
+
+      // Confirma com 'Concluído' da sheet (última ocorrência no overlay).
+      await tester.tap(find.text('Concluído').last);
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.timeWindowStart,
+        const TimeOfDay(hour: 9, minute: 30),
+        reason:
+            'F3: "Concluído" deve gravar timeWindowStart == 09:30 no provider',
+      );
+      expect(
+        stop.timeWindowEnd,
+        isNull,
+        reason: 'H1: um lado só é válido — timeWindowEnd deve permanecer null',
       );
     });
   });

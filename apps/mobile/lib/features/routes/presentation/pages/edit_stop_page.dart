@@ -9,6 +9,7 @@ import '../../domain/stop_order_policy.dart';
 import '../../state/routes_provider.dart';
 import '../../state/address_instructions_controller.dart';
 import '../widgets/access_instructions_sheet.dart';
+import '../widgets/arrival_window_sheet.dart';
 import '../widgets/color_picker_sheet.dart';
 import '../widgets/package_count_row.dart';
 import '../widgets/stop_notes_section.dart';
@@ -83,6 +84,43 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
       case null:
         break;
     }
+  }
+
+  /// 24h com zero-pad — NÃO usa TimeOfDay.format (locale/12h dependente).
+  static String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:'
+      '${t.minute.toString().padLeft(2, '0')}';
+
+  /// Display da janela de chegada (jadx UiFormatters.m8466v): ambos →
+  /// 'HH:MM - HH:MM'; só início → 'Após HH:MM'; só fim → 'Antes de HH:MM';
+  /// vazio → 'Qualquer momento'.
+  String _formatWindow(Stop stop) {
+    final start = stop.timeWindowStart;
+    final end = stop.timeWindowEnd;
+    if (start != null && end != null) {
+      return '${_formatTime(start)} - ${_formatTime(end)}';
+    }
+    if (start != null) return 'Após ${_formatTime(start)}';
+    if (end != null) return 'Antes de ${_formatTime(end)}';
+    return 'Qualquer momento';
+  }
+
+  /// Janela de chegada (F7/H1/D8): sheet com 2 rows → numpad. Record popado
+  /// = janela completa; null explícito em um lado LIMPA (copyWith _omit).
+  Future<void> _openArrivalWindow(Stop stop) async {
+    final result = await ArrivalWindowSheet.show(
+      context,
+      initialStart: stop.timeWindowStart,
+      initialEnd: stop.timeWindowEnd,
+    );
+    if (result == null || !mounted) return;
+    ref.read(routesProvider.notifier).updateStop(
+          widget.routeId,
+          stop.copyWith(
+            timeWindowStart: result.start,
+            timeWindowEnd: result.end,
+          ),
+        );
   }
 
   /// Chip de cor → ColorPickerSheet; commit-on-dismiss live via updateStop
@@ -213,8 +251,8 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                     semanticsId: 'edit_stop_window',
                     icon: LucideIcons.clock,
                     label: 'Horário de chegada',
-                    value: 'Qualquer momento',
-                    onTap: () => _stub('Horário de chegada'),
+                    value: _formatWindow(stop),
+                    onTap: () => _openArrivalWindow(stop),
                   ),
                   _EditStopRow(
                     semanticsId: 'edit_stop_duration',
