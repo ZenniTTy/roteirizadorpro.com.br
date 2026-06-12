@@ -163,26 +163,51 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
                               stop.copyWith(packagesCount: v),
                             ),
                   ),
-                  _EditStopRow(
+                  _SegmentedRow<StopOrderPolicy>(
                     semanticsId: 'edit_stop_order',
                     icon: LucideIcons.listOrdered,
                     label: 'Ordem',
-                    value: switch (stop.orderPolicy) {
-                      StopOrderPolicy.first => 'Primeira',
-                      StopOrderPolicy.auto => 'Automática',
-                      StopOrderPolicy.last => 'Última',
-                    },
-                    onTap: () => _stub('Ordem'),
+                    segments: const [
+                      ButtonSegment(
+                        value: StopOrderPolicy.first,
+                        label: Text('Primeira'),
+                      ),
+                      ButtonSegment(
+                        value: StopOrderPolicy.auto,
+                        label: Text('Automática'),
+                      ),
+                      ButtonSegment(
+                        value: StopOrderPolicy.last,
+                        label: Text('Última'),
+                      ),
+                    ],
+                    selected: stop.orderPolicy,
+                    onChanged: (policy) =>
+                        ref.read(routesProvider.notifier).updateStop(
+                              widget.routeId,
+                              stop.copyWith(orderPolicy: policy),
+                            ),
                   ),
-                  _EditStopRow(
+                  _SegmentedRow<StopType>(
                     semanticsId: 'edit_stop_type',
                     icon: LucideIcons.tag,
                     label: 'Tipo',
-                    value: switch (stop.type) {
-                      StopType.delivery => 'Entrega',
-                      StopType.pickup => 'Coleta',
-                    },
-                    onTap: () => _stub('Tipo'),
+                    segments: const [
+                      ButtonSegment(
+                        value: StopType.delivery,
+                        label: Text('Entrega'),
+                      ),
+                      ButtonSegment(
+                        value: StopType.pickup,
+                        label: Text('Coleta'),
+                      ),
+                    ],
+                    selected: stop.type,
+                    onChanged: (type) =>
+                        ref.read(routesProvider.notifier).updateStop(
+                              widget.routeId,
+                              stop.copyWith(type: type),
+                            ),
                   ),
                   _EditStopRow(
                     semanticsId: 'edit_stop_window',
@@ -540,6 +565,80 @@ class _ActionRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Row com label à esquerda e `SegmentedButton` à direita (F16/H21 — §10.6:
+/// no Spoke o segmented ocupa a metade direita da row). Single-select,
+/// sempre habilitado (§13.C.1); mudança aplica live via [onChanged] (F3).
+class _SegmentedRow<T> extends StatelessWidget {
+  const _SegmentedRow({
+    required this.semanticsId,
+    required this.icon,
+    required this.label,
+    required this.segments,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final String semanticsId;
+  final IconData icon;
+  final String label;
+  final List<ButtonSegment<T>> segments;
+  final T selected;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 9),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.textMuted),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 15, color: AppColors.text),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            // FittedBox: encolhe o segmented quando o espaço aperta (fonte de
+            // teste Ahem é mais larga que a de produção) em vez de estourar.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Semantics(
+                identifier: semanticsId,
+                child: SegmentedButton<T>(
+                  segments: segments,
+                  selected: {selected},
+                  // H21: Spoke não mostra check no segment selecionado.
+                  showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    foregroundColor: AppColors.textMuted,
+                    backgroundColor: AppColors.surface,
+                    selectedForegroundColor: Colors.white,
+                    selectedBackgroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.border),
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onSelectionChanged: (selection) => onChanged(selection.first),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

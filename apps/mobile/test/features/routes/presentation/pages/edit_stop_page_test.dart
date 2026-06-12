@@ -16,6 +16,7 @@ import 'package:roteirizador_pro/features/routes/data/address_instructions_repos
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
+import 'package:roteirizador_pro/features/routes/domain/stop_order_policy.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/edit_stop_page.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/access_instructions_sheet.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/package_count_row.dart';
@@ -1233,6 +1234,535 @@ void main() {
         stop.packagesCount,
         2,
         reason: '3 - 1 tap "−" = 2',
+      );
+    });
+  });
+
+  // ── 14. Ordem + Tipo segmented (F16/H21) ─────────────────────────────────
+  //
+  // Spec §13.C.1, F3, F16, H19, H21.
+  // Cada row deixa de ser _EditStopRow stub e passa a conter um
+  // SegmentedButton inline. Os testes abaixo FALHAM enquanto a página ainda
+  // usa _EditStopRow com onTap → _stub('Ordem') / _stub('Tipo').
+
+  group('14 — Ordem + Tipo segmented (F16/H21)', () {
+    // ── 14.1  Row Ordem: SegmentedButton<StopOrderPolicy> com 3 segments ──
+
+    testWidgets(
+        '14.1 — Row Ordem contém SegmentedButton<StopOrderPolicy> '
+        'com segments Primeira / Automática / Última (H21/F16)',
+        (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Scroll até a row Ordem (abaixo da dobra).
+      await _scrollUntilVisible(tester, find.text('Ordem'));
+
+      // Deve existir um SegmentedButton parametrizado com StopOrderPolicy.
+      expect(
+        find.byType(SegmentedButton<StopOrderPolicy>),
+        findsOneWidget,
+        reason: 'Row Ordem deve usar SegmentedButton<StopOrderPolicy>',
+      );
+
+      // Os três labels de segment devem estar presentes e escopados ao botão.
+      final btn = find.byType(SegmentedButton<StopOrderPolicy>);
+      expect(
+        find.descendant(of: btn, matching: find.text('Primeira')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: btn, matching: find.text('Automática')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: btn, matching: find.text('Última')),
+        findsOneWidget,
+      );
+    });
+
+    // ── 14.2  showSelectedIcon == false (H21) ─────────────────────────────
+
+    testWidgets(
+        '14.2 — SegmentedButton<StopOrderPolicy> tem showSelectedIcon == false (H21)',
+        (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+
+      final widget = tester.widget<SegmentedButton<StopOrderPolicy>>(
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+      expect(
+        widget.showSelectedIcon,
+        isFalse,
+        reason: 'H21: showSelectedIcon deve ser false na row Ordem',
+      );
+    });
+
+    // ── 14.3  Seleção reflete stop.orderPolicy (default == auto) ──────────
+
+    testWidgets(
+        '14.3 — SegmentedButton<StopOrderPolicy> selected == {auto} '
+        'quando stop seedado com orderPolicy == auto (default)',
+        (tester) async {
+      _useTallFrame(tester);
+      // _stop1.orderPolicy == StopOrderPolicy.auto (default do construtor)
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+
+      final widget = tester.widget<SegmentedButton<StopOrderPolicy>>(
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+      expect(
+        widget.selected,
+        equals({StopOrderPolicy.auto}),
+        reason:
+            'selected deve refletir stop.orderPolicy == auto (valor não-default do ponto de vista do test)',
+      );
+    });
+
+    // ── 14.4  Seleção reflete variante first ──────────────────────────────
+
+    testWidgets(
+        '14.4 — SegmentedButton<StopOrderPolicy> selected == {first} '
+        'quando stop seedado com orderPolicy == first', (tester) async {
+      _useTallFrame(tester);
+      final stopFirst = _stop1.copyWith(orderPolicy: StopOrderPolicy.first);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopFirst],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+
+      final widget = tester.widget<SegmentedButton<StopOrderPolicy>>(
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+      expect(widget.selected, equals({StopOrderPolicy.first}));
+    });
+
+    // ── 14.5  onSelectionChanged != null (§13.C.1 — nunca disabled) ───────
+
+    testWidgets(
+        '14.5 — SegmentedButton<StopOrderPolicy>.onSelectionChanged != null '
+        '(§13.C.1 — sempre habilitado)', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+
+      final widget = tester.widget<SegmentedButton<StopOrderPolicy>>(
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+      expect(
+        widget.onSelectionChanged,
+        isNotNull,
+        reason:
+            '§13.C.1: SegmentedButton<StopOrderPolicy> nunca deve ser disabled',
+      );
+    });
+
+    // ── 14.6  Live update Ordem (F3): tap 'Última' → provider ─────────────
+
+    testWidgets(
+        '14.6 — tap no segment "Última" → provider: '
+        'stop.orderPolicy == StopOrderPolicy.last (F3 / live update)',
+        (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // orderPolicy == auto
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final btn = find.byType(SegmentedButton<StopOrderPolicy>);
+      await _scrollUntilVisible(tester, btn);
+
+      await tester.tap(
+        find.descendant(of: btn, matching: find.text('Última')),
+      );
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.orderPolicy,
+        StopOrderPolicy.last,
+        reason:
+            'F3: tap em "Última" deve gravar live no provider sem Concluído',
+      );
+    });
+
+    // ── 14.7  Tap Ordem NÃO exibe SnackBar de stub ────────────────────────
+
+    testWidgets(
+        '14.7 — tap no segment "Última" NÃO exibe SnackBar de stub '
+        '(row deixou de ser stub)', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final btn = find.byType(SegmentedButton<StopOrderPolicy>);
+      await _scrollUntilVisible(tester, btn);
+
+      await tester.tap(
+        find.descendant(of: btn, matching: find.text('Última')),
+      );
+      await tester.pump();
+
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'Row Ordem não deve mais emitir SnackBar de stub',
+      );
+    });
+
+    // ── 14.8  Semantics edit_stop_order ainda presente (H19) ──────────────
+
+    testWidgets(
+        '14.8 — Semantics identifier "edit_stop_order" continua presente '
+        'na row Ordem mesmo após migração para SegmentedButton (H19)',
+        (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<StopOrderPolicy>),
+      );
+
+      expect(
+        find.bySemanticsIdentifier('edit_stop_order'),
+        findsOneWidget,
+        reason: 'H19: identifier edit_stop_order deve permanecer na row',
+      );
+    });
+
+    // ── 14.9  Row Tipo: SegmentedButton<StopType> com 2 segments ──────────
+
+    testWidgets(
+        '14.9 — Row Tipo contém SegmentedButton<domain.StopType> '
+        'com segments Entrega / Coleta (F16)', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(tester, find.text('Tipo'));
+
+      expect(
+        find.byType(SegmentedButton<domain.StopType>),
+        findsOneWidget,
+        reason: 'Row Tipo deve usar SegmentedButton<StopType>',
+      );
+
+      final btn = find.byType(SegmentedButton<domain.StopType>);
+      expect(
+        find.descendant(of: btn, matching: find.text('Entrega')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: btn, matching: find.text('Coleta')),
+        findsOneWidget,
+      );
+    });
+
+    // ── 14.10  showSelectedIcon == false para Tipo (H21) ──────────────────
+
+    testWidgets(
+        '14.10 — SegmentedButton<domain.StopType> tem showSelectedIcon == false (H21)',
+        (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+
+      final widget = tester.widget<SegmentedButton<domain.StopType>>(
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+      expect(
+        widget.showSelectedIcon,
+        isFalse,
+        reason: 'H21: showSelectedIcon deve ser false na row Tipo',
+      );
+    });
+
+    // ── 14.11  Seleção Tipo reflete stop.type (default == delivery) ────────
+
+    testWidgets(
+        '14.11 — SegmentedButton<domain.StopType> selected == {delivery} '
+        'quando stop seedado com type == delivery (default)', (tester) async {
+      _useTallFrame(tester);
+      // _stop1.type == StopType.delivery (default)
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+
+      final widget = tester.widget<SegmentedButton<domain.StopType>>(
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+      expect(widget.selected, equals({domain.StopType.delivery}));
+    });
+
+    // ── 14.12  Seleção Tipo reflete variante pickup ────────────────────────
+
+    testWidgets(
+        '14.12 — SegmentedButton<domain.StopType> selected == {pickup} '
+        'quando stop seedado com type == pickup', (tester) async {
+      _useTallFrame(tester);
+      final stopPickup = _stop1.copyWith(type: domain.StopType.pickup);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [stopPickup],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+
+      final widget = tester.widget<SegmentedButton<domain.StopType>>(
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+      expect(widget.selected, equals({domain.StopType.pickup}));
+    });
+
+    // ── 14.13  onSelectionChanged != null para Tipo (§13.C.1) ─────────────
+
+    testWidgets(
+        '14.13 — SegmentedButton<domain.StopType>.onSelectionChanged != null '
+        '(§13.C.1 — sempre habilitado)', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+
+      final widget = tester.widget<SegmentedButton<domain.StopType>>(
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+      expect(
+        widget.onSelectionChanged,
+        isNotNull,
+        reason: '§13.C.1: SegmentedButton<StopType> nunca deve ser disabled',
+      );
+    });
+
+    // ── 14.14  Live update Tipo (F3): tap 'Coleta' → provider ─────────────
+
+    testWidgets(
+        '14.14 — tap no segment "Coleta" → provider: '
+        'stop.type == StopType.pickup (F3 / live update)', (tester) async {
+      _useTallFrame(tester);
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                status: domain.RouteStatus.running,
+                stops: [_stop1], // type == delivery
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final btn = find.byType(SegmentedButton<domain.StopType>);
+      await _scrollUntilVisible(tester, btn);
+
+      await tester.tap(
+        find.descendant(of: btn, matching: find.text('Coleta')),
+      );
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      final stop = routes
+          .firstWhere((r) => r.id == 'r1')
+          .stops
+          .firstWhere((s) => s.id == 's1');
+      expect(
+        stop.type,
+        domain.StopType.pickup,
+        reason:
+            'F3: tap em "Coleta" deve gravar live no provider sem Concluído',
+      );
+    });
+
+    // ── 14.15  Tap Tipo NÃO exibe SnackBar de stub ────────────────────────
+
+    testWidgets(
+        '14.15 — tap no segment "Coleta" NÃO exibe SnackBar de stub '
+        '(row deixou de ser stub)', (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final btn = find.byType(SegmentedButton<domain.StopType>);
+      await _scrollUntilVisible(tester, btn);
+
+      await tester.tap(
+        find.descendant(of: btn, matching: find.text('Coleta')),
+      );
+      await tester.pump();
+
+      expect(
+        find.byType(SnackBar),
+        findsNothing,
+        reason: 'Row Tipo não deve mais emitir SnackBar de stub',
+      );
+    });
+
+    // ── 14.16  Semantics edit_stop_type ainda presente (H19) ──────────────
+
+    testWidgets(
+        '14.16 — Semantics identifier "edit_stop_type" continua presente '
+        'na row Tipo mesmo após migração para SegmentedButton (H19)',
+        (tester) async {
+      _useTallFrame(tester);
+      await tester.pumpWidget(
+        _buildApp(
+          router: _buildRouter(routeId: 'r1', stopId: 's1'),
+          stops: [_stop1],
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await _scrollUntilVisible(
+        tester,
+        find.byType(SegmentedButton<domain.StopType>),
+      );
+
+      expect(
+        find.bySemanticsIdentifier('edit_stop_type'),
+        findsOneWidget,
+        reason: 'H19: identifier edit_stop_type deve permanecer na row',
       );
     });
   });
