@@ -1,6 +1,6 @@
 ---
 name: verify-slice
-description: Run the M2-SLICE-CHECKLIST §Verification gate as one orchestrated command — flutter analyze, flutter test, bun typecheck across the modified apps, plus prototype-fidelity-checker and adr-guardian dispatched as parallel subagents. Produces a single consolidated Markdown report. Use before opening any M2 slice PR (per CLAUDE.md "Current Focus") or when the user says "verify slice", "verifica slice", "ready to PR", "ready to merge". Does not commit, push, or edit code. Pure read-only orchestration.
+description: Run the M2-SLICE-CHECKLIST §Verification gate as one orchestrated command — flutter analyze, flutter test, bun typecheck across the modified apps, plus spoke-parity-checker (D4 closing dispatch, dump-only per ADR-0049 — skipped for Áreas 1/11 which have no Spoke baseline) and adr-guardian dispatched as parallel subagents. Produces a single consolidated Markdown report. Use before opening any M2 slice PR (per CLAUDE.md "Current Focus") or when the user says "verify slice", "verifica slice", "ready to PR", "ready to merge". Does not commit, push, or edit code. Pure read-only orchestration. (prototype-fidelity-checker is NOT part of this gate — it runs only in the final visual-polish pass per the roadmap.)
 disable-model-invocation: true
 allowed-tools: Bash(flutter analyze:*), Bash(flutter test:*), Bash(bun run:*), Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git rev-parse:*), Bash(cd:*), Agent
 ---
@@ -62,10 +62,13 @@ Capture exit code and last ~30 lines of output from each. If a command is not ap
 
 Dispatch both subagents in **one assistant message** with two `Agent` tool calls. Both are read-only — no risk of conflicting writes.
 
-- `prototype-fidelity-checker` — prompt: *"Audit the UI changes on this branch (`<branch>`) against the prototype at `prototipo/`. Focus on files in `apps/mobile/lib/features/**/presentation/**.dart` modified since `origin/develop`. Report the standard punch list (Critical / Minor / Identity)."*
+- `spoke-parity-checker` (D4 closing dispatch — **dump-only by default per ADR-0049**) — prompt: *"D4 closing dispatch for the flow(s) shipped on this branch (`<branch>`, diff vs `origin/develop`). Compare the shipped RotPro implementation against the static dump baseline (MASTER-TABLE rows + amendments, `~/spoke-dump/jadx-out` greps, and the area's `docs/superpowers/specs/*-design.md` if present). Dump-only: do NOT navigate the live Spoke app except for `Precisa-runtime` clicks explicitly listed in the design doc/table for this area. Report the standard punch list (must-fix / should-fix / nit)."*
+  **Skip this dispatch** (record "skipped — no Spoke baseline") when the branch's diff is exclusively Área 1 (auth) or Área 11 (notifications) work — those have no Spoke equivalent per the roadmap.
 - `adr-guardian` — prompt: *"Audit stack-affecting changes on this branch (`<branch>`) against `origin/develop`. Use the standard ADR Guardian report format."*
 
 Wait for both to return.
+
+> `prototype-fidelity-checker` is intentionally NOT dispatched here — visual-identity sweeps run only in the final polish pass (roadmap §"Polish visual final"); dispatching it per-slice was a pre-ADR-0045 drift, removed 2026-06-11.
 
 ### 4. Consolidate
 
@@ -88,8 +91,8 @@ Produce one Markdown report under this exact structure (no narration outside the
 
 <paste failing-output tails inline here, NOT in collapsibles — humans read top-down>
 
-## Prototype fidelity
-<paste prototype-fidelity-checker output verbatim>
+## Spoke parity (D4, dump-only)
+<paste spoke-parity-checker output verbatim — or "skipped: no Spoke baseline (Á1/Á11)">
 
 ## ADR coverage
 <paste adr-guardian output verbatim>
@@ -108,7 +111,7 @@ These remain manual — `/verify-slice` does NOT cover them:
 
 <one of:>
 - ✅ **GO** — every automated check is green; remaining manual items can run during PR review.
-- 🟡 **GO WITH WARNINGS** — automated checks green but fidelity/ADR audit flagged minor items; proceed if the human accepts the deferrals listed above.
+- 🟡 **GO WITH WARNINGS** — automated checks green but parity/ADR audit flagged should-fix/nit items; proceed if the human accepts the deferrals listed above. (A parity **must-fix** is NOT a warning — it forces NO-GO per the slice checklist.)
 - ❌ **NO-GO** — at least one automated check failed. Fix the specific issues listed under "Local verification" before opening the PR. Do not bypass.
 ```
 
@@ -127,7 +130,7 @@ Print only the Markdown report. Do **not** offer to fix issues, open a PR, or ru
 ## Anti-patterns
 
 - Inlining a "while I'm here" fix when a check fails. The skill is a *gate*, not a *workspace*. Fail the verdict; the human re-runs after fixing.
-- Re-implementing what the subagents already do. If `prototype-fidelity-checker` reports clean, this skill takes that at face value.
+- Re-implementing what the subagents already do. If `spoke-parity-checker` reports clean, this skill takes that at face value.
 - Skipping the manual outstanding-items list. Even on a green verdict, the human needs the reminder that APK/E2E/curl evidence are still on them.
 
 ## What this skill is NOT

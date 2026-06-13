@@ -106,3 +106,12 @@ The Wave-A additions sit entirely in the first and fourth row. ADR-0012's rule (
 - `docs/M2-SLICE-CHECKLIST.md` §Verification — the manual checklist `/verify-slice` packages.
 - Anthropic Claude Code hooks documentation — `https://code.claude.com/docs/en/hooks-guide` (Stop matcher semantics, JSON stdin schema, exit-code conventions).
 - Tech Lead's Club — "Harness Engineering" framing of feedforward / action / feedback that motivated the placement of the new sensors.
+
+## Amendment 1 — 2026-06-11: `/verify-slice` gate composition (dump-first hardening)
+
+Authorized by Eduardo in-session. The original `/verify-slice` dispatched `prototype-fidelity-checker` + `adr-guardian`. Two post-dating decisions made that composition drift:
+
+1. **ADR-0035/0036 + the slice checklist** locked `prototype-fidelity-checker` to the *final visual-polish pass only* ("Sem `prototype-fidelity-checker` durante implementação") — yet the gate dispatched it per slice PR.
+2. **ADR-0036/0049** made the `spoke-parity-checker` D4 closing dispatch the mandatory functional-parity gate before every slice PR (must-fix blocks merge), with **dump-only** as the D4 default (ADR-0049) — yet the orchestrated gate never dispatched it, leaving D4 to manual discipline.
+
+**Change:** `/verify-slice` now dispatches `spoke-parity-checker` (D4, dump-only; skipped for Áreas 1/11 — no Spoke baseline) + `adr-guardian`. `prototype-fidelity-checker` is invoked only in the final polish pass. In the same hardening, `warn-dump-first.sh` gained a second trigger: editing `apps/mobile/lib/features/**` (except `features/auth/`) with no dump-derived consultation (MASTER-TABLE, `~/spoke-dump` grep, or a `specs/*-design.md` read) — the implement-from-inference failure mode (ADR-0041..0044) the original trigger could not see. A parity must-fix forces a NO-GO verdict.

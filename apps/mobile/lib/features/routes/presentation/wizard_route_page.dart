@@ -8,6 +8,7 @@ import '../../../core/widgets/rp_button.dart';
 import '../../../core/widgets/rp_input.dart';
 import '../application/wizard_form_controller.dart';
 import '../domain/route.dart' as domain;
+import '../state/active_route_provider.dart';
 import '../state/routes_provider.dart';
 
 const _kWeekdaysShort = <String>[
@@ -157,14 +158,15 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
     final isUsingAutoName = customName.isEmpty || customName == autoName;
     final nameForCreate = isUsingAutoName ? null : customName;
 
-    // Create mode: persist the new route in the in-memory provider and
-    // navigate. `createRoute` returns the new id — Slice 2 just navigates
-    // back to /home (shell), where the new route becomes selectable from
-    // the drawer. Slice 3 will deep-link to `/home/routes/$newId/active`.
+    // Create mode: persist the new route and make it the ACTIVE one before
+    // navigating back to the shell — paridade Spoke (criar → entra na rota).
+    // Sem isso o fluxo criar → "Adicionar parada" falha com "Nenhuma rota
+    // ativa selecionada" (smoke E2E release, MS-A6 T20d 2026-06-12).
     final newId = ref.read(routesProvider.notifier).createRoute(
           name: nameForCreate,
           date: selectedDate,
         );
+    ref.read(activeRouteIdProvider.notifier).setActiveRoute(newId);
 
     if (state.reuseStops) {
       // Spoke §11.3: when reuseStops is checked, after create navigate to
@@ -182,10 +184,6 @@ class _WizardRoutePageState extends ConsumerState<WizardRoutePage> {
       return;
     }
 
-    // Keep `newId` discoverable for future slice-3 active-route wiring —
-    // not used directly yet, but logging it in debug avoids the unused
-    // warning while making the create→navigate intention explicit.
-    assert(newId.isNotEmpty);
     _popOrHome();
   }
 

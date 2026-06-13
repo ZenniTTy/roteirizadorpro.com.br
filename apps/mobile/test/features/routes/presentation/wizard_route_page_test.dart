@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/wizard_route_page.dart';
+import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 Widget _wrap({String? routeId, List<domain.Route>? seedRoutes}) {
@@ -43,6 +45,59 @@ void main() {
       // Zona C present in create.
       expect(find.text('Atalhos'), findsOneWidget);
       expect(find.text('Aproveitar últimas paradas'), findsOneWidget);
+    });
+
+    testWidgets(
+        'Confirmar (create) torna a rota recém-criada a ATIVA '
+        '(paridade Spoke: criar → entra na rota; smoke E2E MS-A6 flagrou '
+        '"Nenhuma rota ativa selecionada" no fluxo criar → adicionar parada)',
+        (tester) async {
+      tester.view.physicalSize = const Size(1080, 3200);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(() => _FakeRoutes([])),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = GoRouter(
+        initialLocation: '/create',
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (_, __) =>
+                const Scaffold(body: Center(child: Text('SENTINEL_HOME'))),
+          ),
+          GoRoute(
+            path: '/create',
+            builder: (_, __) => const WizardRoutePage(routeId: null),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 50));
+
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      final routes = container.read(routesProvider);
+      expect(routes, hasLength(1), reason: 'Confirmar deve criar a rota');
+      expect(
+        container.read(activeRouteIdProvider),
+        routes.single.id,
+        reason: 'a rota recém-criada deve virar a ativa '
+            '(senão "Adicionar parada" falha com "Nenhuma rota ativa")',
+      );
     });
   });
 

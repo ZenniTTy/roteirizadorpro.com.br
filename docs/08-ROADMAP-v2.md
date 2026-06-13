@@ -86,9 +86,9 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 
 ```
 [✅ FECHADA]     Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência ✅ (FTUE-cut ADR-0047) → MS9 integration_test+D4+editar/remover pausa ✅ (ADR-0049))
-       │        Finalizar gatilhos da Área 3 (Otimizar CTA, tap no stop card, kebab/bottom-bar)
+       │        Finalizar gatilhos da Área 3 (Otimizar CTA, kebab/bottom-bar; tap no stop card ✅ MS-A6)
        ▼
-   Área 6 (Editar parada)  ──► chips A1/A2 e lista inline dependem dela
+[✅ FECHADA]   Área 6 (Editar parada — MS-A6 2026-06-12)  ──► chips A1/A2 e lista inline dependem dela
        ▼
    Área 7 (Otimizar rota)  ──► "Iniciar rota" é o gateway pra Área 8
        ▼
@@ -126,7 +126,7 @@ Pronto: GoogleMap base + sheet manual 3-snap (direction-based snap) + search pil
 - [x] **Controles de mapa** (layer toggle + recenter) ✅ **MS-A3 (2026-06-11)** — dump-first (`EditRouteFragment`/`MapController`/`MapToolbarControlsController` em `~/spoke-dump/jadx-out`). Layer toggle = `MapType` 2-estados persistido (`MapPrefsRepository` + `SharedPreferencesAsync`) + toast PT-BR original; recenter = follow-my-location via `LocationService` (geolocator wrapper, sealed `LocationResult`) + fallback gracioso sem permissão + contador pending-move p/ não derrubar o follow na própria animação. Estado em `MapControlsController` (`@riverpod` keepAlive). +24 testes (controller + service + widget). **Achado dump-first:** a nota §6.2bis "controles visíveis só com sheet collapsed" era inferência — o código prova visibilidade por **flow ativo**, não por altura do sheet (corrigido no inventário).
 - [x] **"Copiar paradas de uma rota anterior"** ✅ **MS-A3** — empty-state secondary CTA agora faz `push('/home/routes/reuse-stops')` (rota já existia; matou o `_comingSoon`).
 - [ ] **CTA "Otimizar rota"** sticky bottom → entra na Área 7. **Wirar como 1ª task do MS-A7** (é o entrypoint da Área 7; CTA ainda não existe no shell — nasce com a lista de stops).
-- [ ] **Tap no stop card** → abre Área 6 (edit-stop sheet). **Wirar como 1ª task do MS-A6** (`add_stop_page.dart:103`).
+- [x] **Tap no stop card** → abre Área 6 ✅ **MS-A6 (2026-06-12)** — lista de stops no sheet do shell (§10.5: header "N paradas" + nome clicável, cards com badge/rua/endereço/status-dot, auto-expand one-shot, footer some com ≥1 parada) + card inteiro pusha a página de edit. Entrypoints extras: Section A da add-stop (pop-intent) + toast pós-add "Ver" (F4/H9).
 - [ ] **Kebab + bottom-bar actions** → Área 9 surfaces. **Wirar como 1ª task do MS-A9** (`route_shell_page.dart` kebab "Opções da rota").
 
 > Layout crítico (lição travada): mapa + sheet em `Column { Expanded(GoogleMap), sheet }`, NUNCA `Stack` (o PlatformView do GoogleMap ganha toda arena de gesto).
@@ -151,11 +151,17 @@ Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 b
 
 > Nota §13.C.2 RE-RESOLVIDA (ADR-0047, dump-first): a hipótese "Detalhes da rota é FTUE one-time" era **inferência** — o dump decompilado prova que a Spoke **NÃO tem gate de primeira rota** (sem `firstRoute`/`isFirst`/`hasSeenSetup` em `RouteSetupViewModel`; `ui/onboarding` é survey, não setup). A Detalhes é **on-demand** (aberta pelo resumo "Configuração de rota" da Área 3, ADR-0046), não auto-mostrada. FTUE auto-show **cortado**.
 
-### Área 6 — Editar parada (sheet, 14 campos) ⏳ depende de Área 3 (tap stop card) + Área 4 (Mudar endereço reusa add-stop)
+### Área 6 — Editar parada (página, 14 campos) ✅ FECHADA (MS-A6, 2026-06-12)
 
-`DraggableScrollableSheet` (NÃO route GoRouter; Área 4 e 6 compartilham a route `/home/routes/add-stop`). Topbar: Ajuda (esq) + "Editar parada" + "Concluído" primary (save+pop). Campos: chip cor (sheet 5 cores) · chip package-ID "A1" (display pós-otimização) · card endereço read-mostly · botão "Instruções de acesso" (2º sheet, **sticky AO ENDEREÇO** não à parada — §13.C.3 resolvida) · notas + camera attach · "Localizador de pacotes" · stepper Pacotes · SegmentedButton Ordem (Primeira/Automática/Última) · SegmentedButton Tipo (Entrega/Coleta) · "Horário de chegada" (B2C) · "Tempo estimado na parada" (default do setting global) · "Mudar endereço" · "Duplicar parada" · "Remover parada" (VERMELHO + AlertDialog confirm). Detalhe §10.6 + §11.1 + §11.5. **§13.C.1 RESOLVIDA: Pacotes/Ordem/Tipo sempre ativos.** SEM picker de razão de falha (é Dispatch B2B).
+Pronto (branch `feat/m2-slice-2-area-6-edit-stop`, 20 tasks TDD red→green): lista de stops no sheet do shell (§10.5, auto-expand one-shot H6, footer empty-state-only H5) + `EditStopPage` GoRouter full-screen (D1) com TODOS os campos: chips cor (5 cores F10) + ID (display) · card endereço · Instruções de acesso **sticky-ao-endereço** (F13/H18) · notas + **foto local** (`image_picker`+`path_provider` ADR-0050, `PackagePhotoStore` F12/H16/H17) · Localizador de pacotes completo (F11/H13 — chips dim/tipo + 3 eixos inline) · Pacotes stepper+dialog (F8/H3) · Ordem/Tipo segmented (F16/H21) · janela de chegada "Chegar entre"/"E" via numpad reusado (F7/H1/D8) · Tempo na parada min+seg com default do `SettingsRepository` (F9/H14) · Mudar endereço (`PickerMode.changeAddress` H10) · Duplicar (pushReplacement H11) · Remover (confirm F6). `Stop` migrado (`TimeOfDay?` janela, `_omit` em 11 nullables H2). 606 testes host + `integration_test/area6_edit_stop_flow_test.dart` verde no M54. D4 dump-only: 0 must-fix. Smoke E2E release achou e corrigiu 2 gaps fora da Á6: `MAPS_API_KEY` ausente no script de release + rota criada não virava ativa no wizard (paridade `RouteCreateFragment.java:186-193`).
 
-📊 **Dump (ADR-0045) — consome #4/#5/#6/#7/#8/#9/#10 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md):** `high` (codar direto) → **#8** Mudar endereço, **#9** Duplicar parada, **#10** Remover parada, **#6** Horário de chegada. `medium` (confirmar range/default ao vivo) → **#4** stepper Pacotes, **#7** Tempo na parada (default vem do setting global da Área 10; é campo DISTINTO da duração de Pausa — Achado #1). `low` (**NÃO codar sem runtime dedicado**, ou cortar B2B) → **#5** Localizador de pacotes.
+#### Histórico do design (pré-fechamento) · dependia de Área 3 (tap stop card) + Área 4 (Mudar endereço reusa add-stop)
+
+**Design aprovado (dump-first deep-grep): [`docs/superpowers/specs/2026-06-11-area6-edit-stop-design.md`](./superpowers/specs/2026-06-11-area6-edit-stop-design.md).** O deep-grep no jadx (2026-06-11) corrigiu a premissa: no Spoke, "Editar parada" é o `EditStopDialogFragment` (modal quase-full-screen, destination próprio) — NÃO um estado do sheet do shell; o `StopDetailSheet` pager é a surface de rota EM EXECUÇÃO (Área 8). **RotPro: página GoRouter full-screen** `/home/routes/active/:routeId/stops/:stopId/edit` (decisão D1 — idiom Á5, evita Flutter #155746). A MS-A6 também constrói a **lista de stops no sheet do shell** (seção "Paradas" per §10.5 — pré-requisito do tap; sem reorder=Á9, sem CTA Otimizar=Á7).
+
+Topbar: Ajuda (stub) + "Editar parada" + "Concluído" primary (**só fecha — edits aplicados live por campo**, fato F3). Campos: chip cor (sheet, **exatamente 5 cores**) · chip package-ID (display "Pendente"; tela Formato do ID é Á10) · card endereço read-mostly · "Instruções de acesso" (2º sheet, **sticky AO ENDEREÇO** — §13.C.3 + F13) · notas + camera attach (**implementar local-only**: `image_picker` já no pubspec + `path_provider` novo → ADR curta; Spoke não sobe foto) · "Localizador de pacotes" (**estrutura completa no dump — implementar**, F11) · Pacotes (stepper inline + dialog 1–9999 no tap do número, F8) · SegmentedButton Ordem (Primeira/Automática/Última) · SegmentedButton Tipo (Entrega/Coleta) · "Horário de chegada" (**JANELA** "Chegar entre"/"E", F7 — reusa padrão janela+numpad da BreakScheduler) · "Tempo estimado na parada" (dialog **min+seg**, default do `SettingsRepository` mínimo criado nesta MS — 1 min, F9/D4) · "Mudar endereço" (PickerMode novo na AddStopPage) · "Duplicar parada" (imediato → abre editor da duplicata, F5) · "Remover parada" (VERMELHO + AlertDialog confirm, F6). Pós-add via texto: toast "Parada adicionada" + ação "Ver" (F4 — §11.5 amendado). **§13.C.1 RESOLVIDA: Pacotes/Ordem/Tipo sempre ativos.** SEM picker de razão de falha (Dispatch B2B). SEM Cliente/Destinatário/Valor-a-cobrar (feature-gated B2B, F14).
+
+📊 **Dump (ADR-0045):** rows #4–#10 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) **todas resolvidas por código** no Amendment 2026-06-11 (inclusive **#5** que era `low` → estrutura completa, e **#7** default global = 1 min). `Precisa-runtime` restante: 2 cliques no D4 (toast pós-add + tap-no-número dos Pacotes).
 
 ### Área 7 — Otimizar rota (3 estados + 3 modais FTUE) ⏳ depende de Área 6 (chips) + Área 3 (CTA Otimizar)
 
@@ -275,7 +281,7 @@ Subapp Next.js em `apps/admin/` (ou expansão de `apps/landing/`). Auth separada
 
 ## Validação contínua (subagents + gates)
 
-- **`spoke-parity-checker`** ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md)) — dispatch UPFRONT (baseline estrutural com tabela `bounds|desc|padrão|widget`, exigir screenshot pixels pra ícones Compose) + D4 closing. **NÃO** pra Áreas 1 e 11 (sem baseline Spoke).
+- **`spoke-parity-checker`** ([ADR-0036](./decisions/0036-spoke-parity-checker-functional-gate.md), dump-first per ADR-0045/0049) — dispatch UPFRONT = **confirmar a baseline do dump** (MASTER-TABLE+amendments + jadx; runtime só o `Precisa-runtime`; screenshot pixels pra ícones Compose quando runtime rodar) + D4 closing = **dump-only por default** (runtime só os cliques listados; o `/verify-slice` dispatcha o D4 automaticamente desde 2026-06-11). **NÃO** pra Áreas 1 e 11 (sem baseline Spoke).
 - **`flutter-test-author`** ([ADR-0025](./decisions/0025-flutter-test-author-subagent.md)) — antes de widget/provider/service novo (TDD opcional).
 - **`flutter-perf-auditor`** — após terminar tela, antes do PR (9-check read-only).
 - **`adr-guardian`** — antes de PR que toca stack (pubspec/package.json/schema).

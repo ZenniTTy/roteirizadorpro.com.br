@@ -96,12 +96,10 @@ class AddStopPage extends ConsumerWidget {
   }
 
   void _onSectionATap(BuildContext context, Stop stop) {
-    // Section A is only rendered in add-stop mode (Partida picker omits the
-    // existing-stops list). Area 6 will replace this with a push to the
-    // edit-stop sheet.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Editar parada em breve')),
-    );
+    // Section A é uma parada EXISTENTE: popa com o intent record e o caller
+    // (RouteShellPage, context vivo) pusha o editor — evita empilhar o
+    // editor sobre o add-stop (H11; padrão sheet-returns-intent).
+    context.pop<Object?>((editStopId: stop.id));
   }
 
   Future<void> _onSectionBTap(
@@ -116,6 +114,8 @@ class AddStopPage extends ConsumerWidget {
         await _popWithStartLocation(context, ref, p);
       case PickerMode.endLocation:
         await _popWithEndLocation(context, ref, p);
+      case PickerMode.changeAddress:
+        await _popWithChangeAddress(context, ref, p);
     }
   }
 
@@ -153,7 +153,9 @@ class AddStopPage extends ConsumerWidget {
       ref.read(routesProvider.notifier).addStop(activeRouteId, newStop);
       if (context.mounted) {
         messenger.hideCurrentSnackBar();
-        context.pop();
+        // Popa com o id do stop novo: o shell (caller) mostra o toast
+        // "Parada adicionada" + action "Ver" (F4/H9).
+        context.pop<Object?>(newStop.id);
       }
     } catch (e) {
       if (context.mounted) {
@@ -238,6 +240,41 @@ class AddStopPage extends ConsumerWidget {
 
     if (context.mounted) {
       context.pop<SpecificAddress>(selected);
+    }
+  }
+
+  /// Change-address path (MS-A6 T17/H10): resolve place details and pop the
+  /// 4-field record the editor swaps into the [Stop]. On null details this
+  /// HARD-FAILS like the location pickers — SnackBar and no pop, never zero
+  /// coordinates.
+  Future<void> _popWithChangeAddress(
+    BuildContext context,
+    WidgetRef ref,
+    PlaceAutocompletePrediction p,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    ({double lat, double lng, String streetName, String fullAddress})? selected;
+    try {
+      final repo = ref.read(placesRepositoryProvider);
+      final details = await repo.getPlaceDetails(p.placeId);
+      if (details == null) {
+        throw Exception('Não foi possível obter os detalhes do endereço.');
+      }
+      selected = (
+        lat: details.lat,
+        lng: details.lng,
+        streetName: p.mainText,
+        fullAddress: details.formattedAddress,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      context.pop<Object?>(selected);
     }
   }
 }

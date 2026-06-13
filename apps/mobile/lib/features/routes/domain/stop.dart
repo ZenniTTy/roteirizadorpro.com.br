@@ -1,3 +1,8 @@
+import 'package:flutter/material.dart';
+import 'package:roteirizador_pro/features/routes/domain/package_details.dart';
+import 'package:roteirizador_pro/features/routes/domain/place_in_vehicle.dart';
+import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
+import 'package:roteirizador_pro/features/routes/domain/stop_order_policy.dart';
 import 'package:uuid/uuid.dart';
 
 enum StopType { delivery, pickup }
@@ -16,12 +21,17 @@ class Stop {
     required this.streetName,
     required this.fullAddress,
     this.notes,
-    this.colorHex,
     this.packagesCount = 1,
     this.timeWindowStart,
     this.timeWindowEnd,
-    this.customDurationMinutes,
     this.priority,
+    this.orderPolicy = StopOrderPolicy.auto,
+    this.color,
+    this.packageDetails,
+    this.placeInVehicle,
+    this.photoPaths = const [],
+    this.accessInstructions,
+    this.estimatedTimeAtStop,
   }) : id = id ?? const Uuid().v4();
 
   final String id;
@@ -38,50 +48,92 @@ class Stop {
   final String fullAddress;
 
   final String? notes;
-  final String? colorHex;
   final int packagesCount;
 
-  final DateTime? timeWindowStart;
-  final DateTime? timeWindowEnd;
-  final int? customDurationMinutes;
+  /// Janela de horário — tipo hora-do-dia (sem data) conforme dump v3.65.1 (H1).
+  final TimeOfDay? timeWindowStart;
+  final TimeOfDay? timeWindowEnd;
+
   final int? priority;
+
+  /// Restrição de posição da parada na rota (F16). Ortogonal a [priority] (H4).
+  final StopOrderPolicy orderPolicy;
+
+  final StopColor? color;
+  final PackageDetails? packageDetails;
+  final PlaceInVehicle? placeInVehicle;
+  final List<String> photoPaths;
+  final String? accessInstructions;
+
+  /// Tempo estimado na parada (substitui customDurationMinutes).
+  final Duration? estimatedTimeAtStop;
+
+  // Sentinela interna usada pelo copyWith para distinguir "omitido" de null.
+  static const _omit = Object();
 
   Stop copyWith({
     String? id,
-    int? positionInRoute,
-    String? deliveryId,
+    Object? positionInRoute = _omit,
+    Object? deliveryId = _omit,
     StopType? type,
     StopStatus? status,
     double? lat,
     double? lng,
     String? streetName,
     String? fullAddress,
-    String? notes,
-    String? colorHex,
+    Object? notes = _omit,
     int? packagesCount,
-    DateTime? timeWindowStart,
-    DateTime? timeWindowEnd,
-    int? customDurationMinutes,
-    int? priority,
+    Object? timeWindowStart = _omit,
+    Object? timeWindowEnd = _omit,
+    Object? priority = _omit,
+    StopOrderPolicy? orderPolicy,
+    Object? color = _omit,
+    Object? packageDetails = _omit,
+    Object? placeInVehicle = _omit,
+    List<String>? photoPaths,
+    Object? accessInstructions = _omit,
+    Object? estimatedTimeAtStop = _omit,
   }) {
+    // Nullables usam a sentinela _omit: omitido → preserva; null explícito →
+    // LIMPA o campo (lesson_copywith_nullable_field_pitfall / H2).
     return Stop(
       id: id ?? this.id,
-      positionInRoute: positionInRoute ?? this.positionInRoute,
-      deliveryId: deliveryId ?? this.deliveryId,
+      positionInRoute: identical(positionInRoute, _omit)
+          ? this.positionInRoute
+          : positionInRoute as int?,
+      deliveryId: identical(deliveryId, _omit)
+          ? this.deliveryId
+          : deliveryId as String?,
       type: type ?? this.type,
       status: status ?? this.status,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
       streetName: streetName ?? this.streetName,
       fullAddress: fullAddress ?? this.fullAddress,
-      notes: notes ?? this.notes,
-      colorHex: colorHex ?? this.colorHex,
+      notes: identical(notes, _omit) ? this.notes : notes as String?,
       packagesCount: packagesCount ?? this.packagesCount,
-      timeWindowStart: timeWindowStart ?? this.timeWindowStart,
-      timeWindowEnd: timeWindowEnd ?? this.timeWindowEnd,
-      customDurationMinutes:
-          customDurationMinutes ?? this.customDurationMinutes,
-      priority: priority ?? this.priority,
+      timeWindowStart: identical(timeWindowStart, _omit)
+          ? this.timeWindowStart
+          : timeWindowStart as TimeOfDay?,
+      timeWindowEnd: identical(timeWindowEnd, _omit)
+          ? this.timeWindowEnd
+          : timeWindowEnd as TimeOfDay?,
+      priority: identical(priority, _omit) ? this.priority : priority as int?,
+      orderPolicy: orderPolicy ?? this.orderPolicy,
+      color: identical(color, _omit) ? this.color : color as StopColor?,
+      packageDetails: identical(packageDetails, _omit)
+          ? this.packageDetails
+          : packageDetails as PackageDetails?,
+      placeInVehicle: identical(placeInVehicle, _omit)
+          ? this.placeInVehicle
+          : placeInVehicle as PlaceInVehicle?,
+      photoPaths: photoPaths ?? this.photoPaths,
+      accessInstructions: identical(accessInstructions, _omit)
+          ? this.accessInstructions
+          : accessInstructions as String?,
+      estimatedTimeAtStop: identical(estimatedTimeAtStop, _omit)
+          ? this.estimatedTimeAtStop
+          : estimatedTimeAtStop as Duration?,
     );
   }
 }

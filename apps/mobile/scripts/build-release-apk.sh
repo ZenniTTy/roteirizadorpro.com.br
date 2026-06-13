@@ -13,6 +13,18 @@ cd "$(dirname "$0")/.."
 API_BASE_URL="${API_BASE_URL:-https://api.roteirizadorpro.com.br}"
 APP_ENV="${APP_ENV:-production}"
 
+# MAPS_API_KEY é exigida pelo autocomplete do Google Places (Slice 2, Área 4).
+# Vem do ambiente ou do apps/mobile/.env (gitignored). Sem ela o release
+# constrói mas a busca de endereço falha em runtime — gap pego pelo smoke
+# E2E da MS-A6 (2026-06-12).
+if [[ -z "${MAPS_API_KEY:-}" && -f .env ]]; then
+  MAPS_API_KEY="$(grep '^MAPS_API_KEY=' .env | head -1 | cut -d= -f2-)"
+fi
+if [[ -z "${MAPS_API_KEY:-}" ]]; then
+  echo "ERRO: MAPS_API_KEY ausente (defina no ambiente ou em apps/mobile/.env)." >&2
+  exit 1
+fi
+
 echo "==> Cleaning previous build outputs"
 flutter clean
 
@@ -30,7 +42,8 @@ flutter build apk \
   --release \
   --target-platform=android-arm,android-arm64 \
   --dart-define=API_BASE_URL="$API_BASE_URL" \
-  --dart-define=APP_ENV="$APP_ENV"
+  --dart-define=APP_ENV="$APP_ENV" \
+  --dart-define=MAPS_API_KEY="$MAPS_API_KEY"
 
 echo "==> Build artifact"
 ls -lh build/app/outputs/flutter-apk/app-release.apk

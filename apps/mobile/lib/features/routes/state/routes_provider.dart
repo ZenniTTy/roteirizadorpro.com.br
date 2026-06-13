@@ -1,9 +1,17 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'dart:async';
 
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:uuid/uuid.dart';
+
+import '../data/package_photo_store.dart';
 import '../domain/route.dart';
 import '../domain/stop.dart';
 
 part 'routes_provider.g.dart';
+
+/// Store de fotos de pacote — overridável nos testes (T4/H16).
+@Riverpod(keepAlive: true)
+PackagePhotoStore packagePhotoStore(Ref ref) => PackagePhotoStore.production();
 
 /// In-memory seed of routes for Slice 2.
 /// Real CRUD + backend persistence land in Slice 3 along with the wizard.
@@ -107,5 +115,78 @@ class Routes extends _$Routes {
       }
       return r;
     }).toList();
+  }
+
+  /// Substitui o stop POR ID na rota, preservando posição e demais stops (T4/H9).
+  /// Stop inexistente → no-op.
+  void updateStop(String routeId, Stop stop) {
+    state = [
+      for (final r in state)
+        r.id == routeId
+            ? r.copyWith(
+                stops: [
+                  for (final s in r.stops) s.id == stop.id ? stop : s,
+                ],
+              )
+            : r,
+    ];
+  }
+
+  /// Remove o stop e apaga suas fotos via PackagePhotoStore.deleteFor (T4).
+  /// O delete de I/O é fire-and-forget — o estado nunca bloqueia em I/O;
+  /// falhas degradam com debugPrint dentro do store (H15).
+  void removeStop(String routeId, String stopId) {
+    final route = state.where((r) => r.id == routeId).firstOrNull;
+    if (route == null || !route.stops.any((s) => s.id == stopId)) return;
+    state = [
+      for (final r in state)
+        r.id == routeId
+            ? r.copyWith(
+                stops: r.stops.where((s) => s.id != stopId).toList(),
+              )
+            : r,
+    ];
+    unawaited(ref.read(packagePhotoStoreProvider).deleteFor(routeId, stopId));
+  }
+
+  /// Duplica o stop: insere a cópia LOGO APÓS a original com id novo,
+  /// status pendente e deliveryId/positionInRoute zerados; retorna o id novo
+  /// sincronamente (o caller navega — H11). As fotos são copiadas em
+  /// background (arquivos duplicados, paths nunca compartilhados — H16) e o
+  /// state recebe o patch de photoPaths quando o copyAll terminar.
+  /// Retorna null quando [stopId] não existe na rota.
+  String? duplicateStop(String routeId, String stopId) {
+    final route = state.where((r) => r.id == routeId).firstOrNull;
+    if (route == null) return null;
+    final stopIdx = route.stops.indexWhere((s) => s.id == stopId);
+    if (stopIdx == -1) return null;
+
+    final original = route.stops[stopIdx];
+    final newId = const Uuid().v4();
+    final duplicate = original.copyWith(
+      id: newId,
+      status: StopStatus.pending,
+      deliveryId: null,
+      positionInRoute: null,
+      photoPaths: const [],
+    );
+    final newStops = [...route.stops]..insert(stopIdx + 1, duplicate);
+    state = [
+      for (final r in state) r.id == routeId ? r.copyWith(stops: newStops) : r,
+    ];
+
+    final store = ref.read(packagePhotoStoreProvider);
+    unawaited(
+      store.copyAll(routeId, stopId, newId).then((paths) {
+        if (paths.isEmpty) return;
+        final currentRoute = state.where((r) => r.id == routeId).firstOrNull;
+        final currentDup =
+            currentRoute?.stops.where((s) => s.id == newId).firstOrNull;
+        // Duplicata removida na janela do copy → fotos órfãs aceitas (H16).
+        if (currentDup == null) return;
+        updateStop(routeId, currentDup.copyWith(photoPaths: paths));
+      }),
+    );
+    return newId;
   }
 }

@@ -58,6 +58,22 @@ enum PickerMode {
     showMicrocopyOnEmpty: false,
     showExistingStopsSection: false,
     showChooseOnMapFooter: false,
+  ),
+
+  /// Sub-picker for the editor's "Mudar endereço" action (MS-A6 T17/H10).
+  /// Pushed from `EditStopPage` via the `change-address` GoRoute nested
+  /// under the edit route; selecting a result pops the record
+  /// `({double lat, double lng, String streetName, String fullAddress})`
+  /// and the editor swaps ONLY those four `Stop` fields. Mirrors the
+  /// structural Spoke shape of the location pickers (bare search, no
+  /// "Desta rota" section, no map footer).
+  changeAddress(
+    hintText: 'Buscar endereço',
+    resultsSectionHeader: 'Escolha o novo endereço',
+    showMethodButtonsOnEmpty: false,
+    showMicrocopyOnEmpty: false,
+    showExistingStopsSection: false,
+    showChooseOnMapFooter: false,
   );
 
   const PickerMode({

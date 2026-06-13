@@ -10,8 +10,11 @@ import '../../route_config/domain/route_config.dart';
 import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
 import '../data/location_service.dart';
+import '../domain/stop.dart';
 import '../state/active_route_provider.dart';
+import '../state/current_route_stops_provider.dart';
 import '../state/map_controls_controller.dart';
+import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
 
 /// Shell that hosts the active route's map + sheet.
@@ -49,8 +52,39 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   static const double _mediumFraction = 0.40;
   static const double _expandedFraction = 0.90;
 
+  // One-shot do auto-expand (H6): quando a rota ativa ganha a 1ª parada (ou o
+  // shell monta com ≥1), o sheet snapa pra expanded UMA vez. Colapso manual
+  // posterior não é revertido.
+  bool _hasAutoExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Cobertura do caso "shell monta com rota ativa que JÁ tem stops" (H6-i):
+    // o ref.listen do build só vê transições, não o estado inicial.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _hasAutoExpanded) return;
+      if (ref.read(currentRouteStopsProvider).isNotEmpty) {
+        _hasAutoExpanded = true;
+        setState(() => _sheetFraction = _expandedFraction);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Transição 0→≥1 na contagem de stops da rota ativa → auto-expand
+    // one-shot (H6-ii). `_hasAutoExpanded` impede re-disparo (H6-iii).
+    ref.listen<int>(
+      currentRouteStopsProvider.select((stops) => stops.length),
+      (previous, next) {
+        if (next >= 1 && !_hasAutoExpanded) {
+          _hasAutoExpanded = true;
+          setState(() => _sheetFraction = _expandedFraction);
+        }
+      },
+    );
+
     final mq = MediaQuery.of(context);
 
     // ADR-0046: the active-route sheet surfaces a "Configuração de rota"
@@ -71,6 +105,20 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             routeId: activeRouteId,
             onOpenDetails: () => context.push(
               '/home/routes/active/$activeRouteId/details',
+            ),
+          );
+
+    // Lista de stops da rota ativa (MS-A6 T7). O displayName observa só a
+    // rota ativa via select — mutações em outras rotas não rebuildam o shell.
+    final stops = ref.watch(currentRouteStopsProvider);
+    final routeDisplayName = activeRouteId == null
+        ? null
+        : ref.watch(
+            routesProvider.select(
+              (routes) => routes
+                  .where((r) => r.id == activeRouteId)
+                  .firstOrNull
+                  ?.displayName(),
             ),
           );
 
@@ -191,6 +239,17 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
               currentFraction: clampedFraction,
               collapsedFraction: _collapsedFraction,
               configSummary: configSummary,
+              stops: stops,
+              routeDisplayName: routeDisplayName,
+              onAddStopTap: _openAddStop,
+              onRouteNameTap: activeRouteId == null
+                  ? null
+                  : () => context.push('/home/routes/$activeRouteId/edit'),
+              onStopTap: activeRouteId == null
+                  ? null
+                  : (stopId) => context.push(
+                        '/home/routes/active/$activeRouteId/stops/$stopId/edit',
+                      ),
               onHandleDragStart: () {
                 _dragStartFraction = _sheetFraction;
               },
@@ -280,6 +339,49 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
   }
 
+  /// Abre o add-stop e trata o resultado do pop (H9 — o SHELL é o dono do
+  /// toast: o context daqui está vivo após o pop do add-stop):
+  ///   - `String id` → stop NOVO: SnackBar "Parada adicionada" + action
+  ///     "Ver" (hide + push do editor com `?new=1`, F4);
+  ///   - `({String editStopId})` → parada EXISTENTE (Section A): push
+  ///     direto do editor, sem toast e sem badge (H11);
+  ///   - null → cancelado/back: nada.
+  Future<void> _openAddStop() async {
+    final result = await context.push<Object?>('/home/routes/add-stop');
+    if (!mounted) return;
+    final activeRouteId = ref.read(activeRouteIdProvider);
+    if (activeRouteId == null) return;
+
+    switch (result) {
+      case final String newStopId:
+        final messenger = ScaffoldMessenger.of(context);
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Parada adicionada'),
+              action: SnackBarAction(
+                label: 'Ver',
+                onPressed: () {
+                  messenger.hideCurrentSnackBar();
+                  if (!mounted) return;
+                  context.push(
+                    '/home/routes/active/$activeRouteId'
+                    '/stops/$newStopId/edit?new=1',
+                  );
+                },
+              ),
+            ),
+          );
+      case (editStopId: final String stopId):
+        context.push(
+          '/home/routes/active/$activeRouteId/stops/$stopId/edit',
+        );
+      default:
+        break;
+    }
+  }
+
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
   ///   - Flick pra cima (velocity < -kFlick) → próximo snap MAIOR.
   ///   - Flick pra baixo (velocity > kFlick) → próximo snap MENOR.
@@ -366,6 +468,11 @@ class _ActiveRouteSheet extends StatelessWidget {
     required this.currentFraction,
     required this.collapsedFraction,
     required this.configSummary,
+    required this.stops,
+    required this.routeDisplayName,
+    required this.onAddStopTap,
+    required this.onRouteNameTap,
+    required this.onStopTap,
     required this.onHandleDragStart,
     required this.onHandleDragUpdate,
     required this.onHandleDragEnd,
@@ -383,6 +490,22 @@ class _ActiveRouteSheet extends StatelessWidget {
   /// active route. Rendered inside the medium+ scrollable body, above the
   /// empty-state/stop-list, mirroring Spoke's `stepList` placement.
   final Widget? configSummary;
+
+  /// Stops da rota ativa (MS-A6 T7). Vazio = branch empty-state atual.
+  final List<Stop> stops;
+
+  /// Nome de display da rota ativa (header da lista, H8). Null sem rota.
+  final String? routeDisplayName;
+
+  /// Abre o add-stop com await-push e trata o resultado (toast "Ver" /
+  /// push direto do editor — H9/H11). Dono: `_RouteShellPageState`.
+  final Future<void> Function() onAddStopTap;
+
+  /// Tap no nome da rota → wizard de edição (H8). Null sem rota ativa.
+  final VoidCallback? onRouteNameTap;
+
+  /// Tap num stop card → editor da parada (T7→T8). Null sem rota ativa.
+  final void Function(String stopId)? onStopTap;
 
   /// Disparado quando o user começa a arrastar a área do handle (parte
   /// superior do sheet, ~24px). O parent guarda a fração atual pra usar
@@ -461,27 +584,37 @@ class _ActiveRouteSheet extends StatelessWidget {
               Expanded(
                 child: !showButtons
                     ? const SizedBox.shrink()
-                    : configSummary == null
-                        // No active route: keep the original centered empty
-                        // state (existing Spoke parity, unchanged).
-                        ? _buildEmptyState(context)
-                        // Active route: config summary on top, empty state
-                        // below, in a scroll view so intermediate fractions
-                        // never overflow.
-                        : SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                configSummary!,
-                                _buildEmptyState(context),
-                              ],
-                            ),
-                          ),
+                    : stops.isNotEmpty
+                        // Rota ativa COM paradas (MS-A6 T7): header da lista
+                        // + ListView.builder com o config summary como item 0
+                        // (H7). Drag no corpo SCROLLA a lista (não
+                        // redimensiona o sheet) — intencional, match-Spoke
+                        // §10.5: resize fica no handle + search-row.
+                        ? _buildStopsBody(context)
+                        : configSummary == null
+                            // No active route: keep the original centered
+                            // empty state (existing Spoke parity, unchanged).
+                            ? _buildEmptyState(context)
+                            // Active route: config summary on top, empty
+                            // state below, in a scroll view so intermediate
+                            // fractions never overflow.
+                            : SingleChildScrollView(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    configSummary!,
+                                    _buildEmptyState(context),
+                                  ],
+                                ),
+                              ),
               ),
               // Big buttons FIXOS no rodapé. Só renderizados quando o sheet
-              // está medium+ (showButtons = true). Sempre respeitam o
-              // bottomInset do device (não ficam por baixo dos nav buttons).
-              if (showButtons)
+              // está medium+ (showButtons = true) E a rota não tem paradas —
+              // eles são empty-state-only (H5); com ≥1 parada o footer fica
+              // vazio até a Á7 trazer o CTA "Otimizar rota". Sempre respeitam
+              // o bottomInset do device (não ficam por baixo dos nav buttons).
+              if (showButtons && stops.isEmpty)
                 Padding(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
                   child: Column(
@@ -490,7 +623,7 @@ class _ActiveRouteSheet extends StatelessWidget {
                       _SheetPrimaryButton(
                         icon: LucideIcons.plus,
                         label: 'Adicionar parada',
-                        onTap: () => context.push('/home/routes/add-stop'),
+                        onTap: onAddStopTap,
                       ),
                       const SizedBox(height: 10),
                       _SheetOutlinedButton(
@@ -504,6 +637,85 @@ class _ActiveRouteSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  /// Corpo do sheet quando a rota ativa tem ≥1 parada (MS-A6 T7, §10.5):
+  /// um ListView.builder ÚNICO — item 0 = header (contador "N paradas" +
+  /// nome da rota clicável, H8); item 1 = config summary achatado + título
+  /// "Paradas" (H7); itens 2.. = um [_StopCard] por parada. Tudo dentro do
+  /// builder para o corpo nunca transbordar em frações intermediárias do
+  /// drag (mesma razão do FittedBox no empty state).
+  Widget _buildStopsBody(BuildContext context) {
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      itemCount: stops.length + 2,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${stops.length} '
+                  '${stops.length == 1 ? 'parada' : 'paradas'}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Semantics(
+                  identifier: 'sheet_route_name',
+                  button: true,
+                  child: InkWell(
+                    onTap: onRouteNameTap,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Text(
+                      routeDisplayName ?? '',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        if (index == 1) {
+          // Config summary + título da seção "Paradas" (H7).
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (configSummary != null) configSummary!,
+              const Padding(
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
+                child: Text(
+                  'Paradas',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+        final position = index - 1; // 1-based
+        final stop = stops[position - 1];
+        return _StopCard(
+          key: ValueKey(stop.id),
+          position: position,
+          stop: stop,
+          onTap: onStopTap == null ? null : () => onStopTap!(stop.id),
+        );
+      },
     );
   }
 
@@ -569,7 +781,7 @@ class _ActiveRouteSheet extends StatelessWidget {
         children: [
           Expanded(
             child: InkWell(
-              onTap: () => context.push('/home/routes/add-stop'),
+              onTap: onAddStopTap,
               borderRadius: BorderRadius.circular(30),
               child: Container(
                 height: 48,
@@ -623,6 +835,92 @@ class _ActiveRouteSheet extends StatelessWidget {
   void _comingSoon(BuildContext context, String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$feature em breve')),
+    );
+  }
+}
+
+/// Card de uma parada na lista do sheet ativo (MS-A6 T7, §10.5):
+/// badge numérico 2 dígitos (tabular) + rua (h6) + endereço completo (muted)
+/// + dot de status à direita. O card INTEIRO é clicável → editor da parada.
+class _StopCard extends StatelessWidget {
+  const _StopCard({
+    super.key,
+    required this.position,
+    required this.stop,
+    required this.onTap,
+  });
+
+  /// Posição 1-based na lista (badge "01", "02", …).
+  final int position;
+  final Stop stop;
+  final VoidCallback? onTap;
+
+  Color get _statusColor => switch (stop.status) {
+        StopStatus.pending => AppColors.textMuted,
+        StopStatus.delivered || StopStatus.pickedUp => AppColors.success,
+        StopStatus.failed => AppColors.error,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      identifier: 'stop_card_$position',
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Row(
+            children: [
+              Text(
+                position.toString().padLeft(2, '0'),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stop.streetName,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      stop.fullAddress,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                key: Key('stop_card_${position}_status_dot'),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _statusColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

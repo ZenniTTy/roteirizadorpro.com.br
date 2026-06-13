@@ -14,7 +14,7 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 ## Implementação
 
 - [ ] **Tela por tela.** Cada tela do Spoke vira um ciclo curto: olha como Spoke faz → implementa com nossa stack → testa no M54 → commit. Sem subdividir em microsprints A/B.
-- [ ] **MASTER-TABLE primeiro, dump live confirma (ADR-0045).** Para telas cobertas pela [`MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md), a estrutura (campos/defaults/enums/strings) já é fato do dump estático — o dump live runtime CONFIRMA comportamento dinâmico, não descobre estrutura. Para telas FORA da tabela (ou linha `low` como #5 Localizador de pacotes), vale o protocolo clássico abaixo. **Inventário descreve, Spoke decide.** Antes de escrever spec de QUALQUER tela Spoke-aligned, dump live obrigatório do Spoke no estado-alvo (collapsed/expanded/empty/populated). Comando padrão:
+- [ ] **MASTER-TABLE primeiro → deep-grep no jadx segundo → runtime SÓ pro que sobrar (ADR-0045/0047/0048/0049).** Para telas cobertas pela [`MASTER-TABLE.md`](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) (incluindo os **Amendments datados no fim do arquivo** — um amendment supersede a row original), a estrutura (campos/defaults/enums/strings) já é fato do dump estático. Perguntas de comportamento/gating que a tabela não carrega → **grep no dump pesado `~/spoke-dump/jadx-out`** (foi assim que o FTUE falso caiu — ADR-0047 — e que a Área 6 resolveu as rows #4–#10 sem 1 clique de runtime). Runtime live confirma APENAS o que o campo `Precisa-runtime` da row/design-doc listar — não descobre estrutura. **O deep-grep estático SUBSTITUI o dump live quando resolve a pergunta** (precedente MS-A6, 2026-06-11). Para telas genuinamente FORA da tabela+amendments e que o jadx não resolver, vale o protocolo clássico de dump live abaixo. **Inventário descreve, Spoke decide.** Comando padrão (só para o caso greenfield):
   ```bash
   adb -s RQCW401G33T shell uiautomator dump /sdcard/spoke-<state>.xml
   adb -s RQCW401G33T pull /sdcard/spoke-<state>.xml /tmp/
@@ -39,7 +39,7 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 - [ ] `cd apps/mobile && flutter test` passa (baseline ≥ 249).
 - [ ] `cd apps/backend && bun run typecheck` clean (se mexeu backend).
 - [ ] **`integration_test/` no device se mexeu navegação** (hard gate per ROADMAP-v2 §Gates + memory `lesson_slice_checklist_integration_test_gate`): qualquer área que toque `app.dart`/GoRouter/Android-back roda `cd apps/mobile && flutter test integration_test/ -d RQCW401G33T`. A pasta AINDA NÃO EXISTE — 1º teste = `area5_route_details_flow_test.dart` (Á5 MS9). Widget tests não pegam branch-stack do GoRouter.
-- [ ] `spoke-parity-checker` D4 dispatch — punch list resolvida. Must-fix bloqueia merge; should-fix vira tech debt explícita no TODO; nit ignora. **(NÃO dispatchar pras Áreas 1 e 11 — sem baseline Spoke.)**
+- [ ] `spoke-parity-checker` D4 dispatch — **dump-only por default (ADR-0049):** compara a implementação shipada contra a MASTER-TABLE (+amendments) + jadx + design doc da área; runtime live SÓ os cliques que o `Precisa-runtime` listar (protege a conta Spoke licenciada). Punch list resolvida: must-fix bloqueia merge; should-fix vira tech debt explícita no TODO; nit ignora. O `/verify-slice` já dispatcha este D4 automaticamente (desde 2026-06-11). **(NÃO dispatchar pras Áreas 1 e 11 — sem baseline Spoke.)**
 - [ ] **Smoke E2E no Samsung M54** — golden path do slice funciona com APK release contra prod API:
   ```bash
   flutter run -d RQCW401G33T --release \

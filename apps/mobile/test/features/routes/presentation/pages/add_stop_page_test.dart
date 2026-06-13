@@ -12,7 +12,10 @@ import 'package:roteirizador_pro/features/routes/domain/place_autocomplete_predi
 import 'package:roteirizador_pro/features/routes/domain/place_details.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/pages/add_stop_page.dart';
+import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
+import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/add_stop_ui_state_provider.dart';
+import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 /// Manual fake for [PlacesRepository] used by the Partida sub-picker pop
 /// test — `mocktail ^1.0.5` is the project default for mocks but a manual
@@ -263,21 +266,220 @@ void main() {
     expect(find.text('Adicionar nova parada'), findsOneWidget);
   });
 
-  testWidgets('Section A tap shows SnackBar "Editar parada em breve"',
-      (tester) async {
-    final stop =
-        Stop(lat: 0, lng: 0, streetName: 'Av Paulista, 500', fullAddress: 'x');
+  // AMENDED (MS-A6/H11 / F5): Section A tap ALREADY pops with an editStopId
+  // record — the old SnackBar 'Editar parada em breve' was the pre-A6 stub.
+  // This test is replaced by the pop-with-intent test below; the SnackBar
+  // assertion is intentionally removed. The new behaviour must NOT show the
+  // old stub message.
+  testWidgets(
+      'Section A tap does NOT show SnackBar "Editar parada em breve" '
+      '(stub replaced by pop-with-intent — MS-A6/H11)', (tester) async {
+    final stop = Stop(
+      id: 's1',
+      lat: 0,
+      lng: 0,
+      streetName: 'Av Paulista, 500',
+      fullAddress: 'x',
+    );
+    // Mount with a parent route — in production AddStopPage is ALWAYS
+    // pushed, so _onSectionATap's pop needs a frame to return to.
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => ctx.push('/picker'),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(path: '/picker', builder: (_, __) => const AddStopPage()),
+      ],
+    );
     await tester.pumpWidget(
-      _wrap(
-        state: WithResults(matchesInRoute: [stop], newCandidates: const []),
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
+            (ref) =>
+                WithResults(matchesInRoute: [stop], newCandidates: const []),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Av Paulista, 500'));
     await tester.pump();
 
-    expect(find.text('Editar parada em breve'), findsOneWidget);
+    // The stub SnackBar must no longer appear after the A6 implementation.
+    expect(find.text('Editar parada em breve'), findsNothing);
+  });
+
+  // NEW — MS-A6/H11 / F5: Section A tap pops with ({String editStopId})
+  testWidgets(
+      'MS-A6/H11: Section A tap pops with ({String editStopId: stopId}) '
+      'record — no SnackBar, no push', (tester) async {
+    // Wire a router so pop() has a parent frame to return to.
+    Object? poppedResult;
+    bool popReturned = false;
+
+    final stop = Stop(
+      id: 's1',
+      lat: 0,
+      lng: 0,
+      streetName: 'Av Paulista, 500',
+      fullAddress: 'x',
+    );
+
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () async {
+                  poppedResult = await ctx.push<Object?>('/picker');
+                  popReturned = true;
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/picker',
+          builder: (_, __) => const AddStopPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
+            (ref) =>
+                WithResults(matchesInRoute: [stop], newCandidates: const []),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Av Paulista, 500'), findsOneWidget);
+    await tester.tap(find.text('Av Paulista, 500'));
+    await tester.pumpAndSettle();
+
+    expect(popReturned, isTrue);
+    // The result must be the anonymous record type ({String editStopId}).
+    expect(poppedResult, isNotNull);
+    // ignore_for_file does NOT apply here; we assert the type structurally.
+    final r = poppedResult;
+    expect(r, isA<({String editStopId})>());
+    expect((r as ({String editStopId})).editStopId, 's1');
+    // No stub SnackBar must appear.
+    expect(find.text('Editar parada em breve'), findsNothing);
+  });
+
+  // NEW — MS-A6/F4: Section B tap in addStop mode pops with the new stop's id
+  testWidgets(
+      'MS-A6/F4: Section B tap (addStop mode) pops with the new stop id '
+      '(String) — caller gets the id to open editor with ?new=1',
+      (tester) async {
+    Object? poppedResult;
+    bool popReturned = false;
+
+    const pred = PlaceAutocompletePrediction(
+      placeId: 'p1',
+      description: 'Av Paulista, 1000',
+      mainText: 'Av Paulista, 1000',
+      secondaryText: 'Bela Vista, SP',
+    );
+
+    final fakeRepo = _FakePlacesRepository(
+      details: const PlaceDetails(
+        lat: -23.561,
+        lng: -46.656,
+        shortFormattedAddress: 'Av Paulista, 1000',
+        formattedAddress: 'Av Paulista, 1000 - Bela Vista, São Paulo - SP',
+      ),
+    );
+
+    // The test route needs an active route so _addStopFromPrediction can
+    // append a stop. We seed routeId 'r1' as active.
+    final router = GoRouter(
+      initialLocation: '/sender',
+      routes: [
+        GoRoute(
+          path: '/sender',
+          builder: (context, __) => Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () async {
+                  poppedResult = await ctx.push<Object?>('/picker');
+                  popReturned = true;
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/picker',
+          builder: (_, __) => const AddStopPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          addStopUiStateProvider(PickerMode.addStop).overrideWith(
+            (ref) => const WithResults(
+              matchesInRoute: [],
+              newCandidates: [pred],
+            ),
+          ),
+          placesRepositoryProvider.overrideWith((ref) => fakeRepo),
+          activeRouteIdProvider
+              .overrideWith(() => _SeededActiveRouteIdForAddStop('r1')),
+          routesProvider.overrideWith(
+            () => _MutableFakeRoutesForAddStop([
+              _routeR1WithNoStops(),
+            ]),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Av Paulista, 1000'), findsOneWidget);
+    await tester.tap(find.text('Av Paulista, 1000'));
+    await tester.pumpAndSettle();
+
+    expect(popReturned, isTrue);
+    expect(poppedResult, isNotNull);
+    // The result must be a String (the new stop's id).
+    expect(poppedResult, isA<String>());
+    final returnedId = poppedResult as String;
+    // The id must be non-empty (a UUID was generated by the Stop constructor).
+    expect(returnedId, isNotEmpty);
   });
 
   testWidgets('Footer tap navigates to /home/routes/add-stop/map',
@@ -608,4 +810,297 @@ void main() {
     expect(find.text('Leitor'), findsOneWidget);
     expect(find.text('Voz'), findsOneWidget);
   });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PickerMode.changeAddress — T17/H10 (MS-A6)
+  //
+  // NOTE: These tests will fail with a *compile error* until the implementer
+  // adds `changeAddress` to `picker_mode.dart`. That is the intended RED state
+  // for a data declaration that does not exist yet.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  group('changeAddress (T17/H10)', () {
+    testWidgets(
+        'changeAddress mode: EmptyVariant shows "Buscar endereço" hint; '
+        'NO method buttons, NO microcopy', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          state: const EmptyVariant(stopCount: 0),
+          mode: PickerMode.changeAddress,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Hint from mode.hintText.
+      expect(find.text('Buscar endereço'), findsOneWidget);
+      // Default add-stop hint must NOT appear.
+      expect(find.text('Digite o endereço da parada'), findsNothing);
+      // No method buttons (showMethodButtonsOnEmpty == false).
+      expect(find.text('Mapa'), findsNothing);
+      expect(find.text('Leitor'), findsNothing);
+      expect(find.text('Voz'), findsNothing);
+      // No microcopy (showMicrocopyOnEmpty == false).
+      expect(find.textContaining('Adicione'), findsNothing);
+    });
+
+    testWidgets(
+        'changeAddress mode: WithResults shows "Escolha o novo endereço" header; '
+        'NO "Desta rota" section (showExistingStopsSection == false); '
+        'NO "Escolher no mapa" footer; NO "Adicionar nova parada" header',
+        (tester) async {
+      const pred = PlaceAutocompletePrediction(
+        placeId: 'p1',
+        description: 'Av Paulista, 1000',
+        mainText: 'Av Paulista, 1000',
+        secondaryText: 'Bela Vista, SP',
+      );
+      // Provide a stop that would match Section A — must be absent.
+      final stop = Stop(
+        lat: 0,
+        lng: 0,
+        streetName: 'Av Paulista, 500',
+        fullAddress: 'x',
+      );
+
+      await tester.pumpWidget(
+        _wrap(
+          state:
+              WithResults(matchesInRoute: [stop], newCandidates: const [pred]),
+          mode: PickerMode.changeAddress,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Section B header = mode.resultsSectionHeader.
+      expect(find.text('Escolha o novo endereço'), findsOneWidget);
+      // Section A header MUST NOT appear (showExistingStopsSection == false).
+      expect(find.textContaining('Desta rota'), findsNothing);
+      // Section A stop row MUST NOT appear.
+      expect(find.text('Av Paulista, 500'), findsNothing);
+      // New-candidate row IS rendered.
+      expect(find.text('Av Paulista, 1000'), findsOneWidget);
+      // No "Adicionar nova parada" header.
+      expect(find.text('Adicionar nova parada'), findsNothing);
+      // No map footer (showChooseOnMapFooter == false).
+      expect(find.text('Escolher no mapa'), findsNothing);
+    });
+
+    testWidgets(
+        'changeAddress mode: tapping new-candidate row pops the address '
+        'record ({lat, lng, streetName, fullAddress}) — '
+        'streetName == mainText, fullAddress == details.formattedAddress',
+        (tester) async {
+      // Wire a router so pop() has a parent frame.
+      Object? poppedResult;
+      bool popReturned = false;
+
+      const pred = PlaceAutocompletePrediction(
+        placeId: 'pCA1',
+        description: 'Rua Nova, 200',
+        mainText: 'Rua Nova, 200',
+        secondaryText: 'Centro, São Paulo',
+      );
+
+      final fakeRepo = _FakePlacesRepository(
+        details: const PlaceDetails(
+          lat: -23.55,
+          lng: -46.63,
+          shortFormattedAddress: 'Rua Nova, 200',
+          formattedAddress: 'Rua Nova, 200 - Centro, São Paulo',
+        ),
+      );
+
+      final router = GoRouter(
+        initialLocation: '/sender',
+        routes: [
+          GoRoute(
+            path: '/sender',
+            builder: (context, __) => Scaffold(
+              body: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () async {
+                    poppedResult = await ctx.push<Object?>('/picker');
+                    popReturned = true;
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/picker',
+            builder: (_, __) =>
+                const AddStopPage(mode: PickerMode.changeAddress),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            addStopUiStateProvider(PickerMode.changeAddress).overrideWith(
+              (ref) => const WithResults(
+                matchesInRoute: [],
+                newCandidates: [pred],
+              ),
+            ),
+            placesRepositoryProvider.overrideWith((ref) => fakeRepo),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rua Nova, 200'), findsOneWidget);
+      await tester.tap(find.text('Rua Nova, 200'));
+      await tester.pumpAndSettle();
+
+      expect(popReturned, isTrue);
+      expect(poppedResult, isNotNull);
+
+      // The result must be the address record type.
+      expect(
+        poppedResult,
+        isA<
+            ({
+              double lat,
+              double lng,
+              String streetName,
+              String fullAddress
+            })>(),
+      );
+      final r = poppedResult! as ({
+        double lat,
+        double lng,
+        String streetName,
+        String fullAddress
+      });
+      expect(r.lat, closeTo(-23.55, 1e-6));
+      expect(r.lng, closeTo(-46.63, 1e-6));
+      expect(r.streetName, 'Rua Nova, 200');
+      expect(r.fullAddress, 'Rua Nova, 200 - Centro, São Paulo');
+    });
+
+    testWidgets(
+        'changeAddress mode: details null → SnackBar de erro; página NÃO popa',
+        (tester) async {
+      // Fake repo returns null details → error path must NOT pop.
+      bool popReturned = false;
+
+      const pred = PlaceAutocompletePrediction(
+        placeId: 'pNull',
+        description: 'Rua Inexistente',
+        mainText: 'Rua Inexistente',
+        secondaryText: 'SP',
+      );
+
+      // Wrap with a custom override that always returns null.
+      final router = GoRouter(
+        initialLocation: '/sender',
+        routes: [
+          GoRoute(
+            path: '/sender',
+            builder: (context, __) => Scaffold(
+              body: Builder(
+                builder: (ctx) => ElevatedButton(
+                  onPressed: () async {
+                    await ctx.push<Object?>('/picker');
+                    popReturned = true;
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/picker',
+            builder: (_, __) =>
+                const AddStopPage(mode: PickerMode.changeAddress),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            addStopUiStateProvider(PickerMode.changeAddress).overrideWith(
+              (ref) => const WithResults(
+                matchesInRoute: [],
+                newCandidates: [pred],
+              ),
+            ),
+            // Override with a repo that always returns null.
+            placesRepositoryProvider
+                .overrideWith((ref) => _NullDetailsRepository()),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Rua Inexistente'));
+      await tester.pumpAndSettle();
+
+      // SnackBar de erro deve aparecer.
+      expect(find.byType(SnackBar), findsOneWidget);
+      // Página NÃO popou — popReturned permanece false.
+      expect(popReturned, isFalse);
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers for MS-A6/F4 Section B pop-with-id test
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Minimal [ActiveRouteId] override that always returns a fixed seed.
+/// Mirrors the pattern already used in route_shell_page_test.dart.
+class _SeededActiveRouteIdForAddStop extends ActiveRouteId {
+  _SeededActiveRouteIdForAddStop(this._seed);
+  final String _seed;
+  @override
+  String? build() => _seed;
+}
+
+/// Mutable [Routes] notifier seeded with an initial list.
+/// Mirrors [_MutableFakeRoutes] in route_shell_page_test.dart.
+class _MutableFakeRoutesForAddStop extends Routes {
+  _MutableFakeRoutesForAddStop(this._seed);
+  final List<domain.Route> _seed;
+  @override
+  List<domain.Route> build() => _seed;
+}
+
+domain.Route _routeR1WithNoStops() => domain.Route(
+      id: 'r1',
+      date: DateTime(2026, 5, 27),
+      status: domain.RouteStatus.draft,
+    );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper for changeAddress null-details error test (T17/H10)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fake [PlacesRepository] that always returns `null` from [getPlaceDetails].
+/// Used to exercise the error branch in `_onSectionBTap` for
+/// [PickerMode.changeAddress] (and equivalently for startLocation/endLocation).
+class _NullDetailsRepository implements PlacesRepository {
+  @override
+  Future<PlaceDetails?> getPlaceDetails(String placeId) async => null;
+
+  @override
+  Future<List<PlaceAutocompletePrediction>> autocomplete(String query) async =>
+      const [];
+
+  @override
+  Dio get dio => throw UnimplementedError();
+
+  @override
+  String get apiKey => throw UnimplementedError();
 }
