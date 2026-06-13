@@ -132,8 +132,20 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
   /// Default global do tempo na parada (H14): lê do settingsController;
   /// enquanto carrega (ou em erro) usa o fallback canônico declarado UMA vez
   /// em [Settings.fallbackStopDuration].
-  Duration get _globalStopDuration =>
+  /// Caminho do BUILD (rebuild quando o default global muda): usado por
+  /// [_formatTimeAtStop]. Em callbacks de evento use [_readGlobalStopDuration].
+  Duration get _watchGlobalStopDuration =>
       ref.watch(
+        settingsControllerProvider
+            .select((async) => async.value?.defaultStopDuration),
+      ) ??
+      Settings.fallbackStopDuration;
+
+  /// Caminho de CALLBACK (idiom Riverpod — `read`, não `watch`, fora do build):
+  /// usado por [_openTimeAtStop]. `watch` num event handler cria subscription
+  /// órfã e é anti-pattern (achado da auditoria pré-merge MS-A6).
+  Duration _readGlobalStopDuration() =>
+      ref.read(
         settingsControllerProvider
             .select((async) => async.value?.defaultStopDuration),
       ) ??
@@ -159,7 +171,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
   String _formatTimeAtStop(Stop stop) {
     final override = stop.estimatedTimeAtStop;
     if (override != null) return _formatDuration(override);
-    return 'Padrão (${_formatDuration(_globalStopDuration)})';
+    return 'Padrão (${_formatDuration(_watchGlobalStopDuration)})';
   }
 
   /// Tempo na parada (F9/H14): dialog min+seg commit-on-dismiss; o record
@@ -168,7 +180,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
     final result = await TimeAtStopDialog.show(
       context,
       current: stop.estimatedTimeAtStop,
-      defaultDuration: _globalStopDuration,
+      defaultDuration: _readGlobalStopDuration(),
     );
     if (result == null || !mounted) return;
     ref.read(routesProvider.notifier).updateStop(
@@ -293,7 +305,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
           ),
         ),
         content: Text(
-          'Remover "${stop.streetName}" da rota?',
+          'Tem certeza que deseja remover "${stop.streetName}" da rota?',
           style: const TextStyle(fontSize: 14, color: AppColors.text),
         ),
         actions: [

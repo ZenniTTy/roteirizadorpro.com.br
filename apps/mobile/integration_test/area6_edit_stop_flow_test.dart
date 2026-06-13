@@ -261,11 +261,14 @@ void main() {
     final removeRow = find.bySemanticsIdentifier('edit_stop_remove');
     await _scrollTo(tester, removeRow);
     await tester.tap(removeRow);
-    await _pumpUntil(tester, find.text('Remover "Rua Alfa, 100" da rota?'));
+    await _pumpUntil(
+      tester,
+      find.text('Tem certeza que deseja remover "Rua Alfa, 100" da rota?'),
+    );
     await tester.tap(find.text('Remover').last);
     await _pumpUntil(
       tester,
-      find.text('Remover "Rua Alfa, 100" da rota?'),
+      find.text('Tem certeza que deseja remover "Rua Alfa, 100" da rota?'),
       matchGone: true,
     );
     await _pumpUntil(tester, find.text('EDITAR_PARADA'));
