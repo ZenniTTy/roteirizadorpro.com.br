@@ -86,9 +86,9 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 
 ```
 [✅ FECHADA]     Área 5 (MS6 Pausa ✅ → MS7 config-rows ✅ → MS8 persistência ✅ (FTUE-cut ADR-0047) → MS9 integration_test+D4+editar/remover pausa ✅ (ADR-0049))
-       │        Finalizar gatilhos da Área 3 (Otimizar CTA, tap no stop card, kebab/bottom-bar)
+       │        Finalizar gatilhos da Área 3 (Otimizar CTA, kebab/bottom-bar; tap no stop card ✅ MS-A6)
        ▼
-   Área 6 (Editar parada)  ──► chips A1/A2 e lista inline dependem dela
+[✅ FECHADA]   Área 6 (Editar parada — MS-A6 2026-06-12)  ──► chips A1/A2 e lista inline dependem dela
        ▼
    Área 7 (Otimizar rota)  ──► "Iniciar rota" é o gateway pra Área 8
        ▼
@@ -126,7 +126,7 @@ Pronto: GoogleMap base + sheet manual 3-snap (direction-based snap) + search pil
 - [x] **Controles de mapa** (layer toggle + recenter) ✅ **MS-A3 (2026-06-11)** — dump-first (`EditRouteFragment`/`MapController`/`MapToolbarControlsController` em `~/spoke-dump/jadx-out`). Layer toggle = `MapType` 2-estados persistido (`MapPrefsRepository` + `SharedPreferencesAsync`) + toast PT-BR original; recenter = follow-my-location via `LocationService` (geolocator wrapper, sealed `LocationResult`) + fallback gracioso sem permissão + contador pending-move p/ não derrubar o follow na própria animação. Estado em `MapControlsController` (`@riverpod` keepAlive). +24 testes (controller + service + widget). **Achado dump-first:** a nota §6.2bis "controles visíveis só com sheet collapsed" era inferência — o código prova visibilidade por **flow ativo**, não por altura do sheet (corrigido no inventário).
 - [x] **"Copiar paradas de uma rota anterior"** ✅ **MS-A3** — empty-state secondary CTA agora faz `push('/home/routes/reuse-stops')` (rota já existia; matou o `_comingSoon`).
 - [ ] **CTA "Otimizar rota"** sticky bottom → entra na Área 7. **Wirar como 1ª task do MS-A7** (é o entrypoint da Área 7; CTA ainda não existe no shell — nasce com a lista de stops).
-- [ ] **Tap no stop card** → abre Área 6 (edit-stop sheet). **Wirar como 1ª task do MS-A6** (`add_stop_page.dart:103`).
+- [x] **Tap no stop card** → abre Área 6 ✅ **MS-A6 (2026-06-12)** — lista de stops no sheet do shell (§10.5: header "N paradas" + nome clicável, cards com badge/rua/endereço/status-dot, auto-expand one-shot, footer some com ≥1 parada) + card inteiro pusha a página de edit. Entrypoints extras: Section A da add-stop (pop-intent) + toast pós-add "Ver" (F4/H9).
 - [ ] **Kebab + bottom-bar actions** → Área 9 surfaces. **Wirar como 1ª task do MS-A9** (`route_shell_page.dart` kebab "Opções da rota").
 
 > Layout crítico (lição travada): mapa + sheet em `Column { Expanded(GoogleMap), sheet }`, NUNCA `Stack` (o PlatformView do GoogleMap ganha toda arena de gesto).
@@ -151,7 +151,11 @@ Pronto (branch `feat/m2-slice-2-area-5-route-details`): shell (X flutuante, h1 b
 
 > Nota §13.C.2 RE-RESOLVIDA (ADR-0047, dump-first): a hipótese "Detalhes da rota é FTUE one-time" era **inferência** — o dump decompilado prova que a Spoke **NÃO tem gate de primeira rota** (sem `firstRoute`/`isFirst`/`hasSeenSetup` em `RouteSetupViewModel`; `ui/onboarding` é survey, não setup). A Detalhes é **on-demand** (aberta pelo resumo "Configuração de rota" da Área 3, ADR-0046), não auto-mostrada. FTUE auto-show **cortado**.
 
-### Área 6 — Editar parada (página, 14 campos) 🟡 em progresso (design aprovado 2026-06-11) · depende de Área 3 (tap stop card) + Área 4 (Mudar endereço reusa add-stop)
+### Área 6 — Editar parada (página, 14 campos) ✅ FECHADA (MS-A6, 2026-06-12)
+
+Pronto (branch `feat/m2-slice-2-area-6-edit-stop`, 20 tasks TDD red→green): lista de stops no sheet do shell (§10.5, auto-expand one-shot H6, footer empty-state-only H5) + `EditStopPage` GoRouter full-screen (D1) com TODOS os campos: chips cor (5 cores F10) + ID (display) · card endereço · Instruções de acesso **sticky-ao-endereço** (F13/H18) · notas + **foto local** (`image_picker`+`path_provider` ADR-0050, `PackagePhotoStore` F12/H16/H17) · Localizador de pacotes completo (F11/H13 — chips dim/tipo + 3 eixos inline) · Pacotes stepper+dialog (F8/H3) · Ordem/Tipo segmented (F16/H21) · janela de chegada "Chegar entre"/"E" via numpad reusado (F7/H1/D8) · Tempo na parada min+seg com default do `SettingsRepository` (F9/H14) · Mudar endereço (`PickerMode.changeAddress` H10) · Duplicar (pushReplacement H11) · Remover (confirm F6). `Stop` migrado (`TimeOfDay?` janela, `_omit` em 11 nullables H2). 606 testes host + `integration_test/area6_edit_stop_flow_test.dart` verde no M54. D4 dump-only: 0 must-fix. Smoke E2E release achou e corrigiu 2 gaps fora da Á6: `MAPS_API_KEY` ausente no script de release + rota criada não virava ativa no wizard (paridade `RouteCreateFragment.java:186-193`).
+
+#### Histórico do design (pré-fechamento) · dependia de Área 3 (tap stop card) + Área 4 (Mudar endereço reusa add-stop)
 
 **Design aprovado (dump-first deep-grep): [`docs/superpowers/specs/2026-06-11-area6-edit-stop-design.md`](./superpowers/specs/2026-06-11-area6-edit-stop-design.md).** O deep-grep no jadx (2026-06-11) corrigiu a premissa: no Spoke, "Editar parada" é o `EditStopDialogFragment` (modal quase-full-screen, destination próprio) — NÃO um estado do sheet do shell; o `StopDetailSheet` pager é a surface de rota EM EXECUÇÃO (Área 8). **RotPro: página GoRouter full-screen** `/home/routes/active/:routeId/stops/:stopId/edit` (decisão D1 — idiom Á5, evita Flutter #155746). A MS-A6 também constrói a **lista de stops no sheet do shell** (seção "Paradas" per §10.5 — pré-requisito do tap; sem reorder=Á9, sem CTA Otimizar=Á7).
 

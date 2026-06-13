@@ -756,8 +756,10 @@ Os 3 rows ("Iniciar no local atual", "Ida e volta", "Sem pausa") são **reflexo 
 5. **Stop card clickable inteiro:** sem leading drag-handle visível no estado collapsed (drag pra reorder pode ser long-press? não confirmado nesta passada).
 
 **Gap pendente:**
-- Behavior de tap no stop card (abre detalhe? edit?) — próximo
-- Long-press em stop card (revela drag-handle reorder?) — próximo
+- ~~Behavior de tap no stop card (abre detalhe? edit?)~~ ✅ **RESOLVIDO (MS-A6, 2026-06-12, dump):** tap único abre "Editar parada" (`EditStopDialogFragment` no Spoke — jadx; RotPro = página GoRouter `/edit`, D1). Ver §10.6.
+- Long-press em stop card (revela drag-handle reorder?) — próximo (Á9)
+
+> **⚠️ Amendment 2026-06-12 (MS-A6, shipped + D4 dump-only):** dois fatos desta seção viraram código verificado no RotPro: (a) **auto-expand é one-shot por entrada de rota** com ≥1 parada (implementado com flag + listener na contagem — H6); (b) **os 2 big buttons do rodapé ("Adicionar parada"/"Copiar paradas") são empty-state-only** — com ≥1 parada eles SOMEM e o slot do rodapé fica vazio até o CTA "Otimizar rota" nascer na Á7 (H5). "Adicionar parada" permanece acessível pela search pill. O header da lista mostra "N paradas" + nome da rota clicável (item 4 confirmado).
 - Swipe horizontal em stop card (delete via swipe?) — próximo
 - Comportamento de "terça-feira" (nome da rota clickable no header) — próximo
 - Estado do sheet **collapsed** (manual drag pra baixo) com rota cheia — próximo
@@ -877,7 +879,7 @@ A tela aberta tem:
 
 5. **Color labels:** confirmado uso oficial — "visually group or prioritize parts of a long route list". Lista completa de cores NÃO documentada oficialmente. Capturado parcial via Maestro: **Azul, Verde-azulado, Roxo, Rosa, Laranja** (5 cores observadas; pode haver mais abaixo no scroll do picker — picker fechou antes de eu completar). RotPro slice 2: começar com essas 5 + scroll picker; ampliar se observação direta revelar mais.
 
-6. **"Load vehicle" feature:** docs mencionam recurso de **"map packages to specific vehicle locations"** — usuário marca onde fisicamente o pacote está no carro (frente, atrás, esquerda, etc.) pra facilitar acesso quando chegar no stop. Este é o conteúdo provável do campo **"Localizador de pacotes"** em §10.6 (que mostra "Não definido" por default). **Gap pendente:** inspecionar tap em "Localizador de pacotes" pra ver UI de location picker. Pode ser uma grade visual representando o veículo.
+6. **"Load vehicle" feature:** docs mencionam recurso de **"map packages to specific vehicle locations"** — usuário marca onde fisicamente o pacote está no carro (frente, atrás, esquerda, etc.) pra facilitar acesso quando chegar no stop. Este é o conteúdo provável do campo **"Localizador de pacotes"** em §10.6 (que mostra "Não definido" por default). ~~**Gap pendente:** inspecionar tap em "Localizador de pacotes" pra ver UI de location picker.~~ ✅ **RESOLVIDO (dump F11, Amendment 2026-06-11; shipped MS-A6 2026-06-12):** dialog único inline com row "ID de parada" + chips "Descrição do pacote" (Pequeno/Médio/Grande × Caixa/Sacola/Carta) + "Lugar no veículo" em 3 eixos de chips (Frente/Meio/Atrás · Esquerda/Direita · Chão/Prateleira) — não é grade visual. É B2C (`PlanFeature.PackageFinder`). RotPro: `PackageFinderSheet`.
 
 7. **Plan / Paywall:** ⚠️ Audit 2026-05-26 — pricing tiers REAIS da Spoke (corrigido): **Free** (10 stops/route, unlimited features) < **Lite** (unlimited stops, limited features) < **Standard** ($20/mês, unlimited tudo). NÃO é "single monthly plan" — são 3 tiers. **RotPro NÃO replica tiers Spoke** — modelo já fechado com cliente há muito tempo per [ADR-0030](../decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSINESS-RULES.md`](../BUSINESS-RULES.md): **acesso único pago de R$ 25,90 / 30 dias via Stripe Pix**. Trigger do paywall = tap em **"Iniciar Navegação"** (BUSINESS-RULES §5 — após otimizar rota; otimização é gratuita pra usuário ver valor antes de pagar). Sem free trial, sem free tier limitado, sem subscription recorrente. Distribuição: APK-only per [ADR-0014](../decisions/0014-apk-distribution.md) (sem Play Store no M2 = sem Google Play Billing forçado).
 
