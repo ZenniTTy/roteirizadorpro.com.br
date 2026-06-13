@@ -288,9 +288,12 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
     );
   }
 
-  /// Remover parada (F6): AlertDialog de confirmação (microcopy original
-  /// equivalente ao remove_stop_confirmation_dialog_text do Spoke);
-  /// confirmar = removeStop + pop do editor; cancelar = nada.
+  /// Remover parada (F6): AlertDialog de confirmação. Estrutura fiel ao dump
+  /// (`remove_stop_confirmation_dialog_text` = "Quer remover \"%1$s\" da
+  /// rota?" + `remove_stop_title`); microcopy PT-BR original (ADR-0010/0035,
+  /// mesmo padrão da Área 5 "Quer mesmo remover…" em ADR-0049) — a estrutura
+  /// é a paridade, o texto é nosso. Confirmar = removeStop + pop do editor;
+  /// cancelar = nada.
   Future<void> _confirmRemove(Stop stop) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -305,7 +308,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
           ),
         ),
         content: Text(
-          'Tem certeza que deseja remover "${stop.streetName}" da rota?',
+          'Quer mesmo remover "${stop.streetName}" da rota?',
           style: const TextStyle(fontSize: 14, color: AppColors.text),
         ),
         actions: [
