@@ -263,12 +263,12 @@ void main() {
     await tester.tap(removeRow);
     await _pumpUntil(
       tester,
-      find.text('Tem certeza que deseja remover "Rua Alfa, 100" da rota?'),
+      find.text('Quer mesmo remover "Rua Alfa, 100" da rota?'),
     );
     await tester.tap(find.text('Remover').last);
     await _pumpUntil(
       tester,
-      find.text('Tem certeza que deseja remover "Rua Alfa, 100" da rota?'),
+      find.text('Quer mesmo remover "Rua Alfa, 100" da rota?'),
       matchGone: true,
     );
     await _pumpUntil(tester, find.text('EDITAR_PARADA'));
