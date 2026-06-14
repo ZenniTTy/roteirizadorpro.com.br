@@ -1,11 +1,18 @@
 import 'optimization_state.dart';
 
-/// Lifecycle da rota — espelha `core/entity/RouteState.kt` do Spoke v3.65.1
+/// Lifecycle da rota — espelha `core/entity/RouteState.java` do Spoke v3.65.1
 /// (flags + timestamps ortogonais). O estado VISUAL (DRAFT/otimizando/
 /// PRE-CONFIRM/Ready-to-Run/erro) é DERIVADO por getters, nunca armazenado.
-/// Campos do `toString()` do Spoke: started/startedAt/optimizedAt/completed/
-/// completedAt/optimization/optimizing/optimizationErroredAt/
-/// optimizationAttemptedAt/optimizationAcknowledged/confirmed.
+///
+/// O Spoke tem 14 campos no construtor; modelamos os 9 que o FUNIL DE
+/// OTIMIZAÇÃO usa (Á7). Os 2 timestamps de auditoria do ciclo de execução —
+/// `startedAt` (quando "Iniciar rota" dispara, Á8) e `completedAt` (conclusão,
+/// Á9) — são adicionados quando essas áreas introduzirem a lógica que os lê;
+/// como esta é uma classe imutável com `copyWith` e campos nullable, acrescentá-
+/// los depois NÃO é breaking change. Campos atuais espelham o `toString()` do
+/// Spoke: started/optimizedAt/completed/optimization/optimizing/
+/// optimizationErroredAt/optimizationAttemptedAt/optimizationAcknowledged/
+/// confirmed.
 class RouteState {
   const RouteState({
     this.optimization = OptimizationState.creating,

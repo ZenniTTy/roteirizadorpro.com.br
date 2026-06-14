@@ -6,24 +6,30 @@ import 'package:roteirizador_pro/features/routes/state/optimization_controller.d
 
 void main() {
   testWidgets('mostra o texto da fase corrente', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(
-        body: OptimizingProgressView(phase: OptimizationPhase.sorting),
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: OptimizingProgressView(phase: OptimizationPhase.sorting),
+        ),
       ),
-    ),);
-    expect(find.text('Encontrando a melhor ordem...'), findsOneWidget);
+    );
+    expect(find.text('Montando a melhor sequência...'), findsOneWidget);
   });
 
   testWidgets('cada fase tem seu texto', (tester) async {
+    // Microcopy PT-BR ORIGINAL (ADR-0010) — reformulada, não verbatim do Spoke
+    // (cujas strings pt-rBR são "Analisando suas paradas..." etc).
     for (final entry in {
-      OptimizationPhase.analysing: 'Analisando suas paradas...',
-      OptimizationPhase.sorting: 'Encontrando a melhor ordem...',
-      OptimizationPhase.traffic: 'Considerando o trânsito...',
-      OptimizationPhase.creating: 'Criando sua rota...',
+      OptimizationPhase.analysing: 'Conferindo suas entregas...',
+      OptimizationPhase.sorting: 'Montando a melhor sequência...',
+      OptimizationPhase.traffic: 'Avaliando o trânsito na região...',
+      OptimizationPhase.creating: 'Finalizando sua rota...',
     }.entries) {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: OptimizingProgressView(phase: entry.key)),
-      ),);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: OptimizingProgressView(phase: entry.key)),
+        ),
+      );
       expect(find.text(entry.value), findsOneWidget);
     }
   });

@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../../state/optimization_controller.dart';
 
-/// Tela de progresso da otimização (4 fases). Microcopy PT-BR original
-/// (ADR-0010), espelha as fases do Spoke (optimizing_analysing/sorting/
-/// traffic/creating). Display-only — o avanço de fase é orquestrado pelo
-/// `OptimizationController`.
+/// Tela de progresso da otimização (4 fases). A ESTRUTURA (4 fases sequenciais)
+/// espelha o Spoke (`optimizing_analysing/sorting/traffic/creating`), mas o
+/// TEXTO é microcopy PT-BR ORIGINAL (ADR-0010) — deliberadamente reformulado,
+/// nunca verbatim das strings traduzidas do Spoke/Circuit. Display-only — o
+/// avanço de fase é orquestrado pelo `OptimizationController`.
 class OptimizingProgressView extends StatelessWidget {
   const OptimizingProgressView({required this.phase, super.key});
 
   final OptimizationPhase phase;
 
   static const _labels = {
-    OptimizationPhase.analysing: 'Analisando suas paradas...',
-    OptimizationPhase.sorting: 'Encontrando a melhor ordem...',
-    OptimizationPhase.traffic: 'Considerando o trânsito...',
-    OptimizationPhase.creating: 'Criando sua rota...',
+    OptimizationPhase.analysing: 'Conferindo suas entregas...',
+    OptimizationPhase.sorting: 'Montando a melhor sequência...',
+    OptimizationPhase.traffic: 'Avaliando o trânsito na região...',
+    OptimizationPhase.creating: 'Finalizando sua rota...',
   };
 
   @override
