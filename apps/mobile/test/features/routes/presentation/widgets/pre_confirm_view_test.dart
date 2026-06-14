@@ -51,6 +51,7 @@ void main() {
             onRefine: () => refined = true,
             onConfirm: () => confirmed = true,
             onStopTap: (_) {},
+            onReoptimize: () {},
           ),
         ),
       );
@@ -90,6 +91,7 @@ void main() {
             onRefine: () {},
             onConfirm: () {},
             onStopTap: (_) {},
+            onReoptimize: () {},
           ),
         ),
       );
@@ -112,6 +114,7 @@ void main() {
             onRefine: () {},
             onConfirm: () {},
             onStopTap: (id) => tappedId = id,
+            onReoptimize: () {},
           ),
         ),
       );

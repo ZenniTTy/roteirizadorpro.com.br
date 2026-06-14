@@ -30,6 +30,7 @@ import 'widgets/optimization_error_dialog.dart';
 import 'widgets/optimize_cta.dart';
 import 'widgets/pre_confirm_view.dart';
 import 'widgets/refine_route_sheet.dart';
+import 'widgets/reoptimize_options_sheet.dart';
 
 /// Shell that hosts the active route's map + sheet.
 ///
@@ -296,6 +297,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     distanceMeters: activeMetrics?.distance ?? 0.0,
                     onRefine: _onRefine,
                     onConfirm: _onConfirm,
+                    onReoptimize: _onReoptimize,
                     onStopTap: activeRouteId == null
                         ? (_) {}
                         : (stopId) => context.push(
@@ -566,6 +568,39 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Ordenar no mapa — em breve.')),
         );
+    }
+  }
+
+  /// Kebab "Reotimizar rota..." do PRE-CONFIRM → sheet {Atualizar / Recalcular}.
+  /// `update` reordena só o que mudou (reorderFlexible); `reoptimize` recalcula
+  /// do zero (restartRoute). Espelha o `_onRefine` (mesmo tratamento de erro).
+  Future<void> _onReoptimize() async {
+    final choice = await showReoptimizeOptionsSheet(context);
+    if (!mounted || choice == null) return;
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    final stops = ref.read(currentRouteStopsProvider);
+    if (stops.isEmpty) return;
+    final type = switch (choice) {
+      ReoptimizeChoice.update => OptimizeType.reorderFlexible,
+      ReoptimizeChoice.reoptimize => OptimizeType.restartRoute,
+    };
+    final outcome =
+        await ref.read(optimizationControllerProvider.notifier).optimize(
+              start: GeoPoint(stops.first.lat, stops.first.lng),
+              stops: stops,
+              type: type,
+            );
+    if (!mounted) return;
+    switch (outcome) {
+      case OptimizationSuccess(:final result):
+        ref.read(routesProvider.notifier).applyOptimization(routeId, result);
+      case OptimizationFailure():
+        final retry = await showOptimizationErrorDialog(context);
+        if (!mounted) return;
+        if (retry == OptimizationErrorChoice.retry) await _onReoptimize();
+      case NotEnoughStops():
+        await showNotEnoughStopsDialog(context);
     }
   }
 

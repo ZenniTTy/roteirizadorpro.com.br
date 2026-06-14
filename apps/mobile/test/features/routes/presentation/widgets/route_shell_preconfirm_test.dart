@@ -30,6 +30,7 @@ void main() {
                     onRefine: () {},
                     onConfirm: () {},
                     onStopTap: (_) {},
+                    onReoptimize: () {},
                   )
                 : const SizedBox.shrink(),
           ),
