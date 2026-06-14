@@ -20,7 +20,7 @@ O **PR-B2** torna o mapa do PRE-CONFIRM **interativo e fiel ao Spoke**: desenha 
 
 | # | Question | Decision | Rationale |
 |---|---|---|---|
-| Q1 | Como replicar o marker custom do Spoke (que usa overlay Compose, não `BitmapDescriptor` nativo) no `google_maps_flutter`? | **`BitmapDescriptor` gerado de um widget Flutter** (`RepaintBoundary` → `toImage()` → `fromBytes()`), usado num `Marker` NATIVO. | O `Marker` nativo NÃO sofre o conflito de `EagerGestureRecognizer` do `GoogleMap` PlatformView ([[lesson_googlemap_eats_gestures_use_column]] — overlay em `Stack` brigaria pelo gesto). Renderizar o pino como widget→bitmap dá fidelidade visual ao Spoke (forma + texto) sem o conflito. Trade-off aceito: re-gerar o bitmap quando os dados/zoom mudam (cache por chave). |
+| Q1 | Como replicar o marker custom do Spoke (que usa overlay Compose, não `BitmapDescriptor` nativo) no `google_maps_flutter`? | **`BitmapDescriptor.fromBytes()` desenhado via `dart:ui` `Canvas`** (`PictureRecorder` → `Canvas.drawRRect`/`drawParagraph` → `Picture.toImage()` → `image.toByteData(png)` → `fromBytes`), num `Marker` NATIVO. **Manual, SEM pacote.** | O `Marker` nativo NÃO sofre o conflito de `EagerGestureRecognizer` do `GoogleMap` PlatformView ([[lesson_googlemap_eats_gestures_use_column]]). Context7 (queried 2026-06-14, `/flutter/website`) confirma `Canvas`→`toImage`→`toByteData(ImageByteFormat.png)` como idiom oficial. Para um pino simples (forma + texto curto) desenhar no `Canvas` é ~30 linhas e mais controlável que renderizar uma árvore de widget offscreen (que exigiria `OverlayEntry`/pipeline frágil). **Sem dep nova → sem ADR de stack, sem custo.** Trade-off aceito: re-gerar o bitmap quando dados/zoom mudam (cache por chave). |
 | Q2 | Tamanho do PR-B2? | **B2 completo num PR** (polyline + markers + wire kebab Reotimizar). | Os 3 itens são o "mapa do PRE-CONFIRM" coeso. O componente arriscado (GoogleMap) e o wire trivial (kebab) compartilham o mesmo shell — fatiar criaria um PR com mapa-sem-trigger. Coeso > granular aqui. |
 | Q3 | O dump diz que o marker do Spoke mostra HORA ESTIMADA por parada. Mostrar no B2? | **NÃO — marker mostra só endereço.** ETA por parada é Slice 3 (GraphHopper real). | ⚠️ Bug-silencioso evitado: o `LocalRouteOptimizer` (NN+2-opt + Haversine) dá tempo TOTAL por estimativa geométrica grosseira (linha reta ÷ velocidade chutada). Derivar "chega 14:32" disso seria um número preciso-parecendo que MENTE ao motorista e mudaria drasticamente com o roteamento real. Paridade com o Spoke é estrutural (o marker existe, mostra a parada) — o Spoke tem hora porque tem backend real; nós não. Mostrar hora falsa = disparidade-que-engana. |
 | Q4 | Onde o trigger do Reotimizar ancora? | **No KEBAB do PRE-CONFIRM** (não no toolbar do mapa). | ⚠️ Correção dump-first de premissa errada do B1: a cadeia jadx é kebab `more_options_reoptimize_route_title` "Reotimizar rota..." (`AbstractC3737w.f`) → `ReoptimizeActiveRoute` (`AbstractC4115a.h`) → `EditRouteViewModel AnonymousClass4` → `ShowReoptimizeRouteDialog` (`AbstractC3736v.l0`) → `ReoptimizeRouteDialog`. O `OrderStopGroupsOptimizeButtonType.Reoptimize` é OUTRA coisa (botão do sheet de grupos, PR-D). Não há FAB de reotimização no mapa (`MapToolbarFabMode {Drawer, Close, Hidden}` — no PRE-CONFIRM/Overview só Drawer + toggles satélite). |
@@ -68,13 +68,16 @@ apps/mobile/lib/features/routes/
 
 > Decisão de granularidade a confirmar no plano: se a lógica de markers/polyline couber limpa no `build` do shell + 1-2 helpers puros, evita-se o `route_map_provider`/`route_map_layer` (YAGNI). O plano TDD decide ao ver o tamanho real. Princípio: bitmap-de-widget é assíncrono (`toImage` é `Future`), então provavelmente um provider `FutureProvider`/`@riverpod` que entrega `Set<Marker>` é o idiom mais limpo (o `build` do shell não pode `await`).
 
-### Bitmap-de-widget (o ponto técnico central)
+### Bitmap-via-Canvas (o ponto técnico central — decidido: `dart:ui` manual)
 
-`BitmapDescriptor.fromBytes()` recebe `Uint8List` PNG. Para gerar de um widget:
-1. Montar o `StopMarkerLabel` widget numa árvore offscreen (`RepaintBoundary` + `RenderRepaintBoundary.toImage(pixelRatio)`).
-2. `image.toByteData(format: ui.ImageByteFormat.png)` → `Uint8List`.
-3. `BitmapDescriptor.fromBytes(bytes)`.
-Isso é assíncrono e custa por marker — **cachear por chave** (`stopId` + estado visual + zoom-bucket). Há o helper canônico do ecossistema (`toBitmapDescriptor` via `widget_to_marker` OU a abordagem manual com `OverlayEntry`/`PictureRecorder`). **Context7 obrigatório** antes de escolher pacote vs. manual.
+`BitmapDescriptor.fromBytes()` recebe `Uint8List` PNG. Geramos via `dart:ui` `Canvas` (NÃO widget→bitmap, NÃO pacote):
+1. `final recorder = ui.PictureRecorder(); final canvas = Canvas(recorder);`
+2. Desenhar o pino: `canvas.drawRRect(...)` (forma/balão) + `ui.ParagraphBuilder`/`canvas.drawParagraph(...)` (texto = identificação da parada).
+3. `final picture = recorder.endRecording(); final image = await picture.toImage(w, h);`
+4. `final bytes = await image.toByteData(format: ui.ImageByteFormat.png);`
+5. `BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());`
+
+Assíncrono e custa por marker — **cachear por chave** (`stopId` + label). Context7 (`/flutter/website`, 2026-06-14) confirma este pipeline como idiom oficial. Multiplicar dimensões por `ui.window.devicePixelRatio` para o pino não sair borrado.
 
 ### Architecture principles
 
@@ -109,15 +112,11 @@ Para cada stop da rota ativa, gerar (async, cacheado) um `Marker` com `BitmapDes
 
 ## Libraries
 
-| Purpose | Package | Version target | Cost | Context7 ID |
-|---|---|---|---|---|
-| widget→BitmapDescriptor | `widget_to_marker` OU manual (`dart:ui` `PictureRecorder`/`toImage`) | resolve no install | 0 | **Context7 obrigatório antes de adicionar** — avaliar se o pacote vale vs. ~20 linhas manuais com `dart:ui` (preferir manual se trivial, evita dep nova + ADR) |
-
-> Se for pacote novo: ADR obrigatória (stack change) + Context7 + cost-model. Se for manual com `dart:ui` (já disponível): sem dep, sem ADR. **Preferência: manual**, a menos que o Context7 mostre que o pacote resolve casos de borda (pixelRatio, text scaling) que a versão manual erraria.
+**Nenhuma dependência nova.** O bitmap do marker é gerado com `dart:ui` (`PictureRecorder`/`Canvas`/`toImage`/`toByteData`), já disponível no Flutter. `google_maps_flutter` (`Polyline`, `Marker`, `BitmapDescriptor`) já está no `pubspec.yaml` desde a MS-A3. Decisão registrada em Q1 (Context7 `/flutter/website` queried 2026-06-14 confirmou o pipeline `Canvas`→`toImage`→`toByteData(png)`).
 
 ## ADRs filed during this slice
 
-- **Nenhuma esperada** se markers forem bitmap manual (`dart:ui`, sem dep). Se `widget_to_marker` (ou similar) for adicionado → **ADR nova obrigatória** (stack change) + registro no cost-model.
+- **Nenhuma.** Sem mudança de stack (markers via `dart:ui` manual, `google_maps_flutter` já instalado). O `adr-guardian` deve dar PASS.
 
 ## Risks and mitigations
 
