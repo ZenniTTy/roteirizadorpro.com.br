@@ -28,7 +28,7 @@ void main() {
 
     final ordered = [
       _stop('B').copyWith(deliveryId: 'A1'),
-      _stop('A').copyWith(deliveryId: 'A2')
+      _stop('A').copyWith(deliveryId: 'A2'),
     ];
     notifier.applyOptimization(
       id,

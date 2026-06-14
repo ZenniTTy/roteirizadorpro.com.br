@@ -7,9 +7,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
         body: RouteSummaryRow(
-            durationMinutes: 75, stopsCount: 12, distanceMeters: 5200),
+            durationMinutes: 75, stopsCount: 12, distanceMeters: 5200,),
       ),
-    ));
+    ),);
     expect(find.textContaining('1h 15min'), findsOneWidget);
     expect(find.textContaining('12 paradas'), findsOneWidget);
     expect(find.textContaining('5,2 km'), findsOneWidget);
@@ -20,9 +20,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
         body: RouteSummaryRow(
-            durationMinutes: 18, stopsCount: 1, distanceMeters: 800),
+            durationMinutes: 18, stopsCount: 1, distanceMeters: 800,),
       ),
-    ));
+    ),);
     expect(find.textContaining('18 min'), findsOneWidget);
     expect(find.textContaining('1 parada'), findsOneWidget);
     expect(find.textContaining('paradas'), findsNothing);
@@ -33,9 +33,9 @@ void main() {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
         body: RouteSummaryRow(
-            durationMinutes: 18, stopsCount: 2, distanceMeters: 800),
+            durationMinutes: 18, stopsCount: 2, distanceMeters: 800,),
       ),
-    ));
+    ),);
     expect(find.byType(InkWell), findsNothing);
     expect(find.byType(GestureDetector), findsNothing);
   });

@@ -6,7 +6,7 @@ void main() {
   testWidgets('mostra o deliveryId', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: DeliveryIdChip(deliveryId: 'A1')),
-    ));
+    ),);
     expect(find.text('A1'), findsOneWidget);
   });
 
@@ -14,7 +14,7 @@ void main() {
       (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: DeliveryIdChip(deliveryId: null)),
-    ));
+    ),);
     expect(find.text('—'), findsOneWidget);
   });
 }
