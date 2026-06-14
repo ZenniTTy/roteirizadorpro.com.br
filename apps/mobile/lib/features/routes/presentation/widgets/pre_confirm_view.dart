@@ -40,6 +40,10 @@ class PreConfirmView extends StatelessWidget {
             itemBuilder: (context, index) {
               final stop = stops[index];
               return ListTile(
+                // Key por id: ao "Inverter a ordem" a lista vem revertida; sem a
+                // key o ListView reconcilia por índice e refaz subtrees em vez de
+                // mover (perf-auditor should-fix Á7 PR-B1).
+                key: ValueKey(stop.id),
                 leading: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [DeliveryIdChip(deliveryId: stop.deliveryId)],

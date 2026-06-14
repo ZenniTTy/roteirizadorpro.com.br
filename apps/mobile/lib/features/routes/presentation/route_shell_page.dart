@@ -139,8 +139,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     // `PreConfirmView` no MESMO shell — o mapa em cima permanece (o
     // polyline+markers numerados são o PR-B2). Espelha o Spoke, onde o
     // EditRouteFragment renderiza por estado, sem tela separada.
-    final activeRouteState = ref.watch(activeRouteStateProvider);
-    final isPreConfirm = activeRouteState?.isPreConfirm ?? false;
+    // `.select` no getter derivado: o shell só rebuilda quando o ESTADO VISUAL
+    // (DRAFT↔PRE-CONFIRM) muda — não a cada mutação de stop. Sem o select, como
+    // `RouteState` compara por identidade, todo addStop/removeStop reconstruiria
+    // a árvore do sheet (perf-auditor must-fix Á7 PR-B1).
+    final isPreConfirm = ref.watch(
+      activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
+    );
     final activeMetrics = activeRouteId == null
         ? null
         : ref.watch(
