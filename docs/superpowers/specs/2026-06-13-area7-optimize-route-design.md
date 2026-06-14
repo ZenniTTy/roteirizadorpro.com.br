@@ -26,8 +26,9 @@ Esta área foi modelada **dump-first** (ADR-0045): o dump estático do Spoke v3.
 | Q4 | Quanto do "Refinar" entra no Slice 2? | **"Inverter a rota" REAL** (`OptimizeDirection.REVERSE`) + **"Ordenar a rota manualmente" (OrderStopGroups) REAL on-device** | O dump prova que "Inverter" é uma chamada ao solver com direção reversa (`core/entity/OptimizeDirection.java` = `REVERSE`). OrderStopGroups (`ui/home/editroute/orderstopgroup`, `OrderStopGroupDrawerOverlayKt$eagerDetectDragGestures`, strings `order_stop_groups_*` completas) é lasso de polígonos sobre o GoogleMap + agrupamento — **zero backend, zero ML Kit** → viável e fiel agora. Eduardo escolheu 100% idêntico onde viável. |
 | Q5 | "Carregar veículo" entra no Slice 2? | **Botão fiel + ação "Em breve" → Slice 3** | Correção factual do dump: o núcleo de "Carregar veículo" é **escanear barcode** de cada pacote (`domain/interactors/ScanStopBarcodeForLoadVehicle`, `MarkAsDone$requiresBarcodeScanningToLoadVehicle`, `ui/scanner/LabelScannerViewModel$processLoadVehicleBarcode`) — depende de ML Kit, a mesma dep pesada que o roadmap já difere p/ Slice 3 (OCR/Voz). Fazer só o wizard visual = bug silencioso (Eduardo: "evite bugs silenciosos"). Botão presente (layout idêntico ao Spoke) + ação honesta. |
 | Q6 | "Compartilhar rota em tempo real" entra no Slice 2? | **Botão fiel + ação "Em breve" → Slice 3** | É live-tracking p/ cliente final: link público + página web + posição em tempo real — tudo backend (Slice 3, não existe). Antecipar = breaking change na fronteira mobile/backend do roadmap (Eduardo: "evite breaking changes"). Botão presente, ação honesta. Distinto do "Compartilhar cópia da rota" do kebab (peer-transfer B2B, cortado) e da ShareSheet original RotPro (`/settings/share`). |
-| Q7 | Replicar o gate "10 paradas/assinar" do Spoke? | **NÃO clonar** | `undo_optimization_dialog_*` = "Assine para usar rotas com mais de 10 paradas" é o freemium do Spoke. RotPro é ADR-0030 (acesso único R$ 25,90/30d, paywall só em "Navegar" na Á8, otimização grátis). Divergência intencional de negócio. |
+| Q7 | Replicar o gate "10 paradas/assinar" do Spoke? | **NÃO clonar** | `undo_optimization_dialog_*` = "Assine para usar rotas com mais de 10 paradas" é o freemium do Spoke. RotPro é ADR-0030 (acesso único R$ 25,90/30d, paywall só em "Navegar" na Á8, otimização grátis). Divergência intencional de negócio. **Consequência (dump-confirmado):** a ação "Desfazer otimização" (`undo_optimization_*`) existe no Spoke SÓ acoplada a esse paywall (`PaywallDialogFragment.java:122` → `DialogC2615o0` é o único call-site) — ao cortar o gate, ela cai junto. Não há controle órfão; nenhum widget de "desfazer" nesta área. |
 | Q8 | Tamanho da entrega? | **4 PRs sequenciais na `develop`** (A: estado+solver+CTA+progresso; B: PRE-CONFIRM+FTUE+Refinar/Reotimizar; C: Ready-to-Run+Confirmar+Iniciar; D: OrderStopGroups) | Á7 ficou grande (solver + 2 estados + progresso + 2 FTUEs + 2 sheets + banner + chips + CTA sticky + tela de grupos). PR único (modelo Á6) teria diff enorme e arriscado. Cada fatia verde+mergeada antes da próxima; zero débito por fatia (regra do harness). OrderStopGroups é a tela mais cara e independente → último PR. |
+| Q9 | Formato do chip de ID (A1..AN) e seu default? | **Moderno como default declarado, gerado por enum `PackageLabelFormat {moderno, classico}`** | Validação dump-first **corrigiu** minha premissa: o fallback hard-coded do Spoke é **Clássico** (`p000/a4e.java:16` = `PackageLabelFormat.BASE`, gated por A/B test), não Moderno. O texto do chip é função desse formato (`domain/utils/C3003e.java`: Moderno=letra+dígito linha 174-179; Clássico=número puro linha 165). RotPro usa **Moderno como default por escolha de produto** (mais legível p/ etiquetar pacotes), não por cópia do default Spoke. O toggle Moderno/Clássico vive na **Á10** (`package_identification_format_*`, ainda não feita) — débito explícito no TODO. Parametrizar a geração por enum (não string literal "A$n") deixa o braço Clássico fiel-mas-dormente e a Á10 só liga o toggle. |
 
 ## Goals (acceptance for this slice)
 
@@ -36,14 +37,17 @@ A real Samsung M54 (`RQCW401G33T`) install de `v1.1.0-area7` pode, contra a API 
 1. Numa rota ativa com ≥2 paradas, ver o CTA "Otimizar rota" sticky no rodapé do shell; tocá-lo dispara a otimização (grátis, sem paywall).
 2. Na 1ª otimização da conta, ver o modal educativo de numeração (one-shot) com "Entendi" e "Configurar"; tocar "Entendi" prossegue; a 2ª otimização NÃO re-mostra o modal.
 3. Durante a otimização, ver a tela de progresso com as 4 fases sequenciais; ao concluir, chegar ao estado PRE-CONFIRM.
-4. No PRE-CONFIRM: ver o mapa na metade superior com a rota desenhada (polyline) + markers numerados; a linha de resumo "X min · N paradas · Y km"; a lista de paradas na ordem otimizada, cada uma com chip "A1".."AN"; e os 3 CTAs no rodapé (tempo / "Refinar" / "Confirmar").
+4. No PRE-CONFIRM: ver o mapa na metade superior com a rota desenhada (polyline) + markers numerados; a linha de resumo "X min · N paradas · Y km"; a lista de paradas na ordem otimizada, cada uma com chip "A1".."AN"; e o rodapé com **1 indicador de tempo (display, NÃO clicável)** + **2 CTAs** ("Refinar" / "Confirmar").
 5. Tocar "Refinar" → ver o sheet "Refinar a rota" com "Inverter a rota" (reordena reverso e volta ao PRE-CONFIRM) e "Ordenar a rota manualmente" (abre a tela de desenho de grupos).
 6. Abrir o kebab no PRE-CONFIRM → "Reotimizar rota..." → ver "Alternativas de reotimização" com "Atualizar rota" e "Reotimizar rota"; cada uma re-roda o solver e volta ao PRE-CONFIRM atualizado.
 7. Na tela de "Ordenar a rota manualmente": desenhar ≥2 grupos no mapa (lasso), tocar "Confirmar rota" → a rota reordena pela ordem dos grupos e volta ao PRE-CONFIRM; "Descartar alterações?" e "Aceitar rota atual?" funcionam nos dialogs.
 8. Tocar "Confirmar" no PRE-CONFIRM → ver o modal "IDs definitivos" (one-shot) com "Continuar"/"Cancelar"; "Continuar" chega ao Ready-to-Run (sem o modal "Carregar veículo", cortado).
-9. No Ready-to-Run: ver os 2 botões-linha ("Compartilhar rota em tempo real" e "Carregar veículo", ambos exibem "Em breve" ao toque) + os 3 CTAs (tempo / "Editar" / "Iniciar rota").
+9. No Ready-to-Run: ver os 2 botões-linha ("Compartilhar rota em tempo real" e "Carregar veículo", ambos exibem "Em breve" ao toque) + o rodapé com **1 indicador de tempo (display)** + **2 CTAs** ("Editar" / "Iniciar rota").
 10. Se a otimização falhar (sem rede): ver o dialog de erro com "Tentar de novo" e "Pular otimização"; "Pular" chega ao Ready-to-Run com o banner "Otimização pendente" no mapa.
 11. Tocar "Iniciar rota" no Ready-to-Run — o destino (Modo Delivery, Área 8) ainda não existe; nesta área o tap dispara um SnackBar "Em breve" observável (o mesmo idiom de corte honesto dos botões "Carregar veículo"/"Compartilhar rota em tempo real"), sem navegar para tela inexistente. A Área 8 substitui o SnackBar pela navegação real. **Este é o único gateway que aponta para área futura.**
+12. Tocar **"Editar"** no Ready-to-Run → a rota volta ao estado PRE-CONFIRM (botões "Refinar"/"Confirmar" de novo no rodapé), permitindo mexer nas paradas. Se o motorista adicionar/remover/reordenar paradas após editar, a otimização anterior é invalidada (o resumo "X min · N paradas" some até re-otimizar); ao tentar sair com mudanças pendentes, ver o diálogo "Descartar alterações?" que reverte para a última versão otimizada.
+13. Tocar "Otimizar rota" com **menos paradas que o mínimo** (apenas Partida/Destino sem parada intermediária suficiente) → o solver NÃO roda; ver um diálogo próprio "Adicione mais paradas" (título + corpo + único botão "Ok"), **distinto** do diálogo de falha de rede do Goal 10.
+14. Remover uma parada quando a rota **já está otimizada** → a parada NÃO some na hora; ver um confirm distinto ("a parada será removida na próxima otimização") e a parada fica marcada para remoção deferida, aplicada na próxima re-otimização. (Em rota DRAFT, "Remover" continua deletando na hora, como na Área 6.)
 
 ### Non-goals (explicit, to keep scope tight)
 
@@ -67,7 +71,8 @@ apps/mobile/lib/features/routes/
 │   ├── optimization_state.dart             # NEW: enum {creating, optimized, editing}
 │   ├── optimize_type.dart                  # NEW: enum {restartRoute, reorderFlexible, skipReorder}
 │   ├── optimize_direction.dart             # NEW: enum {reverse}
-│   ├── stop.dart                           # MOD: + String? deliveryId (A1..AN, "Pendente" pré-otim.)
+│   ├── package_label_format.dart           # NEW: enum {moderno, classico} (default moderno; chip A1.. vs 1..) [G6]
+│   ├── stop.dart                           # MOD: + String? deliveryId (A1..AN/"Pendente") + bool pendingRemoval (G5)
 │   └── optimization/
 │       ├── route_optimizer.dart            # NEW: interface RouteOptimizer + RouteOptimizationResult
 │       ├── local_route_optimizer.dart      # NEW: NN + 2-opt, Haversine (impl. Slice 2)
@@ -79,12 +84,14 @@ apps/mobile/lib/features/routes/
 └── presentation/
     ├── route_shell_page.dart               # MOD: CTA "Otimizar rota" sticky no rodapé (1ª task) + switch de estado visual
     ├── widgets/
-    │   ├── optimize_cta.dart               # NEW: CTA sticky
+    │   ├── optimize_cta.dart               # NEW: CTA sticky (desabilitado/gated abaixo do mínimo de paradas, G1)
     │   ├── optimizing_progress_view.dart   # NEW: tela 4 fases
-    │   ├── optimization_error_dialog.dart  # NEW: "Não foi possível otimizar"
-    │   ├── pre_confirm_view.dart           # NEW: PRE-CONFIRM (summary + chips + 3 CTAs)
-    │   ├── ready_to_run_view.dart          # NEW: Ready-to-Run (2 botões-linha + 3 CTAs + banner)
-    │   ├── route_summary_row.dart          # NEW: "X min · N paradas · Y km"
+    │   ├── optimization_error_dialog.dart  # NEW: erro de REDE ("Não foi possível otimizar" + Tentar de novo/Pular)
+    │   ├── not_enough_stops_dialog.dart    # NEW: G1 — "Adicione mais paradas" (título + corpo + único botão Ok); ≠ erro de rede
+    │   ├── confirm_deferred_removal_dialog.dart # NEW: G5 — "será removida na próxima otimização" (estado otimizado)
+    │   ├── pre_confirm_view.dart           # NEW: PRE-CONFIRM (summary display + chips + 1 tempo-display + 2 CTAs)
+    │   ├── ready_to_run_view.dart          # NEW: Ready-to-Run (2 botões-linha + 1 tempo-display + 2 CTAs + banner)
+    │   ├── route_summary_row.dart          # NEW: "X min · N paradas · Y km" — DISPLAY puro, sem onTap (G4)
     │   ├── id_education_dialog.dart        # NEW: FTUE "Numeração definida pela ordem da rota"
     │   ├── id_lock_dialog.dart             # NEW: FTUE "A numeração ficará fixa"
     │   ├── refine_route_sheet.dart         # NEW: "Refinar a rota" {Inverter / Ordenar manual}
@@ -105,16 +112,18 @@ Nenhuma mudança de contrato backend nesta área (solver é on-device; `POST /ro
 4. **Cortes são botões fiéis + ação honesta** — features Slice 3 (Carregar veículo, Compartilhar tempo real) têm o botão no layout (estrutura fiel) mas ação "Em breve" observável (sem bug silencioso).
 5. **`@riverpod` codegen + keepAlive** — controllers espelham o padrão de `map_controls_controller.dart`; toda edição de provider dispara o hook `run-riverpod-codegen` (ADR-0024).
 6. **`ReorderableListView.builder` com `onReorderItem`** — confirmado da fonte 3.44 (assinatura `void Function(int oldIndex, int newIndex)`, `newIndex` já corrigido; `onReorder` é `@Deprecated`, assert proíbe passar os dois). Usado onde houver reordenação manual de stops.
+7. **"Editar" é o inverso de "Confirmar" (G2/G3), não navegação** — `onEditRoute()` reusa a flag `confirmed` (true→false), devolvendo a rota ao PRE-CONFIRM no MESMO shell (sem push de "route builder" — a paráfrase do inventário §10.12 estava errada, ver `RouteLifecycleController$onEditRouteClick:49` → `ConfirmedState(false)`). O estado `editing` é alcançado quando paradas mudam numa rota já otimizada (`UpdateRoute.java:115-117`: muda stops + estava OPTIMIZED → entra EDITING e **zera `optimizedAt`**, invalidando as métricas obsoletas). Getter derivado `isEditing` entra no switch exaustivo. Sair com mudanças pendentes → diálogo "Descartar alterações?" reverte à última versão otimizada.
 
 ## Data flow
 
 ### Funil de otimização (DRAFT → PRE-CONFIRM)
 
 1. `RouteShellPage` renderiza o estado visual via `switch` sobre `route.routeState` derivado. DRAFT (`optimization == creating && !optimizing`) → mostra `OptimizeCta` sticky no rodapé.
-2. Tap no CTA → `OptimizationController.optimize(type: OptimizeType.restartRoute)`. Antes de rodar: se `!optimizationAcknowledged`, mostra `IdEducationDialog` (one-shot); ao "Entendi" grava a flag (`OptimizationFtueRepository`) e prossegue.
-3. Controller seta `optimizing = true` → UI mostra `OptimizingProgressView` (4 fases, timer escalonado). Chama `RouteOptimizer.optimize(start, end, stops, type)`.
-4. `LocalRouteOptimizer`: nearest-neighbor a partir de `start` (vizinho mais próximo por `Geolocator.distanceBetween`), refina com 2-opt, atribui `deliveryId` "A1".."AN" na ordem final, calcula `totalDistanceMeters` (soma dos legs) e `totalDurationMinutes` (distância ÷ velocidade urbana constante).
-5. Sucesso → `RouteState.copyWith(optimization: optimized, optimizing: false, optimizedAt: now)` + métricas no `Route` + stops reordenados. UI → `PreConfirmView`. Erro → `optimizationErroredAt: now`, UI → `OptimizationErrorDialog`.
+2. Tap no CTA → `OptimizationController.optimize(type: OptimizeType.restartRoute)`. **Guard de mínimo (G1, espelha `OptimizeActiveRoute$optimise$1:356` → `OptimizationError.NotEnoughStops`):** se a contagem de paradas otimizáveis for insuficiente (menos de 1 parada além de Partida/Destino), o controller NÃO chama o solver e mostra o `NotEnoughStopsDialog` (título "Adicione mais paradas" + corpo + único botão "Ok", microcopy original). Distinto do erro de rede (passo 5). Senão, prossegue.
+3. Se `!optimizationAcknowledged`, mostra `IdEducationDialog` (one-shot); ao "Entendi" grava a flag (`OptimizationFtueRepository`) e prossegue.
+4. Controller seta `optimizing = true` → UI mostra `OptimizingProgressView` (4 fases, timer escalonado). Chama `RouteOptimizer.optimize(start, end, stops, type)`.
+5. `LocalRouteOptimizer`: nearest-neighbor a partir de `start` (vizinho mais próximo por `Geolocator.distanceBetween`), refina com 2-opt, atribui `deliveryId` na ordem final **via `PackageLabelFormat` (default `moderno` → "A1".."AN"; `classico` → "1".."N", G6/Q9)**, calcula `totalDistanceMeters` (soma dos legs) e `totalDurationMinutes` (distância ÷ velocidade urbana constante). Stops com `pendingRemoval == true` (G5) são excluídos da otimização (a remoção deferida se efetiva aqui).
+6. Sucesso → `RouteState.copyWith(optimization: optimized, optimizing: false, optimizedAt: now)` + métricas no `Route` + stops reordenados. UI → `PreConfirmView`. Erro de REDE → `optimizationErroredAt: now`, UI → `OptimizationErrorDialog`.
 
 ### Refinar / Reotimizar (dois fluxos distintos — Q3)
 
@@ -125,17 +134,23 @@ Nenhuma mudança de contrato backend nesta área (solver é on-device; `POST /ro
 
 `OrderStopGroupsPage` mostra o GoogleMap full-screen. Gesto de arrasto desenha um polígono (lasso) → `StopGroup` (lista de stops dentro do polígono). "Desenhar o próximo grupo" cria o próximo. "Confirmar rota" (habilitado com ≥2 grupos) → `optimize` respeitando a ordem dos grupos (otimiza dentro de cada grupo, concatena na ordem desenhada). Dialogs: "Descartar alterações?" (sair sem aplicar), "Aceitar rota atual?" (confirmar), "Desfazer" (remove último grupo).
 
-### Confirm → Ready-to-Run
+### Confirm → Ready-to-Run → Editar (transições de lifecycle)
 
-Tap "Confirmar" no PRE-CONFIRM → `RouteLifecycleController.onConfirmRoute()`. Se `!idLockAcknowledged`, mostra `IdLockDialog` (one-shot); "Continuar" → `RouteState.copyWith(confirmed: true)` + grava flag. UI → `ReadyToRunView`. Tap "Iniciar rota" → `onStartRoute()` (`started: true`) → placeholder Á8 nesta área.
+- **Confirmar:** tap "Confirmar" no PRE-CONFIRM → `RouteLifecycleController.onConfirmRoute()`. Se `!idLockAcknowledged`, mostra `IdLockDialog` (one-shot); "Continuar" → `RouteState.copyWith(confirmed: true, optimizationAcknowledged: true)` + grava flag. UI → `ReadyToRunView`.
+- **Iniciar rota:** tap "Iniciar rota" → `onStartRoute()` (`started: true`) → placeholder Á8 (SnackBar "Em breve" nesta área).
+- **Editar (G2/G3, des-confirma):** tap "Editar" no Ready-to-Run → `onEditRoute()` → `RouteState.copyWith(confirmed: false)` (espelha `RouteLifecycleController$onEditRoute:49` → `ConfirmedState(false)` — NÃO reseta `optimizationAcknowledged`). O getter derivado roteia de volta a `PreConfirmView` (mesmo shell, sem push). Se o motorista então mudar paradas (add/remove/reorder), `UpdateRoute` detecta `stops mudaram && optimization == optimized` → `RouteState.copyWith(optimization: editing, optimizedAt: null)` (G3 — invalida as métricas; o resumo "X min" some até re-otimizar). Sair com mudanças pendentes → diálogo "Descartar alterações?" reverte à última versão otimizada.
+
+### Remoção de parada em estado otimizado (G5)
+
+Quando `route.optimization == optimized` (a rota já foi otimizada), "Remover parada" NÃO deleta imediatamente (diferente do DRAFT/Á6). Espelha `StopActionsController$onDeleteStopClick:55` → `ConfirmDeleteStopOnOptimizationDialog`: mostra o `ConfirmDeferredRemovalDialog` (microcopy original equivalente a "a parada será removida na próxima otimização"); confirmar marca `stop.pendingRemoval = true` (remoção DEFERIDA, sem backend no Slice 2) — a parada permanece visível na lista mas marcada, e é efetivamente excluída no próximo `optimize()` (passo 5 do funil). Em rota DRAFT (`optimization == creating`), a remoção continua imediata, como a Área 6 entregou.
 
 ## Sub-slice plan
 
 | Sub | Scope | Verification |
 |---|---|---|
-| **PR-A** | `RouteState`/`OptimizationState`/`OptimizeType`/`OptimizeDirection` + migração do enum + métricas no `Route` + `deliveryId` no `Stop` + `RouteOptimizer`/`LocalRouteOptimizer` (testado isolado) + `OptimizationController` + **CTA "Otimizar rota" sticky** + `OptimizingProgressView` (4 fases) + `OptimizationErrorDialog` | Widget+unit tests verdes; CTA visível no M54; solver reordena uma rota de teste; analyze limpo no escopo |
-| **PR-B** | `PreConfirmView` (mapa+polyline+markers, `RouteSummaryRow`, lista ordenada + chips A1..AN, 3 CTAs) + `IdEducationDialog` (one-shot) + `RefineRouteSheet` (Inverter real; Ordenar-manual → push p/ destino do PR-D) + kebab `ReoptimizeOptionsSheet` (Atualizar/Reotimizar reais) | PRE-CONFIRM navegável no M54; FTUE one-shot verificado; Inverter/Atualizar/Reotimizar reordenam |
-| **PR-C** | `RouteLifecycleController` (confirm/start/edit) + `IdLockDialog` (one-shot) + `ReadyToRunView` (2 botões-linha "Em breve" + Editar + **"Iniciar rota"** + banner "Otimização pendente") + placeholder Á8 | Ready-to-Run navegável; "Iniciar rota" leva ao placeholder; "Pular otimização" → banner |
+| **PR-A** | `RouteState`/`OptimizationState`/`OptimizeType`/`OptimizeDirection`/**`PackageLabelFormat` (G6)** + migração do enum + métricas no `Route` + `deliveryId`+**`pendingRemoval` (G5)** no `Stop` + `RouteOptimizer`/`LocalRouteOptimizer` (testado isolado) + `OptimizationController` (**com guard de mínimo G1**) + **CTA "Otimizar rota" sticky** (gated abaixo do mínimo) + `OptimizingProgressView` (4 fases) + `OptimizationErrorDialog` (rede) + **`NotEnoughStopsDialog` (G1)** | Widget+unit tests verdes; CTA visível no M54; solver reordena; guard de mínimo dispara o dialog próprio; analyze limpo no escopo |
+| **PR-B** | `PreConfirmView` (mapa+polyline+markers, `RouteSummaryRow` **display-only G4**, lista ordenada + chips A1..AN, **1 tempo-display + 2 CTAs**) + `IdEducationDialog` (one-shot) + `RefineRouteSheet` (Inverter real; Ordenar-manual → push p/ destino do PR-D) + kebab `ReoptimizeOptionsSheet` (Atualizar/Reotimizar reais) + **remoção deferida em estado otimizado (`ConfirmDeferredRemovalDialog`, G5)** | PRE-CONFIRM navegável no M54; FTUE one-shot verificado; Inverter/Atualizar/Reotimizar reordenam; remover parada otimizada defere (não deleta na hora) |
+| **PR-C** | `RouteLifecycleController` (confirm/start/**edit = des-confirma, G2/G3**) + `IdLockDialog` (one-shot) + `ReadyToRunView` (2 botões-linha "Em breve" + **"Editar" volta ao PRE-CONFIRM** + **"Iniciar rota"** + banner "Otimização pendente") + estado `editing` (invalida `optimizedAt`) + "Descartar alterações?" + placeholder Á8 | Ready-to-Run navegável; "Editar" volta ao PRE-CONFIRM e invalida métricas ao mudar stops; "Iniciar rota" → placeholder; "Pular otimização" → banner |
 | **PR-D** | `OrderStopGroupsPage` (lasso + grupos + 3 dialogs + re-otimiza por grupos) + fecha "Ordenar manualmente" do PR-B | Desenhar ≥2 grupos reordena a rota no M54; dialogs funcionam |
 | **Fechamento** | `integration_test/area7_optimize_flow_test.dart` no M54 + D4 dump-only + `flutter-perf-auditor` + smoke E2E release + docs sweep | `/verify-slice` GO; integration_test verde no M54 |
 
@@ -165,22 +180,26 @@ Tap "Confirmar" no PRE-CONFIRM → `RouteLifecycleController.onConfirmRoute()`. 
 | **Bug silencioso nos cortes** | Carregar veículo / Compartilhar tempo real exibem "Em breve" observável (SnackBar), nunca `onTap: () {}` vazio (regra de qualidade do checklist). |
 | **FTUE one-shot reaparece ou não dispara** | Flags em `SharedPreferencesAsync` (idiom Á3 `MapPrefsRepository`); integration_test verifica que a 2ª otimização não re-mostra o modal. |
 | **`onReorder` vs `onReorderItem` (token 3.44)** | Confirmado da fonte (`reorderable_list.dart`): usar só `onReorderItem`; o assert do Flutter falha se passar os dois. |
+| **G1 — solver roda sobre lista degenerada (tela "0 paradas"/crash)** | Guard de mínimo no `OptimizationController` ANTES do solver; `NotEnoughStopsDialog` próprio. Unit test do limiar + widget test do dialog. CTA `OptimizeCta` também gated abaixo do mínimo. |
+| **G2/G3 — "Editar" vira botão morto ou pop errado (failure mode ADR-0041..0044)** | "Editar" = `confirmed: false` (reuso de flag), volta ao PRE-CONFIRM no mesmo shell; mudar stops em rota otimizada → `editing` + `optimizedAt: null` (invalida métrica obsoleta). Unit test da transição + integration_test cobre o tap. Inventário §10.12 corrigido ("des-confirma", não "reabre route builder"). |
+| **G5 — remover parada otimizada deleta na hora (diverge do Spoke)** | Ramo por estado: `optimization == optimized` → `ConfirmDeferredRemovalDialog` + `pendingRemoval` (deferido); DRAFT → delete imediato (Á6). Widget test pina os dois ramos. |
+| **G6 — chip de ID hard-coded "A$n" colide com o toggle da Á10** | Geração via enum `PackageLabelFormat` {moderno(default)/classico}, não string literal. Braço Clássico fiel-mas-dormente; Á10 só liga o toggle. Débito explícito no TODO. |
 
 ## Accessibility (Karpathy 3 minimum — not optional)
 
 1. **Semantics labels em cada CTA primário.** "Otimizar rota", "Refinar", "Confirmar", "Editar", "Iniciar rota", "Atualizar rota", "Reotimizar rota", "Inverter a rota", "Confirmar rota" (OrderStopGroups), "Entendi", "Continuar".
-2. **Tap targets ≥ 48×48 dp.** Os 3 CTAs do rodapé, os botões-linha do Ready-to-Run, as opções dos sheets, a toolbar de desenho do OrderStopGroups.
+2. **Tap targets ≥ 48×48 dp.** Os 2 CTAs do rodapé (o indicador de tempo é display, NÃO recebe Semantics(button) nem tap — G4), os botões-linha do Ready-to-Run, as opções dos sheets, a toolbar de desenho do OrderStopGroups.
 3. **Color-contrast WCAG AA contra `prototipo/tokens.js`.** O verde do indicador de tempo, o laranja do banner "Otimização pendente", os chips A1..AN — auditados antes de cada PR fechar.
 
 ## Test strategy
 
 | Layer | Tool | What it covers in this slice |
 |---|---|---|
-| Solver | unit | `LocalRouteOptimizer`: ordem NN+2-opt determinística, métricas, `deliveryId` A1..AN, direção reversa, ordem-por-grupos |
-| Estado | unit | `RouteState` derivações (isPreConfirm/isReadyToRun/isOptimizing/hasError), transições do `RouteLifecycleController` |
+| Solver | unit | `LocalRouteOptimizer`: ordem NN+2-opt determinística, métricas, `deliveryId` (Moderno A1..AN E Clássico 1..N, G6), direção reversa, ordem-por-grupos, **guard de mínimo (G1)**, **exclusão de `pendingRemoval` (G5)** |
+| Estado | unit | `RouteState` derivações (isPreConfirm/isReadyToRun/**isEditing**/isOptimizing/hasError), transições do `RouteLifecycleController` (**confirm/start/edit — edit des-confirma G2; mudar stops invalida `optimizedAt` G3**) |
 | FTUE | unit | `OptimizationFtueRepository` one-shot (flags) |
-| Widgets | widget | Cada view/sheet/dialog: PRE-CONFIRM render, summary, chips, 3 CTAs, RefineRouteSheet vs ReoptimizeOptionsSheet, banner, "Em breve" dos cortes |
-| Fluxo | integration_test (M54) | `area7_optimize_flow_test.dart`: Otimizar → progresso → PRE-CONFIRM → Confirmar → Ready-to-Run → "Iniciar rota" placeholder; FTUE one-shot; erro→Pular→banner |
+| Widgets | widget | Cada view/sheet/dialog: PRE-CONFIRM render, summary **(display, sem onTap — G4)**, chips, 1 tempo + 2 CTAs, RefineRouteSheet vs ReoptimizeOptionsSheet, banner, "Em breve" dos cortes, **`NotEnoughStopsDialog` (G1)**, **`ConfirmDeferredRemovalDialog` — ramos draft vs optimized (G5)** |
+| Fluxo | integration_test (M54) | `area7_optimize_flow_test.dart`: Otimizar → progresso → PRE-CONFIRM → Confirmar → Ready-to-Run → **Editar→PRE-CONFIRM** → "Iniciar rota" placeholder; FTUE one-shot; erro→Pular→banner; **mínimo→dialog (G1)** |
 
 **TDD red→green por task** via `flutter-test-author` (ADR-0025), idiom da Á6.
 
@@ -189,6 +208,7 @@ Tap "Confirmar" no PRE-CONFIRM → `RouteLifecycleController.onConfirmRoute()`. 
 - *2026-06-13:* Solver é stand-in Dart on-device; GraphHopper real = Slice 3 (`POST /routes/optimize`). Fronteira `RouteOptimizer` pronta para o swap.
 - *2026-06-13:* "Carregar veículo" (barcode/ML Kit) e "Compartilhar rota em tempo real" (backend) = botão fiel + "Em breve" → Slice 3.
 - *2026-06-13:* "Iniciar rota" leva a placeholder até a Área 8 construir o Modo Delivery.
+- *2026-06-13 (G6):* O toggle "Formato do ID" (Moderno/Clássico) vive na **Área 10** (ainda não feita). A Á7 usa Moderno como default (escolha de produto; o fallback do Spoke é Clássico) e gera o chip via enum `PackageLabelFormat` — a Á10 só liga o toggle, sem re-trabalho no gerador.
 
 ## Verification gates (per `M2-SLICE-CHECKLIST.md`)
 
