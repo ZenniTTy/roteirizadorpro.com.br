@@ -22,6 +22,17 @@ Toda string PT-BR abaixo é **original** — comparada 1:1 com `~/spoke-dump/res
 
 Cada microcopy NOVA neste plano já está reformulada. O reviewer de cada task DEVE confirmar que o texto não colide com a string-fonte do Spoke.
 
+### ⚠️ MICROCOPY FINAL TRAVADA (2026-06-14, re-auditoria dump-first — substitui os exemplos verbatim no corpo das tasks)
+
+A re-conferência 1:1 com `values-pt-rBR/strings.xml` em 2026-06-14 pegou colisões nos corpos das tasks abaixo ("Inverter a rota" era VERBATIM; "Ordenar manualmente"/"Reotimizar rota" near-verbatim). Decisão Eduardo: "siga as boas práticas" → reformular TUDO (zero colisão, ADR-0010). **Use ESTES textos, NÃO os dos snippets de código nas tasks 6–9:**
+
+- **T6 IdEducationDialog:** título `Como a numeração funciona` · botões `Ajustar formato` (era "Configurar") + `Entendi` · corpo: `Cada parada ganha um código (A1, A2, A3…) que segue a ordem da rota. Se você reordenar ou otimizar de novo, os códigos se ajustam sozinhos.`
+- **T7 RefineRouteSheet:** título `Ajustar a rota` (era "Refinar a rota") · item1 `Inverter a ordem` (era "Inverter a rota" = VERBATIM) + sub `Percorre as paradas de trás pra frente` · item2 `Definir a ordem na mão` (era "Ordenar manualmente") + sub `Você arrasta as paradas na sequência que quiser`.
+- **T8 ReoptimizeOptionsSheet:** título `Como recalcular` (era "Compare as opções") · item1 `Ajustar o que mudou` (era "Atualizar rota") + sub `Mantém a rota e reposiciona só as paradas novas` · item2 `Recalcular do zero` (era "Reotimizar rota") + sub `Refaz a sequência inteira em busca da melhor ordem`.
+- **T9 ConfirmDeferredRemovalDialog:** título `Remover esta parada?` · corpo `A parada {stopLabel} fica na lista por enquanto e sai da rota na próxima vez que você otimizar.` · botões `Cancelar` + `Remover`.
+
+> **Importante p/ os testes:** o `expect(find.text('Inverter a rota'))` etc. nos snippets de teste das tasks 7/8 também precisam ser atualizados para os textos travados acima (o test-author ajusta o matcher ao texto final). O assert "distinto" (Refinar NÃO tem item do Reotimizar e vice-versa) continua válido com os novos textos.
+
 ---
 
 ## File Structure (PR-B1)
