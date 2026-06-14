@@ -15,15 +15,18 @@ void main() {
     ]);
   });
 
-  test('OptimizeType cobre os modos do Spoke usados na Á7', () {
-    expect(
-      OptimizeType.values,
-      containsAll([
-        OptimizeType.restartRoute,
-        OptimizeType.reorderFlexible,
-        OptimizeType.skipReorder,
-      ]),
-    );
+  test(
+      'OptimizeType espelha o Spoke VERBATIM (4 valores, ordem do dump: '
+      'RESTART_ROUTE/REMAINING_STOPS/SKIP_REORDER/REORDER_FLEXIBLE)', () {
+    // Lista EXATA (não containsAll): o dump (core/entity/OptimizeType.java) tem
+    // 4 valores nesta ordem; REMAINING_STOPS (OrderStopGroups, PR-D) é fácil de
+    // esquecer — pinar a lista impede a omissão.
+    expect(OptimizeType.values, [
+      OptimizeType.restartRoute,
+      OptimizeType.remainingStops,
+      OptimizeType.skipReorder,
+      OptimizeType.reorderFlexible,
+    ]);
   });
 
   test('OptimizeDirection tem reverse (Inverter a rota)', () {
