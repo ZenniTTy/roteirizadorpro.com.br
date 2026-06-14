@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/package_photo_store.dart';
+import '../domain/optimization/route_optimizer.dart';
 import '../domain/optimization_state.dart';
 import '../domain/route.dart';
 import '../domain/route_state.dart';
@@ -150,6 +151,48 @@ class Routes extends _$Routes {
             : r,
     ];
     unawaited(ref.read(packagePhotoStoreProvider).deleteFor(routeId, stopId));
+  }
+
+  /// Aplica o resultado da otimização à rota: troca para o estado otimizado
+  /// (PRE-CONFIRM), substitui os stops pela ordem do solver (com deliveryId já
+  /// atribuído) e grava as métricas. Espelha o efeito de `optimise` no Spoke
+  /// (RouteState → OPTIMIZED). Sem backend — Slice 2.
+  void applyOptimization(String routeId, RouteOptimizationResult result) {
+    state = [
+      for (final r in state)
+        if (r.id == routeId)
+          r.copyWith(
+            routeState: r.routeState.copyWith(
+              optimization: OptimizationState.optimized,
+              optimizing: false,
+              optimizationAttemptedAt: DateTime.now(),
+            ),
+            stops: result.orderedStops,
+            totalDurationMinutes: result.totalDurationMinutes,
+            totalDistanceMeters: result.totalDistanceMeters,
+          )
+        else
+          r,
+    ];
+  }
+
+  /// G5 — marca a parada para remoção DEFERIDA (rota já otimizada): não remove
+  /// agora; a parada some na próxima otimização (o solver exclui pendingRemoval).
+  /// Em rota DRAFT a remoção continua imediata via removeStop (Área 6). No-op se
+  /// a parada não existir.
+  void markStopForDeferredRemoval(String routeId, String stopId) {
+    state = [
+      for (final r in state)
+        if (r.id == routeId)
+          r.copyWith(
+            stops: [
+              for (final s in r.stops)
+                s.id == stopId ? s.copyWith(pendingRemoval: true) : s,
+            ],
+          )
+        else
+          r,
+    ];
   }
 
   /// Duplica o stop: insere a cópia LOGO APÓS a original com id novo,
