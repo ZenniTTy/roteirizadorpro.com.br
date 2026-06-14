@@ -28,7 +28,6 @@ Widget _wrapPage() => ProviderScope(
           domain.Route(
             id: 'seed1',
             date: DateTime(2026, 5, 27),
-            status: domain.RouteStatus.draft,
           ),
         ]),
       ],
@@ -105,7 +104,6 @@ Widget _wrapRouted({
         domain.Route(
           id: activeRouteId,
           date: DateTime(2026, 5, 27),
-          status: domain.RouteStatus.draft,
           stops: stops,
         ),
       ]),
@@ -172,7 +170,6 @@ Widget _wrapWithMapControls(
         domain.Route(
           id: 'seed1',
           date: DateTime(2026, 5, 27),
-          status: domain.RouteStatus.draft,
         ),
       ]),
       mapControlsControllerProvider.overrideWith(() => _FakeMapControls(seed)),
@@ -622,7 +619,6 @@ void main() {
             domain.Route(
               id: 'seed1',
               date: DateTime(2026, 5, 27),
-              status: domain.RouteStatus.draft,
             ),
           ]),
           mapControlsControllerProvider.overrideWith(() => controls),
@@ -915,7 +911,6 @@ void main() {
             domain.Route(
               id: 'r1',
               date: DateTime(2026, 5, 27),
-              status: domain.RouteStatus.draft,
             ),
           ]),
         ),
@@ -984,7 +979,6 @@ void main() {
             domain.Route(
               id: 'r1',
               date: DateTime(2026, 5, 27),
-              status: domain.RouteStatus.draft,
             ),
           ]),
         ),
@@ -1258,7 +1252,6 @@ Widget _wrapRoutedH9({
         domain.Route(
           id: routeId,
           date: DateTime(2026, 5, 27),
-          status: domain.RouteStatus.draft,
           stops: stops,
         ),
       ]),

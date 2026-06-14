@@ -2,6 +2,23 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-14 — Área 7 PR-A (estado + solver + CTA Otimizar + progresso)
+
+Code change (Á7 PR-A, PR #30 → `develop`) com **ADR-0051** (route lifecycle `RouteState` + solver on-device). Construído dump-first (baseline da sessão `2026-06-13-01`: `~/spoke-dump/jadx-out` — `RouteState.kt`/`OptimizationState.kt`/`OptimizeType.kt`/`OptimizeDirection.kt`/`OptimizationRoutingSolver.kt`). Sem dep nova (`geolocator` já no pubspec) → `adr-guardian` PASS; a ADR-0051 documenta a decisão de domínio, não de stack.
+
+**O que entrou:**
+- **`RouteState`** (flags+timestamps ortogonais) espelhando `core/entity/RouteState.kt` — substitui o `enum RouteStatus` linear; estado visual (DRAFT/otimizando/PRE-CONFIRM/Ready-to-Run/erro) é DERIVADO por getters. Migração tocou seed+helpers do `routes_provider` + ~10 testes (606→638 testes).
+- **`LocalRouteOptimizer`** (NN+2-opt, Haversine via `geolocator`) atrás da interface **`RouteOptimizer`** — Slice 3 injeta `GraphHopperRouteOptimizer` sem tocar UI. `Stop.pendingRemoval` (G5) + `PackageLabelFormat` Moderno/Clássico (G6).
+- **`OptimizationController`** (`@riverpod`) com guard de mínimo (G1) + **CTA "Otimizar rota"** sticky no rodapé do `_ActiveRouteSheet` (slot vazio desde a MS-A6) + `OptimizingProgressView` (4 fases) + diálogos `NotEnoughStopsDialog`/`OptimizationErrorDialog`.
+
+**Decisão de arquitetura (pós-review):** `RouteOptimizer.optimize()` é **`Future`** — o must-fix do `flutter-perf-auditor` (solver síncrono na UI thread) foi resolvido tornando a fronteira async (fiel ao solver de backend do Spoke; evita breaking change no GraphHopper do Slice 3), **sem `Isolate`** (overengineering p/ ≤20 paradas B2C — otimização *medida* fica p/ Slice 3). Validada com Eduardo ("boas práticas modernas + seguir o Spoke").
+
+**Cortes honestos:** Carregar veículo (barcode/ML Kit) + Compartilhar tempo real (backend) → Slice 3 (botão fiel + "Em breve" no PR-C). Gate-10-paradas NÃO clonado (ADR-0030).
+
+**Auditoria dump-first pós-PR (3 divergências corrigidas):** re-conferência direta contra `~/spoke-dump/jadx-out` + `values-pt-rBR/strings.xml` achou o que a spec da sessão anterior não capturou — (1) `OptimizeType` faltava `REMAINING_STOPS` (dump tem 4 valores; o teste usava `containsAll` que mascarou → lista exata); (2) as 4 fases de progresso estavam **verbatim** das strings pt-rBR do Circuit (violava ADR-0010) → reescritas originais; (3) corpo do `NotEnoughStopsDialog` quase-verbatim de `optimize_route_minimum_stops_body` → reescrito. Lição: spec de sessão anterior não substitui re-conferir o dump na execução; microcopy PT-BR comparada 1:1 com `values-pt-rBR` antes de declarar "original".
+
+**Verification:** `flutter analyze` 24 issues (zero novo — baseline pré-existente); `flutter test` **638** verde; `flutter-perf-auditor` (must-fix resolvido, 1 should-fix [RepaintBoundary no progress view] adiado p/ PR-B quando o widget é montado); `adr-guardian` PASS; `feature-dev:code-reviewer` adversarial nos pontos de risco (Tasks 3/5/7/12 — bug "Tentar de novo" silencioso pego e corrigido). **integration_test/smoke E2E = fechamento da Á7** (após PR-D): o `_onOptimize` não navega (só dialog/SnackBar in-place; o PRE-CONFIRM navegável é PR-B), então o hard gate de nav não dispara nesta fatia. Débito declarado no `TODO.md` §Á7 (8 itens).
+
 ## 2026-06-11 — Área 3 MS-A3 (gatilhos: controles de mapa reais + Copiar paradas)
 
 Code change (MS-A3) with its documentation. **No new ADR** — no stack change (`geolocator`/`google_maps_flutter`/`permission_handler`/`shared_preferences` já estavam no `pubspec`, sem bump de versão; o `adr-guardian` não aplica).

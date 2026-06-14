@@ -10,12 +10,18 @@ import '../../route_config/domain/route_config.dart';
 import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
 import '../data/location_service.dart';
+import '../domain/optimization/route_optimizer.dart';
+import '../domain/optimize_type.dart';
 import '../domain/stop.dart';
 import '../state/active_route_provider.dart';
 import '../state/current_route_stops_provider.dart';
 import '../state/map_controls_controller.dart';
+import '../state/optimization_controller.dart';
 import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/not_enough_stops_dialog.dart';
+import 'widgets/optimization_error_dialog.dart';
+import 'widgets/optimize_cta.dart';
 
 /// Shell that hosts the active route's map + sheet.
 ///
@@ -242,6 +248,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
               stops: stops,
               routeDisplayName: routeDisplayName,
               onAddStopTap: _openAddStop,
+              onOptimizeTap: _onOptimize,
               onRouteNameTap: activeRouteId == null
                   ? null
                   : () => context.push('/home/routes/$activeRouteId/edit'),
@@ -382,6 +389,61 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
   }
 
+  /// Dispara a otimização da rota ativa (Á7 PR-A). Lê os stops, delega ao
+  /// [OptimizationController] e reage ao [OptimizationOutcome] selado:
+  /// G1 (NotEnoughStops) → diálogo "Adicione mais paradas"; falha de
+  /// rede/solver → diálogo de erro; sucesso → SnackBar honest-stub com as
+  /// métricas reais do solver (o PR-B troca isto pela transição ao
+  /// PRE-CONFIRM).
+  Future<void> _onOptimize() async {
+    final stops = ref.read(currentRouteStopsProvider);
+    if (stops.isEmpty) {
+      await showNotEnoughStopsDialog(context);
+      return;
+    }
+    // Start = posição da rota (Slice 2: usa o primeiro stop como referência
+    // até a Partida real estar wirada; o solver é determinístico de qualquer
+    // forma). O PR-B liga isto à Partida da config.
+    final outcome =
+        await ref.read(optimizationControllerProvider.notifier).optimize(
+              start: GeoPoint(stops.first.lat, stops.first.lng),
+              stops: stops,
+              type: OptimizeType.restartRoute,
+            );
+    if (!mounted) return;
+    switch (outcome) {
+      case NotEnoughStops():
+        await showNotEnoughStopsDialog(context);
+      case OptimizationFailure():
+        // O diálogo de erro oferece duas ações reais: "Tentar de novo" re-roda
+        // o solver; "Pular otimização" é honest-stub no PR-A (o Ready-to-Run com
+        // banner "Otimização pendente" do Spoke é PR-C). Consumir a escolha é
+        // obrigatório — descartar o retorno deixaria "Tentar de novo" sem efeito.
+        final choice = await showOptimizationErrorDialog(context);
+        if (!mounted) return;
+        switch (choice) {
+          case OptimizationErrorChoice.retry:
+            await _onOptimize();
+          case OptimizationErrorChoice.skip:
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Otimização pulada por enquanto.')),
+            );
+          case null:
+            break; // diálogo dispensado (barrier/back) — sem ação
+        }
+      case OptimizationSuccess(:final result):
+        // PR-B substitui este SnackBar pela transição ao PRE-CONFIRM.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Rota otimizada: ${result.totalDurationMinutes} min, '
+              '${result.orderedStops.length} paradas',
+            ),
+          ),
+        );
+    }
+  }
+
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
   ///   - Flick pra cima (velocity < -kFlick) → próximo snap MAIOR.
   ///   - Flick pra baixo (velocity > kFlick) → próximo snap MENOR.
@@ -471,6 +533,7 @@ class _ActiveRouteSheet extends StatelessWidget {
     required this.stops,
     required this.routeDisplayName,
     required this.onAddStopTap,
+    required this.onOptimizeTap,
     required this.onRouteNameTap,
     required this.onStopTap,
     required this.onHandleDragStart,
@@ -500,6 +563,9 @@ class _ActiveRouteSheet extends StatelessWidget {
   /// Abre o add-stop com await-push e trata o resultado (toast "Ver" /
   /// push direto do editor — H9/H11). Dono: `_RouteShellPageState`.
   final Future<void> Function() onAddStopTap;
+
+  /// Dispara a otimização da rota ativa (Á7 PR-A). Dono: `_RouteShellPageState`.
+  final VoidCallback onOptimizeTap;
 
   /// Tap no nome da rota → wizard de edição (H8). Null sem rota ativa.
   final VoidCallback? onRouteNameTap;
@@ -531,6 +597,20 @@ class _ActiveRouteSheet extends StatelessWidget {
     // Mostrar os big buttons só quando o sheet está claramente acima do
     // collapsed (epsilon 0.02 evita flicker no snap).
     final showButtons = currentFraction > collapsedFraction + 0.02;
+
+    // Altura real do sheet neste frame (mesma fórmula do AnimatedContainer pai).
+    // Durante o arrasto pra baixo o sheet passa por frações intermediárias
+    // baixas; um rodapé de altura fixa abaixo do corpo flexível estoura o
+    // RenderFlex se a altura cair abaixo da soma do chrome fixo. O CTA
+    // (52 + 8 + 12 + bottomInset) + handle (24) + search row (64) é mais alto
+    // que o piso `showButtons`, então ele ganha um gate de altura próprio.
+    final sheetHeight = mq.size.height * currentFraction;
+    // Soma do chrome fixo acima/abaixo do corpo flexível: handle (24) +
+    // search row (48 + 8×2 de padding = 64) + OptimizeCta (height 52 em
+    // optimize_cta.dart) + padding-top do CTA (8) + padding-bottom (12) +
+    // a nav-bar do sistema. Se alguma dessas alturas mudar, reavaliar aqui.
+    final footerChromePx = 24.0 + 64.0 + 52.0 + 8.0 + 12.0 + bottomInset;
+    final hasRoomForCta = sheetHeight >= footerChromePx;
 
     // GestureDetector EXTERNO captura vertical drag em TODA a área do
     // sheet (handle, pill row, big buttons). `behavior: translucent` deixa
@@ -631,6 +711,18 @@ class _ActiveRouteSheet extends StatelessWidget {
                         onTap: () => context.push('/home/routes/reuse-stops'),
                       ),
                     ],
+                  ),
+                ),
+              // CTA "Otimizar rota" — nasce aqui (Á7 PR-A). Aparece quando o
+              // sheet está medium+ E tem altura pra acomodar o rodapé fixo E a
+              // rota tem >=1 parada (o slot que era vazio desde a MS-A6).
+              // Otimização é grátis (sem paywall).
+              if (showButtons && hasRoomForCta && stops.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+                  child: OptimizeCta(
+                    enabled: stops.length >= OptimizationController.minStops,
+                    onPressed: onOptimizeTap,
                   ),
                 ),
             ],

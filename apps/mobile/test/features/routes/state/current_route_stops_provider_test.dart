@@ -49,10 +49,7 @@ void main() {
     final c = makeContainer(
       activeId: 'missing',
       routes: [
-        domain.Route(
-            id: 'r1',
-            date: DateTime(2026, 6, 1),
-            status: domain.RouteStatus.draft),
+        domain.Route(id: 'r1', date: DateTime(2026, 6, 1)),
       ],
     );
     expect(c.read(currentRouteStopsProvider), isEmpty);
@@ -65,7 +62,6 @@ void main() {
         domain.Route(
           id: 'r1',
           date: DateTime(2026, 6, 1),
-          status: domain.RouteStatus.draft,
           stops: [stopA, stopB],
         ),
       ],

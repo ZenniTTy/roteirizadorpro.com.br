@@ -15,7 +15,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:roteirizador_pro/features/routes/domain/optimization_state.dart'
+    as domain;
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
+import 'package:roteirizador_pro/features/routes/domain/route_state.dart'
+    as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/widgets/stop_notes_section.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
@@ -96,7 +100,11 @@ Widget _buildWidget({
         domain.Route(
           id: 'r1',
           date: DateTime(2026, 5, 27),
-          status: domain.RouteStatus.running,
+          routeState: const domain.RouteState(
+            optimization: domain.OptimizationState.optimized,
+            confirmed: true,
+            started: true,
+          ),
           stops: [stop],
         ),
       ]),
@@ -219,7 +227,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stopBase],
               ),
             ]),
@@ -272,7 +284,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [stopComNotes],
               ),
             ]),
@@ -335,7 +351,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stopBase],
               ),
             ]),
@@ -397,7 +417,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stopBase],
               ),
             ]),
@@ -466,7 +490,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stopBase],
               ),
             ]),

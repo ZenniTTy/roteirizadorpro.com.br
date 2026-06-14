@@ -14,7 +14,6 @@ Widget _wrap(Widget child) => MaterialApp(
 domain.Route _route(String id) => domain.Route(
       id: id,
       date: DateTime(2026, 5, 27),
-      status: domain.RouteStatus.draft,
       name: 'Rota $id',
     );
 

@@ -110,7 +110,6 @@ void main() {
         domain.Route(
           id: 'r1',
           date: DateTime(2026, 6, 15),
-          status: domain.RouteStatus.draft,
           name: 'Minha rota fixa',
         ),
       ];
@@ -133,7 +132,6 @@ void main() {
         domain.Route(
           id: 'r2',
           date: DateTime(2026, 6, 16),
-          status: domain.RouteStatus.draft,
           name: 'Rota da semana',
         ),
       ];
@@ -158,7 +156,6 @@ void main() {
         domain.Route(
           id: 'r-auto',
           date: DateTime(2026, 6, 17), // wednesday
-          status: domain.RouteStatus.draft,
           name: null,
         ),
       ];

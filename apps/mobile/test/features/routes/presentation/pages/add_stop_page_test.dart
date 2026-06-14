@@ -1080,7 +1080,6 @@ class _MutableFakeRoutesForAddStop extends Routes {
 domain.Route _routeR1WithNoStops() => domain.Route(
       id: 'r1',
       date: DateTime(2026, 5, 27),
-      status: domain.RouteStatus.draft,
     );
 
 // ─────────────────────────────────────────────────────────────────────────────

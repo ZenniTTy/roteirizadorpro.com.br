@@ -3,7 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
+import 'package:roteirizador_pro/features/routes/domain/optimization_state.dart'
+    as domain;
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
+import 'package:roteirizador_pro/features/routes/domain/route_state.dart'
+    as domain;
 import 'package:roteirizador_pro/features/routes/presentation/widgets/app_drawer.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/drawer_route_list.dart';
 import 'package:roteirizador_pro/features/routes/state/current_user_provider.dart';
@@ -30,7 +34,11 @@ void main() {
     domain.Route(
       id: 'r1',
       date: DateTime(2026, 5, 27),
-      status: domain.RouteStatus.running,
+      routeState: const domain.RouteState(
+        optimization: domain.OptimizationState.optimized,
+        confirmed: true,
+        started: true,
+      ),
       name: 'Rota 1',
     ),
   ];
