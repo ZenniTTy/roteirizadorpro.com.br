@@ -29,6 +29,16 @@ Executar o plano do PR-A da Área 7 (`docs/superpowers/plans/2026-06-13-area7-pr
 4. **Migração `RouteStatus`→`RouteState` (Task 5)** pegou 2 desvios reais do plano, ambos acertos do implementer: `5200 as double?` lançava em runtime (Dart não faz cast int→double) → `(… as num?)?.toDouble()`; 2 leituras de `.status` que o grep de `RouteStatus` não pegava.
 5. **`hasRoomForCta` no shell (Task 12)** — um teste pré-existente (H6-iii) deu overflow de 13px durante o drag de colapso porque o CTA é o 1º footer fixo do caminho `stops.isNotEmpty`. Gate de altura adicionado (mesmo princípio do `showButtons` existente) — não esconde o CTA em medium/expanded de repouso.
 
+## Auditoria dump-first PÓS-PR (3 divergências encontradas e corrigidas)
+
+Depois de abrir o PR, uma re-verificação direta contra `~/spoke-dump/jadx-out` + `res-decoded/.../values-pt-rBR/strings.xml` (NÃO confiando que a spec/plano da sessão anterior tinham capturado tudo) achou **3 divergências reais** que passaram na execução porque vieram da spec e eu não re-conferi contra a fonte:
+
+1. **`OptimizeType` faltava `REMAINING_STOPS`** (commit `edec273`) — o dump tem **4** valores (`RESTART_ROUTE/REMAINING_STOPS/SKIP_REORDER/REORDER_FLEXIBLE`), eu implementei 3. `REMAINING_STOPS` é o type da re-otimização por grupos (OrderStopGroups, PR-D — `EditRouteViewModel.mo9471v`). O teste usava `containsAll` (mascarou a ausência) → trocado por **lista exata na ordem do dump**. Divergência funcional que morderia no PR-D.
+2. **4 fases de progresso ESTAVAM VERBATIM do Spoke pt-rBR** (commit `03e2c14`) — `optimizing_analysing`="Analisando suas paradas...", `_sorting`="Encontrando a melhor ordem...", `_traffic`="Considerando o trânsito...", `_creating`="Criando sua rota..." são EXATAMENTE as strings traduzidas do Circuit. Violava a ADR-0010 (microcopy original). Reescrito: "Conferindo suas entregas..." / "Montando a melhor sequência..." / "Avaliando o trânsito na região..." / "Finalizando sua rota...".
+3. **Corpo do `NotEnoughStopsDialog` quase-verbatim** (commit `03e2c14`) de `optimize_route_minimum_stops_body` ("Para otimizar sua rota, adicione 1 ou mais paradas além do ponto de partida e destino") — reformulação fraca demais. Reescrito 100% original.
+
+Confirmados OK (já eram originais): `OptimizationErrorDialog` (título/corpo ≠ `optimization_failed_*`), "Tentar de novo" (Spoke usa "Tente novamente"/"Repetir"), "Pular otimização" (sem equivalente). `RouteState` reduzido (9 de 14 campos do Spoke) é **corte consciente** — `startedAt`/`completedAt` pertencem à Á8/Á9; doc-comment atualizado para registrar (adicioná-los depois não é breaking change). **Lição:** spec/plano de uma sessão anterior NÃO substituem re-conferir o dump na execução — a inferência (mesmo "dump-first" na origem) decai; toda microcopy PT-BR tem de ser comparada 1:1 com `values-pt-rBR/strings.xml` antes de "original".
+
 ## Open Questions Left
 
 - [ ] PR #30 aguarda review/merge + Vercel preview. O plano do PR-B (PRE-CONFIRM) só se escreve após o #30 mergear na `develop`.
