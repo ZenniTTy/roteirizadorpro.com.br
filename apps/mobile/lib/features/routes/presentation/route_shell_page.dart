@@ -11,17 +11,23 @@ import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
 import '../data/location_service.dart';
 import '../domain/optimization/route_optimizer.dart';
+import '../domain/optimize_direction.dart';
 import '../domain/optimize_type.dart';
 import '../domain/stop.dart';
 import '../state/active_route_provider.dart';
+import '../state/active_route_state_provider.dart';
 import '../state/current_route_stops_provider.dart';
 import '../state/map_controls_controller.dart';
 import '../state/optimization_controller.dart';
+import '../state/optimization_ftue_repository.dart';
 import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/id_education_dialog.dart';
 import 'widgets/not_enough_stops_dialog.dart';
 import 'widgets/optimization_error_dialog.dart';
 import 'widgets/optimize_cta.dart';
+import 'widgets/pre_confirm_view.dart';
+import 'widgets/refine_route_sheet.dart';
 
 /// Shell that hosts the active route's map + sheet.
 ///
@@ -126,6 +132,27 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                   .firstOrNull
                   ?.displayName(),
             ),
+          );
+
+    // Estado da rota ativa → escolhe o corpo do sheet (Á7 PR-B1). DRAFT mostra o
+    // `_ActiveRouteSheet`; PRE-CONFIRM (otimizado, não confirmado) mostra o
+    // `PreConfirmView` no MESMO shell — o mapa em cima permanece (o
+    // polyline+markers numerados são o PR-B2). Espelha o Spoke, onde o
+    // EditRouteFragment renderiza por estado, sem tela separada.
+    final activeRouteState = ref.watch(activeRouteStateProvider);
+    final isPreConfirm = activeRouteState?.isPreConfirm ?? false;
+    final activeMetrics = activeRouteId == null
+        ? null
+        : ref.watch(
+            routesProvider.select((routes) {
+              final r = routes.where((x) => x.id == activeRouteId).firstOrNull;
+              return r == null
+                  ? null
+                  : (
+                      duration: r.totalDurationMinutes ?? 0,
+                      distance: r.totalDistanceMeters ?? 0.0,
+                    );
+            }),
           );
 
     // Map layer preference (normal <-> satellite). While it loads we render the
@@ -241,40 +268,56 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                 : const Duration(milliseconds: 220),
             curve: Curves.easeOut,
             height: mq.size.height * clampedFraction,
-            child: _ActiveRouteSheet(
-              currentFraction: clampedFraction,
-              collapsedFraction: _collapsedFraction,
-              configSummary: configSummary,
-              stops: stops,
-              routeDisplayName: routeDisplayName,
-              onAddStopTap: _openAddStop,
-              onOptimizeTap: _onOptimize,
-              onRouteNameTap: activeRouteId == null
-                  ? null
-                  : () => context.push('/home/routes/$activeRouteId/edit'),
-              onStopTap: activeRouteId == null
-                  ? null
-                  : (stopId) => context.push(
-                        '/home/routes/active/$activeRouteId/stops/$stopId/edit',
-                      ),
-              onHandleDragStart: () {
-                _dragStartFraction = _sheetFraction;
-              },
-              onHandleDragUpdate: (delta) {
-                if (_dragStartFraction == null) return;
-                setState(() {
-                  _sheetFraction =
-                      (_sheetFraction - delta / mq.size.height).clamp(
-                    _collapsedFraction,
-                    _expandedFraction,
-                  );
-                });
-              },
-              onHandleDragEnd: (velocity) {
-                _dragStartFraction = null;
-                setState(() => _sheetFraction = _snapTo(velocity));
-              },
-            ),
+            child: isPreConfirm
+                ? PreConfirmView(
+                    stops: stops,
+                    durationMinutes: activeMetrics?.duration ?? 0,
+                    distanceMeters: activeMetrics?.distance ?? 0.0,
+                    onRefine: _onRefine,
+                    onConfirm: _onConfirm,
+                    onStopTap: activeRouteId == null
+                        ? (_) {}
+                        : (stopId) => context.push(
+                              '/home/routes/active/$activeRouteId'
+                              '/stops/$stopId/edit',
+                            ),
+                  )
+                : _ActiveRouteSheet(
+                    currentFraction: clampedFraction,
+                    collapsedFraction: _collapsedFraction,
+                    configSummary: configSummary,
+                    stops: stops,
+                    routeDisplayName: routeDisplayName,
+                    onAddStopTap: _openAddStop,
+                    onOptimizeTap: _onOptimize,
+                    onRouteNameTap: activeRouteId == null
+                        ? null
+                        : () =>
+                            context.push('/home/routes/$activeRouteId/edit'),
+                    onStopTap: activeRouteId == null
+                        ? null
+                        : (stopId) => context.push(
+                              '/home/routes/active/$activeRouteId'
+                              '/stops/$stopId/edit',
+                            ),
+                    onHandleDragStart: () {
+                      _dragStartFraction = _sheetFraction;
+                    },
+                    onHandleDragUpdate: (delta) {
+                      if (_dragStartFraction == null) return;
+                      setState(() {
+                        _sheetFraction =
+                            (_sheetFraction - delta / mq.size.height).clamp(
+                          _collapsedFraction,
+                          _expandedFraction,
+                        );
+                      });
+                    },
+                    onHandleDragEnd: (velocity) {
+                      _dragStartFraction = null;
+                      setState(() => _sheetFraction = _snapTo(velocity));
+                    },
+                  ),
           ),
         ],
       ),
@@ -432,16 +475,89 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             break; // diálogo dispensado (barrier/back) — sem ação
         }
       case OptimizationSuccess(:final result):
-        // PR-B substitui este SnackBar pela transição ao PRE-CONFIRM.
+        final routeId = ref.read(activeRouteIdProvider);
+        if (routeId == null) return;
+        // FTUE one-shot ANTES de aplicar (o Spoke mostra o educativo de
+        // numeração na 1ª otimização da vida do usuário; nas próximas, não).
+        final ftue = ref.read(optimizationFtueRepositoryProvider);
+        if (!await ftue.isNumberingAcknowledged()) {
+          if (!mounted) return;
+          final choice = await showIdEducationDialog(context);
+          if (choice == IdEducationChoice.acknowledge) {
+            await ftue.acknowledgeNumbering();
+          } else if (choice == IdEducationChoice.configure) {
+            // "Ajustar formato" leva ao formato do ID (Á10) — honest-stub aqui.
+            await ftue.acknowledgeNumbering();
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Ajuste de formato do ID — em breve.'),
+              ),
+            );
+          }
+          // choice == null (barrier/back): não marca o FTUE; reaparece na
+          // próxima otimização — aceitável (sem estado órfão).
+        }
+        // Aplica o resultado: o switch de estado no build leva ao
+        // PreConfirmView automaticamente.
+        ref.read(routesProvider.notifier).applyOptimization(routeId, result);
+    }
+  }
+
+  /// "Refinar" do PRE-CONFIRM → sheet {Inverter / Ordenar manual}. "Inverter"
+  /// re-roda o solver com [OptimizeDirection.reverse]; "Ordenar manualmente"
+  /// (OrderStopGroups) é o PR-D — honest-stub observável aqui.
+  Future<void> _onRefine() async {
+    final choice = await showRefineRouteSheet(context);
+    if (!mounted || choice == null) return;
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+
+    switch (choice) {
+      case RefineRouteChoice.invert:
+        final stops = ref.read(currentRouteStopsProvider);
+        if (stops.isEmpty) return;
+        final outcome =
+            await ref.read(optimizationControllerProvider.notifier).optimize(
+                  start: GeoPoint(stops.first.lat, stops.first.lng),
+                  stops: stops,
+                  type: OptimizeType.reorderFlexible,
+                  direction: OptimizeDirection.reverse,
+                );
+        if (!mounted) return;
+        switch (outcome) {
+          case OptimizationSuccess(:final result):
+            ref
+                .read(routesProvider.notifier)
+                .applyOptimization(routeId, result);
+          case OptimizationFailure():
+            // Erro do solver ao inverter — NÃO engolir em silêncio. Mesmo
+            // tratamento do _onOptimize: oferece "Tentar de novo" / "Pular".
+            final choice = await showOptimizationErrorDialog(context);
+            if (!mounted) return;
+            if (choice == OptimizationErrorChoice.retry) await _onRefine();
+          case NotEnoughStops():
+            // A rota já está otimizada (estamos no PRE-CONFIRM) — inverter não
+            // muda a contagem; caminho teórico. Diálogo G1 por consistência.
+            await showNotEnoughStopsDialog(context);
+        }
+      case RefineRouteChoice.manualOrder:
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Rota otimizada: ${result.totalDurationMinutes} min, '
-              '${result.orderedStops.length} paradas',
-            ),
-          ),
+          const SnackBar(content: Text('Ordenar no mapa — em breve.')),
         );
     }
+  }
+
+  /// "Confirmar" do PRE-CONFIRM → leva ao Ready-to-Run, que é o PR-C.
+  /// Honest-stub observável: NÃO grava `confirmed:true` ainda (sem destino
+  /// Ready-to-Run o estado ficaria órfão).
+  void _onConfirm() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:
+            Text('Tudo certo — a confirmação final chega na próxima etapa.'),
+      ),
+    );
   }
 
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):

@@ -1,4 +1,12 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+part 'optimization_ftue_repository.g.dart';
+
+/// Production-backed repo (idiom de `settingsRepositoryProvider`).
+@Riverpod(keepAlive: true)
+OptimizationFtueRepository optimizationFtueRepository(Ref ref) =>
+    OptimizationFtueRepository(SharedPreferencesAsync());
 
 /// Persists FTUE (first-time user education) acknowledgement flags for the
 /// optimization flow.
