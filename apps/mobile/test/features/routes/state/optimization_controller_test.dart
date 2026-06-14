@@ -29,7 +29,7 @@ Stop _stop(String id) =>
 
 ProviderContainer _container() => ProviderContainer(overrides: [
       routeOptimizerProvider.overrideWithValue(_FakeOptimizer()),
-    ]);
+    ],);
 
 void main() {
   test(

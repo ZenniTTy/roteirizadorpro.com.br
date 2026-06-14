@@ -17,12 +17,13 @@ void main() {
 
   test('OptimizeType cobre os modos do Spoke usados na Á7', () {
     expect(
-        OptimizeType.values,
-        containsAll([
-          OptimizeType.restartRoute,
-          OptimizeType.reorderFlexible,
-          OptimizeType.skipReorder,
-        ]));
+      OptimizeType.values,
+      containsAll([
+        OptimizeType.restartRoute,
+        OptimizeType.reorderFlexible,
+        OptimizeType.skipReorder,
+      ]),
+    );
   });
 
   test('OptimizeDirection tem reverse (Inverter a rota)', () {
