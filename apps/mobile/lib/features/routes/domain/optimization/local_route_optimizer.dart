@@ -30,6 +30,12 @@ class LocalRouteOptimizer implements RouteOptimizer {
     required OptimizeType type,
     OptimizeDirection? direction,
   }) {
+    // `type` não altera o algoritmo no solver on-device (Slice 2): restart e
+    // reorder reotimizam igual aqui. A distinção do Spoke entre "Reotimizar"
+    // (recalcula do zero) e "Atualizar" (preserva a estrutura) é semântica do
+    // backend real (GraphHopper, Slice 3); a interface já carrega `type` para
+    // o swap não mexer na assinatura. O controller é quem mapeia cada ação ao
+    // type — ver OptimizationController (Task 8).
     // G5: paradas marcadas para remoção deferida saem aqui.
     final active = stops.where((s) => !s.pendingRemoval).toList();
 
@@ -85,6 +91,7 @@ class LocalRouteOptimizer implements RouteOptimizer {
   List<Stop> _twoOpt(GeoPoint start, List<Stop> route, GeoPoint? end) {
     if (route.length < 3) return route;
     var best = [...route];
+    var bestDist = _totalDistance(start, best, end);
     var improved = true;
     var guard = 0;
     while (improved && guard < 50) {
@@ -97,9 +104,10 @@ class LocalRouteOptimizer implements RouteOptimizer {
             ...best.sublist(i, j + 1).reversed,
             ...best.sublist(j + 1),
           ];
-          if (_totalDistance(start, candidate, end) <
-              _totalDistance(start, best, end)) {
+          final candidateDist = _totalDistance(start, candidate, end);
+          if (candidateDist < bestDist) {
             best = candidate;
+            bestDist = candidateDist;
             improved = true;
           }
         }

@@ -34,8 +34,10 @@ void main() {
       stops: [_stop('A', 5, 0), _stop('B', 3, 0), _stop('C', 1, 0)],
       type: OptimizeType.restartRoute,
     );
-    expect(result.orderedStops.map((s) => s.deliveryId).toList(),
-        ['A1', 'A2', 'A3']);
+    expect(
+      result.orderedStops.map((s) => s.deliveryId).toList(),
+      ['A1', 'A2', 'A3'],
+    );
   });
 
   test('direction reverse inverte a ordem otimizada', () {
@@ -67,8 +69,19 @@ void main() {
       stops: [_stop('C', 1, 0)],
       type: OptimizeType.restartRoute,
     );
-    expect(result.totalDistanceMeters, greaterThan(0));
-    expect(result.totalDurationMinutes, greaterThanOrEqualTo(0));
+    expect(result.totalDistanceMeters, 1000);
+    expect(result.totalDurationMinutes, 3);
+  });
+
+  test('inclui o leg final para end na distância total', () {
+    // start(0,0) → C(1,0) → end(2,0). Legs: 0→1 (1000m) + 1→2 (1000m) = 2000m.
+    final result = optimizer.optimize(
+      start: const GeoPoint(0, 0),
+      end: const GeoPoint(2, 0),
+      stops: [_stop('C', 1, 0)],
+      type: OptimizeType.restartRoute,
+    );
+    expect(result.totalDistanceMeters, 2000);
   });
 
   test('formato Clássico gera 1,2,3', () {
