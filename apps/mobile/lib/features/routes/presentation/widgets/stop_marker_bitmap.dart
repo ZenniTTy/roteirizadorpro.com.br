@@ -43,7 +43,16 @@ Future<BitmapDescriptor> stopMarkerBitmap({
   canvas.drawParagraph(paragraph, Offset(padding, padding));
 
   final picture = recorder.endRecording();
-  final image = await picture.toImage(w.ceil(), h.ceil());
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-  return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
+  try {
+    final image = await picture.toImage(w.ceil(), h.ceil());
+    try {
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
+    } finally {
+      image.dispose();
+    }
+  } finally {
+    picture.dispose();
+    paragraph.dispose();
+  }
 }
