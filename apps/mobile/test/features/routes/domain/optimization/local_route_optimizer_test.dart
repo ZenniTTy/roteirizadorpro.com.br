@@ -18,9 +18,9 @@ Stop _stop(String id, double lat, double lng) =>
 void main() {
   final optimizer = LocalRouteOptimizer(distanceMeters: _fakeDistance);
 
-  test('reordena por vizinho mais próximo a partir do start', () {
+  test('reordena por vizinho mais próximo a partir do start', () async {
     // start em (0,0); paradas fora de ordem. A mais próxima do start é C(1,0).
-    final result = optimizer.optimize(
+    final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
       stops: [_stop('A', 5, 0), _stop('B', 3, 0), _stop('C', 1, 0)],
       type: OptimizeType.restartRoute,
@@ -28,8 +28,8 @@ void main() {
     expect(result.orderedStops.map((s) => s.id).toList(), ['C', 'B', 'A']);
   });
 
-  test('atribui deliveryId Moderno na ordem final (A1, A2, A3)', () {
-    final result = optimizer.optimize(
+  test('atribui deliveryId Moderno na ordem final (A1, A2, A3)', () async {
+    final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
       stops: [_stop('A', 5, 0), _stop('B', 3, 0), _stop('C', 1, 0)],
       type: OptimizeType.restartRoute,
@@ -40,8 +40,8 @@ void main() {
     );
   });
 
-  test('direction reverse inverte a ordem otimizada', () {
-    final result = optimizer.optimize(
+  test('direction reverse inverte a ordem otimizada', () async {
+    final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
       stops: [_stop('A', 5, 0), _stop('B', 3, 0), _stop('C', 1, 0)],
       type: OptimizeType.reorderFlexible,
@@ -50,8 +50,8 @@ void main() {
     expect(result.orderedStops.map((s) => s.id).toList(), ['A', 'B', 'C']);
   });
 
-  test('exclui paradas com pendingRemoval da ordem final (G5)', () {
-    final result = optimizer.optimize(
+  test('exclui paradas com pendingRemoval da ordem final (G5)', () async {
+    final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
       stops: [
         _stop('A', 5, 0),
@@ -63,8 +63,9 @@ void main() {
     expect(result.orderedStops.map((s) => s.id).toList(), ['C', 'A']);
   });
 
-  test('métricas: distância total > 0 e duração derivada da distância', () {
-    final result = optimizer.optimize(
+  test('métricas: distância total > 0 e duração derivada da distância',
+      () async {
+    final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
       stops: [_stop('C', 1, 0)],
       type: OptimizeType.restartRoute,
@@ -73,9 +74,9 @@ void main() {
     expect(result.totalDurationMinutes, 3);
   });
 
-  test('inclui o leg final para end na distância total', () {
+  test('inclui o leg final para end na distância total', () async {
     // start(0,0) → C(1,0) → end(2,0). Legs: 0→1 (1000m) + 1→2 (1000m) = 2000m.
-    final result = optimizer.optimize(
+    final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
       end: const GeoPoint(2, 0),
       stops: [_stop('C', 1, 0)],
@@ -84,12 +85,12 @@ void main() {
     expect(result.totalDistanceMeters, 2000);
   });
 
-  test('formato Clássico gera 1,2,3', () {
+  test('formato Clássico gera 1,2,3', () async {
     final classic = LocalRouteOptimizer(
       distanceMeters: _fakeDistance,
       labelFormat: PackageLabelFormat.classico,
     );
-    final result = classic.optimize(
+    final result = await classic.optimize(
       start: const GeoPoint(0, 0),
       stops: [_stop('A', 5, 0), _stop('B', 3, 0)],
       type: OptimizeType.restartRoute,

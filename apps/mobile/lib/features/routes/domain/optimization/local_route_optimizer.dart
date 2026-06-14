@@ -23,13 +23,13 @@ class LocalRouteOptimizer implements RouteOptimizer {
   final double urbanSpeedMetersPerMinute;
 
   @override
-  RouteOptimizationResult optimize({
+  Future<RouteOptimizationResult> optimize({
     required GeoPoint start,
     GeoPoint? end,
     required List<Stop> stops,
     required OptimizeType type,
     OptimizeDirection? direction,
-  }) {
+  }) async {
     // `type` não altera o algoritmo no solver on-device (Slice 2): restart e
     // reorder reotimizam igual aqui. A distinção do Spoke entre "Reotimizar"
     // (recalcula do zero) e "Atualizar" (preserva a estrutura) é semântica do

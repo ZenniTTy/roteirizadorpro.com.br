@@ -10,13 +10,13 @@ import 'package:roteirizador_pro/features/routes/state/optimization_controller.d
 // Fake solver determinístico: devolve as paradas na ordem recebida.
 class _FakeOptimizer implements RouteOptimizer {
   @override
-  RouteOptimizationResult optimize({
+  Future<RouteOptimizationResult> optimize({
     required GeoPoint start,
     GeoPoint? end,
     required List<Stop> stops,
     required OptimizeType type,
     OptimizeDirection? direction,
-  }) =>
+  }) async =>
       RouteOptimizationResult(
         orderedStops: stops,
         totalDurationMinutes: 18,
@@ -27,9 +27,11 @@ class _FakeOptimizer implements RouteOptimizer {
 Stop _stop(String id) =>
     Stop(id: id, lat: 0, lng: 0, streetName: id, fullAddress: id);
 
-ProviderContainer _container() => ProviderContainer(overrides: [
-      routeOptimizerProvider.overrideWithValue(_FakeOptimizer()),
-    ],);
+ProviderContainer _container() => ProviderContainer(
+      overrides: [
+        routeOptimizerProvider.overrideWithValue(_FakeOptimizer()),
+      ],
+    );
 
 void main() {
   test(

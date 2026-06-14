@@ -54,10 +54,11 @@ class OptimizationController extends _$OptimizationController {
     try {
       state = OptimizationPhase.analysing;
       final optimizer = ref.read(routeOptimizerProvider);
-      // As fases são visuais; o solver on-device é síncrono e rápido. O avanço
-      // escalonado das 4 fases na UI é refinado no PR-B (PRE-CONFIRM); aqui o
-      // controller só marca que está otimizando e volta a ocioso ao concluir.
-      final result = optimizer.optimize(
+      // `optimize` é async (fronteira de backend — ver RouteOptimizer): o
+      // stand-in on-device resolve rápido, mas o GraphHopper do Slice 3 é I/O.
+      // O avanço escalonado das 4 fases na UI é refinado no PR-B (PRE-CONFIRM);
+      // aqui o controller só marca que está otimizando e volta a ocioso.
+      final result = await optimizer.optimize(
         start: start,
         end: end,
         stops: stops,

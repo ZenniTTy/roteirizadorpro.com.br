@@ -25,8 +25,15 @@ class RouteOptimizationResult {
 
 /// Fronteira do solver. A impl. do Slice 2 é `LocalRouteOptimizer` (on-device);
 /// o Slice 3 injeta um `GraphHopperRouteOptimizer` sem tocar UI/estado.
+///
+/// `optimize` é `Future` por design: o Spoke otimiza num solver de BACKEND
+/// (`OptimizationRoutingSolver{GOOGLE_MAPS, GRAPH_HOPPER}` — operação de rede,
+/// assíncrona por natureza). O `LocalRouteOptimizer` síncrono do Slice 2 é só o
+/// stand-in por trás desta fronteira async; manter a assinatura `Future` agora
+/// evita um breaking change na interface quando o GraphHopper (I/O) entrar no
+/// Slice 3.
 abstract interface class RouteOptimizer {
-  RouteOptimizationResult optimize({
+  Future<RouteOptimizationResult> optimize({
     required GeoPoint start,
     GeoPoint? end,
     required List<Stop> stops,
