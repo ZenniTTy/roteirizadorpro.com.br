@@ -21,6 +21,7 @@ import '../state/current_route_stops_provider.dart';
 import '../state/map_controls_controller.dart';
 import '../state/optimization_controller.dart';
 import '../state/optimization_ftue_repository.dart';
+import '../state/route_map_markers_provider.dart';
 import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/id_education_dialog.dart';
@@ -154,6 +155,11 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             border: AppColors.bg,
           )
         : const <Polyline>{};
+    // Markers da rota (async — o bitmap é desenhado fora do build). Enquanto
+    // gera, o mapa renderiza sem markers (sem bloquear/flicker). Aparecem
+    // quando prontos. A lógica (N stops, ignora pendingRemoval) vive no provider.
+    final routeMarkers =
+        ref.watch(routeMapMarkersProvider).value ?? const <Marker>{};
     final activeMetrics = activeRouteId == null
         ? null
         : ref.watch(
@@ -215,6 +221,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                       mapType: mapType,
                       initialCameraPosition: _initialPosition,
                       polylines: routePolylines,
+                      markers: routeMarkers,
                       onMapCreated: (GoogleMapController controller) {
                         _controller.complete(controller);
                       },
