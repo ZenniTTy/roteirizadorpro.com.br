@@ -122,9 +122,18 @@ GoRouter _buildRouter({
 }
 
 /// Monta o widget com o provider semeado com a rota 'r1' contendo [stops].
+///
+/// [routeState] default = otimizada (estado da maioria dos testes existentes).
+/// Os testes do fluxo de REMOÇÃO IMEDIATA (18.4/18.6) passam um RouteState DRAFT,
+/// porque em rota otimizada a remoção é DEFERIDA (Á7 G5) — caminho diferente.
 Widget _buildApp({
   required GoRouter router,
   List<domain.Stop> stops = const [],
+  domain.RouteState routeState = const domain.RouteState(
+    optimization: domain.OptimizationState.optimized,
+    confirmed: true,
+    started: true,
+  ),
 }) {
   return ProviderScope(
     overrides: [
@@ -133,11 +142,7 @@ Widget _buildApp({
           domain.Route(
             id: 'r1',
             date: DateTime(2026, 5, 27),
-            routeState: const domain.RouteState(
-              optimization: domain.OptimizationState.optimized,
-              confirmed: true,
-              started: true,
-            ),
+            routeState: routeState,
             stops: stops,
           ),
         ]),
@@ -3326,6 +3331,9 @@ void main() {
         _buildApp(
           router: _buildRouter(routeId: 'r1', stopId: 's1'),
           stops: [_stop1],
+          // Rota DRAFT → remoção IMEDIATA (este teste cobre o AlertDialog
+          // "Remover parada" da Á6). Rota otimizada cairia no fluxo deferido G5.
+          routeState: const domain.RouteState(),
         ),
       );
       await tester.pumpAndSettle();
@@ -3387,11 +3395,8 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                routeState: const domain.RouteState(
-                  optimization: domain.OptimizationState.optimized,
-                  confirmed: true,
-                  started: true,
-                ),
+                // DRAFT → fluxo imediato (AlertDialog "Remover parada" da Á6).
+                routeState: const domain.RouteState(),
                 stops: [_stop1],
               ),
             ]),
@@ -3455,11 +3460,9 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                routeState: const domain.RouteState(
-                  optimization: domain.OptimizationState.optimized,
-                  confirmed: true,
-                  started: true,
-                ),
+                // DRAFT → remoção IMEDIATA (este teste). Rota otimizada =
+                // remoção deferida G5, coberta nos testes 18.7/18.8 abaixo.
+                routeState: const domain.RouteState(),
                 stops: [_stop1],
               ),
             ]),
@@ -3509,6 +3512,128 @@ void main() {
 
       // Nenhum dialog residual.
       expect(find.byType(AlertDialog), findsNothing);
+    });
+
+    // ── 18.7  G5: rota OTIMIZADA → remoção DEFERIDA (confirma) ────────────────
+
+    testWidgets(
+        '18.7 — rota otimizada: "Remover" abre o diálogo de remoção DEFERIDA; '
+        'confirmar marca pendingRemoval SEM remover e SEM popar (G5)',
+        (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                ),
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final removeRow = find.bySemanticsIdentifier('edit_stop_remove');
+      await _scrollUntilVisible(tester, removeRow);
+      await tester.tap(removeRow);
+      await tester.pumpAndSettle();
+
+      // É o diálogo DEFERIDO, não o AlertDialog imediato "Remover parada".
+      expect(
+        find.text('Remover esta parada?'),
+        findsOneWidget,
+        reason: 'rota otimizada deve abrir o ConfirmDeferredRemovalDialog',
+      );
+      expect(find.textContaining('próxima'), findsOneWidget);
+
+      await tester.tap(find.text('Remover'));
+      await tester.pumpAndSettle();
+
+      // Stop CONTINUA na rota, marcado para remoção deferida.
+      final route =
+          container.read(routesProvider).firstWhere((r) => r.id == 'r1');
+      expect(
+        route.stops,
+        hasLength(1),
+        reason: 'remoção deferida NÃO remove agora',
+      );
+      expect(
+        route.stops.first.pendingRemoval,
+        isTrue,
+        reason: 'a parada fica marcada pendingRemoval',
+      );
+
+      // NÃO popou — o editor continua visível (sem SENTINEL_HOME).
+      expect(find.text('SENTINEL_HOME'), findsNothing);
+      expect(find.text('Editar parada'), findsOneWidget);
+    });
+
+    // ── 18.8  G5: rota OTIMIZADA → cancelar NÃO marca ────────────────────────
+
+    testWidgets(
+        '18.8 — rota otimizada: "Cancelar" no diálogo deferido NÃO marca '
+        'pendingRemoval (G5)', (tester) async {
+      _useTallFrame(tester);
+
+      final container = ProviderContainer(
+        overrides: [
+          routesProvider.overrideWith(
+            () => _FakeRoutes([
+              domain.Route(
+                id: 'r1',
+                date: DateTime(2026, 5, 27),
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                ),
+                stops: [_stop1],
+              ),
+            ]),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: _buildRouter(routeId: 'r1', stopId: 's1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final removeRow = find.bySemanticsIdentifier('edit_stop_remove');
+      await _scrollUntilVisible(tester, removeRow);
+      await tester.tap(removeRow);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      final route =
+          container.read(routesProvider).firstWhere((r) => r.id == 'r1');
+      expect(route.stops.first.pendingRemoval, isFalse);
+      expect(find.text('Editar parada'), findsOneWidget);
     });
   });
 }

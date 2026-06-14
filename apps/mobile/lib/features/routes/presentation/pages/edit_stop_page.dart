@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../settings/data/settings_repository.dart';
 import '../../../settings/state/settings_controller.dart';
+import '../../domain/optimization_state.dart';
 import '../../domain/package_details.dart';
 import '../../domain/place_in_vehicle.dart';
 import '../../domain/stop.dart';
@@ -13,6 +14,7 @@ import '../../domain/stop_order_policy.dart';
 import '../../state/routes_provider.dart';
 import '../../state/address_instructions_controller.dart';
 import '../widgets/access_instructions_sheet.dart';
+import '../widgets/confirm_deferred_removal_dialog.dart';
 import '../widgets/arrival_window_sheet.dart';
 import '../widgets/package_finder_sheet.dart';
 import '../widgets/time_at_stop_dialog.dart';
@@ -288,13 +290,37 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
     );
   }
 
-  /// Remover parada (F6): AlertDialog de confirmação. Estrutura fiel ao dump
-  /// (`remove_stop_confirmation_dialog_text` = "Quer remover \"%1$s\" da
-  /// rota?" + `remove_stop_title`); microcopy PT-BR original (ADR-0010/0035,
-  /// mesmo padrão da Área 5 "Quer mesmo remover…" em ADR-0049) — a estrutura
-  /// é a paridade, o texto é nosso. Confirmar = removeStop + pop do editor;
-  /// cancelar = nada.
+  /// Remover parada (F6). Dois caminhos por ESTADO da rota (paridade Spoke,
+  /// Á7 G5):
+  ///   - Rota OTIMIZADA (PRE-CONFIRM): remoção DEFERIDA — confirma via
+  ///     `ConfirmDeferredRemovalDialog`, marca `pendingRemoval` e NÃO faz pop;
+  ///     a parada fica na lista até a próxima otimização (o solver a exclui).
+  ///   - Rota DRAFT: remoção IMEDIATA (`removeStop` + pop do editor — Área 6).
+  /// O Spoke ramifica em `StopActionsController.onDeleteStopClick` por
+  /// `optimization == OPTIMIZED`; microcopy PT-BR original (ADR-0010/0035).
   Future<void> _confirmRemove(Stop stop) async {
+    final route = ref
+        .read(routesProvider)
+        .where((r) => r.id == widget.routeId)
+        .firstOrNull;
+    final isOptimized =
+        route?.routeState.optimization == OptimizationState.optimized;
+
+    if (isOptimized) {
+      final confirmed = await showConfirmDeferredRemovalDialog(
+        context,
+        stopLabel: stop.deliveryId ?? stop.streetName,
+      );
+      if (confirmed != true || !mounted) return;
+      ref
+          .read(routesProvider.notifier)
+          .markStopForDeferredRemoval(widget.routeId, stop.id);
+      // Sem pop: a parada permanece visível marcada — sai na próxima
+      // otimização. (Se o produto preferir popar e mostrar a parada riscada na
+      // lista do shell, é uma decisão de UX do PR-B2 — aqui ficamos no editor.)
+      return;
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
