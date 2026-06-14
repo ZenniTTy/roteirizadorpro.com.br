@@ -2,6 +2,23 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-14 — Área 7 PR-B1 (PRE-CONFIRM estrutura: aplicar otimização + FTUE + Refinar/Reotimizar + G5)
+
+Code change (Á7 PR-B1, branch `feat/m2-slice-2-area-7-pre-confirm` → `develop`). **Sem ADR nova** — sem mudança de stack (`shared_preferences` já no pubspec; o provider FTUE usa o idiom `SharedPreferencesAsync` existente). Construído dump-first: a microcopy foi re-conferida 1:1 contra `~/spoke-dump/res-decoded/res/values-pt-rBR/strings.xml` ANTES de codificar.
+
+**O que entrou (estrutura do PRE-CONFIRM, sem o mapa pesado — esse é o PR-B2):**
+- **Estado:** `Routes.applyOptimization` (routeState→optimized + stops reordenados + métricas) + `Routes.markStopForDeferredRemoval` (G5, `pendingRemoval`); `activeRouteStateProvider` (deriva o `RouteState` da rota ativa p/ o shell trocar de corpo por estado).
+- **Widgets:** `RouteSummaryRow` (display-only, G4, sem onTap), `DeliveryIdChip` (A1..AN ou "—"), `OptimizationFtueRepository` (one-shot `numbering_ftue_v1`) + provider `@riverpod`, `IdEducationDialog` (FTUE numeração), `RefineRouteSheet` {Inverter a ordem / Definir a ordem na mão}, `ReoptimizeOptionsSheet` {Ajustar o que mudou / Recalcular do zero}, `ConfirmDeferredRemovalDialog` (G5), `PreConfirmView` (summary + lista ordenada com chips + rodapé 1 tempo + 2 CTAs Refinar/Confirmar).
+- **Wire no shell:** switch `isPreConfirm`→`PreConfirmView` (mesmo `EditRouteFragment` por estado, fiel ao jadx — não há tela nova); `_onOptimize` aplica o resultado + dispara o FTUE one-shot; `_onRefine` (Inverter re-roda o solver com `OptimizeDirection.reverse`, **erro tratado** — não engole `OptimizationFailure`); `_onConfirm` honest-stub (Ready-to-Run é PR-C). **G5 wirado** no `edit_stop_page`: rota otimizada → `ConfirmDeferredRemovalDialog` + marca `pendingRemoval` (sem pop); rota DRAFT → `removeStop` imediato (Á6 intacta).
+
+**Refinar ≠ Reotimizar (lição travada):** dois sheets DISTINTOS — `RefineRouteSheet` (rodapé) ≠ `ReoptimizeOptionsSheet` (kebab). O `optimization_explainer_*` do jadx é o KEBAB; o `refine_route_dialog_*` é o Refinar. Slots não trocados; testes pinam a ausência cruzada.
+
+**Microcopy 100% original (ADR-0010):** a re-auditoria dump-first pegou **1 verbatim** ("Inverter a rota" = `refine_route_dialog_reverse_title`) + 2 near-verbatim ("Ordenar manualmente"/"Reotimizar rota") no plano → reformulados ("Inverter a ordem"/"Definir a ordem na mão"/"Recalcular do zero"/"Ajustar o que mudou"/"Ajustar a rota"/"Como recalcular"/"Ajustar formato"). Lição reforçada: a paráfrase de um plano "dump-first" NÃO substitui re-grepar `values-pt-rBR` na execução.
+
+**Gates:** `flutter-perf-auditor` — must-fix `ref.watch(activeRouteStateProvider)` lia o `RouteState` inteiro (9 campos, sem `==`) p/ um getter → trocado por `.select((s) => s?.isPreConfirm ?? false)` (rebuild só no estado visual, não a cada stop); should-fix `ValueKey(stop.id)` no `ListView.builder` do `PreConfirmView` (reconcilia por move no "Inverter"). `spoke-parity-checker` D4 dump-only — **reclassificou o G5 de "débito declarado" → must-fix** (o `edit_stop_page` removia imediatamente mesmo em rota otimizada; o dialog + método já existiam, faltava o ramo) → **fechado neste PR** (decisão Eduardo: "tudo igual ao Spoke"). Should-fix S1 (kebab Reotimizar sem caller): investigação no jadx provou que o trigger do Spoke vive no **OrderStopGroups (PR-D) + toolbar do mapa (PR-B2)**, não num kebab solto → wirar agora seria **drift** (inventar UI) → caller adiado p/ onde o Spoke ancora (decisão Eduardo: "evite drifts").
+
+**Verification:** `flutter analyze` sem lint novo (6 issues, todos pré-existentes de outros PRs); `flutter test` **670** verde (638 → 670: +30, incl. 18.7/18.8 do G5). Bug do teste T6 (helper lia `choice` antes do tap → sempre null) pego pela revisão e corrigido. **integration_test no M54 + smoke E2E = fechamento da Á7** (após PR-D) — o PRE-CONFIRM navegável completo com mapa é validado lá. Débito declarado no `TODO.md` §Á7 PR-B1 (6 itens).
+
 ## 2026-06-14 — Área 7 PR-A (estado + solver + CTA Otimizar + progresso)
 
 Code change (Á7 PR-A, PR #30 → `develop`) com **ADR-0051** (route lifecycle `RouteState` + solver on-device). Construído dump-first (baseline da sessão `2026-06-13-01`: `~/spoke-dump/jadx-out` — `RouteState.kt`/`OptimizationState.kt`/`OptimizeType.kt`/`OptimizeDirection.kt`/`OptimizationRoutingSolver.kt`). Sem dep nova (`geolocator` já no pubspec) → `adr-guardian` PASS; a ADR-0051 documenta a decisão de domínio, não de stack.
