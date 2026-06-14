@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:roteirizador_pro/features/routes/domain/route_geometry.dart';
@@ -26,5 +27,33 @@ void main() {
       _stop('b', 3, 4).copyWith(pendingRemoval: true),
     ]);
     expect(pts, [const LatLng(1, 2)]);
+  });
+
+  test('buildRoutePolylines: vazio quando <2 pontos; 2 sobrepostos quando >=2',
+      () {
+    expect(
+      buildRoutePolylines([], fill: Colors.blue, border: Colors.black),
+      isEmpty,
+    );
+    expect(
+      buildRoutePolylines(
+        [const LatLng(0, 0)],
+        fill: Colors.blue,
+        border: Colors.black,
+      ),
+      isEmpty,
+    );
+    final pl = buildRoutePolylines(
+      [const LatLng(0, 0), const LatLng(1, 1)],
+      fill: Colors.blue,
+      border: Colors.black,
+    );
+    expect(pl, hasLength(2));
+    final ids = pl.map((p) => p.polylineId.value).toSet();
+    expect(ids, {'route_outer', 'route_inner'});
+    final inner = pl.firstWhere((p) => p.polylineId.value == 'route_inner');
+    final outer = pl.firstWhere((p) => p.polylineId.value == 'route_outer');
+    expect(inner.zIndex, greaterThan(outer.zIndex));
+    expect(inner.width, lessThan(outer.width));
   });
 }

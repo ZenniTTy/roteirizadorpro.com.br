@@ -13,6 +13,7 @@ import '../data/location_service.dart';
 import '../domain/optimization/route_optimizer.dart';
 import '../domain/optimize_direction.dart';
 import '../domain/optimize_type.dart';
+import '../domain/route_geometry.dart';
 import '../domain/stop.dart';
 import '../state/active_route_provider.dart';
 import '../state/active_route_state_provider.dart';
@@ -146,6 +147,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final isPreConfirm = ref.watch(
       activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
     );
+    final routePolylines = isPreConfirm
+        ? buildRoutePolylines(
+            routePolylinePoints(stops),
+            fill: AppColors.primary,
+            border: AppColors.bg,
+          )
+        : const <Polyline>{};
     final activeMetrics = activeRouteId == null
         ? null
         : ref.watch(
@@ -206,6 +214,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     child: GoogleMap(
                       mapType: mapType,
                       initialCameraPosition: _initialPosition,
+                      polylines: routePolylines,
                       onMapCreated: (GoogleMapController controller) {
                         _controller.complete(controller);
                       },
