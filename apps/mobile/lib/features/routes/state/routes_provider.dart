@@ -4,7 +4,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../data/package_photo_store.dart';
+import '../domain/optimization_state.dart';
 import '../domain/route.dart';
+import '../domain/route_state.dart';
 import '../domain/stop.dart';
 
 part 'routes_provider.g.dart';
@@ -28,25 +30,28 @@ class Routes extends _$Routes {
       Route(
         id: 'seed-today-1',
         date: today,
-        status: RouteStatus.running,
+        routeState: const RouteState(
+          optimization: OptimizationState.optimized,
+          confirmed: true,
+          started: true,
+        ),
         name: null,
       ),
       Route(
         id: 'seed-today-2',
         date: today,
-        status: RouteStatus.draft,
         name: null,
       ),
       Route(
         id: 'seed-yesterday-1',
         date: yesterday,
-        status: RouteStatus.completed,
+        routeState: const RouteState(completed: true),
         name: null,
       ),
       Route(
         id: 'seed-lastweek-1',
         date: lastWeek,
-        status: RouteStatus.completed,
+        routeState: const RouteState(completed: true),
         name: null,
       ),
     ];
@@ -64,7 +69,6 @@ class Routes extends _$Routes {
     final route = Route(
       id: id,
       date: date,
-      status: RouteStatus.draft,
       name: name,
     );
     state = [...state, route];
@@ -85,7 +89,7 @@ class Routes extends _$Routes {
       return Route(
         id: r.id,
         date: date,
-        status: r.status,
+        routeState: r.routeState,
         name: name,
         stops: r.stops,
       );
@@ -101,7 +105,6 @@ class Routes extends _$Routes {
     final duplicated = Route(
       id: 'dup-${DateTime.now().millisecondsSinceEpoch}',
       date: existing.date,
-      status: RouteStatus.draft,
       name: '${existing.displayName()} (Cópia)',
     );
     state = [...state, duplicated];

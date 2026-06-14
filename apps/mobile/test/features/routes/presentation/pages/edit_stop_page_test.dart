@@ -15,8 +15,12 @@ import 'package:go_router/go_router.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/time_picker_sheet.dart';
 import 'package:roteirizador_pro/features/routes/data/address_instructions_repository.dart';
 import 'package:roteirizador_pro/features/routes/domain/package_details.dart';
+import 'package:roteirizador_pro/features/routes/domain/optimization_state.dart'
+    as domain;
 import 'package:roteirizador_pro/features/routes/domain/place_in_vehicle.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
+import 'package:roteirizador_pro/features/routes/domain/route_state.dart'
+    as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop_color.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop_order_policy.dart';
@@ -129,7 +133,11 @@ Widget _buildApp({
           domain.Route(
             id: 'r1',
             date: DateTime(2026, 5, 27),
-            status: domain.RouteStatus.running,
+            routeState: const domain.RouteState(
+              optimization: domain.OptimizationState.optimized,
+              confirmed: true,
+              started: true,
+            ),
             stops: stops,
           ),
         ]),
@@ -187,7 +195,11 @@ Future<ProviderContainer> pumpPageWithInstructions(
           domain.Route(
             id: 'r1',
             date: DateTime(2026, 5, 27),
-            status: domain.RouteStatus.running,
+            routeState: const domain.RouteState(
+              optimization: domain.OptimizationState.optimized,
+              confirmed: true,
+              started: true,
+            ),
             stops: stops,
           ),
         ]),
@@ -305,7 +317,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -709,7 +725,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -818,7 +838,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -876,7 +900,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [orangeStop],
               ),
             ]),
@@ -1201,7 +1229,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // packagesCount == 1
               ),
             ]),
@@ -1438,7 +1470,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // orderPolicy == auto
               ),
             ]),
@@ -1690,7 +1726,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // type == delivery
               ),
             ]),
@@ -1799,7 +1839,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -2004,7 +2048,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [stopBoth],
               ),
             ]),
@@ -2065,7 +2113,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // timeWindowStart == null
               ),
             ]),
@@ -2281,7 +2333,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // estimatedTimeAtStop == null
               ),
             ]),
@@ -2350,7 +2406,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [stopWithDur],
               ),
             ]),
@@ -2430,7 +2490,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // estimatedTimeAtStop == null
               ),
             ]),
@@ -2596,7 +2660,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -2671,7 +2739,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [stopFull],
               ),
             ]),
@@ -2781,7 +2853,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [seedStop],
               ),
             ]),
@@ -2861,7 +2937,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1], // accessInstructions == null
               ),
             ]),
@@ -2949,7 +3029,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -3036,7 +3120,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [seedStop],
               ),
             ]),
@@ -3123,7 +3211,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -3171,7 +3263,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -3291,7 +3387,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),
@@ -3355,7 +3455,11 @@ void main() {
               domain.Route(
                 id: 'r1',
                 date: DateTime(2026, 5, 27),
-                status: domain.RouteStatus.running,
+                routeState: const domain.RouteState(
+                  optimization: domain.OptimizationState.optimized,
+                  confirmed: true,
+                  started: true,
+                ),
                 stops: [_stop1],
               ),
             ]),

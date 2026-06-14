@@ -32,6 +32,7 @@ class Stop {
     this.photoPaths = const [],
     this.accessInstructions,
     this.estimatedTimeAtStop,
+    this.pendingRemoval = false,
   }) : id = id ?? const Uuid().v4();
 
   final String id;
@@ -68,6 +69,12 @@ class Stop {
   /// Tempo estimado na parada (substitui customDurationMinutes).
   final Duration? estimatedTimeAtStop;
 
+  /// Marca a parada para remoção DEFERIDA quando a rota já está otimizada
+  /// (G5 — espelha `ConfirmDeleteStopOnOptimizationDialog` do Spoke). O solver
+  /// exclui paradas com esta flag na próxima otimização. Em rota DRAFT a
+  /// remoção é imediata (não usa esta flag).
+  final bool pendingRemoval;
+
   // Sentinela interna usada pelo copyWith para distinguir "omitido" de null.
   static const _omit = Object();
 
@@ -93,6 +100,7 @@ class Stop {
     List<String>? photoPaths,
     Object? accessInstructions = _omit,
     Object? estimatedTimeAtStop = _omit,
+    bool? pendingRemoval,
   }) {
     // Nullables usam a sentinela _omit: omitido → preserva; null explícito →
     // LIMPA o campo (lesson_copywith_nullable_field_pitfall / H2).
@@ -134,6 +142,7 @@ class Stop {
       estimatedTimeAtStop: identical(estimatedTimeAtStop, _omit)
           ? this.estimatedTimeAtStop
           : estimatedTimeAtStop as Duration?,
+      pendingRemoval: pendingRemoval ?? this.pendingRemoval,
     );
   }
 }

@@ -13,7 +13,6 @@ void main() {
   domain.Route r(String id, DateTime date) => domain.Route(
         id: id,
         date: date,
-        status: domain.RouteStatus.draft,
       );
 
   test('empty list returns empty map', () {

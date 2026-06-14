@@ -79,7 +79,7 @@ void main() {
       final created = after.firstWhere((r) => r.id == id);
       expect(created.name, 'Minha rota');
       expect(created.date, date);
-      expect(created.status, domain.RouteStatus.draft);
+      expect(created.routeState.isDraft, isTrue);
       expect(created.stops, isEmpty);
     });
 
@@ -117,7 +117,7 @@ void main() {
           container.read(routesProvider).firstWhere((r) => r.id == id);
       expect(updated.name, 'Editado');
       expect(updated.date, newDate);
-      expect(updated.status, original.status);
+      expect(updated.routeState, original.routeState);
       expect(updated.stops, original.stops);
     });
 
