@@ -20,6 +20,10 @@ class StopMarkerBitmapCache extends _$StopMarkerBitmapCache {
   Map<String, BitmapDescriptor> build() => {};
 
   Future<BitmapDescriptor> resolve(String label) async {
+    // Chave = SÓ o label porque fill+textColor são fixos app-wide
+    // (AppColors.primary/white). Se um sprint futuro introduzir cor por parada
+    // (`StopColor` já existe no domínio), estender a chave p/ incluir a cor —
+    // senão o cache serviria a cor errada para o mesmo label silenciosamente.
     final cached = state[label];
     if (cached != null) return cached;
     final bitmap = await stopMarkerBitmap(

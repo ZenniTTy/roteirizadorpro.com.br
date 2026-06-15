@@ -47,7 +47,15 @@ Future<BitmapDescriptor> stopMarkerBitmap({
     final image = await picture.toImage(w.ceil(), h.ceil());
     try {
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      return BitmapDescriptor.bytes(bytes!.buffer.asUint8List());
+      // `toByteData` pode devolver null em falha de encoding (raro num
+      // ui.Image recém-desenhado). Erro EXPLÍCITO em vez de `bytes!`: o
+      // `routeMapMarkersProvider` entra em AsyncError observável (o shell
+      // degrada p/ markers vazios via `.value ?? {}`, sem crash, mas a falha
+      // não some silenciosamente — fica em `.hasError`).
+      if (bytes == null) {
+        throw StateError('toByteData devolveu null para o marker "$label"');
+      }
+      return BitmapDescriptor.bytes(bytes.buffer.asUint8List());
     } finally {
       image.dispose();
     }
