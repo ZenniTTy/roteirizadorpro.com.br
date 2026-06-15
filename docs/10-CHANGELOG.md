@@ -2,6 +2,24 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-14 — Área 7 PR-B2 (mapa interativo: polyline + markers + kebab Reotimizar)
+
+Code change (Á7 PR-B2, branch `feat/m2-slice-2-area-7-pr-b2` → `develop`). **Sem ADR nova** — sem mudança de stack (`dart:ui` é stdlib; `google_maps_flutter` + `lucide_icons_flutter` já no pubspec). Construído dump-first: o relatório do `spoke-parity-checker` sobre `~/spoke-dump/jadx-out` (`MapController`/`PolylineGroup`/`StopMarkerLabel`/`MapToolbarControlsController`) precedeu a spec.
+
+**Dump-first corrigiu 2 premissas erradas do B1 ANTES de codificar:** (1) o trigger do Reotimizar é o **KEBAB** do PRE-CONFIRM (`more_options_reoptimize_route_title` → `ReoptimizeRouteDialog`), NÃO o toolbar do mapa/OrderStopGroups como o B1 registrara; (2) o marker do mapa mostra **endereço + (no Spoke) hora**, NÃO o chip A1..AN (que é exclusivo da lista). Sem o dump-first, ambas teriam virado divergência.
+
+**O que entrou:**
+- **`route_geometry.dart`** — `routePolylinePoints` (stops→`LatLng`, ignora `pendingRemoval`/G5) + `buildRoutePolylines` (2 `Polyline` sobrepostos: outer borda + inner preenchimento, cor token de marca = `borderBrandEmphasis` do Spoke, mas com a cor da MARCA por ADR-0035).
+- **`stop_marker_bitmap.dart`** — pino desenhado via `dart:ui` `Canvas` (`PictureRecorder`→`toImage`→`toByteData(png)`→`BitmapDescriptor.bytes`), SEM pacote. Context7 (`/flutter/website`) confirmou o pipeline + que `fromBytes` está deprecado. Dispose dos recursos nativos (`picture`/`image`/`paragraph`) em try/finally (evita vazamento). Erro observável em vez de `bytes!`.
+- **`routeMapMarkersProvider`** (`@riverpod` async) + **`StopMarkerBitmapCache`** (`keepAlive`, cache por label — sobrevive às invalidações, não regenera PNG a cada reotimização) + geração **paralela** (`Future.wait`).
+- **Wire no shell:** polyline E markers DERIVADOS do estado, **gateados em `isPreConfirm`** (só na rota otimizada — paridade Spoke); kebab no `PreConfirmView` (`LucideIcons.moreVertical`) → `_onReoptimize` (espelha `_onRefine`: `update`→reorderFlexible, `reoptimize`→restartRoute, erro tratado, sem bug silencioso).
+
+**Decisões conscientes (ADR-0010/0035 + boas práticas, NÃO são gaps):** (a) **marker mostra identificação, NÃO hora** — o solver local dá tempo geométrico grosseiro; "hora estimada" derivada dele enganaria o motorista; ETA real é Slice 3 (GraphHopper); (b) marker via `BitmapDescriptor` nativo (Spoke usa overlay Compose) — divergência de implementação, não de comportamento; (c) cor da polyline = token de marca, não a cor raw do Spoke.
+
+**Gates:** `flutter-perf-auditor` — must-fix `routeMapMarkersProvider` regerava todos os bitmaps a cada reotimização → cache `keepAlive` + `Future.wait`; should-fix de memoização da polyline no drag NÃO aplicado (O(n) síncrono é barato — débito). `spoke-parity-checker` D4 dump-only — must-fix markers apareciam no DRAFT → gate `isPreConfirm`; 3 ícones Material → Lucide (`moreVertical`/`refreshCw`/`sparkles`). `adr-guardian` PASS (zero dep nova). **Workflow de verificação final (3 dimensões adversariais) = GO:** anti-regressão dos fixes PASS, stack PASS, completude CONCERNS (débito de teste de `_onReoptimize`/gate — simétrico ao `_onRefine` do B1, coberto por controller-isolado + diálogos + smoke M54; declarado no TODO).
+
+**Verification:** `flutter analyze` sem lint novo; `flutter test` **683** verde (670 → 683: +13, incl. cache de bitmap). Smoke E2E no M54 (golden path: otimizar → polyline + markers → kebab Reotimizar → Recalcular → redesenha). Débito declarado no `TODO.md` §Á7 PR-B2 (6 itens, incl. débito de teste honesto).
+
 ## 2026-06-14 — Área 7 PR-B1 (PRE-CONFIRM estrutura: aplicar otimização + FTUE + Refinar/Reotimizar + G5)
 
 Code change (Á7 PR-B1, branch `feat/m2-slice-2-area-7-pre-confirm` → `develop`). **Sem ADR nova** — sem mudança de stack (`shared_preferences` já no pubspec; o provider FTUE usa o idiom `SharedPreferencesAsync` existente). Construído dump-first: a microcopy foi re-conferida 1:1 contra `~/spoke-dump/res-decoded/res/values-pt-rBR/strings.xml` ANTES de codificar.
