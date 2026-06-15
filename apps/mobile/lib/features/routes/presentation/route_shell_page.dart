@@ -72,22 +72,50 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   // posterior não é revertido.
   bool _hasAutoExpanded = false;
 
+  // Última rota ativa observada — quando muda (entrou numa rota nova, mesmo
+  // VAZIA), o sheet abre em medium e o one-shot de expand é re-armado. Sem
+  // isto, criar uma rota vazia deixava o sheet colapsado sobre o mapa: o
+  // GoogleMap (PlatformView) intercepta o gesto de arrasto da alça, então o
+  // usuário não conseguia subir o sheet pra ver a config/"Adicionar parada" e
+  // parecia "preso no mapa" (bug de UX da Á3 confirmado no M54 2026-06-14).
+  String? _lastActiveRouteId;
+
   @override
   void initState() {
     super.initState();
-    // Cobertura do caso "shell monta com rota ativa que JÁ tem stops" (H6-i):
-    // o ref.listen do build só vê transições, não o estado inicial.
+    // Cobertura do estado INICIAL (o ref.listen do build só vê transições):
+    //  - rota ativa JÁ com stops → expand (H6-i);
+    //  - rota ativa VAZIA → medium, pra não nascer colapsado sob o mapa (o
+    //    PlatformView do GoogleMap rouba o gesto da alça — "preso no mapa").
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _hasAutoExpanded) return;
-      if (ref.read(currentRouteStopsProvider).isNotEmpty) {
-        _hasAutoExpanded = true;
-        setState(() => _sheetFraction = _expandedFraction);
-      }
+      if (!mounted) return;
+      final activeId = ref.read(activeRouteIdProvider);
+      if (activeId == null) return;
+      _lastActiveRouteId = activeId;
+      if (_hasAutoExpanded) return;
+      final hasStops = ref.read(currentRouteStopsProvider).isNotEmpty;
+      setState(() {
+        _sheetFraction = hasStops ? _expandedFraction : _mediumFraction;
+      });
+      if (hasStops) _hasAutoExpanded = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Entrou numa rota ativa NOVA (null→id ou id→outro id), mesmo vazia → abre o
+    // sheet em medium e re-arma o one-shot de expand-na-1ª-parada. Resolve o
+    // "preso no mapa" ao criar rota vazia (ver `_lastActiveRouteId`).
+    ref.listen<String?>(activeRouteIdProvider, (previous, next) {
+      if (next != null && next != _lastActiveRouteId) {
+        _lastActiveRouteId = next;
+        _hasAutoExpanded = false;
+        setState(() => _sheetFraction = _mediumFraction);
+      } else if (next == null) {
+        _lastActiveRouteId = null;
+      }
+    });
+
     // Transição 0→≥1 na contagem de stops da rota ativa → auto-expand
     // one-shot (H6-ii). `_hasAutoExpanded` impede re-disparo (H6-iii).
     ref.listen<int>(

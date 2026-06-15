@@ -934,15 +934,17 @@ void main() {
     final screenHeight =
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
-    // 0 stops → stays near collapsed.
+    // Rota ativa VAZIA → abre em medium (~0.40), NÃO colapsado: senão nascia
+    // sob o mapa e o PlatformView roubava o gesto da alça ("preso no mapa",
+    // fix de UX da Á3 confirmado no M54 2026-06-14). Ainda longe do expanded.
     final beforeRatio =
         tester.getSize(find.byType(AnimatedContainer).first).height /
             screenHeight;
     expect(
       beforeRatio,
-      lessThan(0.30),
-      reason:
-          'Sheet should start near collapsed with 0 stops (got $beforeRatio).',
+      allOf(greaterThan(0.30), lessThan(0.60)),
+      reason: 'Sheet com rota ativa vazia deve abrir em medium (~0.40), '
+          'não colapsado nem expanded (got $beforeRatio).',
     );
 
     // Add the first stop → ref.listen triggers auto-expand.
