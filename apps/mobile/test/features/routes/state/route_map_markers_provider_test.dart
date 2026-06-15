@@ -44,4 +44,14 @@ void main() {
     final markers = await c.read(routeMapMarkersProvider.future);
     expect(markers, hasLength(1));
   });
+
+  test('StopMarkerBitmapCache.resolve cacheia por label (mesmo objeto)',
+      () async {
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    final cache = c.read(stopMarkerBitmapCacheProvider.notifier);
+    final a = await cache.resolve('A1');
+    final b = await cache.resolve('A1');
+    expect(identical(a, b), isTrue);
+  });
 }
