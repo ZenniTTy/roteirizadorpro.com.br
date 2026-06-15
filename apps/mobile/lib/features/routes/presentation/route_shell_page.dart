@@ -159,8 +159,12 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     // Markers da rota (async — o bitmap é desenhado fora do build). Enquanto
     // gera, o mapa renderiza sem markers (sem bloquear/flicker). Aparecem
     // quando prontos. A lógica (N stops, ignora pendingRemoval) vive no provider.
-    final routeMarkers =
-        ref.watch(routeMapMarkersProvider).value ?? const <Marker>{};
+    // Gate em `isPreConfirm` (paridade Spoke — spoke-parity D4 must-fix): os
+    // pinos numerados só aparecem quando a rota está OTIMIZADA. No DRAFT a ordem
+    // ainda não significa nada, então os números confundiriam o motorista.
+    final routeMarkers = isPreConfirm
+        ? (ref.watch(routeMapMarkersProvider).value ?? const <Marker>{})
+        : const <Marker>{};
     final activeMetrics = activeRouteId == null
         ? null
         : ref.watch(

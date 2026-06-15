@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -46,7 +47,8 @@ Future<ReoptimizeChoice?> showReoptimizeOptionsSheet(BuildContext context) {
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.update, color: AppColors.primary),
+            leading:
+                const Icon(LucideIcons.refreshCw, color: AppColors.primary),
             title: const Text(
               'Ajustar o que mudou',
               style: TextStyle(
@@ -63,7 +65,7 @@ Future<ReoptimizeChoice?> showReoptimizeOptionsSheet(BuildContext context) {
                 Navigator.of(sheetContext).pop(ReoptimizeChoice.update),
           ),
           ListTile(
-            leading: const Icon(Icons.auto_awesome, color: AppColors.primary),
+            leading: const Icon(LucideIcons.sparkles, color: AppColors.primary),
             title: const Text(
               'Recalcular do zero',
               style: TextStyle(

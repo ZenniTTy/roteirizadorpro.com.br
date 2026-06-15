@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/delivery_id_chip.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_summary_row.dart';
@@ -36,7 +37,7 @@ class PreConfirmView extends StatelessWidget {
             label: 'Opções da rota',
             button: true,
             child: IconButton(
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(LucideIcons.moreVertical),
               onPressed: onReoptimize,
             ),
           ),
