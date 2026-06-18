@@ -64,7 +64,11 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
 
   // Frações canônicas dos 3 snaps (calculadas dinamicamente em build):
   late double _collapsedFraction;
-  static const double _mediumFraction = 0.40;
+  // Âncora "Default" do sheet do Spoke = 0.5 × altura da tela (dump jadx
+  // v3.65.1, VerticalDraggableSheet measure lambda `kr4.java`:
+  // `minHeight = screenHeight - 0.5*screenHeight`). É a mesma âncora usada no
+  // PRE-CONFIRM (deixa ~50% pro mapa). Era 0.40 (inferido) antes do dump.
+  static const double _mediumFraction = 0.50;
   static const double _expandedFraction = 0.90;
 
   // One-shot do auto-expand (H6): quando a rota ativa ganha a 1ª parada (ou o
@@ -84,7 +88,10 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   void initState() {
     super.initState();
     // Cobertura do estado INICIAL (o ref.listen do build só vê transições):
-    //  - rota ativa JÁ com stops → expand (H6-i);
+    //  - rota ativa JÁ em PRE-CONFIRM (ex: voltou pra rota já otimizada) →
+    //    medium (~0.50), pra não nascer expandido tampando o mapa — mesma
+    //    âncora Default que o listener de isPreConfirm aplica em runtime;
+    //  - rota ativa JÁ com stops (DRAFT) → expand (H6-i);
     //  - rota ativa VAZIA → medium, pra não nascer colapsado sob o mapa (o
     //    PlatformView do GoogleMap rouba o gesto da alça — "preso no mapa").
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -93,6 +100,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
       if (activeId == null) return;
       _lastActiveRouteId = activeId;
       if (_hasAutoExpanded) return;
+      final isPreConfirm =
+          ref.read(activeRouteStateProvider)?.isPreConfirm ?? false;
+      if (isPreConfirm) {
+        // PRE-CONFIRM nasce em medium; o auto-expand do DRAFT (H6) não se
+        // aplica — o foco aqui é deixar o mapa (polyline + markers) visível.
+        setState(() => _sheetFraction = _mediumFraction);
+        _hasAutoExpanded = true;
+        return;
+      }
       final hasStops = ref.read(currentRouteStopsProvider).isNotEmpty;
       setState(() {
         _sheetFraction = hasStops ? _expandedFraction : _mediumFraction;
@@ -115,6 +131,21 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
         _lastActiveRouteId = null;
       }
     });
+
+    // Transição DRAFT→PRE-CONFIRM (rota otimizada) → o sheet volta pra âncora
+    // "Default" do Spoke (medium ~0.50), deixando ~50% da tela pro mapa com o
+    // polyline + markers numerados. Sem isto, o sheet herdava a fração
+    // expandida (0.90) do DRAFT auto-expandido (H6) e TAMPAVA o mapa no
+    // PRE-CONFIRM (bug reportado no smoke M54 2026-06-14). É a mesma âncora
+    // Default que o Spoke usa no PRE-CONFIRM (dump jadx `kr4.java`).
+    ref.listen<bool>(
+      activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
+      (previous, next) {
+        if (next == true && previous == false) {
+          setState(() => _sheetFraction = _mediumFraction);
+        }
+      },
+    );
 
     // Transição 0→≥1 na contagem de stops da rota ativa → auto-expand
     // one-shot (H6-ii). `_hasAutoExpanded` impede re-disparo (H6-iii).
@@ -253,6 +284,16 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     child: GoogleMap(
                       mapType: mapType,
                       initialCameraPosition: _initialPosition,
+                      // Padding inferior = altura atual do sheet. Reposiciona o
+                      // watermark "Google", o logo e os controles nativos do
+                      // mapa ACIMA do sheet, e — junto com o
+                      // `CameraUpdate.newLatLngBounds`/`newLatLng` — mantém o
+                      // alvo da câmera visível na fatia não coberta. Espelha o
+                      // `GoogleMap.setPadding(bottom)` do Spoke
+                      // (UpdateMapPaddingEffect, dump jadx v3.65.1).
+                      padding: EdgeInsets.only(
+                        bottom: mq.size.height * clampedFraction,
+                      ),
                       polylines: routePolylines,
                       markers: routeMarkers,
                       onMapCreated: (GoogleMapController controller) {

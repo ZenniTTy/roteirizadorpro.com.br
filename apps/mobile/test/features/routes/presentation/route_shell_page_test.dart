@@ -13,7 +13,10 @@ import 'package:roteirizador_pro/features/routes/domain/map_controls_state.dart'
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/route_shell_page.dart';
+import 'package:roteirizador_pro/features/routes/domain/optimization_state.dart';
+import 'package:roteirizador_pro/features/routes/domain/route_state.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/app_drawer.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/pre_confirm_view.dart';
 import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/current_user_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/map_controls_controller.dart';
@@ -1051,6 +1054,12 @@ void main() {
 
   // MS-A6 Task 9 — H9/F4/H11 entrypoint tests (search pill + big button).
   _registerH9Tests();
+
+  // Dump-parity corrections (kr4.java baseline — 2026-06-18):
+  //   C1 — _mediumFraction ~0.50 (Spoke Default anchor = 0.5 × screenHeight)
+  //   C2 — PRE-CONFIRM opens at medium (~0.50), NOT inheriting DRAFT 0.90
+  //   C3 — GoogleMap.padding.bottom == sheet height (UpdateMapPaddingEffect)
+  _registerDumpParityTests();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1417,5 +1426,213 @@ void _registerH9Tests() {
 
     expect(find.text('Parada adicionada'), findsOneWidget);
     expect(find.text('Ver'), findsOneWidget);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dump-parity corrections (kr4.java baseline, 2026-06-18)
+//
+// C1 — _mediumFraction ~0.50 (Spoke Default anchor = 0.5 × screenHeight,
+//      proven by kr4.java measure lambda in VerticalDraggableSheet).
+//      Current production value is 0.40 → tests below pin it to ~0.50 ±0.02.
+//
+// C2 — PRE-CONFIRM sheet must open at medium (~0.50), NOT at expanded (0.90).
+//      Today the DRAFT auto-expand fires at 0.90, and PRE-CONFIRM inherits
+//      that fraction because there is no reset when the state flips. The mapa
+//      gets squished to 10% — "tampa o mapa" bug. Correct anchor = Default
+//      (medium, 0.50) per Spoke's PRE-CONFIRM entry.
+//
+// C3 — GoogleMap.padding.bottom must equal the current sheet height
+//      (mirrors Spoke's UpdateMapPaddingEffect / GoogleMap.setPadding).
+//      Today GoogleMap is constructed with no padding parameter (defaults to
+//      EdgeInsets.zero). Tests assert padding.bottom > 0 and ≈ fraction×height.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Builds a [ProviderScope] with a route seeded in PRE-CONFIRM state
+/// (optimization == optimized, confirmed == false, started == false).
+/// Uses [_wrapRouted]'s router-aware pattern so GoRouter sentinels are
+/// available (PreConfirmView's "Confirmar" button eventually pushes a route).
+Widget _wrapInPreConfirm({
+  List<domain.Stop> stops = const [],
+}) {
+  const preConfirmState = RouteState(
+    optimization: OptimizationState.optimized,
+    confirmed: false,
+    started: false,
+  );
+  final router = _buildSentinelRouter();
+  return ProviderScope(
+    overrides: [
+      currentUserProvider.overrideWithValue(kUserWithoutSub),
+      routesProvider.overrideWithValue([
+        domain.Route(
+          id: 'r-preconfirm',
+          date: DateTime(2026, 5, 27),
+          routeState: preConfirmState,
+          stops: stops,
+          totalDurationMinutes: 42,
+          totalDistanceMeters: 15000,
+        ),
+      ]),
+      activeRouteIdProvider.overrideWith(
+        () => _SeededActiveRouteId('r-preconfirm'),
+      ),
+    ],
+    child: MaterialApp.router(
+      theme: AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+      routerConfig: router,
+    ),
+  );
+}
+
+void _registerDumpParityTests() {
+  // ── C1: _mediumFraction pinned to ~0.50 (kr4.java Default anchor) ──────────
+
+  testWidgets(
+      'C1 — rota ativa vazia abre o sheet na âncora Default do Spoke (~0.50, '
+      'kr4.java): ratio deve estar em [0.48, 0.52]', (tester) async {
+    // Frame: 1080×3200 physical, DPR 2.0 → 540×1600 logical.
+    // _mediumFraction 0.50 → expected AnimatedContainer height = 800 logical px.
+    // Current production value is 0.40 → ratio ~0.40 → test will FAIL (red).
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Empty route → no stops → initState fires the medium branch.
+    await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
+    await tester.pumpAndSettle();
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheetHeight =
+        tester.getSize(find.byType(AnimatedContainer).first).height;
+    final ratio = sheetHeight / screenHeight;
+
+    // Spoke Default anchor = 0.5 × screenHeight (kr4.java, 2026-06-18).
+    // Tolerance ±0.02 absorbs bottom-inset rounding across device profiles.
+    expect(
+      ratio,
+      greaterThanOrEqualTo(0.48),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} is below 0.48 — '
+          '_mediumFraction is still 0.40 (needs to be updated to 0.50 '
+          'per kr4.java Default anchor).',
+    );
+    expect(
+      ratio,
+      lessThanOrEqualTo(0.52),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} exceeds 0.52 — '
+          'unexpected overshoot above the Default anchor.',
+    );
+  });
+
+  // ── C2: PRE-CONFIRM opens at medium (~0.50), NOT inheriting DRAFT 0.90 ─────
+
+  testWidgets(
+      'C2 — PRE-CONFIRM abre o sheet em medium (~0.50) deixando o mapa '
+      'visível — não herda 0.90 do DRAFT (tampa o mapa bug)', (tester) async {
+    // Frame: 1080×3200 physical, DPR 2.0 → 540×1600 logical.
+    // Scenario: a route that is ALREADY in PRE-CONFIRM when the shell mounts
+    // (e.g. user navigates back to the route after optimization completed).
+    // The auto-expand one-shot fired for 0 stops, then the state flipped to
+    // PRE-CONFIRM. Today the fraction stays at 0.90 from the DRAFT expand.
+    // After C2 fix the fraction must reset to _mediumFraction (0.50) when
+    // isPreConfirm becomes true — ratio expected in [0.48, 0.52].
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Seed with 2 stops in PRE-CONFIRM state. This exercises the realistic
+    // path: route had stops (triggering auto-expand to 0.90 in DRAFT), then
+    // the optimizer ran and isPreConfirm flipped to true. Without a reset the
+    // fraction stays at 0.90. With the fix it snaps back to _mediumFraction.
+    await tester.pumpWidget(_wrapInPreConfirm(stops: [_stop1, _stop2]));
+    await tester.pumpAndSettle();
+
+    // Confirm we are genuinely in PRE-CONFIRM (PreConfirmView rendered).
+    expect(
+      find.byType(PreConfirmView),
+      findsOneWidget,
+      reason: 'PreConfirmView must be present — route was not seeded in '
+          'PRE-CONFIRM state (optimization==optimized, confirmed==false).',
+    );
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheetHeight =
+        tester.getSize(find.byType(AnimatedContainer).first).height;
+    final ratio = sheetHeight / screenHeight;
+
+    // Must NOT be at expanded (0.90) — that squishes the map to 10%.
+    expect(
+      ratio,
+      lessThan(0.80),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} ≥ 0.80 — PRE-CONFIRM '
+          'inherited the DRAFT 0.90 expand; the map is hidden ("tampa o mapa"). '
+          'The shell must reset _sheetFraction to _mediumFraction when '
+          'isPreConfirm becomes true.',
+    );
+
+    // Must be at medium (~0.50 per C1 fix) — leaving ~50% of screen for map.
+    expect(
+      ratio,
+      greaterThanOrEqualTo(0.48),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} < 0.48 — PRE-CONFIRM '
+          'sheet is too small; expected medium (~0.50).',
+    );
+    expect(
+      ratio,
+      lessThanOrEqualTo(0.52),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} > 0.52 — PRE-CONFIRM '
+          'sheet exceeds the Default anchor (0.50 ±0.02).',
+    );
+  });
+
+  // ── C3: GoogleMap.padding.bottom == sheet height (UpdateMapPaddingEffect) ───
+
+  testWidgets(
+      'C3 — GoogleMap recebe padding.bottom dinâmico igual à altura do sheet '
+      '(paridade UpdateMapPaddingEffect / setPadding do Spoke)',
+      (tester) async {
+    // Frame: 1080×3200 physical, DPR 2.0 → 540×1600 logical.
+    // After C1 fix: empty-route medium fraction = 0.50 → sheet height = 800 px.
+    // GoogleMap.padding.bottom must equal that height (800 logical px ±1).
+    // Today the GoogleMap is constructed without a padding parameter
+    // (EdgeInsets.zero default) → padding.bottom == 0 → test FAILS (red).
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+
+    // Primary assertion: padding.bottom must be > 0.
+    expect(
+      map.padding.bottom,
+      greaterThan(0),
+      reason: 'GoogleMap.padding.bottom is 0 — UpdateMapPaddingEffect not '
+          'wired. The map POI labels are obscured behind the sheet.',
+    );
+
+    // Secondary assertion: padding.bottom tracks the sheet height.
+    // After C1 fix the medium fraction = 0.50, so sheet height = 800 logical px
+    // on this frame. We compute the expected value the same way the shell does:
+    // mq.size.height × clampedFraction.
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheetHeight =
+        tester.getSize(find.byType(AnimatedContainer).first).height;
+    // ±1 px tolerance covers double→logical pixel rounding.
+    expect(
+      map.padding.bottom,
+      closeTo(sheetHeight, 1.0),
+      reason: 'GoogleMap.padding.bottom (${map.padding.bottom}) does not '
+          'match the current sheet height ($sheetHeight). '
+          'Expected screenHeight($screenHeight) × currentFraction ≈ $sheetHeight.',
+    );
   });
 }
