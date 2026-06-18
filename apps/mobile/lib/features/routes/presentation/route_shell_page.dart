@@ -57,6 +57,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   double _sheetFraction = 0.18;
   double? _dragStartFraction;
 
+  // Fração que alimenta o `GoogleMap.padding` — atualizada SÓ nos snaps
+  // (início/fim de drag, transições de estado), NUNCA a cada frame de drag.
+  // `GoogleMap.padding` é prop declarativa: mudá-la dispara uma chamada de
+  // canal Pigeon (dart→Android) por frame; a 120 Hz isso é jank no próprio
+  // gesto de arrasto (perf-auditor must-fix). Durante o drag esta fração fica
+  // congelada no valor de início; ao soltar, snapa pro destino de uma vez —
+  // o watermark/controles do mapa reposicionam num único reposition, não 120.
+  double _mapPaddingFraction = 0.18;
+
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(-23.550520, -46.633308),
     zoom: 13.0,
@@ -105,13 +114,17 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
       if (isPreConfirm) {
         // PRE-CONFIRM nasce em medium; o auto-expand do DRAFT (H6) não se
         // aplica — o foco aqui é deixar o mapa (polyline + markers) visível.
-        setState(() => _sheetFraction = _mediumFraction);
+        setState(() {
+          _sheetFraction = _mediumFraction;
+          _mapPaddingFraction = _mediumFraction;
+        });
         _hasAutoExpanded = true;
         return;
       }
       final hasStops = ref.read(currentRouteStopsProvider).isNotEmpty;
       setState(() {
         _sheetFraction = hasStops ? _expandedFraction : _mediumFraction;
+        _mapPaddingFraction = _sheetFraction;
       });
       if (hasStops) _hasAutoExpanded = true;
     });
@@ -126,7 +139,10 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
       if (next != null && next != _lastActiveRouteId) {
         _lastActiveRouteId = next;
         _hasAutoExpanded = false;
-        setState(() => _sheetFraction = _mediumFraction);
+        setState(() {
+          _sheetFraction = _mediumFraction;
+          _mapPaddingFraction = _mediumFraction;
+        });
       } else if (next == null) {
         _lastActiveRouteId = null;
       }
@@ -138,11 +154,20 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     // expandida (0.90) do DRAFT auto-expandido (H6) e TAMPAVA o mapa no
     // PRE-CONFIRM (bug reportado no smoke M54 2026-06-14). É a mesma âncora
     // Default que o Spoke usa no PRE-CONFIRM (dump jadx `kr4.java`).
+    //
+    // PAR OBRIGATÓRIO: este listener cobre a transição EM RUNTIME (otimizou
+    // durante a sessão); o bloco postFrame no `initState` cobre o estado
+    // INICIAL (montou já em PRE-CONFIRM — ex: voltou pra rota otimizada),
+    // porque `ref.listen` NÃO dispara para o valor inicial do provider. Não
+    // remova um sem o outro, ou o caso não coberto regride silenciosamente.
     ref.listen<bool>(
       activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
       (previous, next) {
         if (next == true && previous == false) {
-          setState(() => _sheetFraction = _mediumFraction);
+          setState(() {
+            _sheetFraction = _mediumFraction;
+            _mapPaddingFraction = _mediumFraction;
+          });
         }
       },
     );
@@ -284,15 +309,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     child: GoogleMap(
                       mapType: mapType,
                       initialCameraPosition: _initialPosition,
-                      // Padding inferior = altura atual do sheet. Reposiciona o
-                      // watermark "Google", o logo e os controles nativos do
-                      // mapa ACIMA do sheet, e — junto com o
-                      // `CameraUpdate.newLatLngBounds`/`newLatLng` — mantém o
-                      // alvo da câmera visível na fatia não coberta. Espelha o
-                      // `GoogleMap.setPadding(bottom)` do Spoke
-                      // (UpdateMapPaddingEffect, dump jadx v3.65.1).
+                      // Padding inferior = altura do sheet NO ÚLTIMO SNAP
+                      // (`_mapPaddingFraction`, não `clampedFraction`, que muda
+                      // a cada frame de drag). Reposiciona o watermark "Google",
+                      // o logo e os controles nativos do mapa ACIMA do sheet.
+                      // Espelha o `GoogleMap.setPadding(bottom)` do Spoke
+                      // (UpdateMapPaddingEffect, dump jadx v3.65.1) — que também
+                      // reposiciona por estado, não por frame.
                       padding: EdgeInsets.only(
-                        bottom: mq.size.height * clampedFraction,
+                        bottom: mq.size.height * _mapPaddingFraction,
                       ),
                       polylines: routePolylines,
                       markers: routeMarkers,
@@ -401,6 +426,9 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     },
                     onHandleDragUpdate: (delta) {
                       if (_dragStartFraction == null) return;
+                      // Só o sheet acompanha o dedo frame-a-frame; o
+                      // `_mapPaddingFraction` fica congelado (ver campo) pra
+                      // não disparar uma chamada de plataforma por frame.
                       setState(() {
                         _sheetFraction =
                             (_sheetFraction - delta / mq.size.height).clamp(
@@ -411,7 +439,12 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     },
                     onHandleDragEnd: (velocity) {
                       _dragStartFraction = null;
-                      setState(() => _sheetFraction = _snapTo(velocity));
+                      setState(() {
+                        _sheetFraction = _snapTo(velocity);
+                        // Snap resolvido → o padding do mapa acompanha agora,
+                        // num único reposition.
+                        _mapPaddingFraction = _sheetFraction;
+                      });
                     },
                   ),
           ),
