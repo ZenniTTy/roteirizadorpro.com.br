@@ -73,9 +73,11 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
 
   // Frações canônicas dos 3 snaps (calculadas dinamicamente em build):
   late double _collapsedFraction;
-  // Âncora "Default" do sheet do Spoke = 0.5 × altura da tela (dump jadx
-  // v3.65.1, VerticalDraggableSheet measure lambda `kr4.java`:
-  // `minHeight = screenHeight - 0.5*screenHeight`). É a mesma âncora usada no
+  // Âncora "Default" do sheet do Spoke = 0.5 × altura do container (dump jadx
+  // v3.65.1, `C2651c.java:163` = VerticalDraggableSheet.kt: o fallback do
+  // anchor Default é `f2 = 0.5f * fMo40792g`, onde `fMo40792g` é a altura
+  // disponível). É offset-Y do topo do sheet em 0.5×H → o sheet ocupa a metade
+  // de baixo, numericamente equivalente a esta fração. Mesma âncora do
   // PRE-CONFIRM (deixa ~50% pro mapa). Era 0.40 (inferido) antes do dump.
   static const double _mediumFraction = 0.50;
   static const double _expandedFraction = 0.90;
@@ -153,7 +155,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     // polyline + markers numerados. Sem isto, o sheet herdava a fração
     // expandida (0.90) do DRAFT auto-expandido (H6) e TAMPAVA o mapa no
     // PRE-CONFIRM (bug reportado no smoke M54 2026-06-14). É a mesma âncora
-    // Default que o Spoke usa no PRE-CONFIRM (dump jadx `kr4.java`).
+    // Default que o Spoke usa no PRE-CONFIRM (dump jadx `C2651c.java:163`).
     //
     // PAR OBRIGATÓRIO: este listener cobre a transição EM RUNTIME (otimizou
     // durante a sessão); o bloco postFrame no `initState` cobre o estado
@@ -179,7 +181,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
       (previous, next) {
         if (next >= 1 && !_hasAutoExpanded) {
           _hasAutoExpanded = true;
-          setState(() => _sheetFraction = _expandedFraction);
+          // Este é um ponto de snap: o padding do mapa acompanha junto, senão
+          // ficaria congelado no valor anterior (medium) enquanto o sheet vai
+          // a expanded → watermark/controles do mapa atrás do sheet.
+          setState(() {
+            _sheetFraction = _expandedFraction;
+            _mapPaddingFraction = _expandedFraction;
+          });
         }
       },
     );

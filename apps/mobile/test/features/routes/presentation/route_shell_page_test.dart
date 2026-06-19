@@ -1635,4 +1635,91 @@ void _registerDumpParityTests() {
           'Expected screenHeight($screenHeight) × currentFraction ≈ $sheetHeight.',
     );
   });
+
+  // ── C4: auto-expand (0→1ª parada) sincroniza _mapPaddingFraction ────────────
+  //
+  // Bug (route_shell_page.dart:182): o listener ref.listen que dispara o
+  // auto-expand de 0→1ª parada faz apenas `setState(() => _sheetFraction =
+  // _expandedFraction)` sem atualizar `_mapPaddingFraction`. O sheet vai a 0.90
+  // mas GoogleMap.padding.bottom fica congelado em medium (~0.50 × screenHeight)
+  // — watermark e controles do mapa ficam atrás do sheet expandido. O desync
+  // persiste até o próximo drag-end ou transição de estado.
+
+  testWidgets(
+      'C4 — auto-expand (0→1ª parada) sincroniza GoogleMap.padding.bottom com '
+      'o sheet (não congela em medium)', (tester) async {
+    // Mesmo frame do H6-ii: 1080×2400 physical, DPR 2.0 → 540×1200 logical.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Mesmo container/setup do H6-ii — _MutableFakeRoutes permite que addStop
+    // propague via ref.listen e dispare o auto-expand one-shot.
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(kUserWithoutSub),
+        routesProvider.overrideWith(
+          () => _MutableFakeRoutes([
+            domain.Route(
+              id: 'r1',
+              date: DateTime(2026, 5, 27),
+            ),
+          ]),
+        ),
+        activeRouteIdProvider.overrideWith(() => _SeededActiveRouteId('r1')),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          routerConfig: _buildSentinelRouter(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    // ── BEFORE: rota vazia → sheet em medium (~0.50 × screenHeight). ──────────
+    // Garante que o teste mede a TRANSIÇÃO, não apenas o estado final.
+    final mapBefore = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final expectedMedium = screenHeight * 0.50;
+    expect(
+      mapBefore.padding.bottom,
+      closeTo(expectedMedium, screenHeight * 0.02 + 1),
+      reason: 'BEFORE addStop: GoogleMap.padding.bottom '
+          '(${mapBefore.padding.bottom}) deveria ser ≈ medium '
+          '(${expectedMedium.toStringAsFixed(1)} = screenHeight×0.50). '
+          'Baseline de medium antes do auto-expand não confirmada.',
+    );
+
+    // ── Dispara o auto-expand: adiciona a 1ª parada (mesmo que H6-ii). ────────
+    container.read(routesProvider.notifier).addStop('r1', _stop1);
+    await tester.pumpAndSettle();
+
+    // ── AFTER: sheet em 0.90 → GoogleMap.padding.bottom DEVE acompanhar. ──────
+    // Bug na linha 182: setState só atualiza _sheetFraction, esquece
+    // _mapPaddingFraction → padding.bottom permanece congelado em medium (0.50).
+    final mapAfter = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final expectedExpanded = screenHeight * 0.90;
+    expect(
+      mapAfter.padding.bottom,
+      closeTo(expectedExpanded, screenHeight * 0.02 + 1),
+      reason: 'AFTER addStop (auto-expand 0→1ª parada): '
+          'GoogleMap.padding.bottom (${mapAfter.padding.bottom}) está '
+          'congelado em medium em vez de acompanhar o sheet expandido '
+          '(esperado ≈ ${expectedExpanded.toStringAsFixed(1)} = '
+          'screenHeight×0.90). '
+          'Bug: setState na linha 182 de route_shell_page.dart atualiza '
+          '_sheetFraction mas NÃO _mapPaddingFraction — desync persiste '
+          'até o próximo drag-end.',
+    );
+  });
 }
