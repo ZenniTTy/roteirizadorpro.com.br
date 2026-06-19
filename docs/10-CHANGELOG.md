@@ -2,6 +2,22 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-18 — Área 7 PR-B2 fix de rota ativa no boot (mata "Nenhuma rota ativa selecionada")
+
+Code change (Á7 PR-B2, mesma branch). **Sem ADR nova** (`shared_preferences` já no pubspec — adr-guardian PASS). Construído dump-first: o smoke M54 reportou "Nenhuma rota ativa selecionada" ao adicionar parada (o tap na sugestão "não fazia nada"); a investigação no jadx (`ValidateActiveRoute`/`C2954g1.java`) deu o comportamento canônico antes do código.
+
+**Causa raiz:** o `activeRouteId` vivia só em memória Riverpod → sumia no restart do app → `/home` exibia o shell com rota ativa null → adicionar parada abortava no early-return. O Spoke NUNCA deixa o shell sem rota: persiste `activeRouteRef` (Firestore) e, no boot, valida via `ValidateActiveRoute` (restaura → mais recente por `lastEdited` → cria "Minha primeira rota").
+
+**O fix (fiel ao Spoke):** `ActiveRouteRepository` persiste o id em `SharedPreferencesAsync`; `resolveActiveRoute()` (chamado no `initState` do shell quando `activeRouteId==null`) faz restore→mais-recente→cria; `setActiveRoute` passa a persistir. Desempate de data prefere a rota não-completada (a que o motorista está rodando). Divergências conscientes de Slice 2: persistência local (não Firestore), `Route.date` como proxy de `lastEdited`, resolução one-shot (não Flow contínuo) — todas gated em Slice 3, registradas no TODO.
+
+**Regressão de teste domada:** `setActiveRoute` ganhou I/O (persiste), então qualquer teste que o aciona ou monta o shell precisa do `SharedPreferencesAsync` mockado. Helper compartilhado `test/_helpers/shared_prefs_async.dart` (`useInMemorySharedPreferencesAsync`, com tearDown que RESTAURA o platform instance estático — sem isso, um arquivo contaminava outro com "platform instance must be set"). Testes do shell atualizados à nova realidade (o shell sempre resolve uma rota).
+
+**Achado lateral confirmado no dump:** o botão "X" da busca de endereço do Spoke (`AddressPickerFragment`, Dialog full-screen) só LIMPA o texto; não há seta ◀ nem X de fechar — saída é pelo back do sistema. O RotPro já é fiel; nenhuma mudança.
+
+**Verificação:** `flutter test` **698** verde (696→698: +tie-breaker); `flutter analyze` sem lint novo. Gates: spoke-parity D4 GO (resolver fiel ao ValidateActiveRoute nos 3 ramos), verificação adversarial (6 hipóteses; must-fix H5 empate-de-data resolvido; H1 reentrância registrada como débito Slice-3), adr-guardian PASS. **Smoke M54 do fluxo completo: em validação** (rebuild no device). Commits `496d6a2`→`da7d2d9`.
+
+**Mudança de processo (Eduardo, 2026-06-18):** a partir da Á8, **mapa COMPLETO do dump por área ANTES de implementar** (esgotar fluxos/estados/gates/strings num doc, depois codar) — quebra o ciclo de descobrir gaps no device. Ver `feedback_dump_map_per_area_before_implementing` (memória).
+
 ## 2026-06-18 — Área 7 PR-B2 fix de layout (PRE-CONFIRM deixava de tampar o mapa)
 
 Code change (Á7 PR-B2, mesma branch `feat/m2-slice-2-area-7-pr-b2`). **Sem ADR nova** — sem mudança de stack (só 3 edits em `route_shell_page.dart`). Construído dump-first: o smoke M54 (2026-06-14) reportou o sheet PRE-CONFIRM **tampando o mapa**; a investigação no jadx (`kr4.java` measure lambda + `C3509a.java` callsites + `DraggableSheetPosition` + `UpdateMapPaddingEffect`) **corrigiu uma premissa de arquitetura** antes de qualquer código.
