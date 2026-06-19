@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-10
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (functional fork), ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gate), ADR-0037 (Maestro MCP), ADR-0045 (static dump baseline — dump-first), ADR-0042/0043/0044 (the Área-5 sub-pickers these rows lead into; same live-capture-beats-inference discipline)
+- **Related ADRs:** ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gate), ADR-0037 (Maestro MCP), ADR-0045 (static dump baseline — dump-first), ADR-0042/0043/0044 (the Área-5 sub-pickers these rows lead into; same live-capture-beats-inference discipline)
 
 ## Context
 

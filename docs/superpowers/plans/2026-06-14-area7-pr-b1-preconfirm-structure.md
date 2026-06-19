@@ -6,7 +6,7 @@
 
 **Architecture:** O PRE-CONFIRM NÃO é tela nova — é o mesmo `route_shell_page.dart` (= `EditRouteFragment` do Spoke, confirmado no jadx: não há `PreConfirmFragment`) renderizando por estado derivado de `RouteState`. O `_onOptimize` do PR-A (que só mostrava SnackBar) passa a APLICAR o resultado à rota (via `Routes.applyOptimization`), mudando `routeState` para `optimized` + gravando stops reordenados + métricas. O shell ganha um `switch` sobre o `RouteState` da rota ativa: `isDraft`→sheet atual; `isPreConfirm`→`PreConfirmView`. A metade superior (mapa+polyline) fica como o mapa ATUAL nesta fatia — o polyline+markers numerados são o PR-B2.
 
-**Tech Stack:** Flutter 3.44 / Dart 3.12, Riverpod 3 (`@riverpod` codegen), `shared_preferences` (FTUE one-shot, idiom `MapPrefsRepository`), `mocktail` só onde precisar de verify, fakes manuais como default. Microcopy PT-BR **ORIGINAL** (ADR-0010) — estrutura do dump, texto reformulado (NUNCA verbatim das strings pt-rBR do Spoke).
+**Tech Stack:** Flutter 3.44 / Dart 3.12, Riverpod 3 (`@riverpod` codegen), `shared_preferences` (FTUE one-shot, idiom `MapPrefsRepository`), `mocktail` só onde precisar de verify, fakes manuais como default. Microcopy PT-BR **ORIGINAL** — estrutura do dump, texto reformulado (NUNCA verbatim das strings pt-rBR do Spoke).
 
 **Spec:** `docs/superpowers/specs/2026-06-13-area7-optimize-route-design.md` (§Sub-slice plan PR-B, fatiado em B1/B2 por boas-práticas de risco). **Baseline dump-first (re-confirmada 2026-06-14):** `refine_route_dialog_*` (Refinar) ≠ `optimization_explainer_*` (Reotimizar kebab); `package_identification_eduction_dialog_*` (FTUE); `remove_stop_on_optimization_confirmation_dialog_*` + `removed_stop_dialog_*` (G5); `route_duration_hours_and_minutes_short`="%1$dh%2$dmin" (summary). PRE-CONFIRM = mesmo `EditRouteFragment` por estado (jadx).
 
@@ -24,7 +24,7 @@ Cada microcopy NOVA neste plano já está reformulada. O reviewer de cada task D
 
 ### ⚠️ MICROCOPY FINAL TRAVADA (2026-06-14, re-auditoria dump-first — substitui os exemplos verbatim no corpo das tasks)
 
-A re-conferência 1:1 com `values-pt-rBR/strings.xml` em 2026-06-14 pegou colisões nos corpos das tasks abaixo ("Inverter a rota" era VERBATIM; "Ordenar manualmente"/"Reotimizar rota" near-verbatim). Decisão Eduardo: "siga as boas práticas" → reformular TUDO (zero colisão, ADR-0010). **Use ESTES textos, NÃO os dos snippets de código nas tasks 6–9:**
+A re-conferência 1:1 com `values-pt-rBR/strings.xml` em 2026-06-14 pegou colisões nos corpos das tasks abaixo ("Inverter a rota" era VERBATIM; "Ordenar manualmente"/"Reotimizar rota" near-verbatim). Decisão Eduardo: "siga as boas práticas" → reformular TUDO (zero colisão). **Use ESTES textos, NÃO os dos snippets de código nas tasks 6–9:**
 
 - **T6 IdEducationDialog:** título `Como a numeração funciona` · botões `Ajustar formato` (era "Configurar") + `Entendi` · corpo: `Cada parada ganha um código (A1, A2, A3…) que segue a ordem da rota. Se você reordenar ou otimizar de novo, os códigos se ajustam sozinhos.`
 - **T7 RefineRouteSheet:** título `Ajustar a rota` (era "Refinar a rota") · item1 `Inverter a ordem` (era "Inverter a rota" = VERBATIM) + sub `Percorre as paradas de trás pra frente` · item2 `Definir a ordem na mão` (era "Ordenar manualmente") + sub `Você arrasta as paradas na sequência que quiser`.
@@ -625,7 +625,7 @@ enum IdEducationChoice { acknowledge, configure }
 /// FTUE one-shot: explica que o ID de cada parada (A1..AN) segue a ORDEM da
 /// rota e muda quando a ordem muda. ESTRUTURA espelha o
 /// `package_identification_eduction_dialog_*` do Spoke (título + corpo +
-/// Entendi/Configurar), mas o TEXTO é microcopy PT-BR ORIGINAL (ADR-0010),
+/// Entendi/Configurar), mas o TEXTO é microcopy PT-BR ORIGINAL,
 /// nunca verbatim. "Configurar" levará ao formato do ID (Á10) — aqui é
 /// honest-stub no caller.
 Future<IdEducationChoice?> showIdEducationDialog(BuildContext context) {
@@ -742,7 +742,7 @@ enum RefineRouteChoice { invert, manualOrder }
 
 /// Sheet aberto pelo botão "Refinar" (rodapé do PRE-CONFIRM). ESTRUTURA espelha
 /// o `refine_route_dialog_*` do Spoke {Inverter a rota / Ordenar a rota
-/// manualmente}; TEXTO é microcopy PT-BR ORIGINAL (ADR-0010). NÃO confundir com
+/// manualmente}; TEXTO é microcopy PT-BR ORIGINAL. NÃO confundir com
 /// o "Reotimizar rota..." do kebab (`ReoptimizeOptionsSheet`).
 Future<RefineRouteChoice?> showRefineRouteSheet(BuildContext context) {
   return showModalBottomSheet<RefineRouteChoice>(
@@ -861,7 +861,7 @@ enum ReoptimizeChoice { update, reoptimize }
 
 /// Sheet aberto pelo kebab "Reotimizar rota...". ESTRUTURA espelha o
 /// `optimization_explainer_*` do Spoke (Compare as opções → Atualizar /
-/// Reotimizar); TEXTO é microcopy PT-BR ORIGINAL (ADR-0010). `update` reordena
+/// Reotimizar); TEXTO é microcopy PT-BR ORIGINAL. `update` reordena
 /// só as paradas alteradas (OptimizeType.reorderFlexible); `reoptimize`
 /// recalcula do zero (OptimizeType.restartRoute).
 Future<ReoptimizeChoice?> showReoptimizeOptionsSheet(BuildContext context) {
@@ -957,7 +957,7 @@ import 'package:flutter/material.dart';
 /// G5 — confirma a remoção DEFERIDA de uma parada numa rota JÁ otimizada: a
 /// parada não some na hora, sai na próxima otimização. ESTRUTURA espelha o
 /// `ConfirmDeleteStopOnOptimizationDialog` do Spoke; TEXTO é microcopy PT-BR
-/// ORIGINAL (ADR-0010). Retorna true se o usuário confirmar.
+/// ORIGINAL. Retorna true se o usuário confirmar.
 Future<bool?> showConfirmDeferredRemovalDialog(
   BuildContext context, {
   required String stopLabel,

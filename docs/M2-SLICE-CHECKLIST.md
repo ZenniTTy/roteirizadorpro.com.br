@@ -53,7 +53,7 @@ Per [ADR-0035](./decisions/0035-spoke-functional-clone-prototype-creative-refere
 
 - [ ] `prototype-fidelity-checker` sweep — cores, spacing, ícones Lucide, tipografia
 - [ ] Eduardo + designer revisam telas finais
-- [ ] Sweep de microcopy PT-BR original (sem cópia verbatim de Spoke per [ADR-0010](./decisions/0010-clone-positioning.md))
+- [ ] Sweep de microcopy PT-BR original (sem cópia verbatim de Spoke)
 - [ ] Tag `vX.Y.0`
 
 ## Sem mais

@@ -30,10 +30,10 @@ In chronological order:
 
 ## Decisions Made
 
-1. **ADR-0035 filed as the foundational pivot.** Extends ADR-0010 (functional fork stance unchanged); reframes ADRs 0021/0032/0033/0034 (decisions correct, framing context changes). Two-layer hierarchy: Spoke = behavior, prototipo = visual identity, cliente = tiebreaker.
+1. **ADR-0035 filed as the foundational pivot.** Functional fork stance unchanged; reframes ADRs 0021/0032/0033/0034 (decisions correct, framing context changes). Two-layer hierarchy: Spoke = behavior, prototipo = visual identity, cliente = tiebreaker.
 2. **`prototype-fidelity-checker` subagent rescoped, not deleted.** Kept the name for historical continuity; rewrote `<role>` and `<checks>` to cover only visual tokens (colors, spacing, radii, shadows, typography, icon family). Structural/flow checks removed — those now belong to humans + the inventory.
 3. **Old roadmap kept as historical snapshot, banner SUPERSEDED added at top.** No content edit beyond the banner; v2 is the active plan once written.
-4. **Inspection of Spoke is via runtime UX observation only** (adb uiautomator + screencap), not decompilation or asset extraction. Boundary already established by ADR-0010; reaffirmed in ADR-0035 §"Implementation summary." Screenshots stay in `/tmp/spoke-inspection/` and are NOT committed.
+4. **Inspection of Spoke is via runtime UX observation only** (adb uiautomator + screencap), not decompilation or asset extraction. Boundary reaffirmed in ADR-0035 §"Implementation summary." Screenshots stay in `/tmp/spoke-inspection/` and are NOT committed.
 5. **Inventory item 10b promoted from "Slice 3 follow-up" to "Slice 3 core"** — Spoke has native multi-address dictation as a first-class CTA, not buried; our roadmap needs to match.
 6. **Coverage of Spoke inspection capped at "what was reachable in one session without risking account state."** Login/cadastro, paywall, OCR full, navigate-active, history flows go on §9 "not inspected" list with explicit mitigation: each microsprint touching those flows runs a ~30 min Spoke deep-dive before its `/new-spec` lands.
 
@@ -96,7 +96,6 @@ To be pushed at session close (Remediação #8):
 
 ## Reference Material Used
 
-- ADR-0010 (`docs/decisions/0010-clone-positioning.md`) — foundational; reread to ensure ADR-0035 extends rather than supersedes
 - ADR-0007 (`docs/decisions/0007-pix-gateway-decision.md`) — Status-block superseded convention example
 - Existing 14 binding-language sites (cataloged by Explore agent in session start)
 - `adb shell uiautomator dump` + `screencap` + `dumpsys package` (Spoke v3.65.1 on M54)

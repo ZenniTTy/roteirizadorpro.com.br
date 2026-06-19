@@ -4,7 +4,7 @@
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
 - **Supersedes:** none
-- **Related ADRs:** ADR-0010 (clone positioning — shipped product rules; Amendment 2 makes inspection methodology operator's choice), ADR-0023 (Dart MCP server — MCP precedent), ADR-0035 (Spoke is the functional source of truth), ADR-0036 (spoke-parity-checker as the functional parity gate)
+- **Related ADRs:** ADR-0023 (Dart MCP server — MCP precedent), ADR-0035 (Spoke is the functional source of truth), ADR-0036 (spoke-parity-checker as the functional parity gate)
 
 ## Context
 
@@ -53,7 +53,7 @@ This decision is policy. Execution lives in the same commit that lands this ADR,
 - **Positive — auto-navigation unlocks state coverage we previously skipped.** Walking every state of the route-active sheet (collapsed / mid / expanded / each bottom-bar input mode) is mechanical for `tap_on` + `inspect_view_hierarchy` but tedious enough by hand that prior inventory passes accepted partial coverage.
 - **Negative — new local dependency.** Contributors who run parity work need Maestro CLI installed (brew tap + install, ~5 minutes; ~400MB disk including a bundled JDK). CI/CD is untouched. Contributors who do not run parity work see nothing change.
 - **Negative — two paths to maintain in the subagent prompt.** The fallback documentation must stay accurate; a divergence is easy to introduce silently. Mitigated by the verification step at the top of Step 2, which forces every dispatch to record which path it took.
-- **Neutral — observation surface unchanged.** Both paths observe runtime UI state through the Android Accessibility framework. The decision is about tooling (which wrapper to use), not about what is observed. Inspection methodology is operator's choice per ADR-0010 Amendment 2 — Maestro is the default because it's fastest, not because it's the only allowed method.
+- **Neutral — observation surface unchanged.** Both paths observe runtime UI state through the Android Accessibility framework. The decision is about tooling (which wrapper to use), not about what is observed. Inspection methodology is operator's choice — Maestro is the default because it's fastest, not because it's the only allowed method.
 
 ## Implementation Notes
 
@@ -68,7 +68,6 @@ This decision is policy. Execution lives in the same commit that lands this ADR,
 
 - Maestro MCP server reference: https://docs.maestro.dev/get-started/maestro-mcp
 - Maestro CLI install: https://docs.maestro.dev/getting-started/installing-maestro
-- ADR-0010 — clone positioning (shipped product rules; Amendment 2 makes inspection methodology operator's choice).
 - ADR-0023 — Dart MCP server adoption (precedent for adding a second MCP server alongside `dart`).
 - ADR-0035 — Spoke is functional source of truth; prototipo is creative visual reference.
 - ADR-0036 — `spoke-parity-checker` functional-parity gate; this ADR amends its Step 2/Step 3 inspection methodology without changing the gate semantics or the report contract.
@@ -85,7 +84,7 @@ When tap on a label opens an unexpected screen, when a UI element seems to have 
 
 Rationale: ambiguous UI elements consume a lot of cycles when explored via trial-and-error tap sequences. A 30-second WebSearch often resolves the ambiguity by surfacing the official feature name, which then makes the tap behavior obvious. Observed in Fase B at §10.6.1 (chip "ID Pendente" mistaken for delivery status — resolved by reading help.spoke.com) and at §10.6.2 (Package ID + Color labels + Load vehicle features confirmed via spoke.com).
 
-Constraint applies to **shipped product** only (ADR-0010): docs are consulted to understand functionality, and any reproduced text in the shipped APK still goes through original PT-BR microcopy per ADR-0035. Inventory entries themselves can quote freely — they're engineering documentation, not shipped output.
+Constraint applies to **shipped product** only: docs are consulted to understand functionality, and any reproduced text in the shipped APK still goes through original PT-BR microcopy per ADR-0035. Inventory entries themselves can quote freely — they're engineering documentation, not shipped output.
 
 **Rule 2 — Empirical > Docs: when observation contradicts documentation, the observation wins.**
 

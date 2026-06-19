@@ -34,8 +34,6 @@ Roteirizador Pro replicates Circuit's screen structure, navigation hierarchy, in
 
 Legal rationale: functional behavior is not protected by copyright, but visual assets and trade dress are. The fork-with-original-identity approach is the standard pattern (and the only legally sound one) for replicating a successful product's UX without infringing its IP.
 
-Full reasoning in `docs/decisions/0010-clone-positioning.md`.
-
 ## Milestones
 
 | Milestone | Scope summary | Value | Duration |

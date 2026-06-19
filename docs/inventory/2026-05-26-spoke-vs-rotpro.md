@@ -4,7 +4,7 @@
 > **Fonte:** inspeção via adb no Samsung M54 (RQCW401G33T) — RotPro `br.com.roteirizadorpro.roteirizador_pro` + Spoke `com.underwood.route_optimiser` v3.65.1. **Fase inicial (§1-§9):** uiautomator dump + screencap bash workflow. **Fase B (§10-§11):** Maestro MCP `inspect_screen` + `take_screenshot` + `run` via tap automation, per ADR-0037. **Audit (§12-§13):** cross-check sistemático com docs oficiais Spoke via 8 WebSearches em help.spoke.com + spoke.com/route-planner + spoke.com/dispatch.
 > **Driver:** [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke é o guia funcional, prototipo é referência criativa, cliente Ueslei é desempate
 > **Spoke instance inspecionado:** `com.underwood.route_optimiser` v3.65.1 (publisher Underwood, Brasil; rebrand do Circuit Route Planner)
-> **Sobre escopo:** este inventário é **engineering documentation** que descreve funcionalidades, navegação e estrutura UX da Spoke pra guiar implementação. Quotes Spoke aparecem livremente aqui (engenharia, não shipped product). O que rege legalmente é apenas o **shipped APK** ter identidade visual original per [ADR-0010](../decisions/0010-clone-positioning.md) Decision section + [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (Lucide icons, prototipo tokens, original PT-BR microcopy). Engineering artifacts (este inventário, hierarchy dumps em `docs/inventory/dumps/`, screenshots) podem entrar no repo livremente per ADR-0010 Amendment 1.
+> **Sobre escopo:** este inventário é **engineering documentation** que descreve funcionalidades, navegação e estrutura UX da Spoke pra guiar implementação. Quotes Spoke aparecem livremente aqui (engenharia, não shipped product). O que rege legalmente é apenas o **shipped APK** ter identidade visual original per [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) (Lucide icons, prototipo tokens, original PT-BR microcopy). Engineering artifacts (este inventário, hierarchy dumps em `docs/inventory/dumps/`, screenshots) podem entrar no repo livremente.
 
 > ⚡ **DUMP-FIRST (ADR-0045, 2026-06-09):** este inventário é **paráfrase** (observação runtime). A baseline estrutural de FATO agora é o dump estático em **[`spoke-dump-v3.65.1/MASTER-TABLE.md`](./spoke-dump-v3.65.1/MASTER-TABLE.md)** (string→recurso→tela→modelo, com defaults/enums/strings verbatim). Os 20 gaps "Não drilled" da §11 (#4–#25) estão **superseded** pela MASTER-TABLE — consulte-a PRIMEIRO; este inventário e o runtime confirmam comportamento dinâmico. Ver o banner detalhado na §11 e o `README.md` do dump.
 
@@ -518,7 +518,6 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 
 ## Referências
 
-- [ADR-0010](../decisions/0010-clone-positioning.md) — Functional fork positioning (cobre legalidade da inspeção)
 - [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Pivot foundational
 - [ADR-0037](../decisions/0037-maestro-mcp-for-spoke-inspection.md) — Maestro MCP como camada preferida de inspeção (usada na §10)
 - [`docs/08-ROADMAP-v2.md`](../08-ROADMAP-v2.md) — Roadmap pós-pivot (ATIVO)
@@ -535,7 +534,7 @@ A ROADMAP-v2 deve ter um marco "Spoke deep-dive" no início de cada microsprint 
 
 > **Source:** `mcp__maestro__inspect_screen` / `mcp__maestro__run` no M54 (`RQCW401G33T`). Fonte preferida per ADR-0037; substitui bash + `uiautomator dump` como mecanismo primário.
 > **Escopo:** este § apenda **só fatos estruturais ainda NÃO capturados nas §§3/5/6**. Quando uma sub-seção repetiria material já em §6.x, ela é omitida ou reduzida a "ver §6.X" + delta novo.
-> **Sobre os dumps abaixo:** redução pra hierarquia + IDs + bounds + content-desc é por concisão (legibilidade), não obrigação. Per ADR-0010 Amendment 1, este inventário pode quotar Spoke livremente — o que rege legalmente é o shipped APK ter identidade visual original (ADR-0035).
+> **Sobre os dumps abaixo:** redução pra hierarquia + IDs + bounds + content-desc é por concisão (legibilidade), não obrigação. Este inventário pode quotar Spoke livremente — o que rege legalmente é o shipped APK ter identidade visual original (ADR-0035).
 
 ### 10.1 — Drawer aberto (delta sobre §6.2)
 
@@ -889,7 +888,7 @@ A tela aberta tem:
 
 > Quando o agente encontrar comportamento ambíguo ou inesperado no Spoke (ex: tap abre tela inesperada, label parece ter dupla função, picker tem opções não-óbvias), **PRIMEIRO consultar docs oficiais** (`spoke.com`, `help.spoke.com`, `getcircuit.com`, App Store / Play Store listings, blog) via WebSearch/WebFetch. **DEPOIS** voltar pra Maestro pra validar empiricamente o entendimento construído pelos docs. Isso evita gastar ciclos tentando inferir comportamento via dump XML.
 
-**Hard rule:** ADR-0010 boundary permanece — docs oficiais são consultados pra **entender funcionalidade**, não pra copiar microcopy. Qualquer copy citada nos docs Spoke entra no inventário como **paraphrase neutra** (mesma regra do dump XML).
+**Hard rule:** o boundary permanece — docs oficiais são consultados pra **entender funcionalidade**, não pra copiar microcopy. Qualquer copy citada nos docs Spoke entra no inventário como **paraphrase neutra** (mesma regra do dump XML).
 
 A próxima iteração do `spoke-parity-checker` subagent prompt deve codificar essa regra no Step 4 (Compare). Adicionar como TODO em ADR-0037 amendment se a Fase B continuar mostrando valor.
 
@@ -1027,7 +1026,7 @@ Testes empíricos executados via Maestro MCP em 2026-05-26 (commit `00b99f9` adi
 | X close `[944,1247][1035,1349]` | a11y `"Fechar"` | Sai do modo delivery — provavelmente confirm dialog antes |
 | Subtitle `"1/4, 19:22"` | `[101,1366][278,1422]` | Progress (1 de 4 entregues) + horário atual (~ETA na parada) |
 | **🎯 3 botões de status (CRÍTICO — o que docs Spoke mencionaram):** | | |
-| **"Navegar"** | `[45,1451][352,1618]` | Filled primary BLUE (selected default). Compass icon. Tap → abre handoff Waze/Google Maps (per ADR-0010 default Google Maps) |
+| **"Navegar"** | `[45,1451][352,1618]` | Filled primary BLUE (selected default). Compass icon. Tap → abre handoff Waze/Google Maps (RotPro default Google Maps) |
 | **"Não entregue"** | `[375,1451][693,1618]` | Outline button. Box-X icon. Tap → abre picker de razão de falha (§10.14 pendente) |
 | **"Entregue"** | `[716,1451][1035,1618]` | Outline button. Box-check icon. Tap → marca como Delivered |
 | **Lista inline de info:** | | |
@@ -1214,7 +1213,7 @@ Opções inferidas: Automático (selected) / Claro / Escuro / Mesmo do sistema (
 |---|---|---|---|
 | 9 | Comparar planos | (sem summary) | (chevron) |
 
-Tap abre paywall comparação free vs premium (OUT-OF-SCOPE pra RotPro per ADR-0010 — temos Stripe Pix).
+Tap abre paywall comparação free vs premium (OUT-OF-SCOPE pra RotPro — temos Stripe Pix).
 
 #### Section sem header (rodapé legal — 4 items)
 
@@ -1231,7 +1230,7 @@ Tap abre paywall comparação free vs premium (OUT-OF-SCOPE pra RotPro per ADR-0
 - **Faltam alguns items que §3.3 assumiu existirem:**
   - "Endereço de casa" (item 22 §3.3) — não vi nesta passagem; **provavelmente está em outro lugar** (account/profile do drawer? ou subset da Spoke não-explorado)
   - "Indicações" (item 23 §3.3) — RotPro existing feature; OK; Spoke pode não ter equivalente
-- **App de navegação:** Spoke tem app proprietário ("Navegação do Spoke"). RotPro per ADR-0010 default Google Maps. Picker provavelmente tem: Spoke (default) / Waze / Google Maps / Apple Maps.
+- **App de navegação:** Spoke tem app proprietário ("Navegação do Spoke"). RotPro default Google Maps. Picker provavelmente tem: Spoke (default) / Waze / Google Maps / Apple Maps.
 - **Sair (vermelho):** padrão de design consistente com "Remover parada" §10.6 — Spoke usa cor vermelha sistematicamente pra destrutivo.
 
 **Implicação pro RotPro:**
@@ -1262,7 +1261,7 @@ Modal dialog (não bottom sheet) com radio list + Cancelar:
 
 **⚠️ Audit 2026-05-26 — implicação RotPro revisada:**
 
-Per ADR-0010 escopo principal é **Google Maps default + Waze**. A opção **"Outro"** é trivial de implementar (1 linha Flutter `url_launcher` com URI `geo:lat,lng?q=address`) e dá flexibilidade ao usuário (apps locais Sygic/HERE/TomTom/Maps.me/etc.). Decisão:
+O escopo principal do RotPro é **Google Maps default + Waze**. A opção **"Outro"** é trivial de implementar (1 linha Flutter `url_launcher` com URI `geo:lat,lng?q=address`) e dá flexibilidade ao usuário (apps locais Sygic/HERE/TomTom/Maps.me/etc.). Decisão:
 
 - **Slice 2:** lista RotPro = `[GoogleMaps, Waze, Outro]`. "Outro" usa `url_launcher` + `LaunchMode.externalApplication` com URI `geo:` que Android resolve via Intent Chooser
 - **NÃO replicar:** "Navegação do Spoke" (não temos app próprio), "Navegador Yandex" (irrelevante BR)
@@ -1496,7 +1495,7 @@ Diffs adicionais que o D1 (28 amendment) não capturou:
    - Nominatim retorna esses fields separados no JSON `address` (tipo `address.road`, `address.suburb`, `address.city`, `address.postcode`)
    - **Localization considerada:** `address.city_district` vs `address.suburb` vs `address.neighbourhood` — Spoke aparentemente usa o mais granular disponível ("Subsetor Leste, 2 (L-2)" é nível de subsetor administrativo de Ribeirão Preto, retornado por Nominatim como `address.suburb` ou `address.neighbourhood`).
 
-4. **Implicação pra ADR-0010 (shipped product):** nenhuma — Spoke usa o mesmo Nominatim/Google Geocoding API que o RotPro vai usar. Strings de endereço vêm de upstream comum (geocoder), não são propriedade Spoke.
+4. **Implicação pro shipped product:** nenhuma — Spoke usa o mesmo Nominatim/Google Geocoding API que o RotPro vai usar. Strings de endereço vêm de upstream comum (geocoder), não são propriedade Spoke.
 
 5. **Implicação pra inventário inteiro:** **toda string de endereço citada nesta §10 é exemplo de output observado pra dados específicos do Eduardo, NÃO é spec de copy.** Inventory entries que citam endereços (ex: §10.5 "Rua Franca", §10.6 título da Editar parada, §10.13 título no modo delivery, §10.18 "R. José da Silva, 713 Jardim Paulista") devem ser lidas como ilustrações estruturais, com a string real vindo do geocoder em runtime.
 
@@ -1849,9 +1848,9 @@ Spoke tem **3 tiers** com hierarquia Free < Lite < **Standard (TOP/PAID — $20/
 
 ## §12 — Features oficiais Spoke não mapeadas no inventário (audit 2026-05-26)
 
-> **Por que existe esta seção:** auditoria sistemática cross-checking inventário × docs oficiais Spoke (help.spoke.com + spoke.com/route-planner + spoke.com/dispatch) identificou **10 features documentadas oficialmente que não estavam mapeadas** em §1-§11. Cada uma é categorizada com decisão proposta (replicar/postergar/descartar) baseada em ADR-0010 + roadmap atual.
+> **Por que existe esta seção:** auditoria sistemática cross-checking inventário × docs oficiais Spoke (help.spoke.com + spoke.com/route-planner + spoke.com/dispatch) identificou **10 features documentadas oficialmente que não estavam mapeadas** em §1-§11. Cada uma é categorizada com decisão proposta (replicar/postergar/descartar) baseada no roadmap atual.
 >
-> **Fonte:** 8 WebSearches em domínios oficiais Spoke (auditoria 2026-05-26). Todas as quotes parafraseadas per ADR-0010 (não-verbatim).
+> **Fonte:** 8 WebSearches em domínios oficiais Spoke (auditoria 2026-05-26). Todas as quotes parafraseadas (não-verbatim).
 
 ### Tabela consolidada §12 — gap analysis pós-audit
 
@@ -2050,7 +2049,7 @@ A UI Spoke confirmada serve como referência estrutural direta. Implementar:
 - Bottom sheet sobreposto à tela "Editar parada" (acessado via tap no botão "Instruções de acesso")
 - Header com "Limpar" (esq) / título "Instruções de acesso" (centro) / "Salvar" primary (dir)
 - `TextField` multiline com hint "Adicionar instruções", auto-focused
-- Toggle `SwitchListTile` "Salvar como padrão para este endereço" — ativa comportamento sticky-to-address per ADR-0010 (instruções persistem no `Address`, não no `Stop`)
+- Toggle `SwitchListTile` "Salvar como padrão para este endereço" — ativa comportamento sticky-to-address (instruções persistem no `Address`, não no `Stop`)
 - Schema slice 3: campo `access_instructions: String?` em `addresses` table; quando toggle ON no save, persiste; quando OFF, vincula só ao stop atual
 
 ---
@@ -2113,14 +2112,14 @@ PASSO 4: comparar — são fluxos diferentes ou variants?
 | 🟡 Moderada (afetava arquitetura) | 2 (C.2, C.3) | ✅ **RESOLVIDAS 2026-05-27** — C.2: FTUE one-time confirmado empiricamente (rota subsequente vai direto pro Bottom Sheet). C.3: UI revealed — bottom sheet sobreposto com TextField multiline + toggle "Salvar como padrão para este endereço" + CTAs Limpar/Salvar (screenshot validado) |
 | 🟢 Menor (afeta UI detalhe) | 2 (C.4, C.5) | Pendente — drillar no microsprint que tocar a feature |
 
-**Evidência empírica canônica** (per ADR-0010 Amendment 1, 2026-05-27):
+**Evidência empírica canônica** (2026-05-27):
 - [`docs/inventory/dumps/hierarchy_before_taps.json`](./dumps/hierarchy_before_taps.json) — estado inicial Editar parada com 3 controls disabled aparentes
 - [`docs/inventory/dumps/hierarchy_after_coleta.json`](./dumps/hierarchy_after_coleta.json) — após tap "Coleta": inversão estado (parent agora `checked:true`)
 - [`docs/inventory/dumps/hierarchy_after_primeira.json`](./dumps/hierarchy_after_primeira.json) — após tap "Primeira" (Ordem segmented)
 - [`docs/inventory/dumps/hierarchy_after_pacotes.json`](./dumps/hierarchy_after_pacotes.json) — após tap "+" do stepper Pacotes
 - [`docs/inventory/dumps/hierarchy_after_instrucoes.json`](./dumps/hierarchy_after_instrucoes.json) — Bottom sheet sobreposto de "Instruções de acesso" revelado
 
-Reproduzíveis via protocolos no [`docs/handoffs/2026-05-27-spoke-inventory-blocking-fixes.md`](../handoffs/2026-05-27-spoke-inventory-blocking-fixes.md). Dumps são gitignored por default (`docs/inventory/dumps/` no `.gitignore`); commits exigem `git add -f` consciente per Amendment 1.
+Reproduzíveis via protocolos no [`docs/handoffs/2026-05-27-spoke-inventory-blocking-fixes.md`](../handoffs/2026-05-27-spoke-inventory-blocking-fixes.md). Dumps são gitignored por default (`docs/inventory/dumps/` no `.gitignore`); commits exigem `git add -f` consciente.
 
 **Próximos bloqueios pra resolver:** apenas C.4 (Refinar CTA opções, ~5 min) e C.5 (Compartilhar vs Transferir overlap, ~10 min) — oportunisticamente quando slice respectivo chegar.
 

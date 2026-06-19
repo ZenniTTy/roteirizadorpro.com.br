@@ -1211,8 +1211,8 @@ Expected: FAIL — arquivos não existem.
 // lib/features/routes/presentation/widgets/not_enough_stops_dialog.dart
 import 'package:flutter/material.dart';
 
-/// G1 — paradas insuficientes para otimizar. Microcopy PT-BR original
-/// (ADR-0010), estrutura espelha `OptimiseNotEnoughStopsDialog` do Spoke
+/// G1 — paradas insuficientes para otimizar. Microcopy PT-BR original,
+/// estrutura espelha `OptimiseNotEnoughStopsDialog` do Spoke
 /// (título + corpo + único botão Ok). Distinto do erro de rede.
 Future<void> showNotEnoughStopsDialog(BuildContext context) {
   return showDialog<void>(
@@ -1241,7 +1241,7 @@ import 'package:flutter/material.dart';
 /// Escolha do usuário no diálogo de falha de otimização.
 enum OptimizationErrorChoice { retry, skip }
 
-/// Falha de REDE/solver ao otimizar. Microcopy PT-BR original (ADR-0010),
+/// Falha de REDE/solver ao otimizar. Microcopy PT-BR original,
 /// estrutura espelha `optimization_failed_*` do Spoke (Tentar de novo / Pular
 /// otimização). Distinto do `NotEnoughStopsDialog` (G1).
 Future<OptimizationErrorChoice?> showOptimizationErrorDialog(
@@ -1338,8 +1338,8 @@ import 'package:flutter/material.dart';
 
 import '../../state/optimization_controller.dart';
 
-/// Tela de progresso da otimização (4 fases). Microcopy PT-BR original
-/// (ADR-0010), espelha as fases do Spoke (optimizing_analysing/sorting/
+/// Tela de progresso da otimização (4 fases). Microcopy PT-BR original,
+/// espelha as fases do Spoke (optimizing_analysing/sorting/
 /// traffic/creating). Display-only — o avanço de fase é orquestrado pelo
 /// `OptimizationController`.
 class OptimizingProgressView extends StatelessWidget {

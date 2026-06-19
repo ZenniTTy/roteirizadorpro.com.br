@@ -14,7 +14,7 @@ Roteirizador Pro is a **functional fork** of Spoke (ex-Circuit Route Planner). T
 
 ## 1. Spoke (`com.underwood.route_optimiser`) — behavior canonical
 
-Which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. End-user is a delivery rider who already uses Spoke daily; functional parity is the contract per ADR-0010.
+Which screens exist, how navigation flows, what settings are present, which gestures map to which actions, what features the app has. End-user is a delivery rider who already uses Spoke daily; functional parity is the contract.
 
 Inspection: runtime UX observation on Eduardo's licensed install (Samsung M54, `RQCW401G33T`). No decompilation, no asset extraction.
 

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// G1 — paradas insuficientes para otimizar. ESTRUTURA espelha o
-/// `NotEnoughStops` do Spoke (título + corpo + único botão Ok), mas o TEXTO é
-/// microcopy PT-BR ORIGINAL (ADR-0010) — reformulado, NÃO verbatim da string
-/// `optimize_route_minimum_stops_body` do Spoke. Distinto do erro de rede.
+/// G1 — paradas insuficientes para otimizar. Espelha o
+/// `NotEnoughStops` do Spoke (título + corpo + único botão Ok,
+/// `optimize_route_minimum_stops_body`). Distinto do erro de rede.
 Future<void> showNotEnoughStopsDialog(BuildContext context) {
   return showDialog<void>(
     context: context,

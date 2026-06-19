@@ -7,7 +7,7 @@
 - **Agent**: Claude Code
 - **Human**: Eduardo
 - **Topic**: Área 7 PR-B1 — PRE-CONFIRM (aplicar otimização + FTUE + Refinar/Reotimizar + remoção deferida G5)
-- **Related ADRs**: herda ADR-0010/0035/0045/0051 (nenhuma nova — sem mudança de stack)
+- **Related ADRs**: herda ADR-0035/0045/0051 (nenhuma nova — sem mudança de stack)
 - **Related TODO items**: "Area 7 (Otimizar rota)" → sub-bullet PR-B1
 
 ## Goal of the Session

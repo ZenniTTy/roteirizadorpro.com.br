@@ -57,8 +57,7 @@ class ActiveRouteId extends _$ActiveRouteId {
       return;
     }
 
-    // No routes at all → create one (auto-name = weekday placeholder, ADR-0010
-    // original microcopy; NOT Spoke's "Minha primeira rota" verbatim).
+    // No routes at all → create one (auto-name = weekday placeholder).
     final newId =
         ref.read(routesProvider.notifier).createRoute(date: DateTime.now());
     setActiveRoute(newId);

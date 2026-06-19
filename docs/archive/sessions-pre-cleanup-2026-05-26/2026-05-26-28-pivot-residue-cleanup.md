@@ -37,7 +37,7 @@ Eduardo asked to do a full sweep for pre-pivot residue (old binding language, st
 
 8. **Updated v1 references inside ADRs** — ADR-0015 (4 sites — the foundational M2 plan ADR; needed careful wording because it predates the pivot), ADR-0020 (2 sites — `08-ROADMAP.md L90` worked example annotated with archive path + v2 forward-port), ADR-0030 (3 sites — Stripe Pix references slice 4 docs), ADR-0002 (1 site — Flutter keystore reference).
 
-9. **Final grep verification** — `grep -rnIE "canonical UI" docs/ README.md CLAUDE.md TODO.md .claude/agents/` produces only legitimate matches: ADR-0032/0033/0034 §Context historical quotes (describing what the prototype said at the time the ADR was filed), the new "Post-ADR-0035 reading" sections (which use the phrase forward-referentially), and ADR-0035 itself (which defines the term). `grep -rnIE "08-ROADMAP\.md"` excluding archive/sessions/superpowers/sprints/changelog/Blueprint/0010 returns 0 stale references in active docs.
+9. **Final grep verification** — `grep -rnIE "canonical UI" docs/ README.md CLAUDE.md TODO.md .claude/agents/` produces only legitimate matches: ADR-0032/0033/0034 §Context historical quotes (describing what the prototype said at the time the ADR was filed), the new "Post-ADR-0035 reading" sections (which use the phrase forward-referentially), and ADR-0035 itself (which defines the term). `grep -rnIE "08-ROADMAP\.md"` excluding archive/sessions/superpowers/sprints/changelog/Blueprint returns 0 stale references in active docs.
 
 ## Decisions Made
 
@@ -79,7 +79,7 @@ Eduardo asked to do a full sweep for pre-pivot residue (old binding language, st
 ## Verification Performed
 
 - `grep -rnIE "canonical UI" docs/ README.md CLAUDE.md TODO.md .claude/agents/` → only ADR §Context historical quotes + new "Post-ADR-0035 reading" sections + ADR-0035 itself remain. No stale binding language in active docs.
-- `grep -rnIE "08-ROADMAP\.md"` excluding archive/sessions/superpowers/sprints/changelog/Blueprint/decisions/0010 → 0 stale references in active doc paths.
+- `grep -rnIE "08-ROADMAP\.md"` excluding archive/sessions/superpowers/sprints/changelog/Blueprint/decisions → 0 stale references in active doc paths.
 - `git diff --stat HEAD` post-cleanup → 16 files changed.
 - No code touched (zero `apps/mobile/lib/**`, `apps/backend/src/**`, `apps/landing/src/**` edits) — pure documentation cleanup.
 - adr-guardian dispatch **not run** — no stack-affecting files touched (no package.json / pubspec.yaml / prisma / docker-compose / infra/ edits); textual ADR amendments don't trigger the gate per the subagent's frontmatter.

@@ -23,7 +23,7 @@ You verify:
 - **Shadows** — `BoxShadow` values must match `AppShadows.*` (cardShadow, fabShadow, sheetShadow, sheetTop, primaryButton, inputFocus).
 - **Typography** — font sizes, weights, families used in `TextStyle` should match the prototype's pairings (commonly `15/w500/textMuted` for body, `18/w600/text` for titles, `14/w600/text` for cards, etc.).
 - **Icon family** — every `Icon(...)` reference must use `LucideIcons.*` (project convention — Lucide is the prototipo's icon family), not Material `Icons.*`. Material icons are flagged unless explicitly grandfathered (rare — check git blame).
-- **Identity guard** — flag any color, icon, illustration, microcopy, or font that looks like it was copied from Spoke or any other third-party app. Per `docs/decisions/0010-clone-positioning.md`, identity is 100% original.
+- **Identity guard** — flag any color, icon, illustration, microcopy, or font that looks like it was copied from Spoke or any other third-party app. Identity is 100% original.
 
 You do **not** verify:
 

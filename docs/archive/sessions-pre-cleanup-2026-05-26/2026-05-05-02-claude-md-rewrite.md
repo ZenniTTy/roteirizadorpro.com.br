@@ -8,7 +8,7 @@
 - **Human**: Eduardo
 - **Topic**: claude-md-rewrite
 - **Duration**: ~1 turn cycle
-- **Related ADRs**: pending — 0010 (positioning) will reference this work
+- **Related ADRs**: pending
 - **Related TODO items**: M1 bootstrap
 
 ## Goal of the Session

@@ -32,7 +32,7 @@
 
 **Realidade:** Spoke tem **NAVEGAÇÃO INTERNA PRÓPRIA** ("Navegação do Spoke" — picker §10.19.1 opção #1 default). É *Google-powered* (provavelmente usa Google Directions API por baixo dos panos), mas a UI/UX de navegação é construída pela Spoke. O mapa base usa Google Maps SDK, MAS o autocomplete e a navegação não são "Google Places diretamente".
 
-**Por que importa pra RotPro:** ADR-0010 fala em "Google Maps default + Waze toggle" — mas no Spoke real, a opção default não é Google Maps, é Spoke Internal. RotPro pode legitimamente usar Google Maps puro (não temos navegação interna; legal e diferente da Spoke). **Não muda decisão, mas corrige expectativa.**
+**Por que importa pra RotPro:** a decisão de produto do RotPro é "Google Maps default + Waze toggle" — mas no Spoke real, a opção default não é Google Maps, é Spoke Internal. RotPro pode legitimamente usar Google Maps puro (não temos navegação interna; legal e diferente da Spoke). **Não muda decisão, mas corrige expectativa.**
 
 **Correção sugerida no inventário:** atualizar §6.2bis + §11.4 pra "mapa base Google Maps SDK; navegação default usa Spoke Internal (proprietário); autocomplete provavelmente é Google Places por trás".
 
@@ -86,7 +86,7 @@
 
 **Docs Spoke confirmam:** "use favorite GPS apps (Waze, Google Maps **and more**)" — não específicam Yandex publicamente.
 
-**Implicação pra RotPro:** correto excluir Yandex (per ADR-0010 — só GMaps + Waze). Mas inventário deve flagar que **a opção "Outro"** abre `Android intent chooser` (ACTION_VIEW geo: URI) pra que o usuário escolha qualquer app de mapa instalado. RotPro pode replicar essa opção pra dar flexibilidade ao usuário com 1 linha de código (Spoke faz isso "de graça" via Android intent system).
+**Implicação pra RotPro:** correto excluir Yandex (escopo RotPro — só GMaps + Waze). Mas inventário deve flagar que **a opção "Outro"** abre `Android intent chooser` (ACTION_VIEW geo: URI) pra que o usuário escolha qualquer app de mapa instalado. RotPro pode replicar essa opção pra dar flexibilidade ao usuário com 1 linha de código (Spoke faz isso "de graça" via Android intent system).
 
 **Correção sugerida no inventário:** adicionar nota em §10.19.1 sobre "Outro" = ACTION_VIEW intent fallback + sugestão RotPro pra incluir como opção 3.
 

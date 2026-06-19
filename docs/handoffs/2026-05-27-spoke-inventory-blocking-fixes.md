@@ -11,7 +11,7 @@
 
 ### Quem é Eduardo e o que é o projeto?
 
-Eduardo Rodrigues é o desenvolvedor do **Roteirizador Pro** (RotPro), um app Android pra motoboys distribuído como APK em `roteirizadorpro.com.br`. O projeto é um **functional fork** do Spoke (ex-Circuit Route Planner): replica fluxos, comportamentos, telas — mas não copia identidade visual (cores/ícones/microcopy). Per [ADR-0010](../decisions/0010-clone-positioning.md).
+Eduardo Rodrigues é o desenvolvedor do **Roteirizador Pro** (RotPro), um app Android pra motoboys distribuído como APK em `roteirizadorpro.com.br`. O projeto é um **functional fork** do Spoke (ex-Circuit Route Planner): replica fluxos, comportamentos, telas — mas não copia identidade visual (cores/ícones/microcopy).
 
 Eduardo está no M2 (segundo milestone). Slice 1 (APK distribuível) shipped 2026-05-13 como `v1.0.0`. Slice 2 (Telas Core Spoke-aligned) está em progresso.
 
@@ -40,13 +40,13 @@ Per [ADR-0037](../decisions/0037-maestro-mcp-for-spoke-inspection.md), Maestro C
 
 Se algum desses falhar, consultar ADR-0037 + `MAESTRO_CLI_NO_ANALYTICS=1 maestro doctor`.
 
-### Regras de escopo (per ADR-0010 Amendments 1+2)
+### Regras de escopo
 
 O que rege legalmente é o **shipped APK** (o que o user instala), não o engineering process. Detalhe:
 
 - ✅ **Permitido no shipped APK** (e portanto orientação pra implementação): RotPro tem identidade visual original — Lucide icons + prototipo tokens + original PT-BR microcopy per ADR-0035
 - ✅ **Permitido nos engineering artifacts** (este handoff, inventário, dumps, screenshots): quote livre, hierarchy dumps no repo, screenshots no repo se ajudar
-- ✅ **Inspection methodology é escolha do operator** per ADR-0010 Amendment 2: Maestro MCP é o default (mais rápido), mas APK inspection / decompilation / etc. são fair game se forem mais eficientes pra resolver ambiguidade
+- ✅ **Inspection methodology é escolha do operator**: Maestro MCP é o default (mais rápido), mas APK inspection / decompilation / etc. são fair game se forem mais eficientes pra resolver ambiguidade
 - ❌ **Proibido no shipped APK**: Spoke icons/illustrations/palette/typography/microcopy verbatim — o usuário não pode achar que está usando Spoke quando instala RotPro
 
 ### Autorização pré-concedida pelo Eduardo
@@ -76,7 +76,7 @@ Cada um afeta a **arquitetura do RotPro** de forma material:
 
 - **C.2:** se "Detalhes da rota" é per-route obrigatório, RotPro precisa implementar a tela inteira (5 sub-screens) como step mandatório. Se é FTUE one-time, RotPro pode pular e usar defaults hardcoded sensatos (economia de ~3 dias).
 
-- **C.3:** "Instruções de acesso" é feature crítica do schema backend (sticky-to-address per ADR-0010). Se UI abre full-screen, RotPro implementa route separada. Se inline TextField, é só widget dentro do Editar parada sheet. Diferença = decisão arquitetural slice 2.
+- **C.3:** "Instruções de acesso" é feature crítica do schema backend (sticky-to-address). Se UI abre full-screen, RotPro implementa route separada. Se inline TextField, é só widget dentro do Editar parada sheet. Diferença = decisão arquitetural slice 2.
 
 ---
 
@@ -240,7 +240,7 @@ PASSO 7 — Hipótese (c) bug v3.65.1:
 PASSO 8 — Se C.3 resolvido positivamente:
   - Drillar "Salvar como padrão" behavior: criar SEGUNDA parada com MESMO endereço em rota diferente
   - Verificar se "Instruções de acesso" pré-popula com texto salvo do primeiro use
-  - Confirma sticky-to-address per ADR-0010
+  - Confirma sticky-to-address
 ```
 
 ### Cleanup ao fim
@@ -476,7 +476,7 @@ mcp__maestro__run com:
 - ❌ Pushar direto pra `develop` (sempre branch + PR)
 - ❌ Resolver §13.C.4/C.5 (menores; oportunisticamente quando chegar nas áreas)
 - ❌ Mexer em `docs/decisions/` ou `apps/` (out of scope)
-- ❌ Confundir engineering process com shipped product (per ADR-0010 Amendments 1+2 — extração, dumps, screenshots tudo OK no repo; o que importa é o APK que o user instala usar identidade visual original)
+- ❌ Confundir engineering process com shipped product (extração, dumps, screenshots tudo OK no repo; o que importa é o APK que o user instala usar identidade visual original)
 
 ---
 
@@ -485,7 +485,6 @@ mcp__maestro__run com:
 - `docs/inventory/2026-05-26-spoke-vs-rotpro.md` — inventário Spoke completo (1684+ linhas; §13 é onde os bloqueios estão listados)
 - `docs/08-ROADMAP-v2.md` — roadmap atual (PR #18 reescrita ainda em revisão; ler versão de develop OU do PR)
 - `docs/BUSINESS-RULES.md` — modelo de monetização canônico (single paid tier R$ 25,90/30 dias)
-- [ADR-0010](../decisions/0010-clone-positioning.md) — clone positioning (applies to shipped product; Amendments 1+2 liberam engineering process)
 - [ADR-0030](../decisions/0030-stripe-pix-30-day-access-pass.md) — Stripe Pix paywall
 - [ADR-0035](../decisions/0035-spoke-functional-clone-prototype-creative-reference.md) — Spoke = canonical funcional
 - [ADR-0036](../decisions/0036-spoke-parity-checker-functional-gate.md) — spoke-parity-checker subagent

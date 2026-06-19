@@ -6,7 +6,7 @@
 
 **Architecture:** Polyline e markers são DERIVADOS do estado da rota ativa (`.select`, nunca rebuildam o mapa no drag do sheet). Polyline = 2 `Polyline` sobrepostos (contorno + interior) com `List<LatLng>` na ordem otimizada — só aparece quando `optimization == optimized`. Markers = `BitmapDescriptor.fromBytes()` desenhado via `dart:ui` `Canvas` (sem pacote, sem conflito de gesto — `Marker` nativo), cacheado por chave, entregue por um provider async. O kebab vive no PRE-CONFIRM e dispara `showReoptimizeOptionsSheet` → `optimize` → `applyOptimization` (mesmo padrão do `_onRefine` do B1).
 
-**Tech Stack:** Flutter 3.44 / Dart 3.12, Riverpod 3 (`@riverpod` codegen), `google_maps_flutter` 2.x (já instalado), `dart:ui` (Canvas/PictureRecorder — sem dep nova). Microcopy PT-BR original (ADR-0010).
+**Tech Stack:** Flutter 3.44 / Dart 3.12, Riverpod 3 (`@riverpod` codegen), `google_maps_flutter` 2.x (já instalado), `dart:ui` (Canvas/PictureRecorder — sem dep nova). Microcopy PT-BR original.
 
 **Spec:** `docs/superpowers/specs/2026-06-14-area7-pr-b2-map-interactive.md` (Q1 manual-Canvas; Q3 sem ETA; Q4 kebab; Q5 polyline client-side).
 

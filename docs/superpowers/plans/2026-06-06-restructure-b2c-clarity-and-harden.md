@@ -193,7 +193,7 @@ Expected: `0043`. If it shows `0044` or higher (another session filed one), use 
 
 - [ ] **Step 2.2: Write the ADR**
 
-Create `docs/decisions/0044-spoke-b2c-vs-b2b-scope-boundary.md` following the project ADR format (H1 `# ADR-0044: Spoke Route Planner (B2C) vs Spoke Dispatch (B2B) scope boundary`, then Status / Context / Decision / Consequences). Status: Accepted, 2026-06-06. The Decision section states: we clone ONLY the B2C Spoke Route Planner; the boundary doc `docs/inventory/2026-06-06-spoke-b2c-vs-b2b-boundary.md` is canonical; the decision rule is binding for every future area; the admin panel is an original RotPro feature, not the B2B Dispatch dashboard. Cross-reference ADR-0010 (clone positioning), ADR-0030 (single-tier, which already cut the one B2B feature), ADR-0035 (Spoke white-label).
+Create `docs/decisions/0044-spoke-b2c-vs-b2b-scope-boundary.md` following the project ADR format (H1 `# ADR-0044: Spoke Route Planner (B2C) vs Spoke Dispatch (B2B) scope boundary`, then Status / Context / Decision / Consequences). Status: Accepted, 2026-06-06. The Decision section states: we clone ONLY the B2C Spoke Route Planner; the boundary doc `docs/inventory/2026-06-06-spoke-b2c-vs-b2b-boundary.md` is canonical; the decision rule is binding for every future area; the admin panel is an original RotPro feature, not the B2B Dispatch dashboard. Cross-reference ADR-0030 (single-tier, which already cut the one B2B feature), ADR-0035 (Spoke white-label).
 
 - [ ] **Step 2.3: Verify title well-formed (avoids the ADR-0018/0040 malformed-title bug)**
 

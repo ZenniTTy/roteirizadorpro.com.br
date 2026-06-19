@@ -182,7 +182,7 @@ void main() {
   // ---------------------------------------------------------------------------
   // PlaceInVehicle.shortCode — microcopy PT-BR, ordem Y,X,Z (F11)
   //
-  // Mapeamento PT-BR (microcopy original RotPro):
+  // Mapeamento PT-BR:
   //   PlaceY.front  → 'F' (Frente)
   //   PlaceY.middle → 'M' (Meio)
   //   PlaceY.back   → 'A' (Atrás)

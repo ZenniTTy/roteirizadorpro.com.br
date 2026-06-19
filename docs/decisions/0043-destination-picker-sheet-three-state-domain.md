@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-03
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (functional fork), ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0037 (Maestro MCP), ADR-0042 (numpad — same inference-vs-measurement failure mode this ADR also corrects)
+- **Related ADRs:** ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0037 (Maestro MCP), ADR-0042 (numpad — same inference-vs-measurement failure mode this ADR also corrects)
 
 ## Context
 

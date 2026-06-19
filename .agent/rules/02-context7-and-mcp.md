@@ -36,7 +36,7 @@ Only for stdlib and stable APIs (HTTP verbs, SQL syntax) where the answer hasn't
 
 When inspecting Spoke (the reference app for behavior parity per ADR-0035 + ADR-0037), use the Maestro MCP tools (`mcp__maestro__inspect_view_hierarchy`, `tap_on`, `back`, `launch_app`, `take_screenshot`, `list_devices`) on Eduardo's connected Samsung M54.
 
-Fallback when Maestro is unavailable: `adb shell uiautomator dump` + `adb shell screencap`. Same Android Accessibility surface, same ADR-0010 legal posture (runtime UI state observation, no decompilation).
+Fallback when Maestro is unavailable: `adb shell uiautomator dump` + `adb shell screencap`. Same Android Accessibility surface, same legal posture (runtime UI state observation, no decompilation).
 
 Record the chosen path in any Spoke inspection report: `Inspection path: Maestro MCP` or `Inspection path: bash + uiautomator`.
 

@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../state/optimization_controller.dart';
 
-/// Tela de progresso da otimização (4 fases). A ESTRUTURA (4 fases sequenciais)
-/// espelha o Spoke (`optimizing_analysing/sorting/traffic/creating`), mas o
-/// TEXTO é microcopy PT-BR ORIGINAL (ADR-0010) — deliberadamente reformulado,
-/// nunca verbatim das strings traduzidas do Spoke/Circuit. Display-only — o
-/// avanço de fase é orquestrado pelo `OptimizationController`.
+/// Tela de progresso da otimização (4 fases). As 4 fases sequenciais
+/// espelham o Spoke (`optimizing_analysing/sorting/traffic/creating`).
+/// Display-only — o avanço de fase é orquestrado pelo `OptimizationController`.
 class OptimizingProgressView extends StatelessWidget {
   const OptimizingProgressView({required this.phase, super.key});
 

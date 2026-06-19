@@ -1,6 +1,6 @@
 // Tests for ConfirmDeferredRemovalDialog — Á7 T9 (remoção diferida).
 //
-// Contrato (microcopy travada ADR-0010 PT-BR original):
+// Contrato:
 //   - Título: "Remover esta parada?"
 //   - Corpo contém a label da parada interpolada + texto sobre "próxima" otimização.
 //   - Botão "Cancelar" (TextButton) -> retorna false.

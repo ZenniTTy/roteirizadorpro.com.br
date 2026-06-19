@@ -109,13 +109,12 @@ list what needs updating. Do not edit the inventory in this skill — surface it
 ## Strict boundaries
 
 - **Read-only on code.** Do not edit any file under `apps/mobile/lib/`, `apps/backend/src/`, or `docs/`.
-- **No decompilation.** Do not extract APK assets, do not run `apktool`, do not inspect `/data/data/com.underwood.route_optimiser/`. The legal posture per ADR-0010 is runtime UI state observation only via Android Accessibility.
+- **No decompilation.** Do not extract APK assets, do not run `apktool`, do not inspect `/data/data/com.underwood.route_optimiser/`. The legal posture is runtime UI state observation only via Android Accessibility.
 - **No screenshots into the repo.** Screenshots and XML dumps go to `/tmp/spoke-inspection/` and stay there.
 - **Inventory edits are not your job.** If you spot drift in `docs/inventory/2026-05-26-spoke-vs-rotpro.md`, surface it in the "Inventory delta" section — do not edit.
 
 ## ADR references
 
-- ADR-0010 (legal posture: functional fork, no asset reuse)
 - ADR-0035 (Spoke = behavior canonical; prototipo = visual only)
 - ADR-0036 (parity gate: upfront + D4 dispatch)
 - ADR-0037 (Maestro MCP preferred; bash + uiautomator fallback)

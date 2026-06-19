@@ -17,8 +17,6 @@ void main() {
   });
 
   testWidgets('cada fase tem seu texto', (tester) async {
-    // Microcopy PT-BR ORIGINAL (ADR-0010) — reformulada, não verbatim do Spoke
-    // (cujas strings pt-rBR são "Analisando suas paradas..." etc).
     for (final entry in {
       OptimizationPhase.analysing: 'Conferindo suas entregas...',
       OptimizationPhase.sorting: 'Montando a melhor sequência...',

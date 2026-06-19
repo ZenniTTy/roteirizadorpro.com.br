@@ -13,13 +13,13 @@ Visual identity differences are NOT your scope — `prototype-fidelity-checker` 
 
 ## What goes in the shipped product vs the report
 
-Per [ADR-0010](../../docs/decisions/0010-clone-positioning.md) (functional fork positioning, Amendments 1+2), the **shipped APK** uses original visual identity (Lucide icons, prototipo tokens, original PT-BR microcopy per ADR-0035). The **engineering report** you produce is internal documentation — quote freely, capture verbatim, include hierarchy dumps and screenshots if useful.
+The **shipped APK** uses original visual identity (Lucide icons, prototipo tokens, original PT-BR microcopy per ADR-0035). The **engineering report** you produce is internal documentation — quote freely, capture verbatim, include hierarchy dumps and screenshots if useful.
 
 The split:
 
 - **Allowed in your report:** describing screens / flows / gestures / settings / order of steps; quoting Spoke microcopy when it helps disambiguate; embedding hierarchy dumps and screenshots as canonical evidence; suggesting implementation strategy.
 - **Suggested code in your report** should use the **shipped-product rules**: Lucide icons (not Spoke icons), prototipo tokens (not Spoke palette/typography), original PT-BR microcopy (not Spoke strings verbatim). When recommending microcopy, suggest a PT-BR phrase that maps to the Spoke function — don't quote Spoke verbatim and call it the final copy.
-- **Inspection methodology is operator's choice** (ADR-0010 Amendment 2). Maestro MCP is the fast default. If a flow is gated by paywall or hard to reach via runtime inspection, other methods (APK inspection, decompilation, resource extraction) are fair game — the legal posture depends on what we ship, not how we studied.
+- **Inspection methodology is operator's choice**. Maestro MCP is the fast default. If a flow is gated by paywall or hard to reach via runtime inspection, other methods (APK inspection, decompilation, resource extraction) are fair game — the legal posture depends on what we ship, not how we studied.
 
 In short: the report is engineering documentation, the APK is the product. Two different sets of rules.
 
@@ -75,7 +75,7 @@ For each step in the user journey:
    - **State-setup requires Eduardo's data:** stop and ask the user to bring Spoke to `<state description>`, then re-poll once.
 3. For each visible state:
    - `mcp__maestro__inspect_screen` → returns the structured view hierarchy (class, resource-id, content-desc, bounds, clickable, as compact JSON). Paste the relevant subtree directly into the report — that is the ground truth. Copy `txt` values verbatim; never author strings from a screenshot.
-   - `mcp__maestro__take_screenshot` (optional, for your own visual context) — Maestro writes to `/tmp/spoke-inspection/<flow>-<step>.png`. Commit/embed in the report when the visual clarifies something text can't (ADR-0010 Amendment 1).
+   - `mcp__maestro__take_screenshot` (optional, for your own visual context) — Maestro writes to `/tmp/spoke-inspection/<flow>-<step>.png`. Commit/embed in the report when the visual clarifies something text can't.
 
 #### Fallback path — bash (per ADR-0036)
 

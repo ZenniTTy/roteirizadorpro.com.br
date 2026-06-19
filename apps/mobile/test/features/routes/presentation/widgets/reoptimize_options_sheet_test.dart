@@ -1,6 +1,6 @@
 // Tests for ReoptimizeOptionsSheet — Á7 PR-B T8.
 //
-// Spec: MICROCOPY TRAVADA T8 (comparada 1:1 com dump Spoke v3.65.1 + ADR-0010).
+// Spec: MICROCOPY TRAVADA T8 (comparada 1:1 com dump Spoke v3.65.1).
 // Contrato:
 //   - Função showReoptimizeOptionsSheet(BuildContext) -> Future<ReoptimizeChoice?>
 //   - Título do sheet: "Como recalcular"

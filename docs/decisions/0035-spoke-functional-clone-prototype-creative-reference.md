@@ -3,13 +3,11 @@
 - **Status:** Accepted
 - **Date:** 2026-05-26
 - **Deciders:** Eduardo (cliente Ueslei representative + product owner)
-- **Extends:** ADR-0010 (functional fork positioning — remains foundational)
 - **Reframed at filing time:** ADRs 0021/0032/0033/0034 (slice-2 microsprint-specific decisions whose framing dependia da premissa antiga "prototipo canonical UI"). Essas 4 ADRs foram **deletadas no reset 2026-05-26** (limpeza completa do bloat slice-2); histórico preservado no git log.
-- **Related ADRs:** ADR-0010 (clone positioning — foundational)
 
 ## Context
 
-ADR-0010 (2026-05-05) positioned the project as a **functional fork** of Spoke (formerly Circuit Route Planner). Original visual identity is mandatory for legal safety. The decision was clear: replicate flows, navigation, behaviors, gestures, and screen structure from Spoke; produce all colors, typography, icons, microcopy, and illustrations from scratch.
+The project is positioned as a **functional fork** of Spoke (formerly Circuit Route Planner). Original visual identity is mandatory for legal safety. The decision was clear: replicate flows, navigation, behaviors, gestures, and screen structure from Spoke; produce all colors, typography, icons, microcopy, and illustrations from scratch.
 
 When the Claude Design prototype (`prototipo/`) was delivered and client-approved on 2026-05-07, the project's docs treated it as the **canonical UI source of truth**: README, CLAUDE.md, multiple ADRs, the M2-SLICE-CHECKLIST verification gate, the `prototype-fidelity-checker` subagent, and 12+ microsprint entries in TODO.md all asserted that "the prototype wins" and that screens "must match `prototipo/screens-*.jsx` 1:1 in visual identity, structure, and flows."
 
@@ -26,9 +24,9 @@ During the MS-15a-followup session (2026-05-25), Eduardo articulated the correct
 
 1. **Spoke (Circuit Route Planner)** — canonical for behavior, navigation, settings inventory, feature presence, gestures, and flow ordering. When deciding what the app does or how a user moves through it, Spoke wins.
 2. **`prototipo/` (Claude Design prototype)** — canonical for **visual identity only**: color tokens (`prototipo/tokens.js`), spacing scale, radii, shadows, typography pairing, icon family (Lucide), and any decorative or animation pattern that is the prototype's original creative contribution.
-3. **Cliente Ueslei** — final tiebreaker on any conflict. Per ADR-0010, the cliente is the contracting authority and has standing to override either layer above.
+3. **Cliente Ueslei** — final tiebreaker on any conflict. The cliente is the contracting authority and has standing to override either layer above.
 
-This hierarchy **extends** ADR-0010 rather than superseding it: the "functional fork with original visual identity" stance is unchanged. ADR-0035 only specifies *where* the functional spec lives (Spoke, not the prototype) and *where* the visual identity lives (the prototype, not Spoke).
+This hierarchy keeps the "functional fork with original visual identity" stance unchanged. ADR-0035 only specifies *where* the functional spec lives (Spoke, not the prototype) and *where* the visual identity lives (the prototype, not Spoke).
 
 ## Options Considered
 
@@ -55,7 +53,7 @@ This decision.
 
 ### Option D — Reverse-engineer Spoke directly into the codebase (copy Spoke's icons/markup into the shipped APK)
 
-Not considered. The shipped APK uses original visual identity per ADR-0010 — Spoke icons/illustrations/palette/typography don't end up in what users install. Inspection methodology used to study Spoke is unrelated (operator's choice per ADR-0010 Amendment 2).
+Not considered. The shipped APK uses original visual identity — Spoke icons/illustrations/palette/typography don't end up in what users install. Inspection methodology used to study Spoke is unrelated (operator's choice).
 
 ## Implementation summary
 
@@ -68,7 +66,7 @@ This ADR is **policy**. The execution sweep is documented in `plans/velvet-yawni
 
 A separate phase produces a side-by-side inventory of Spoke vs. Roteirizador Pro (current implementation) at `docs/inventory/2026-05-26-spoke-vs-rotpro.md`, which then drives the rewrite of slices 2 and 3 in `docs/08-ROADMAP-v2.md`. Slices 1, 4, 5, 6, 7 are unaffected by this ADR (slice 1 already shipped; slices 4–7 are agnostic of UI source).
 
-**Inspection of Spoke** defaults to runtime UI/UX observation on the cliente's licensed installation (Samsung M54 device, Eduardo's account): screen flows, navigation, settings inventory, gesture mapping. Inspection methodology is operator's choice per ADR-0010 Amendment 2 — runtime is the fast default, other methods (APK inspection, etc.) are allowed when more efficient. What matters legally is what the **shipped APK** contains (original visual identity per ADR-0010 Decision section), not how the engineering team studied Spoke.
+**Inspection of Spoke** defaults to runtime UI/UX observation on the cliente's licensed installation (Samsung M54 device, Eduardo's account): screen flows, navigation, settings inventory, gesture mapping. Inspection methodology is operator's choice — runtime is the fast default, other methods (APK inspection, etc.) are allowed when more efficient. What matters legally is what the **shipped APK** contains (original visual identity), not how the engineering team studied Spoke.
 
 ## Consequences
 
@@ -80,11 +78,11 @@ A separate phase produces a side-by-side inventory of Spoke vs. Roteirizador Pro
 
 ## Rollback
 
-If the Fase 2 inspection of Spoke reveals that it is fundamentally incompatible with our stack or scope (for example: the app's core flow depends on a feature we cannot replicate without breaching ADR-0010's "no visual asset copy" line), the rollback is:
+If the Fase 2 inspection of Spoke reveals that it is fundamentally incompatible with our stack or scope (for example: the app's core flow depends on a feature we cannot replicate without breaching the "no visual asset copy" line), the rollback is:
 
 1. Revert the single Fase 1 commit (`git revert <sha>`).
 2. Mark this ADR as **Superseded** with a successor ADR documenting the discovered incompatibility.
-3. Keep ADR-0010 unchanged (the functional-fork stance survives any failure of this specific hierarchy).
+3. The functional-fork stance survives any failure of this specific hierarchy.
 
 Total revert cost: ~1 day. The downstream ADRs (0033, 0034) do not need re-editing because their decisions are correct either way; only the framing in their headers changes.
 
@@ -99,7 +97,6 @@ This ADR is verified by:
 
 ## References
 
-- ADR-0010 — clone positioning (foundational; this ADR extends it).
 - ADR-0019 — spec-driven workflow (microsprint decomposition pattern, unchanged).
 - ADR-0021 — slice-2 fidelity remediation parent (reframed by this ADR; the remediation work was real and stays valid, just measured against a different yardstick from now on).
 - ADR-0032, ADR-0033, ADR-0034 — visual decisions reframed by this ADR.

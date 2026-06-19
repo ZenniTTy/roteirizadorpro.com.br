@@ -3,7 +3,7 @@
 > **Data:** 2026-06-11 · **Status:** aprovado por Eduardo (sessão 2026-06-11)
 > **Método:** dump-first (ADR-0045/0048) — TODOS os fatos estruturais abaixo vêm do dump estático do Spoke v3.65.1 (`~/spoke-dump/jadx-out` + `res-decoded`), com evidência `arquivo:linha`. Zero runtime tocado nesta fase; runtime fica para 2 confirmações pontuais no D4 (lista no §Precisa-runtime).
 > **Fontes:** MASTER-TABLE rows #4–#10 · inventário §10.5/§10.6/§11.1/§11.5/§13.C.1/§13.C.3 · grep jadx (workflow `wxcu78nhu`, 2 tópicos verificados adversarialmente + greps manuais desta sessão).
-> **Disclaimer ADR-0010/0035:** strings PT-BR citadas são baseline de engenharia, NUNCA copiadas verbatim no produto. Identidade visual 100% original (tokens `prototipo/`).
+> **Disclaimer ADR-0035:** strings PT-BR citadas são baseline de engenharia, NUNCA copiadas verbatim no produto. Identidade visual 100% original (tokens `prototipo/`).
 
 ## 1. Fatos novos do dump (corrigem inferências anteriores)
 

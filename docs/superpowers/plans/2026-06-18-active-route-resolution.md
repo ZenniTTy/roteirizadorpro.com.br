@@ -134,7 +134,7 @@ git commit -m "feat(routes): ActiveRouteRepository persiste o id da rota ativa (
 - Modify: `lib/features/routes/state/active_route_provider.dart`
 - Test: `test/features/routes/state/active_route_provider_test.dart`
 
-**Context for the implementer:** O notifier `ActiveRouteId` (`@Riverpod(keepAlive: true)`, `build() => null`) hoje só tem `setActiveRoute(String? id) => state = id`. Ele precisa: (a) persistir no `ActiveRouteRepository` quando `setActiveRoute` é chamado; (b) um novo `Future<void> resolveActiveRoute()` que NÃO sobrescreve uma rota já ativa, e quando `state == null` executa: restaurar do repo (se o id ainda existe em `routesProvider`) → senão a rota mais recente por `date` → senão criar uma nova via `routesProvider.notifier.createRoute`. O `Routes` notifier expõe `createRoute({String? name, required DateTime date})` que retorna o id, e o estado é `List<Route>` (cada `Route` tem `id` e `date`). Para "criar quando não há nenhuma", use `name: null` (placeholder auto-gerado) e `date: DateTime.now()` — NÃO replicar a string "Minha primeira rota" do Spoke (microcopy original, ADR-0010; o nome auto-gerado do RotPro é o weekday). Importe `package:roteirizador_pro/features/routes/domain/route.dart`.
+**Context for the implementer:** O notifier `ActiveRouteId` (`@Riverpod(keepAlive: true)`, `build() => null`) hoje só tem `setActiveRoute(String? id) => state = id`. Ele precisa: (a) persistir no `ActiveRouteRepository` quando `setActiveRoute` é chamado; (b) um novo `Future<void> resolveActiveRoute()` que NÃO sobrescreve uma rota já ativa, e quando `state == null` executa: restaurar do repo (se o id ainda existe em `routesProvider`) → senão a rota mais recente por `date` → senão criar uma nova via `routesProvider.notifier.createRoute`. O `Routes` notifier expõe `createRoute({String? name, required DateTime date})` que retorna o id, e o estado é `List<Route>` (cada `Route` tem `id` e `date`). Para "criar quando não há nenhuma", use `name: null` (placeholder auto-gerado) e `date: DateTime.now()` — NÃO replicar a string "Minha primeira rota" do Spoke (microcopy original; o nome auto-gerado do RotPro é o weekday). Importe `package:roteirizador_pro/features/routes/domain/route.dart`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -314,7 +314,7 @@ class ActiveRouteId extends _$ActiveRouteId {
       return;
     }
 
-    // No routes at all → create one (auto-name = weekday placeholder, ADR-0010
+    // No routes at all → create one (auto-name = weekday placeholder,
     // original microcopy; NOT Spoke's "Minha primeira rota" verbatim).
     final newId = ref
         .read(routesProvider.notifier)
@@ -471,4 +471,4 @@ Expected: All tests passed! (contagem global + os ~9 novos: 4 repo + 5 provider;
 
 1. **"Mais recente" usa `Route.date`, não `lastEdited`** — o RotPro não tem `lastEdited`/`updatedAt` até o backend real (Slice 3). `date` é o proxy fiel para Slice 2.
 2. **Persistência local (`SharedPreferences`), não Firestore** — o Spoke persiste `activeRouteRef` no Firestore; o RotPro só tem backend em Slice 3, então persiste local. Mesmo efeito observável (restaura no restart).
-3. **Nome da rota auto-criada = weekday placeholder**, não "Minha primeira rota" verbatim (ADR-0010 microcopy original).
+3. **Nome da rota auto-criada = weekday placeholder**, não "Minha primeira rota" verbatim (microcopy original).

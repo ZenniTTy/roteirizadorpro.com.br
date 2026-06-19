@@ -18,10 +18,9 @@ enum ReoptimizeChoice { update, reoptimize }
 ///   - "Recalcular do zero" / "Refaz a sequência inteira em busca da melhor ordem"
 ///     → [ReoptimizeChoice.reoptimize]
 ///
-/// **Microcopy ORIGINAL (ADR-0010)** — reformulada do `optimization_explainer_*`
-/// do Spoke (baseline pt-rBR: "Compare as opções" / "Reotimizar" / "Recalcula a
-/// rota do zero..." / "Reordenar apenas as paradas alteradas"). Confirmado
-/// 1:1 contra `values-pt-rBR/strings.xml`: nenhuma string aqui é verbatim.
+/// Mapeia o `optimization_explainer_*` do Spoke (baseline pt-rBR:
+/// "Compare as opções" / "Reotimizar" / "Recalcula a rota do zero..." /
+/// "Reordenar apenas as paradas alteradas").
 ///
 /// Dismiss da barrier → null.
 Future<ReoptimizeChoice?> showReoptimizeOptionsSheet(BuildContext context) {

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 /// Escolha do usuário no diálogo de falha de otimização.
 enum OptimizationErrorChoice { retry, skip }
 
-/// Falha de REDE/solver ao otimizar. Microcopy PT-BR original (ADR-0010),
-/// estrutura espelha `optimization_failed_*` do Spoke (Tentar de novo / Pular
+/// Falha de REDE/solver ao otimizar. Estrutura espelha
+/// `optimization_failed_*` do Spoke (Tentar de novo / Pular
 /// otimização). Distinto do `NotEnoughStopsDialog` (G1).
 Future<OptimizationErrorChoice?> showOptimizationErrorDialog(
   BuildContext context,

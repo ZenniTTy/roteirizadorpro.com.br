@@ -7,7 +7,7 @@
 - **Agent**: Claude Code
 - **Human**: Eduardo
 - **Topic**: Área 7 PR-A — execução subagent-driven
-- **Related ADRs**: ADR-0051 (filada na T1) · herda ADR-0010/0030/0035/0045
+- **Related ADRs**: ADR-0051 (filada na T1) · herda ADR-0030/0035/0045
 - **Related TODO items**: "Area 7 (Otimizar rota)" → sub-bullet PR-A
 
 ## Goal of the Session
@@ -34,7 +34,7 @@ Executar o plano do PR-A da Área 7 (`docs/superpowers/plans/2026-06-13-area7-pr
 Depois de abrir o PR, uma re-verificação direta contra `~/spoke-dump/jadx-out` + `res-decoded/.../values-pt-rBR/strings.xml` (NÃO confiando que a spec/plano da sessão anterior tinham capturado tudo) achou **3 divergências reais** que passaram na execução porque vieram da spec e eu não re-conferi contra a fonte:
 
 1. **`OptimizeType` faltava `REMAINING_STOPS`** (commit `edec273`) — o dump tem **4** valores (`RESTART_ROUTE/REMAINING_STOPS/SKIP_REORDER/REORDER_FLEXIBLE`), eu implementei 3. `REMAINING_STOPS` é o type da re-otimização por grupos (OrderStopGroups, PR-D — `EditRouteViewModel.mo9471v`). O teste usava `containsAll` (mascarou a ausência) → trocado por **lista exata na ordem do dump**. Divergência funcional que morderia no PR-D.
-2. **4 fases de progresso ESTAVAM VERBATIM do Spoke pt-rBR** (commit `03e2c14`) — `optimizing_analysing`="Analisando suas paradas...", `_sorting`="Encontrando a melhor ordem...", `_traffic`="Considerando o trânsito...", `_creating`="Criando sua rota..." são EXATAMENTE as strings traduzidas do Circuit. Violava a ADR-0010 (microcopy original). Reescrito: "Conferindo suas entregas..." / "Montando a melhor sequência..." / "Avaliando o trânsito na região..." / "Finalizando sua rota...".
+2. **4 fases de progresso ESTAVAM VERBATIM do Spoke pt-rBR** (commit `03e2c14`) — `optimizing_analysing`="Analisando suas paradas...", `_sorting`="Encontrando a melhor ordem...", `_traffic`="Considerando o trânsito...", `_creating`="Criando sua rota..." são EXATAMENTE as strings traduzidas do Circuit. Violava a regra de microcopy original. Reescrito: "Conferindo suas entregas..." / "Montando a melhor sequência..." / "Avaliando o trânsito na região..." / "Finalizando sua rota...".
 3. **Corpo do `NotEnoughStopsDialog` quase-verbatim** (commit `03e2c14`) de `optimize_route_minimum_stops_body` ("Para otimizar sua rota, adicione 1 ou mais paradas além do ponto de partida e destino") — reformulação fraca demais. Reescrito 100% original.
 
 Confirmados OK (já eram originais): `OptimizationErrorDialog` (título/corpo ≠ `optimization_failed_*`), "Tentar de novo" (Spoke usa "Tente novamente"/"Repetir"), "Pular otimização" (sem equivalente). `RouteState` reduzido (9 de 14 campos do Spoke) é **corte consciente** — `startedAt`/`completedAt` pertencem à Á8/Á9; doc-comment atualizado para registrar (adicioná-los depois não é breaking change). **Lição:** spec/plano de uma sessão anterior NÃO substituem re-conferir o dump na execução — a inferência (mesmo "dump-first" na origem) decai; toda microcopy PT-BR tem de ser comparada 1:1 com `values-pt-rBR/strings.xml` antes de "original".

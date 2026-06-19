@@ -8,7 +8,7 @@
 - **Human**: Eduardo
 - **Topic**: documentation-backbone
 - **Duration**: ~1 long execution turn
-- **Related ADRs**: ADR-0001 through ADR-0010 (all created in this session)
+- **Related ADRs**: ADR-0001 through ADR-0009 (all created in this session)
 - **Related TODO items**: M1 Sprint 0 — repo scaffolding completed
 
 ## Goal of the Session
@@ -28,7 +28,7 @@ Produce the full documentation backbone of the repository — every file referen
 - Authored `docs/04-ROADMAP-M2.md` — sprint plan, deliverables, risks, post-M2 opportunities.
 - Authored `docs/06-DISASTER-RECOVERY.md` — RTO/RPO targets, backup catalog, seven recovery scenarios with procedures.
 - Created `docs/decisions/` directory and `0000-template.md` (Michael Nygard format).
-- Authored ADR-0001 (monorepo), ADR-0002 (Flutter), ADR-0003 (Fastify), ADR-0004 (Prisma 7), ADR-0005 (Riverpod 3), ADR-0006 (TypeBox), ADR-0007 (Efí Bank), ADR-0008 (GraphHopper), ADR-0009 (PostgreSQL), ADR-0010 (clone positioning).
+- Authored ADR-0001 (monorepo), ADR-0002 (Flutter), ADR-0003 (Fastify), ADR-0004 (Prisma 7), ADR-0005 (Riverpod 3), ADR-0006 (TypeBox), ADR-0007 (Efí Bank), ADR-0008 (GraphHopper), ADR-0009 (PostgreSQL).
 - Authored `SECURITY.md` — vulnerability reporting, security measures in place, incident response.
 - Authored `CODE_OF_CONDUCT.md` — applies to humans and AI agents alike.
 - Created `.github/pull_request_template.md` — used once we transition from bootstrap commits to PR-based flow.
@@ -45,7 +45,7 @@ Produce the full documentation backbone of the repository — every file referen
 ## Open Questions Left
 
 - [ ] `docs/INSTALL.md`, `docs/SERVER-ACCESS.md`, `docs/BENCHMARKS.md`, `docs/USER-GUIDE.md`, `docs/ADMIN-GUIDE.md` are referenced from various docs but not yet authored. They are operational documents created during execution of M1/M2 sprints, not bootstrap deliverables. Track in TODO.md.
-- [ ] Logo and visual identity for the landing page (per ADR-0010) — pending designer input or Eduardo decision.
+- [ ] Logo and visual identity for the landing page — pending designer input or Eduardo decision.
 - [ ] Whether to vendor a copy of `forrestchang/andrej-karpathy-skills/CLAUDE.md` into `docs/references/` for offline access (deferred from session 02 hand-off).
 
 ## Files Changed
@@ -73,7 +73,6 @@ Produce the full documentation backbone of the repository — every file referen
 - `docs/decisions/0007-efi-bank-payment.md`
 - `docs/decisions/0008-graphhopper-routing.md`
 - `docs/decisions/0009-postgresql-database.md`
-- `docs/decisions/0010-clone-positioning.md`
 - `docs/sessions/2026-05-05-03-documentation-backbone.md` (this file)
 
 **Modified:**

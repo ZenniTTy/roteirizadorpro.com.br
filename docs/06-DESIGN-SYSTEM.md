@@ -1,6 +1,6 @@
 # 06 — Design System
 
-Design system for Roteirizador Pro. Original identity — does not copy any visual asset from Spoke/Circuit (ADR-0010).
+Design system for Roteirizador Pro. Original identity — does not copy any visual asset from Spoke/Circuit.
 
 **Decided:** 2026-05-06
 **Decided by:** Eduardo
