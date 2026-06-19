@@ -8,6 +8,8 @@ import 'package:roteirizador_pro/features/routes/presentation/wizard_route_page.
 import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
+import '../../../_helpers/shared_prefs_async.dart';
+
 Widget _wrap({String? routeId, List<domain.Route>? seedRoutes}) {
   return ProviderScope(
     overrides: [
@@ -28,6 +30,10 @@ class _FakeRoutes extends Routes {
 }
 
 void main() {
+  // Confirmar (create) chama setActiveRoute(newId), que agora persiste via
+  // activeRouteRepositoryProvider (SharedPreferencesAsync) — back it in-memory.
+  useInMemorySharedPreferencesAsync();
+
   group('WizardRoutePage — create mode', () {
     testWidgets(
         'renders title "Criar rota", CTA "Confirmar", X close icon '

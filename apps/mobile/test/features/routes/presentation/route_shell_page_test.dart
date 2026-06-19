@@ -13,13 +13,17 @@ import 'package:roteirizador_pro/features/routes/domain/map_controls_state.dart'
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
 import 'package:roteirizador_pro/features/routes/domain/stop.dart' as domain;
 import 'package:roteirizador_pro/features/routes/presentation/route_shell_page.dart';
+import 'package:roteirizador_pro/features/routes/domain/optimization_state.dart';
+import 'package:roteirizador_pro/features/routes/domain/route_state.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/app_drawer.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/pre_confirm_view.dart';
 import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/current_user_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/map_controls_controller.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 import '../_helpers/fake_current_user.dart';
+import '../../../_helpers/shared_prefs_async.dart';
 
 Widget _wrapPage() => ProviderScope(
       overrides: [
@@ -214,9 +218,25 @@ Future<void> _expandSheet(WidgetTester tester) async {
 }
 
 void main() {
+  // The shell's boot resolver (`resolveActiveRoute`) reads
+  // `activeRouteRepositoryProvider`, which wraps `SharedPreferencesAsync`.
+  // Back it with the in-memory async store (and restore on tearDown so the
+  // static platform instance never leaks into other test files).
+  useInMemorySharedPreferencesAsync();
+
   testWidgets('renders a Scaffold', (tester) async {
+    // The boot resolver (resolveActiveRoute) selects the `seed1` route on
+    // mount, so the shell enters the active-empty-route state and the sheet
+    // auto-opens at medium (0.50). The medium body needs a tall frame or the
+    // fixed sheet chrome overflows the default 800×600 test surface.
+    // (useTallFrame is declared further down in main(); these early tests use
+    // the inline physicalSize block — same 1080×3200 frame, same teardown.)
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(Scaffold), findsAtLeastNWidgets(1));
   });
@@ -224,16 +244,27 @@ void main() {
   testWidgets(
       'floating hamburger IconButton with semantics label "Abrir menu" is '
       'present', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame
+    // so the sheet body doesn't overflow the default surface.
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('Abrir menu'), findsOneWidget);
   });
 
   testWidgets('tapping the hamburger opens AppDrawer as a modal bottom sheet',
       (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(AppDrawer), findsNothing);
 
@@ -248,10 +279,23 @@ void main() {
   });
 
   testWidgets(
-      'sheet collapsed shows ONLY handle + search pill + kebab — big '
-      'buttons stay hidden (Spoke parity 2026-05-28)', (tester) async {
+      'active empty route opens the sheet at medium showing handle + search '
+      'pill + kebab + empty-state big buttons (boot resolver, Á3)',
+      (tester) async {
+    // PREMISSA ATUALIZADA: o boot resolver (resolveActiveRoute) seleciona a
+    // rota seed `seed1` (0 paradas) ao montar, então a rota ativa VAZIA abre o
+    // sheet em medium (0.50) — não mais colapsado. O teste antigo afirmava
+    // "colapsado → big buttons escondidos"; com a rota ativa vazia
+    // auto-expandida pra medium esse estado não nasce mais. Verificamos agora o
+    // que aparece em MEDIUM-rota-vazia: além do search pill + kebab, os big
+    // buttons do empty-state ("Adicionar parada" / "Copiar paradas...") E a
+    // microcopy do empty-state ficam VISÍVEIS (showButtons=true + stops vazios).
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     // Search pill placeholder is the canonical entry for adding stops.
     expect(find.text('Adicionar parada...'), findsOneWidget);
@@ -261,19 +305,16 @@ void main() {
     // map controls.
     expect(find.bySemanticsLabel('Opções da rota'), findsOneWidget);
 
-    // Big buttons devem ESTAR ESCONDIDOS no estado collapsed — Spoke
-    // (live 2026-05-28) só renderiza esses botões quando o sheet sobe
-    // pra medium+. Nosso showButtons usa
-    // currentFraction > collapsedFraction + 0.02; no primeiro pump as
-    // duas frações coincidem → botões ocultos.
-    expect(find.text('Adicionar parada'), findsNothing);
-    expect(find.text('Copiar paradas de uma rota anterior'), findsNothing);
+    // Em medium com rota ativa VAZIA, os big buttons do empty-state aparecem
+    // (showButtons = currentFraction(0.50) > collapsedFraction + 0.02 → true,
+    // e stops.isEmpty → true; produção route_shell_page.dart §991-1009).
+    expect(find.text('Adicionar parada'), findsOneWidget);
+    expect(find.text('Copiar paradas de uma rota anterior'), findsOneWidget);
 
-    // Empty state ("Adicione as primeiras paradas...") também só aparece
-    // quando o sheet sobe.
+    // A microcopy do empty-state também aparece em medium.
     expect(
       find.textContaining('Adicione as primeiras paradas'),
-      findsNothing,
+      findsOneWidget,
     );
 
     // Hamburger is in the floating button — exactly one in the page.
@@ -297,9 +338,15 @@ void main() {
     // Este test garante a invariante estrutural: NÃO há
     // DraggableScrollableSheet (que requer Stack/Positioned fullscreen pra
     // funcionar); HÁ uma Column com Expanded + AnimatedContainer.
+    //
+    // Boot resolver abre o sheet em medium (rota ativa vazia) → tall frame pra
+    // o corpo do sheet não estourar a surface default.
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
     // Sheet manual, não DraggableScrollableSheet.
     expect(
@@ -473,16 +520,51 @@ void main() {
   });
 
   testWidgets(
-      'NO "Configuração de rota" section renders when there is no active route '
-      '(activeRouteId null)', (tester) async {
+      'shell sem rota ativa resolve a rota seed no boot (nunca fica sem rota) '
+      '→ a seção "Configuração de rota" aparece', (tester) async {
     useTallFrame(tester);
-    // _wrapPage() never seeds activeRouteIdProvider → it stays null.
-    await tester.pumpWidget(_wrapPage());
+    // PREMISSA ATUALIZADA: o teste antigo afirmava que `activeRouteId` null
+    // PERMANECIA null e nenhuma seção de config renderizava. O boot resolver
+    // (resolveActiveRoute, fiel ao ValidateActiveRoute do Spoke) ELIMINOU esse
+    // estado por design: ao montar sem rota ativa, ele seleciona a rota seed
+    // `seed1`. Logo o shell SEMPRE tem uma rota ativa após o boot, e a seção
+    // "Configuração de rota" passa a aparecer.
+    //
+    // Montamos via _wrapPage() (que NÃO seeda activeRouteIdProvider) dentro de
+    // um ProviderContainer próprio, pra poder LER o provider e provar que o
+    // resolver promoveu `seed1` a rota ativa.
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(kUserWithoutSub),
+        routesProvider.overrideWithValue([
+          domain.Route(
+            id: 'seed1',
+            date: DateTime(2026, 5, 27),
+          ),
+        ]),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          home: const RouteShellPage(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     await _expandSheet(tester);
 
-    expect(find.text('Configuração de rota'), findsNothing);
-    expect(find.byType(RouteConfigRow), findsNothing);
+    // O resolver promoveu a rota seed a rota ativa (nunca fica sem rota).
+    expect(container.read(activeRouteIdProvider), 'seed1');
+
+    // Com rota ativa, a seção de config AGORA aparece (antes: findsNothing).
+    expect(find.text('Configuração de rota'), findsOneWidget);
+    expect(find.byType(RouteConfigRow), findsNWidgets(2));
   });
 
   // ───────────────────────────────────────────────────────────────────────
@@ -522,10 +604,12 @@ void main() {
   testWidgets(
       'GoogleMap renders with MapType.normal when the controller state is normal',
       (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
     expect(map.mapType, MapType.normal);
@@ -534,10 +618,12 @@ void main() {
   testWidgets(
       'GoogleMap renders with MapType.satellite when controller state is '
       'satellite (layer pref reflected, not hard-coded)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.satellite)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
     expect(map.mapType, MapType.satellite);
@@ -546,10 +632,12 @@ void main() {
   testWidgets(
       'tapping "Alternar modo de mapa" calls toggleMapType + flips the map to '
       'satellite (no longer a "em breve" stub)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar modo de mapa'));
     await tester.pump(); // toggle is async; flush the microtask
@@ -564,10 +652,12 @@ void main() {
   testWidgets(
       'toggling to satellite shows an original-microcopy toast confirming the '
       'layer changed', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar modo de mapa'));
     await tester.pump();
@@ -610,6 +700,8 @@ void main() {
   testWidgets(
       'tapping "Alternar para o mapa" with permission granted starts following '
       '(no longer a "em breve" stub)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     final controls = _FakeMapControls(const MapControlsState());
     await tester.pumpWidget(
       ProviderScope(
@@ -637,7 +729,9 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    // pumpAndSettle lets the async boot resolver finish and the medium sheet
+    // settle before we tap (a bare pump leaves the resolver mid-flight).
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar para o mapa'));
     await tester.pump();
@@ -650,6 +744,8 @@ void main() {
   testWidgets(
       'tapping recenter with permission DENIED shows a graceful permission '
       'toast and does NOT enter follow mode (no crash)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(
         const MapControlsState(),
@@ -660,7 +756,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar para o mapa'));
     await tester.pump();
@@ -934,15 +1030,17 @@ void main() {
     final screenHeight =
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
-    // 0 stops → stays near collapsed.
+    // Rota ativa VAZIA → abre em medium (~0.40), NÃO colapsado: senão nascia
+    // sob o mapa e o PlatformView roubava o gesto da alça ("preso no mapa",
+    // fix de UX da Á3 confirmado no M54 2026-06-14). Ainda longe do expanded.
     final beforeRatio =
         tester.getSize(find.byType(AnimatedContainer).first).height /
             screenHeight;
     expect(
       beforeRatio,
-      lessThan(0.30),
-      reason:
-          'Sheet should start near collapsed with 0 stops (got $beforeRatio).',
+      allOf(greaterThan(0.30), lessThan(0.60)),
+      reason: 'Sheet com rota ativa vazia deve abrir em medium (~0.40), '
+          'não colapsado nem expanded (got $beforeRatio).',
     );
 
     // Add the first stop → ref.listen triggers auto-expand.
@@ -1049,6 +1147,12 @@ void main() {
 
   // MS-A6 Task 9 — H9/F4/H11 entrypoint tests (search pill + big button).
   _registerH9Tests();
+
+  // Dump-parity corrections (kr4.java baseline — 2026-06-18):
+  //   C1 — _mediumFraction ~0.50 (Spoke Default anchor = 0.5 × screenHeight)
+  //   C2 — PRE-CONFIRM opens at medium (~0.50), NOT inheriting DRAFT 0.90
+  //   C3 — GoogleMap.padding.bottom == sheet height (UpdateMapPaddingEffect)
+  _registerDumpParityTests();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1415,5 +1519,300 @@ void _registerH9Tests() {
 
     expect(find.text('Parada adicionada'), findsOneWidget);
     expect(find.text('Ver'), findsOneWidget);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dump-parity corrections (kr4.java baseline, 2026-06-18)
+//
+// C1 — _mediumFraction ~0.50 (Spoke Default anchor = 0.5 × screenHeight,
+//      proven by kr4.java measure lambda in VerticalDraggableSheet).
+//      Current production value is 0.40 → tests below pin it to ~0.50 ±0.02.
+//
+// C2 — PRE-CONFIRM sheet must open at medium (~0.50), NOT at expanded (0.90).
+//      Today the DRAFT auto-expand fires at 0.90, and PRE-CONFIRM inherits
+//      that fraction because there is no reset when the state flips. The mapa
+//      gets squished to 10% — "tampa o mapa" bug. Correct anchor = Default
+//      (medium, 0.50) per Spoke's PRE-CONFIRM entry.
+//
+// C3 — GoogleMap.padding.bottom must equal the current sheet height
+//      (mirrors Spoke's UpdateMapPaddingEffect / GoogleMap.setPadding).
+//      Today GoogleMap is constructed with no padding parameter (defaults to
+//      EdgeInsets.zero). Tests assert padding.bottom > 0 and ≈ fraction×height.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Builds a [ProviderScope] with a route seeded in PRE-CONFIRM state
+/// (optimization == optimized, confirmed == false, started == false).
+/// Uses [_wrapRouted]'s router-aware pattern so GoRouter sentinels are
+/// available (PreConfirmView's "Confirmar" button eventually pushes a route).
+Widget _wrapInPreConfirm({
+  List<domain.Stop> stops = const [],
+}) {
+  const preConfirmState = RouteState(
+    optimization: OptimizationState.optimized,
+    confirmed: false,
+    started: false,
+  );
+  final router = _buildSentinelRouter();
+  return ProviderScope(
+    overrides: [
+      currentUserProvider.overrideWithValue(kUserWithoutSub),
+      routesProvider.overrideWithValue([
+        domain.Route(
+          id: 'r-preconfirm',
+          date: DateTime(2026, 5, 27),
+          routeState: preConfirmState,
+          stops: stops,
+          totalDurationMinutes: 42,
+          totalDistanceMeters: 15000,
+        ),
+      ]),
+      activeRouteIdProvider.overrideWith(
+        () => _SeededActiveRouteId('r-preconfirm'),
+      ),
+    ],
+    child: MaterialApp.router(
+      theme: AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+      routerConfig: router,
+    ),
+  );
+}
+
+void _registerDumpParityTests() {
+  // ── C1: _mediumFraction pinned to ~0.50 (kr4.java Default anchor) ──────────
+
+  testWidgets(
+      'C1 — rota ativa vazia abre o sheet na âncora Default do Spoke (~0.50, '
+      'kr4.java): ratio deve estar em [0.48, 0.52]', (tester) async {
+    // Frame: 1080×3200 physical, DPR 2.0 → 540×1600 logical.
+    // _mediumFraction 0.50 → expected AnimatedContainer height = 800 logical px.
+    // Current production value is 0.40 → ratio ~0.40 → test will FAIL (red).
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Empty route → no stops → initState fires the medium branch.
+    await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
+    await tester.pumpAndSettle();
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheetHeight =
+        tester.getSize(find.byType(AnimatedContainer).first).height;
+    final ratio = sheetHeight / screenHeight;
+
+    // Spoke Default anchor = 0.5 × screenHeight (kr4.java, 2026-06-18).
+    // Tolerance ±0.02 absorbs bottom-inset rounding across device profiles.
+    expect(
+      ratio,
+      greaterThanOrEqualTo(0.48),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} is below 0.48 — '
+          '_mediumFraction is still 0.40 (needs to be updated to 0.50 '
+          'per kr4.java Default anchor).',
+    );
+    expect(
+      ratio,
+      lessThanOrEqualTo(0.52),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} exceeds 0.52 — '
+          'unexpected overshoot above the Default anchor.',
+    );
+  });
+
+  // ── C2: PRE-CONFIRM opens at medium (~0.50), NOT inheriting DRAFT 0.90 ─────
+
+  testWidgets(
+      'C2 — PRE-CONFIRM abre o sheet em medium (~0.50) deixando o mapa '
+      'visível — não herda 0.90 do DRAFT (tampa o mapa bug)', (tester) async {
+    // Frame: 1080×3200 physical, DPR 2.0 → 540×1600 logical.
+    // Scenario: a route that is ALREADY in PRE-CONFIRM when the shell mounts
+    // (e.g. user navigates back to the route after optimization completed).
+    // The auto-expand one-shot fired for 0 stops, then the state flipped to
+    // PRE-CONFIRM. Today the fraction stays at 0.90 from the DRAFT expand.
+    // After C2 fix the fraction must reset to _mediumFraction (0.50) when
+    // isPreConfirm becomes true — ratio expected in [0.48, 0.52].
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Seed with 2 stops in PRE-CONFIRM state. This exercises the realistic
+    // path: route had stops (triggering auto-expand to 0.90 in DRAFT), then
+    // the optimizer ran and isPreConfirm flipped to true. Without a reset the
+    // fraction stays at 0.90. With the fix it snaps back to _mediumFraction.
+    await tester.pumpWidget(_wrapInPreConfirm(stops: [_stop1, _stop2]));
+    await tester.pumpAndSettle();
+
+    // Confirm we are genuinely in PRE-CONFIRM (PreConfirmView rendered).
+    expect(
+      find.byType(PreConfirmView),
+      findsOneWidget,
+      reason: 'PreConfirmView must be present — route was not seeded in '
+          'PRE-CONFIRM state (optimization==optimized, confirmed==false).',
+    );
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheetHeight =
+        tester.getSize(find.byType(AnimatedContainer).first).height;
+    final ratio = sheetHeight / screenHeight;
+
+    // Must NOT be at expanded (0.90) — that squishes the map to 10%.
+    expect(
+      ratio,
+      lessThan(0.80),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} ≥ 0.80 — PRE-CONFIRM '
+          'inherited the DRAFT 0.90 expand; the map is hidden ("tampa o mapa"). '
+          'The shell must reset _sheetFraction to _mediumFraction when '
+          'isPreConfirm becomes true.',
+    );
+
+    // Must be at medium (~0.50 per C1 fix) — leaving ~50% of screen for map.
+    expect(
+      ratio,
+      greaterThanOrEqualTo(0.48),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} < 0.48 — PRE-CONFIRM '
+          'sheet is too small; expected medium (~0.50).',
+    );
+    expect(
+      ratio,
+      lessThanOrEqualTo(0.52),
+      reason: 'Sheet ratio ${ratio.toStringAsFixed(3)} > 0.52 — PRE-CONFIRM '
+          'sheet exceeds the Default anchor (0.50 ±0.02).',
+    );
+  });
+
+  // ── C3: GoogleMap.padding.bottom == sheet height (UpdateMapPaddingEffect) ───
+
+  testWidgets(
+      'C3 — GoogleMap recebe padding.bottom dinâmico igual à altura do sheet '
+      '(paridade UpdateMapPaddingEffect / setPadding do Spoke)',
+      (tester) async {
+    // Frame: 1080×3200 physical, DPR 2.0 → 540×1600 logical.
+    // After C1 fix: empty-route medium fraction = 0.50 → sheet height = 800 px.
+    // GoogleMap.padding.bottom must equal that height (800 logical px ±1).
+    // Today the GoogleMap is constructed without a padding parameter
+    // (EdgeInsets.zero default) → padding.bottom == 0 → test FAILS (red).
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
+    await tester.pumpAndSettle();
+
+    final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
+
+    // Primary assertion: padding.bottom must be > 0.
+    expect(
+      map.padding.bottom,
+      greaterThan(0),
+      reason: 'GoogleMap.padding.bottom is 0 — UpdateMapPaddingEffect not '
+          'wired. The map POI labels are obscured behind the sheet.',
+    );
+
+    // Secondary assertion: padding.bottom tracks the sheet height.
+    // After C1 fix the medium fraction = 0.50, so sheet height = 800 logical px
+    // on this frame. We compute the expected value the same way the shell does:
+    // mq.size.height × clampedFraction.
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheetHeight =
+        tester.getSize(find.byType(AnimatedContainer).first).height;
+    // ±1 px tolerance covers double→logical pixel rounding.
+    expect(
+      map.padding.bottom,
+      closeTo(sheetHeight, 1.0),
+      reason: 'GoogleMap.padding.bottom (${map.padding.bottom}) does not '
+          'match the current sheet height ($sheetHeight). '
+          'Expected screenHeight($screenHeight) × currentFraction ≈ $sheetHeight.',
+    );
+  });
+
+  // ── C4: auto-expand (0→1ª parada) sincroniza _mapPaddingFraction ────────────
+  //
+  // Bug (route_shell_page.dart:182): o listener ref.listen que dispara o
+  // auto-expand de 0→1ª parada faz apenas `setState(() => _sheetFraction =
+  // _expandedFraction)` sem atualizar `_mapPaddingFraction`. O sheet vai a 0.90
+  // mas GoogleMap.padding.bottom fica congelado em medium (~0.50 × screenHeight)
+  // — watermark e controles do mapa ficam atrás do sheet expandido. O desync
+  // persiste até o próximo drag-end ou transição de estado.
+
+  testWidgets(
+      'C4 — auto-expand (0→1ª parada) sincroniza GoogleMap.padding.bottom com '
+      'o sheet (não congela em medium)', (tester) async {
+    // Mesmo frame do H6-ii: 1080×2400 physical, DPR 2.0 → 540×1200 logical.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Mesmo container/setup do H6-ii — _MutableFakeRoutes permite que addStop
+    // propague via ref.listen e dispare o auto-expand one-shot.
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(kUserWithoutSub),
+        routesProvider.overrideWith(
+          () => _MutableFakeRoutes([
+            domain.Route(
+              id: 'r1',
+              date: DateTime(2026, 5, 27),
+            ),
+          ]),
+        ),
+        activeRouteIdProvider.overrideWith(() => _SeededActiveRouteId('r1')),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          routerConfig: _buildSentinelRouter(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final screenHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    // ── BEFORE: rota vazia → sheet em medium (~0.50 × screenHeight). ──────────
+    // Garante que o teste mede a TRANSIÇÃO, não apenas o estado final.
+    final mapBefore = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final expectedMedium = screenHeight * 0.50;
+    expect(
+      mapBefore.padding.bottom,
+      closeTo(expectedMedium, screenHeight * 0.02 + 1),
+      reason: 'BEFORE addStop: GoogleMap.padding.bottom '
+          '(${mapBefore.padding.bottom}) deveria ser ≈ medium '
+          '(${expectedMedium.toStringAsFixed(1)} = screenHeight×0.50). '
+          'Baseline de medium antes do auto-expand não confirmada.',
+    );
+
+    // ── Dispara o auto-expand: adiciona a 1ª parada (mesmo que H6-ii). ────────
+    container.read(routesProvider.notifier).addStop('r1', _stop1);
+    await tester.pumpAndSettle();
+
+    // ── AFTER: sheet em 0.90 → GoogleMap.padding.bottom DEVE acompanhar. ──────
+    // Bug na linha 182: setState só atualiza _sheetFraction, esquece
+    // _mapPaddingFraction → padding.bottom permanece congelado em medium (0.50).
+    final mapAfter = tester.widget<GoogleMap>(find.byType(GoogleMap));
+    final expectedExpanded = screenHeight * 0.90;
+    expect(
+      mapAfter.padding.bottom,
+      closeTo(expectedExpanded, screenHeight * 0.02 + 1),
+      reason: 'AFTER addStop (auto-expand 0→1ª parada): '
+          'GoogleMap.padding.bottom (${mapAfter.padding.bottom}) está '
+          'congelado em medium em vez de acompanhar o sheet expandido '
+          '(esperado ≈ ${expectedExpanded.toStringAsFixed(1)} = '
+          'screenHeight×0.90). '
+          'Bug: setState na linha 182 de route_shell_page.dart atualiza '
+          '_sheetFraction mas NÃO _mapPaddingFraction — desync persiste '
+          'até o próximo drag-end.',
+    );
   });
 }

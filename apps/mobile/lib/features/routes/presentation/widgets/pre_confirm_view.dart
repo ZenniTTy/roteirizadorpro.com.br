@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/delivery_id_chip.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_summary_row.dart';
@@ -14,6 +15,7 @@ class PreConfirmView extends StatelessWidget {
     required this.onRefine,
     required this.onConfirm,
     required this.onStopTap,
+    required this.onReoptimize,
     super.key,
   });
 
@@ -23,11 +25,23 @@ class PreConfirmView extends StatelessWidget {
   final VoidCallback onRefine;
   final VoidCallback onConfirm;
   final void Function(String stopId) onStopTap;
+  final VoidCallback onReoptimize;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Semantics(
+            label: 'Opções da rota',
+            button: true,
+            child: IconButton(
+              icon: const Icon(LucideIcons.moreVertical),
+              onPressed: onReoptimize,
+            ),
+          ),
+        ),
         RouteSummaryRow(
           durationMinutes: durationMinutes,
           stopsCount: stops.length,

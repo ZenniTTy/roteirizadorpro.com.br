@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../route_config/state/picker_mode.dart';
 import '../../state/place_autocomplete_provider.dart';
 import '../../state/search_query_provider.dart';
@@ -39,9 +40,7 @@ class _AddStopSearchBarState extends ConsumerState<AddStopSearchBar> {
   }
 
   void _onShowStub(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature em breve...')),
-    );
+    showAppSnackBar(context, '$feature em breve...');
   }
 
   void _onClear() {

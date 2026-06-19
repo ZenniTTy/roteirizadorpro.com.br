@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/rp_button.dart';
 import '../../../auth/state/auth_controller.dart';
 import '../../domain/route_action.dart';
@@ -142,9 +143,7 @@ class AppDrawer extends ConsumerWidget {
   }
 
   void _comingSoon(BuildContext context, String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$label — em breve')),
-    );
+    showAppSnackBar(context, '$label — em breve');
   }
 
   String _kebabActionLabel(RouteAction action) => switch (action) {

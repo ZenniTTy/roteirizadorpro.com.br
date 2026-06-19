@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../route_config/domain/route_config.dart';
 import '../../../route_config/state/picker_mode.dart';
 import '../../application/add_stop_ui_state.dart';
@@ -128,9 +129,7 @@ class AddStopPage extends ConsumerWidget {
   ) async {
     final activeRouteId = ref.read(activeRouteIdProvider);
     if (activeRouteId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nenhuma rota ativa selecionada.')),
-      );
+      showAppSnackBar(context, 'Nenhuma rota ativa selecionada.');
       return;
     }
 
@@ -160,7 +159,7 @@ class AddStopPage extends ConsumerWidget {
     } catch (e) {
       if (context.mounted) {
         messenger.hideCurrentSnackBar();
-        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+        showAppSnackBar(context, 'Erro: $e');
       }
     }
   }
@@ -176,7 +175,6 @@ class AddStopPage extends ConsumerWidget {
     WidgetRef ref,
     PlaceAutocompletePrediction p,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
     StartLocation? selected;
     try {
       final repo = ref.read(placesRepositoryProvider);
@@ -195,7 +193,7 @@ class AddStopPage extends ConsumerWidget {
       );
     } catch (e) {
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+        showAppSnackBar(context, 'Erro: $e');
       }
       return;
     }
@@ -215,7 +213,6 @@ class AddStopPage extends ConsumerWidget {
     WidgetRef ref,
     PlaceAutocompletePrediction p,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
     SpecificAddress? selected;
     try {
       final repo = ref.read(placesRepositoryProvider);
@@ -233,7 +230,7 @@ class AddStopPage extends ConsumerWidget {
       );
     } catch (e) {
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+        showAppSnackBar(context, 'Erro: $e');
       }
       return;
     }
@@ -252,7 +249,6 @@ class AddStopPage extends ConsumerWidget {
     WidgetRef ref,
     PlaceAutocompletePrediction p,
   ) async {
-    final messenger = ScaffoldMessenger.of(context);
     ({double lat, double lng, String streetName, String fullAddress})? selected;
     try {
       final repo = ref.read(placesRepositoryProvider);
@@ -268,7 +264,7 @@ class AddStopPage extends ConsumerWidget {
       );
     } catch (e) {
       if (context.mounted) {
-        messenger.showSnackBar(SnackBar(content: Text('Erro: $e')));
+        showAppSnackBar(context, 'Erro: $e');
       }
       return;
     }

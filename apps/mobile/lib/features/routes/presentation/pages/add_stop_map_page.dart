@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class AddStopMapPage extends StatelessWidget {
   const AddStopMapPage({super.key});
@@ -57,9 +58,9 @@ class AddStopMapPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   InkWell(
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Parada do mapa adicionada (Stub)')),
+                      showAppSnackBar(
+                        context,
+                        'Parada do mapa adicionada (Stub)',
                       );
                       context.pop();
                     },

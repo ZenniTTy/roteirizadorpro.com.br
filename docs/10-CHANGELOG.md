@@ -2,6 +2,55 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-18 — Área 7 PR-B2 fix de rota ativa no boot (mata "Nenhuma rota ativa selecionada")
+
+Code change (Á7 PR-B2, mesma branch). **Sem ADR nova** (`shared_preferences` já no pubspec — adr-guardian PASS). Construído dump-first: o smoke M54 reportou "Nenhuma rota ativa selecionada" ao adicionar parada (o tap na sugestão "não fazia nada"); a investigação no jadx (`ValidateActiveRoute`/`C2954g1.java`) deu o comportamento canônico antes do código.
+
+**Causa raiz:** o `activeRouteId` vivia só em memória Riverpod → sumia no restart do app → `/home` exibia o shell com rota ativa null → adicionar parada abortava no early-return. O Spoke NUNCA deixa o shell sem rota: persiste `activeRouteRef` (Firestore) e, no boot, valida via `ValidateActiveRoute` (restaura → mais recente por `lastEdited` → cria "Minha primeira rota").
+
+**O fix (fiel ao Spoke):** `ActiveRouteRepository` persiste o id em `SharedPreferencesAsync`; `resolveActiveRoute()` (chamado no `initState` do shell quando `activeRouteId==null`) faz restore→mais-recente→cria; `setActiveRoute` passa a persistir. Desempate de data prefere a rota não-completada (a que o motorista está rodando). Divergências conscientes de Slice 2: persistência local (não Firestore), `Route.date` como proxy de `lastEdited`, resolução one-shot (não Flow contínuo) — todas gated em Slice 3, registradas no TODO.
+
+**Regressão de teste domada:** `setActiveRoute` ganhou I/O (persiste), então qualquer teste que o aciona ou monta o shell precisa do `SharedPreferencesAsync` mockado. Helper compartilhado `test/_helpers/shared_prefs_async.dart` (`useInMemorySharedPreferencesAsync`, com tearDown que RESTAURA o platform instance estático — sem isso, um arquivo contaminava outro com "platform instance must be set"). Testes do shell atualizados à nova realidade (o shell sempre resolve uma rota).
+
+**Achado lateral confirmado no dump:** o botão "X" da busca de endereço do Spoke (`AddressPickerFragment`, Dialog full-screen) só LIMPA o texto; não há seta ◀ nem X de fechar — saída é pelo back do sistema. O RotPro já é fiel; nenhuma mudança.
+
+**Verificação:** `flutter test` **698** verde (696→698: +tie-breaker); `flutter analyze` sem lint novo. Gates: spoke-parity D4 GO (resolver fiel ao ValidateActiveRoute nos 3 ramos), verificação adversarial (6 hipóteses; must-fix H5 empate-de-data resolvido; H1 reentrância registrada como débito Slice-3), adr-guardian PASS. **Smoke M54 do fluxo completo: em validação** (rebuild no device). Commits `496d6a2`→`da7d2d9`.
+
+**Mudança de processo (Eduardo, 2026-06-18):** a partir da Á8, **mapa COMPLETO do dump por área ANTES de implementar** (esgotar fluxos/estados/gates/strings num doc, depois codar) — quebra o ciclo de descobrir gaps no device. Ver `feedback_dump_map_per_area_before_implementing` (memória).
+
+## 2026-06-18 — Área 7 PR-B2 fix de layout (PRE-CONFIRM deixava de tampar o mapa)
+
+Code change (Á7 PR-B2, mesma branch `feat/m2-slice-2-area-7-pr-b2`). **Sem ADR nova** — sem mudança de stack (só 3 edits em `route_shell_page.dart`). Construído dump-first: o smoke M54 (2026-06-14) reportou o sheet PRE-CONFIRM **tampando o mapa**; a investigação no jadx (`kr4.java` measure lambda + `C3509a.java` callsites + `DraggableSheetPosition` + `UpdateMapPaddingEffect`) **corrigiu uma premissa de arquitetura** antes de qualquer código.
+
+**A premissa corrigida:** um primeiro dump (runtime, 2026-05-28) registrou o Spoke como `Column { Expanded(map), sheet }` (mapa encolhe). Um segundo dump (jadx, esta sessão) leu o `Box{fillMaxSize}` do `MapLayout.kt` e concluiu "Stack + sheet flutuante + setPadding". Os dois discordavam. **A arbitragem (jadx `VerticalDraggableSheet.kt`/`C2651c.java`) provou que ambos os modelos superficiais estavam incompletos:** o sheet muda a **ALTURA** via `LayoutModifier`/swipeable (offset-Y do topo controla quanto o sheet ocupa de baixo; o anchor Default = `0.5f * altura` em `C2651c.java:163`), o sheet cresce de baixo, e mapa+sheet **NÃO se sobrepõem em layout**. Logo a `Column` do RotPro **já era** a tradução Flutter fiel — ir pra `Stack` re-introduziria o roubo de gesto do `EagerGestureRecognizer` (flutter#105994) que a Column matou em 2026-05-28. **Isto evitou uma re-arquitetura grande, arriscada e incorreta** — o dump-first profundo (não a inferência de bounds) foi o que salvou.
+
+**O fix (cirúrgico, não re-arquitetura) — 3 edits:**
+- `_mediumFraction` 0.40 → **0.50**: âncora "Default" do Spoke = `screenHeight * 0.5f` (exato no `C3509a.java:815`; o 0.40 anterior era inferido).
+- **PRE-CONFIRM abre/volta pra medium** (não herda a fração expandida 0.90 do DRAFT auto-expandido): `ref.listen` da transição `isPreConfirm` false→true (runtime) + cobertura do estado inicial no `initState` postFrame (o `ref.listen` não vê o valor inicial — lição recorrente). Deixa ~50% da tela pro mapa com a polyline + markers.
+- **`GoogleMap.padding(bottom)` dinâmico** (espelha `setPadding`/UpdateMapPaddingEffect — reposiciona watermark/controles do mapa), atualizado **só nos snaps** via campo `_mapPaddingFraction`, nunca a cada frame de drag (prop declarativa do GoogleMap dispara chamada Pigeon dart→Android por frame → jank; perf-auditor must-fix).
+
+**Gates:** `spoke-parity-checker` D4 dump-only — **zero must-fix** (âncora 0.50 exata, PRE-CONFIRM=`DraggableSheetPosition.Default`, map padding sem cap = todos confirmados no jadx; 1 should-fix pré-existente: expanded 0.90 vs ~1.0 do Spoke, fica pro polish). `flutter-perf-auditor` — must-fix do padding-por-frame **resolvido**.
+
+**Verification:** `flutter analyze` sem lint novo; `flutter test` **686** verde (683 → 686: +3 — C1 âncora medium 0.50, C2 PRE-CONFIRM≠0.90, C3 padding dinâmico; H6-i/ii/iii do DRAFT intactos). Commits `38b0bdb` (fix) + `9e4e5f5` (perf). **Smoke M54 do fix: pendente** (device desconectou no meio da revalidação). Débito registrado no `TODO.md` §Á7 PR-B2.
+
+## 2026-06-14 — Área 7 PR-B2 (mapa interativo: polyline + markers + kebab Reotimizar)
+
+Code change (Á7 PR-B2, branch `feat/m2-slice-2-area-7-pr-b2` → `develop`). **Sem ADR nova** — sem mudança de stack (`dart:ui` é stdlib; `google_maps_flutter` + `lucide_icons_flutter` já no pubspec). Construído dump-first: o relatório do `spoke-parity-checker` sobre `~/spoke-dump/jadx-out` (`MapController`/`PolylineGroup`/`StopMarkerLabel`/`MapToolbarControlsController`) precedeu a spec.
+
+**Dump-first corrigiu 2 premissas erradas do B1 ANTES de codificar:** (1) o trigger do Reotimizar é o **KEBAB** do PRE-CONFIRM (`more_options_reoptimize_route_title` → `ReoptimizeRouteDialog`), NÃO o toolbar do mapa/OrderStopGroups como o B1 registrara; (2) o marker do mapa mostra **endereço + (no Spoke) hora**, NÃO o chip A1..AN (que é exclusivo da lista). Sem o dump-first, ambas teriam virado divergência.
+
+**O que entrou:**
+- **`route_geometry.dart`** — `routePolylinePoints` (stops→`LatLng`, ignora `pendingRemoval`/G5) + `buildRoutePolylines` (2 `Polyline` sobrepostos: outer borda + inner preenchimento, cor token de marca = `borderBrandEmphasis` do Spoke, mas com a cor da MARCA por ADR-0035).
+- **`stop_marker_bitmap.dart`** — pino desenhado via `dart:ui` `Canvas` (`PictureRecorder`→`toImage`→`toByteData(png)`→`BitmapDescriptor.bytes`), SEM pacote. Context7 (`/flutter/website`) confirmou o pipeline + que `fromBytes` está deprecado. Dispose dos recursos nativos (`picture`/`image`/`paragraph`) em try/finally (evita vazamento). Erro observável em vez de `bytes!`.
+- **`routeMapMarkersProvider`** (`@riverpod` async) + **`StopMarkerBitmapCache`** (`keepAlive`, cache por label — sobrevive às invalidações, não regenera PNG a cada reotimização) + geração **paralela** (`Future.wait`).
+- **Wire no shell:** polyline E markers DERIVADOS do estado, **gateados em `isPreConfirm`** (só na rota otimizada — paridade Spoke); kebab no `PreConfirmView` (`LucideIcons.moreVertical`) → `_onReoptimize` (espelha `_onRefine`: `update`→reorderFlexible, `reoptimize`→restartRoute, erro tratado, sem bug silencioso).
+
+**Decisões conscientes (ADR-0010/0035 + boas práticas, NÃO são gaps):** (a) **marker mostra identificação, NÃO hora** — o solver local dá tempo geométrico grosseiro; "hora estimada" derivada dele enganaria o motorista; ETA real é Slice 3 (GraphHopper); (b) marker via `BitmapDescriptor` nativo (Spoke usa overlay Compose) — divergência de implementação, não de comportamento; (c) cor da polyline = token de marca, não a cor raw do Spoke.
+
+**Gates:** `flutter-perf-auditor` — must-fix `routeMapMarkersProvider` regerava todos os bitmaps a cada reotimização → cache `keepAlive` + `Future.wait`; should-fix de memoização da polyline no drag NÃO aplicado (O(n) síncrono é barato — débito). `spoke-parity-checker` D4 dump-only — must-fix markers apareciam no DRAFT → gate `isPreConfirm`; 3 ícones Material → Lucide (`moreVertical`/`refreshCw`/`sparkles`). `adr-guardian` PASS (zero dep nova). **Workflow de verificação final (3 dimensões adversariais) = GO:** anti-regressão dos fixes PASS, stack PASS, completude CONCERNS (débito de teste de `_onReoptimize`/gate — simétrico ao `_onRefine` do B1, coberto por controller-isolado + diálogos + smoke M54; declarado no TODO).
+
+**Verification:** `flutter analyze` sem lint novo; `flutter test` **683** verde (670 → 683: +13, incl. cache de bitmap). Smoke E2E no M54 (golden path: otimizar → polyline + markers → kebab Reotimizar → Recalcular → redesenha). Débito declarado no `TODO.md` §Á7 PR-B2 (6 itens, incl. débito de teste honesto).
+
 ## 2026-06-14 — Área 7 PR-B1 (PRE-CONFIRM estrutura: aplicar otimização + FTUE + Refinar/Reotimizar + G5)
 
 Code change (Á7 PR-B1, branch `feat/m2-slice-2-area-7-pre-confirm` → `develop`). **Sem ADR nova** — sem mudança de stack (`shared_preferences` já no pubspec; o provider FTUE usa o idiom `SharedPreferencesAsync` existente). Construído dump-first: a microcopy foi re-conferida 1:1 contra `~/spoke-dump/res-decoded/res/values-pt-rBR/strings.xml` ANTES de codificar.

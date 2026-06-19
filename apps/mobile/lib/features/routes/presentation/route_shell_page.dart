@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../route_config/domain/route_config.dart';
 import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
@@ -13,6 +14,7 @@ import '../data/location_service.dart';
 import '../domain/optimization/route_optimizer.dart';
 import '../domain/optimize_direction.dart';
 import '../domain/optimize_type.dart';
+import '../domain/route_geometry.dart';
 import '../domain/stop.dart';
 import '../state/active_route_provider.dart';
 import '../state/active_route_state_provider.dart';
@@ -20,6 +22,7 @@ import '../state/current_route_stops_provider.dart';
 import '../state/map_controls_controller.dart';
 import '../state/optimization_controller.dart';
 import '../state/optimization_ftue_repository.dart';
+import '../state/route_map_markers_provider.dart';
 import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
 import 'widgets/id_education_dialog.dart';
@@ -28,6 +31,7 @@ import 'widgets/optimization_error_dialog.dart';
 import 'widgets/optimize_cta.dart';
 import 'widgets/pre_confirm_view.dart';
 import 'widgets/refine_route_sheet.dart';
+import 'widgets/reoptimize_options_sheet.dart';
 
 /// Shell that hosts the active route's map + sheet.
 ///
@@ -54,6 +58,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   double _sheetFraction = 0.18;
   double? _dragStartFraction;
 
+  // Fração que alimenta o `GoogleMap.padding` — atualizada SÓ nos snaps
+  // (início/fim de drag, transições de estado), NUNCA a cada frame de drag.
+  // `GoogleMap.padding` é prop declarativa: mudá-la dispara uma chamada de
+  // canal Pigeon (dart→Android) por frame; a 120 Hz isso é jank no próprio
+  // gesto de arrasto (perf-auditor must-fix). Durante o drag esta fração fica
+  // congelada no valor de início; ao soltar, snapa pro destino de uma vez —
+  // o watermark/controles do mapa reposicionam num único reposition, não 120.
+  double _mapPaddingFraction = 0.18;
+
   static const CameraPosition _initialPosition = CameraPosition(
     target: LatLng(-23.550520, -46.633308),
     zoom: 13.0,
@@ -61,7 +74,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
 
   // Frações canônicas dos 3 snaps (calculadas dinamicamente em build):
   late double _collapsedFraction;
-  static const double _mediumFraction = 0.40;
+  // Âncora "Default" do sheet do Spoke = 0.5 × altura do container (dump jadx
+  // v3.65.1, `C2651c.java:163` = VerticalDraggableSheet.kt: o fallback do
+  // anchor Default é `f2 = 0.5f * fMo40792g`, onde `fMo40792g` é a altura
+  // disponível). É offset-Y do topo do sheet em 0.5×H → o sheet ocupa a metade
+  // de baixo, numericamente equivalente a esta fração. Mesma âncora do
+  // PRE-CONFIRM (deixa ~50% pro mapa). Era 0.40 (inferido) antes do dump.
+  static const double _mediumFraction = 0.50;
   static const double _expandedFraction = 0.90;
 
   // One-shot do auto-expand (H6): quando a rota ativa ganha a 1ª parada (ou o
@@ -69,22 +88,101 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   // posterior não é revertido.
   bool _hasAutoExpanded = false;
 
+  // Última rota ativa observada — quando muda (entrou numa rota nova, mesmo
+  // VAZIA), o sheet abre em medium e o one-shot de expand é re-armado. Sem
+  // isto, criar uma rota vazia deixava o sheet colapsado sobre o mapa: o
+  // GoogleMap (PlatformView) intercepta o gesto de arrasto da alça, então o
+  // usuário não conseguia subir o sheet pra ver a config/"Adicionar parada" e
+  // parecia "preso no mapa" (bug de UX da Á3 confirmado no M54 2026-06-14).
+  String? _lastActiveRouteId;
+
   @override
   void initState() {
     super.initState();
-    // Cobertura do caso "shell monta com rota ativa que JÁ tem stops" (H6-i):
-    // o ref.listen do build só vê transições, não o estado inicial.
+    // Cobertura do estado INICIAL (o ref.listen do build só vê transições):
+    //  - rota ativa JÁ em PRE-CONFIRM (ex: voltou pra rota já otimizada) →
+    //    medium (~0.50), pra não nascer expandido tampando o mapa — mesma
+    //    âncora Default que o listener de isPreConfirm aplica em runtime;
+    //  - rota ativa JÁ com stops (DRAFT) → expand (H6-i);
+    //  - rota ativa VAZIA → medium, pra não nascer colapsado sob o mapa (o
+    //    PlatformView do GoogleMap rouba o gesto da alça — "preso no mapa").
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _hasAutoExpanded) return;
-      if (ref.read(currentRouteStopsProvider).isNotEmpty) {
-        _hasAutoExpanded = true;
-        setState(() => _sheetFraction = _expandedFraction);
+      if (!mounted) return;
+      final activeId = ref.read(activeRouteIdProvider);
+      if (activeId == null) {
+        // Shell montou sem rota ativa (ex: cold start — o id vive em memória e
+        // some no restart). Resolve fiel ao Spoke (ValidateActiveRoute):
+        // restaura do disco → mais recente → cria. O `ref.listen` do build põe
+        // o sheet em medium na transição null→id resultante. Sem isto, o
+        // add-stop falharia com "Nenhuma rota ativa selecionada".
+        ref.read(activeRouteIdProvider.notifier).resolveActiveRoute();
+        return;
       }
+      _lastActiveRouteId = activeId;
+      if (_hasAutoExpanded) return;
+      final isPreConfirm =
+          ref.read(activeRouteStateProvider)?.isPreConfirm ?? false;
+      if (isPreConfirm) {
+        // PRE-CONFIRM nasce em medium; o auto-expand do DRAFT (H6) não se
+        // aplica — o foco aqui é deixar o mapa (polyline + markers) visível.
+        setState(() {
+          _sheetFraction = _mediumFraction;
+          _mapPaddingFraction = _mediumFraction;
+        });
+        _hasAutoExpanded = true;
+        return;
+      }
+      final hasStops = ref.read(currentRouteStopsProvider).isNotEmpty;
+      setState(() {
+        _sheetFraction = hasStops ? _expandedFraction : _mediumFraction;
+        _mapPaddingFraction = _sheetFraction;
+      });
+      if (hasStops) _hasAutoExpanded = true;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Entrou numa rota ativa NOVA (null→id ou id→outro id), mesmo vazia → abre o
+    // sheet em medium e re-arma o one-shot de expand-na-1ª-parada. Resolve o
+    // "preso no mapa" ao criar rota vazia (ver `_lastActiveRouteId`).
+    ref.listen<String?>(activeRouteIdProvider, (previous, next) {
+      if (next != null && next != _lastActiveRouteId) {
+        _lastActiveRouteId = next;
+        _hasAutoExpanded = false;
+        setState(() {
+          _sheetFraction = _mediumFraction;
+          _mapPaddingFraction = _mediumFraction;
+        });
+      } else if (next == null) {
+        _lastActiveRouteId = null;
+      }
+    });
+
+    // Transição DRAFT→PRE-CONFIRM (rota otimizada) → o sheet volta pra âncora
+    // "Default" do Spoke (medium ~0.50), deixando ~50% da tela pro mapa com o
+    // polyline + markers numerados. Sem isto, o sheet herdava a fração
+    // expandida (0.90) do DRAFT auto-expandido (H6) e TAMPAVA o mapa no
+    // PRE-CONFIRM (bug reportado no smoke M54 2026-06-14). É a mesma âncora
+    // Default que o Spoke usa no PRE-CONFIRM (dump jadx `C2651c.java:163`).
+    //
+    // PAR OBRIGATÓRIO: este listener cobre a transição EM RUNTIME (otimizou
+    // durante a sessão); o bloco postFrame no `initState` cobre o estado
+    // INICIAL (montou já em PRE-CONFIRM — ex: voltou pra rota otimizada),
+    // porque `ref.listen` NÃO dispara para o valor inicial do provider. Não
+    // remova um sem o outro, ou o caso não coberto regride silenciosamente.
+    ref.listen<bool>(
+      activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
+      (previous, next) {
+        if (next == true && previous == false) {
+          setState(() {
+            _sheetFraction = _mediumFraction;
+            _mapPaddingFraction = _mediumFraction;
+          });
+        }
+      },
+    );
+
     // Transição 0→≥1 na contagem de stops da rota ativa → auto-expand
     // one-shot (H6-ii). `_hasAutoExpanded` impede re-disparo (H6-iii).
     ref.listen<int>(
@@ -92,7 +190,13 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
       (previous, next) {
         if (next >= 1 && !_hasAutoExpanded) {
           _hasAutoExpanded = true;
-          setState(() => _sheetFraction = _expandedFraction);
+          // Este é um ponto de snap: o padding do mapa acompanha junto, senão
+          // ficaria congelado no valor anterior (medium) enquanto o sheet vai
+          // a expanded → watermark/controles do mapa atrás do sheet.
+          setState(() {
+            _sheetFraction = _expandedFraction;
+            _mapPaddingFraction = _expandedFraction;
+          });
         }
       },
     );
@@ -146,6 +250,22 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final isPreConfirm = ref.watch(
       activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
     );
+    final routePolylines = isPreConfirm
+        ? buildRoutePolylines(
+            routePolylinePoints(stops),
+            fill: AppColors.primary,
+            border: AppColors.bg,
+          )
+        : const <Polyline>{};
+    // Markers da rota (async — o bitmap é desenhado fora do build). Enquanto
+    // gera, o mapa renderiza sem markers (sem bloquear/flicker). Aparecem
+    // quando prontos. A lógica (N stops, ignora pendingRemoval) vive no provider.
+    // Gate em `isPreConfirm` (paridade Spoke — spoke-parity D4 must-fix): os
+    // pinos numerados só aparecem quando a rota está OTIMIZADA. No DRAFT a ordem
+    // ainda não significa nada, então os números confundiriam o motorista.
+    final routeMarkers = isPreConfirm
+        ? (ref.watch(routeMapMarkersProvider).value ?? const <Marker>{})
+        : const <Marker>{};
     final activeMetrics = activeRouteId == null
         ? null
         : ref.watch(
@@ -206,6 +326,18 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     child: GoogleMap(
                       mapType: mapType,
                       initialCameraPosition: _initialPosition,
+                      // Padding inferior = altura do sheet NO ÚLTIMO SNAP
+                      // (`_mapPaddingFraction`, não `clampedFraction`, que muda
+                      // a cada frame de drag). Reposiciona o watermark "Google",
+                      // o logo e os controles nativos do mapa ACIMA do sheet.
+                      // Espelha o `GoogleMap.setPadding(bottom)` do Spoke
+                      // (UpdateMapPaddingEffect, dump jadx v3.65.1) — que também
+                      // reposiciona por estado, não por frame.
+                      padding: EdgeInsets.only(
+                        bottom: mq.size.height * _mapPaddingFraction,
+                      ),
+                      polylines: routePolylines,
+                      markers: routeMarkers,
                       onMapCreated: (GoogleMapController controller) {
                         _controller.complete(controller);
                       },
@@ -280,6 +412,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     distanceMeters: activeMetrics?.distance ?? 0.0,
                     onRefine: _onRefine,
                     onConfirm: _onConfirm,
+                    onReoptimize: _onReoptimize,
                     onStopTap: activeRouteId == null
                         ? (_) {}
                         : (stopId) => context.push(
@@ -310,6 +443,9 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     },
                     onHandleDragUpdate: (delta) {
                       if (_dragStartFraction == null) return;
+                      // Só o sheet acompanha o dedo frame-a-frame; o
+                      // `_mapPaddingFraction` fica congelado (ver campo) pra
+                      // não disparar uma chamada de plataforma por frame.
                       setState(() {
                         _sheetFraction =
                             (_sheetFraction - delta / mq.size.height).clamp(
@@ -320,7 +456,12 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                     },
                     onHandleDragEnd: (velocity) {
                       _dragStartFraction = null;
-                      setState(() => _sheetFraction = _snapTo(velocity));
+                      setState(() {
+                        _sheetFraction = _snapTo(velocity);
+                        // Snap resolvido → o padding do mapa acompanha agora,
+                        // num único reposition.
+                        _mapPaddingFraction = _sheetFraction;
+                      });
                     },
                   ),
           ),
@@ -333,22 +474,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   /// confirms the new state with an original-microcopy toast (ADR-0035 — not
   /// Spoke's verbatim "Satélite ativado/desativado", but the same two states).
   Future<void> _onToggleMapType() async {
-    final messenger = ScaffoldMessenger.of(context);
     await ref.read(mapControlsControllerProvider.notifier).toggleMapType();
     if (!mounted) return;
     final isSatellite =
         ref.read(mapControlsControllerProvider).value?.mapType ==
             MapType.satellite;
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            isSatellite ? 'Modo Satélite ativado' : 'Modo Mapa ativado',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    showAppSnackBar(
+      context,
+      isSatellite ? 'Modo Satélite ativado' : 'Modo Mapa ativado',
+    );
   }
 
   /// Recenter (Spoke `ReCenterButtonClick`). Resolves the device location and,
@@ -356,7 +490,6 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   /// with a toast when permission is denied or the position is unavailable —
   /// never throws (mirrors `EditRouteViewModel.m9428W`'s no-permission branch).
   Future<void> _onRecenter() async {
-    final messenger = ScaffoldMessenger.of(context);
     final result = await ref.read(locationServiceProvider).currentLocation();
     if (!mounted) return;
 
@@ -374,23 +507,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
           CameraUpdate.newLatLng(LatLng(latitude, longitude)),
         );
       case LocationDenied():
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Permita o acesso à localização para centralizar no mapa.',
-              ),
-            ),
-          );
+        showAppSnackBar(
+          context,
+          'Permita o acesso à localização para centralizar no mapa.',
+        );
       case LocationUnavailable():
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível obter sua localização agora.'),
-            ),
-          );
+        showAppSnackBar(
+          context,
+          'Não foi possível obter sua localização agora.',
+        );
     }
   }
 
@@ -409,25 +534,21 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
 
     switch (result) {
       case final String newStopId:
-        final messenger = ScaffoldMessenger.of(context);
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: const Text('Parada adicionada'),
-              action: SnackBarAction(
-                label: 'Ver',
-                onPressed: () {
-                  messenger.hideCurrentSnackBar();
-                  if (!mounted) return;
-                  context.push(
-                    '/home/routes/active/$activeRouteId'
-                    '/stops/$newStopId/edit?new=1',
-                  );
-                },
-              ),
-            ),
-          );
+        showAppSnackBar(
+          context,
+          'Parada adicionada',
+          action: SnackBarAction(
+            label: 'Ver',
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              if (!mounted) return;
+              context.push(
+                '/home/routes/active/$activeRouteId'
+                '/stops/$newStopId/edit?new=1',
+              );
+            },
+          ),
+        );
       case (editStopId: final String stopId):
         context.push(
           '/home/routes/active/$activeRouteId/stops/$stopId/edit',
@@ -473,9 +594,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
           case OptimizationErrorChoice.retry:
             await _onOptimize();
           case OptimizationErrorChoice.skip:
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Otimização pulada por enquanto.')),
-            );
+            showAppSnackBar(context, 'Otimização pulada por enquanto.');
           case null:
             break; // diálogo dispensado (barrier/back) — sem ação
         }
@@ -494,11 +613,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             // "Ajustar formato" leva ao formato do ID (Á10) — honest-stub aqui.
             await ftue.acknowledgeNumbering();
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Ajuste de formato do ID — em breve.'),
-              ),
-            );
+            showAppSnackBar(context, 'Ajuste de formato do ID — em breve.');
           }
           // choice == null (barrier/back): não marca o FTUE; reaparece na
           // próxima otimização — aceitável (sem estado órfão).
@@ -547,9 +662,40 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             await showNotEnoughStopsDialog(context);
         }
       case RefineRouteChoice.manualOrder:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ordenar no mapa — em breve.')),
-        );
+        showAppSnackBar(context, 'Ordenar no mapa — em breve.');
+    }
+  }
+
+  /// Kebab "Reotimizar rota..." do PRE-CONFIRM → sheet {Atualizar / Recalcular}.
+  /// `update` reordena só o que mudou (reorderFlexible); `reoptimize` recalcula
+  /// do zero (restartRoute). Espelha o `_onRefine` (mesmo tratamento de erro).
+  Future<void> _onReoptimize() async {
+    final choice = await showReoptimizeOptionsSheet(context);
+    if (!mounted || choice == null) return;
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    final stops = ref.read(currentRouteStopsProvider);
+    if (stops.isEmpty) return;
+    final type = switch (choice) {
+      ReoptimizeChoice.update => OptimizeType.reorderFlexible,
+      ReoptimizeChoice.reoptimize => OptimizeType.restartRoute,
+    };
+    final outcome =
+        await ref.read(optimizationControllerProvider.notifier).optimize(
+              start: GeoPoint(stops.first.lat, stops.first.lng),
+              stops: stops,
+              type: type,
+            );
+    if (!mounted) return;
+    switch (outcome) {
+      case OptimizationSuccess(:final result):
+        ref.read(routesProvider.notifier).applyOptimization(routeId, result);
+      case OptimizationFailure():
+        final retry = await showOptimizationErrorDialog(context);
+        if (!mounted) return;
+        if (retry == OptimizationErrorChoice.retry) await _onReoptimize();
+      case NotEnoughStops():
+        await showNotEnoughStopsDialog(context);
     }
   }
 
@@ -557,11 +703,9 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   /// Honest-stub observável: NÃO grava `confirmed:true` ainda (sem destino
   /// Ready-to-Run o estado ficaria órfão).
   void _onConfirm() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('Tudo certo — a confirmação final chega na próxima etapa.'),
-      ),
+    showAppSnackBar(
+      context,
+      'Tudo certo — a confirmação final chega na próxima etapa.',
     );
   }
 
@@ -571,7 +715,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   ///   - Sem flick claro → snap-to-nearest na fração atual.
   ///
   /// O snap-to-nearest puro (que tinha antes) tornava a transição
-  /// mid → expanded relutante: como mid (0.40) está mais perto de
+  /// mid → expanded relutante: como mid (0.50) está mais perto de
   /// collapsed (0.18) que de expanded (0.90), qualquer arrasto suave
   /// voltava pro mid. Direction-based resolve: qualquer flick pra cima
   /// já promove ao próximo snap maior, igual Spoke.
@@ -1046,9 +1190,7 @@ class _ActiveRouteSheet extends StatelessWidget {
   }
 
   void _comingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature em breve')),
-    );
+    showAppSnackBar(context, '$feature em breve');
   }
 }
 

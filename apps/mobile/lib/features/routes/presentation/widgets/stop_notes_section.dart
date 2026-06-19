@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../domain/stop.dart';
 import '../../state/routes_provider.dart';
 
@@ -96,27 +97,20 @@ class _StopNotesSectionState extends ConsumerState<StopNotesSection> {
   }
 
   Future<void> _takePhoto() async {
-    final messenger = ScaffoldMessenger.of(context);
     XFile? picked;
     try {
       picked = await ref.read(cameraPickerProvider)();
     } on PlatformException {
       // Permissão negada (camera_access_denied) ou erro do plugin — degrada
       // com toast, sem mudança de estado (H17, padrão _onRecenter).
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Não foi possível usar a câmera agora.'),
-          ),
-        );
+      if (!mounted) return;
+      showAppSnackBar(context, 'Não foi possível usar a câmera agora.');
       return;
     }
+    if (!mounted) return;
     if (picked == null) {
       // Cancelamento: sem mudança de estado (H17).
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Foto cancelada.')));
+      showAppSnackBar(context, 'Foto cancelada.');
       return;
     }
     final store = ref.read(packagePhotoStoreProvider);
@@ -125,11 +119,7 @@ class _StopNotesSectionState extends ConsumerState<StopNotesSection> {
     if (!mounted) return;
     if (savedPath == null) {
       // Falha de I/O ao copiar — nunca drop silencioso (H15).
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Não foi possível salvar a foto.')),
-        );
+      showAppSnackBar(context, 'Não foi possível salvar a foto.');
       return;
     }
     final current = _currentStop;
