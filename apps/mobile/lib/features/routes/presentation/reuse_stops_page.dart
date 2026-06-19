@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../domain/route.dart' as rp_route;
 import '../state/routes_provider.dart';
 
@@ -201,10 +202,9 @@ class _ReuseStopsPageState extends ConsumerState<ReuseStopsPage> {
                   onPressed: canCopy
                       ? () {
                           // Simular cópia
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Paradas copiadas com sucesso! (Simulação)')),
+                          showAppSnackBar(
+                            context,
+                            'Paradas copiadas com sucesso! (Simulação)',
                           );
                           context.go('/home');
                         }

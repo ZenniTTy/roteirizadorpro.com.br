@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 import '../../../settings/data/settings_repository.dart';
 import '../../../settings/state/settings_controller.dart';
 import '../../domain/optimization_state.dart';
@@ -56,9 +57,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
   bool _popScheduled = false;
 
   void _stub(String feature) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$feature em breve')));
+    showAppSnackBar(context, '$feature em breve');
   }
 
   /// Instruções de acesso (F13/H18): pré-preenche com a instrução desta

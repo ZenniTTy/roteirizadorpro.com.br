@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_snackbar.dart';
 import '../../route_config/domain/route_config.dart';
 import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
@@ -473,22 +474,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   /// confirms the new state with an original-microcopy toast (ADR-0035 — not
   /// Spoke's verbatim "Satélite ativado/desativado", but the same two states).
   Future<void> _onToggleMapType() async {
-    final messenger = ScaffoldMessenger.of(context);
     await ref.read(mapControlsControllerProvider.notifier).toggleMapType();
     if (!mounted) return;
     final isSatellite =
         ref.read(mapControlsControllerProvider).value?.mapType ==
             MapType.satellite;
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            isSatellite ? 'Modo Satélite ativado' : 'Modo Mapa ativado',
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+    showAppSnackBar(
+      context,
+      isSatellite ? 'Modo Satélite ativado' : 'Modo Mapa ativado',
+    );
   }
 
   /// Recenter (Spoke `ReCenterButtonClick`). Resolves the device location and,
@@ -496,7 +490,6 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   /// with a toast when permission is denied or the position is unavailable —
   /// never throws (mirrors `EditRouteViewModel.m9428W`'s no-permission branch).
   Future<void> _onRecenter() async {
-    final messenger = ScaffoldMessenger.of(context);
     final result = await ref.read(locationServiceProvider).currentLocation();
     if (!mounted) return;
 
@@ -514,23 +507,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
           CameraUpdate.newLatLng(LatLng(latitude, longitude)),
         );
       case LocationDenied():
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Permita o acesso à localização para centralizar no mapa.',
-              ),
-            ),
-          );
+        showAppSnackBar(
+          context,
+          'Permita o acesso à localização para centralizar no mapa.',
+        );
       case LocationUnavailable():
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível obter sua localização agora.'),
-            ),
-          );
+        showAppSnackBar(
+          context,
+          'Não foi possível obter sua localização agora.',
+        );
     }
   }
 
@@ -549,25 +534,21 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
 
     switch (result) {
       case final String newStopId:
-        final messenger = ScaffoldMessenger.of(context);
-        messenger
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: const Text('Parada adicionada'),
-              action: SnackBarAction(
-                label: 'Ver',
-                onPressed: () {
-                  messenger.hideCurrentSnackBar();
-                  if (!mounted) return;
-                  context.push(
-                    '/home/routes/active/$activeRouteId'
-                    '/stops/$newStopId/edit?new=1',
-                  );
-                },
-              ),
-            ),
-          );
+        showAppSnackBar(
+          context,
+          'Parada adicionada',
+          action: SnackBarAction(
+            label: 'Ver',
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              if (!mounted) return;
+              context.push(
+                '/home/routes/active/$activeRouteId'
+                '/stops/$newStopId/edit?new=1',
+              );
+            },
+          ),
+        );
       case (editStopId: final String stopId):
         context.push(
           '/home/routes/active/$activeRouteId/stops/$stopId/edit',
@@ -613,9 +594,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
           case OptimizationErrorChoice.retry:
             await _onOptimize();
           case OptimizationErrorChoice.skip:
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Otimização pulada por enquanto.')),
-            );
+            showAppSnackBar(context, 'Otimização pulada por enquanto.');
           case null:
             break; // diálogo dispensado (barrier/back) — sem ação
         }
@@ -634,11 +613,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             // "Ajustar formato" leva ao formato do ID (Á10) — honest-stub aqui.
             await ftue.acknowledgeNumbering();
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Ajuste de formato do ID — em breve.'),
-              ),
-            );
+            showAppSnackBar(context, 'Ajuste de formato do ID — em breve.');
           }
           // choice == null (barrier/back): não marca o FTUE; reaparece na
           // próxima otimização — aceitável (sem estado órfão).
@@ -687,9 +662,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
             await showNotEnoughStopsDialog(context);
         }
       case RefineRouteChoice.manualOrder:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ordenar no mapa — em breve.')),
-        );
+        showAppSnackBar(context, 'Ordenar no mapa — em breve.');
     }
   }
 
@@ -730,11 +703,9 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   /// Honest-stub observável: NÃO grava `confirmed:true` ainda (sem destino
   /// Ready-to-Run o estado ficaria órfão).
   void _onConfirm() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:
-            Text('Tudo certo — a confirmação final chega na próxima etapa.'),
-      ),
+    showAppSnackBar(
+      context,
+      'Tudo certo — a confirmação final chega na próxima etapa.',
     );
   }
 
@@ -744,7 +715,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   ///   - Sem flick claro → snap-to-nearest na fração atual.
   ///
   /// O snap-to-nearest puro (que tinha antes) tornava a transição
-  /// mid → expanded relutante: como mid (0.40) está mais perto de
+  /// mid → expanded relutante: como mid (0.50) está mais perto de
   /// collapsed (0.18) que de expanded (0.90), qualquer arrasto suave
   /// voltava pro mid. Direction-based resolve: qualquer flick pra cima
   /// já promove ao próximo snap maior, igual Spoke.
@@ -1219,9 +1190,7 @@ class _ActiveRouteSheet extends StatelessWidget {
   }
 
   void _comingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature em breve')),
-    );
+    showAppSnackBar(context, '$feature em breve');
   }
 }
 

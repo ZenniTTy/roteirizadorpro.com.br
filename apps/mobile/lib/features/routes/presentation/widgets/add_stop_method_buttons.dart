@@ -3,14 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/app_snackbar.dart';
 
 class AddStopMethodButtons extends StatelessWidget {
   const AddStopMethodButtons({super.key});
 
   void _onShowStub(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature em breve...')),
-    );
+    showAppSnackBar(context, '$feature em breve...');
   }
 
   @override
