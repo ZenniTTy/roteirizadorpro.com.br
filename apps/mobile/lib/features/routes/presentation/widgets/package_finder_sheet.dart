@@ -26,7 +26,7 @@ typedef PackageFinderSelection = ({
 ///     chip-group tipo (Caixa/Sacola/Carta). Single-select; tap no chip já
 ///     selecionado desseleciona (componente volta a null).
 ///   - 'Lugar no veículo': 3 chip-rows: Y Frente/Meio/Atrás; X Esquerda/
-///     Direita (microcopy nossa corrige o typo 'Direta' do dump — ADR-0010);
+///     Direita (microcopy nossa corrige o typo 'Direta' do dump);
 ///     Z Chão/Prateleira. Mesmo toggle.
 ///
 /// Semantics H19: cada chip com identifier `finder_chip_<enumName>`.

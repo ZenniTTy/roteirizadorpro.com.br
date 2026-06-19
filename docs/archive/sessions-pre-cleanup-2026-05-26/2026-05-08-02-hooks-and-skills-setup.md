@@ -8,7 +8,7 @@
 - **Human**: Eduardo
 - **Topic**: hooks-and-skills-setup
 - **Duration**: ~2h
-- **Related ADRs**: ADR-0010 (clone positioning — referenced by `prototype-fidelity-checker`), ADR-0011 (Bun — referenced by hook scripts)
+- **Related ADRs**: ADR-0011 (Bun — referenced by hook scripts)
 - **Related TODO items**: discovered tasks added (stripe disable, lefthook reconciliation, naming convention mismatch).
 
 ## Goal of the Session

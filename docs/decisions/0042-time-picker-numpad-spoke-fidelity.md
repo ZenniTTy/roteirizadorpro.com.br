@@ -3,7 +3,7 @@
 - **Status:** Accepted (supersedes [ADR-0041](./0041-wheel-picker-time-drum.md))
 - **Date:** 2026-06-03
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (functional fork), ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0037 (Maestro MCP), ADR-0041 (superseded — wheel_picker)
+- **Related ADRs:** ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0037 (Maestro MCP), ADR-0041 (superseded — wheel_picker)
 
 ## Context
 

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Linha de resumo do PRE-CONFIRM: "Xh Ymin · N paradas · Z,Z km". DISPLAY puro
 /// (G4) — NÃO é clicável (sem InkWell/GestureDetector/Semantics(button)). A
-/// estrutura (tempo+paradas+distância) espelha o overview do Spoke; o texto é
-/// microcopy PT-BR original.
+/// estrutura (tempo+paradas+distância) espelha o overview do Spoke.
 class RouteSummaryRow extends StatelessWidget {
   const RouteSummaryRow({
     required this.durationMinutes,

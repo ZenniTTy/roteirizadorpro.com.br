@@ -296,7 +296,7 @@ class _EditStopPageState extends ConsumerState<EditStopPage> {
   ///     a parada fica na lista até a próxima otimização (o solver a exclui).
   ///   - Rota DRAFT: remoção IMEDIATA (`removeStop` + pop do editor — Área 6).
   /// O Spoke ramifica em `StopActionsController.onDeleteStopClick` por
-  /// `optimization == OPTIMIZED`; microcopy PT-BR original (ADR-0010/0035).
+  /// `optimization == OPTIMIZED`.
   Future<void> _confirmRemove(Stop stop) async {
     final route = ref
         .read(routesProvider)

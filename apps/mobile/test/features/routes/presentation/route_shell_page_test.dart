@@ -650,7 +650,7 @@ void main() {
   });
 
   testWidgets(
-      'toggling to satellite shows an original-microcopy toast confirming the '
+      'toggling to satellite shows a toast confirming the '
       'layer changed', (tester) async {
     // Boot resolver opens the medium sheet (active empty route) → tall frame.
     useTallFrame(tester);
@@ -663,8 +663,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    // Toast wording is original PT-BR (ADR-0035 — not Spoke verbatim), and it
-    // names the satellite state the toggle just entered.
+    // Toast names the satellite state the toggle just entered.
     expect(find.textContaining('Satélite'), findsOneWidget);
   });
 

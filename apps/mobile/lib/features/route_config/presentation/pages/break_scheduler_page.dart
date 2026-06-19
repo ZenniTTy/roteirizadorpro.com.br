@@ -484,8 +484,7 @@ class _RemoveBreakButton extends StatelessWidget {
 
 /// Spoke's `remove_break_confirmation_dialog` — "Quer mesmo remover esta
 /// pausa?" with Cancelar / Remover. Pops `true` on confirm, `null`/`false`
-/// otherwise. (Original PT-BR microcopy per ADR-0035 — Spoke's verbatim
-/// "Quer remover a pausa de %1$s da sua rota?" is paraphrased, not cloned.)
+/// otherwise.
 class _RemoveBreakDialog extends StatelessWidget {
   const _RemoveBreakDialog();
 

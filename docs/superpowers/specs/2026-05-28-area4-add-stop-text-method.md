@@ -167,5 +167,5 @@ Area 6 deliverables that close THESE gaps:
 - Inventory: `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §10.21 + §11.4 (both amended 2026-05-28).
 - ROADMAP: `docs/08-ROADMAP-v2.md` Slice 2 Area 4.
 - Slice checklist: `docs/M2-SLICE-CHECKLIST.md` (verification gates).
-- ADRs: 0010 (clone positioning), 0013 (schema source of truth), 0035 (Spoke white-label hierarchy), 0036 (parity gate), 0037 (Maestro MCP inspection).
+- ADRs: 0013 (schema source of truth), 0035 (Spoke white-label hierarchy), 0036 (parity gate), 0037 (Maestro MCP inspection).
 - Previous specs in this directory (drawer, popup-3dot, wizard) — tone + depth model.

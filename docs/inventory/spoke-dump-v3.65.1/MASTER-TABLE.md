@@ -4,7 +4,7 @@
 > **Versão:** versionName `3.65.1` · versionCode `3650100` · minSdk 32 · targetSdk 36
 > **Data do dump:** 2026-06-09, do install licenciado no Samsung M54 (`RQCW401G33T`)
 > **Método:** `adb pull` (4 splits) → APKEditor 1.4.9 merge → **apktool 3.0.2** (recursos: strings, manifest, drawables) + **jadx 1.5.5** (DEX → Java legível, `--deobf` para o wrapper Pairip)
-> **Disclaimer legal:** Inspeção autorizada per **ADR-0010 Amendment 2** (o método de inspeção é escolha do operador; o que rege é o produto distribuído, não como a informação foi obtida) + **ADR-0045**. O Roteirizador Pro distribuído carrega **100% identidade visual original** per **ADR-0035** (cores, ícones Lucide, tipografia, microcopy próprios). Este dump é uma baseline de engenharia **interna** para paridade **funcional/estrutural** — **nunca** uma fonte de assets visuais. Os textos PT-BR citados aqui servem para entender o significado e o fluxo do Spoke, não para serem copiados verbatim no produto distribuído.
+> **Disclaimer legal:** O método de inspeção é escolha do operador (o que rege é o produto distribuído, não como a informação foi obtida), per **ADR-0045**. O Roteirizador Pro distribuído carrega **100% identidade visual original** per **ADR-0035** (cores, ícones Lucide, tipografia, microcopy próprios). Este dump é uma baseline de engenharia **interna** para paridade **funcional/estrutural** — **nunca** uma fonte de assets visuais. Os textos PT-BR citados aqui servem para entender o significado e o fluxo do Spoke, não para serem copiados verbatim no produto distribuído.
 
 ---
 

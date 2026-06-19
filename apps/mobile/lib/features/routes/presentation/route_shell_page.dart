@@ -471,8 +471,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
   }
 
   /// Layer toggle (Spoke `MapTypeClick`). Flips the persisted map layer and
-  /// confirms the new state with an original-microcopy toast (ADR-0035 — not
-  /// Spoke's verbatim "Satélite ativado/desativado", but the same two states).
+  /// confirms the new state with a toast (same two states as Spoke).
   Future<void> _onToggleMapType() async {
     await ref.read(mapControlsControllerProvider.notifier).toggleMapType();
     if (!mounted) return;

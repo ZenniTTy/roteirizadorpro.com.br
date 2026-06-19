@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-09
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (functional fork + Amendment 2: método de inspeção é escolha do operador), ADR-0035 (white-label: shipped product 100% identidade original), ADR-0036/0037 (parity gates + Maestro MCP runtime), ADR-0041/0042/0043/0044 (os 4 retrabalhos por baseline inferido que este ADR existe para acabar)
+- **Related ADRs:** ADR-0035 (white-label: shipped product 100% identidade original), ADR-0036/0037 (parity gates + Maestro MCP runtime), ADR-0041/0042/0043/0044 (os 4 retrabalhos por baseline inferido que este ADR existe para acabar)
 
 ## Context
 
@@ -13,7 +13,7 @@ O clone funcional do Spoke vinha sofrendo um **failure mode recorrente**: o inve
 - ADR-0043: Destino era sheet 3-cards, não página RadioListTile (baseline mislabeled).
 - ADR-0044: Pausa era página full-screen + janela de horário + minutos livres, não sheet + chips (baseline "Não drilled").
 
-A inspeção em runtime (Maestro MCP, clicar tela-por-tela) é boa para **confirmar** um detalhe, mas péssima para **mapear** um app inteiro: deixa lacunas por construção, e cada lacuna vira um palpite. Eduardo relatou que num outro projeto **"baixar o app completamente"** (extração estática do APK) acelerou demais o desenvolvimento — a intuição correta, e que a ADR-0010 Amendment 2 já autorizava ("APK inspection, decompilation, resource extraction são permitidos quando esclarecem ambiguidade mais rápido que runtime").
+A inspeção em runtime (Maestro MCP, clicar tela-por-tela) é boa para **confirmar** um detalhe, mas péssima para **mapear** um app inteiro: deixa lacunas por construção, e cada lacuna vira um palpite. Eduardo relatou que num outro projeto **"baixar o app completamente"** (extração estática do APK) acelerou demais o desenvolvimento — a intuição correta, e já permitida (APK inspection, decompilation, resource extraction são permitidos quando esclarecem ambiguidade mais rápido que runtime).
 
 Pesquisa de melhores práticas 2026 (Context7 + WebSearch, workflow `w3hyaqz5j`) definiu o pipeline e as ferramentas, confirmando versões ao vivo.
 
@@ -45,7 +45,7 @@ Pesquisa de melhores práticas 2026 (Context7 + WebSearch, workflow `w3hyaqz5j`)
 - **Positive (descobertas além do inventário):** o dump revelou superfícies que o inventário não tinha (ex: `break_detail_sheet_*` — comportamento da Pausa DURANTE a entrega, que o ADR-0044 não cobriu porque foca no agendamento).
 - **Negative (Pairip + ofuscação parcial):** algumas classes vêm `a/b/c`; a lógica fina de classes ofuscadas não é confiável. Mitigação: confiar em strings (sobrevivem) + nomes de pacote (legíveis); o `Precisa-runtime` marca o que o dump não fecha.
 - **Negative (skew de versão):** dump é snapshot congelado de v3.65.1; o app na loja pode atualizar. Mitigação: versão no nome + re-pull.
-- **Neutro (legal):** já coberto por ADR-0010 Am.2. O dump é artefato de engenharia interno (Am.1 permite no repo); o shipped product mantém identidade 100% original (ADR-0035). Não reempacotar nem rodar APK modificado.
+- **Neutro (legal):** o dump é artefato de engenharia interno (permitido no repo); o shipped product mantém identidade 100% original (ADR-0035). Não reempacotar nem rodar APK modificado.
 
 ## Alternatives considered
 

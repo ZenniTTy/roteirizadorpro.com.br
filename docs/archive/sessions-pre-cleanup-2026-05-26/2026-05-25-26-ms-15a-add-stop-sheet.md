@@ -288,7 +288,7 @@ Eduardo perguntou "Existe alguma forma de nao ter que ficar buildando e subindo 
 
 | ADR | Decisão | Driver |
 |---|---|---|
-| **0032** | Adotar `lucide_icons_flutter` como família canônica de ícones | Necessidade pra fechar gaps #3, #4, #5, #6 + ADR-0010 Spoke-parity |
+| **0032** | Adotar `lucide_icons_flutter` como família canônica de ícones | Necessidade pra fechar gaps #3, #4, #5, #6 + Spoke-parity |
 | **0033** | Remover neon-green dot de `PrimaryButton` (primeira divergência formal do protótipo) | Feedback Eduardo M54 smoke — "remover a bolinha verde" |
 | **0034** | Voice page usa CTA único "Adicionar parada", não dual-button do protótipo | Feedback Eduardo M54 smoke — "remover Parar e Tentar novamente" |
 
@@ -309,4 +309,4 @@ A registrar após esta sessão fechar:
 
 ### Plain-language wrap-up (Addendum 2)
 
-A sessão começou com MS-15a "fechado" e virou um sprint de polimento visual completo dirigido por feedback do M54. Cada gap virou um commit cirúrgico com validação no device antes de prosseguir — exatamente o ciclo "valida tudo antes de prosseguir" que você pediu. A Voice page sozinha foi 6 iterações pequenas, todas validadas. ADRs novos (0032, 0033, 0034) documentam as decisões — duas das quais são divergências formais do protótipo, o que normalmente seria red flag, mas como o protótipo é um sketch e o cliente Ueslei é a fonte canônica final per ADR-0010, registrei e segui.
+A sessão começou com MS-15a "fechado" e virou um sprint de polimento visual completo dirigido por feedback do M54. Cada gap virou um commit cirúrgico com validação no device antes de prosseguir — exatamente o ciclo "valida tudo antes de prosseguir" que você pediu. A Voice page sozinha foi 6 iterações pequenas, todas validadas. ADRs novos (0032, 0033, 0034) documentam as decisões — duas das quais são divergências formais do protótipo, o que normalmente seria red flag, mas como o protótipo é um sketch e o cliente Ueslei é a fonte canônica final, registrei e segui.

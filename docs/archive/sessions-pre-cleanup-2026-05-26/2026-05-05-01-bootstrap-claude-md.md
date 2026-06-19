@@ -33,7 +33,7 @@ Establish the operational foundation of the repository before any product code i
 
 ## Decisions Made
 
-1. **Functional-fork-only positioning** — Avoid all copyright/trade-dress risk by replicating only flows and behaviors of Circuit, never visual assets. To be formalized in ADR-0010.
+1. **Functional-fork-only positioning** — Avoid all copyright/trade-dress risk by replicating only flows and behaviors of Circuit, never visual assets.
 2. **Language: English for docs and commits** — Better for handoff and aligned with industry standard. Conversation with Eduardo remains in Portuguese.
 3. **Bootstrap commits go directly to `develop`** — While in scaffolding phase. Once product code starts, switch to branch-per-feature with PRs.
 4. **TODO.md owned by Claude Code** — Living task list, read at session start, updated at session end.

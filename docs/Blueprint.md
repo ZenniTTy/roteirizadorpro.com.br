@@ -15,7 +15,7 @@
 | Public | Independent Brazilian delivery riders (motoboys), Sudeste region |
 | Pricing | Single tier: R$ 25,90 grants 30 days of access (no recurring billing — each renewal is a fresh manual Pix payment) |
 | Payment | Pix only via Stripe + Stripe Connect 50/50 split (Separate Charges and Transfers) between two business partners — [ADR-0030](decisions/0030-stripe-pix-30-day-access-pass.md) |
-| Positioning | Functional fork of Spoke/Circuit Route Planner with 100% original visual identity ([ADR-0010](decisions/0010-clone-positioning.md)) |
+| Positioning | Functional fork of Spoke/Circuit Route Planner with 100% original visual identity |
 | Current milestone | **M1** (deadline 2026-05-26): server, GraphHopper SP-only, landing, backend auth API, Flutter Login + Register |
 | Next milestone | M2 (post-M1, scope to reconfirm with client) — full feature set per [docs/04-FEATURES.md](04-FEATURES.md) |
 | Constraints | LGPD compliance; no IP infringement of Circuit; per-route routing cost ≈ R$ 0; 1GB droplet on M1 (workaround agreed with client); 30-day milestone deadline |
@@ -78,8 +78,8 @@ For every opinionated layer, alternatives that were considered and rejected. Pul
 | Payment | Primepag | **Rejected by client** due to poor support response times. ([ADR-0007](decisions/0007-efi-bank-payment.md)) |
 | Payment | Stripe / Asaas / others | No native Pix Split or higher fees or smaller BR footprint. ([ADR-0007](decisions/0007-efi-bank-payment.md)) |
 | Repo | Polyrepo (one per app) | Cross-cutting changes require coordinated PRs; shared types must be a separately published package. ([ADR-0001](decisions/0001-monorepo-structure.md)) |
-| Positioning | Visual identity copy of Circuit | Direct copyright violation; trade dress claim risk; Workana ToS violation; client's marketing investment exposes them more. ([ADR-0010](decisions/0010-clone-positioning.md)) |
-| Positioning | White-label off-the-shelf route planner | Defeats purpose of contract; no differentiation. ([ADR-0010](decisions/0010-clone-positioning.md)) |
+| Positioning | Visual identity copy of Circuit | Direct copyright violation; trade dress claim risk; Workana ToS violation; client's marketing investment exposes them more. |
+| Positioning | White-label off-the-shelf route planner | Defeats purpose of contract; no differentiation. |
 
 ---
 

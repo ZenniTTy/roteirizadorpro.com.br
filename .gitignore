@@ -116,7 +116,7 @@ apps/mobile/integration_test/.spoke-cache/
 # Hierarchy dumps + screenshots from inventory/audit work — empirical evidence
 # stays in /tmp/spoke-inspection/ only; in-repo `docs/inventory/dumps/` blocked
 # to prevent accidental commit of 19k+ line JSON dumps or screenshots violating
-# the ADR-0010 legal boundary (no asset extraction).
+# the legal boundary (no asset extraction).
 docs/inventory/dumps/
 
 ### Spoke static dump — heavy artifacts (per ADR-0045) ###

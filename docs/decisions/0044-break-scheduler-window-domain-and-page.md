@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-09
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (functional fork), ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0037 (Maestro MCP), ADR-0042 (numpad — reused verbatim here for the time fields), ADR-0043 (Destino — the immediately prior inference-vs-measurement correction; same failure mode, same cure)
+- **Related ADRs:** ADR-0035 (Spoke white-label hierarchy), ADR-0036 (parity gates), ADR-0037 (Maestro MCP), ADR-0042 (numpad — reused verbatim here for the time fields), ADR-0043 (Destino — the immediately prior inference-vs-measurement correction; same failure mode, same cure)
 
 ## Context
 

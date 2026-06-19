@@ -8,7 +8,7 @@
 - **Human**: Eduardo
 - **Topic**: Área 6 — Editar parada
 - **Duration**: ~ várias sessões (T1–T12 em 2026-06-11; T13–T20 + fechamento em 2026-06-12)
-- **Related ADRs**: ADR-0050 (path_provider local package photos) · herda ADR-0042 (numpad), ADR-0043 (Destino sheet), ADR-0045 (dump-first), ADR-0049 (D4 dump-only), ADR-0010/0035 (microcopy original)
+- **Related ADRs**: ADR-0050 (path_provider local package photos) · herda ADR-0042 (numpad), ADR-0043 (Destino sheet), ADR-0045 (dump-first), ADR-0049 (D4 dump-only), ADR-0035 (microcopy original)
 - **Related TODO items**: "Area 6 (Editar parada — 14 campos)" · gatilho Á3 "Tap no stop card"
 
 ## Goal of the Session
@@ -34,7 +34,7 @@ Executar o plano MS-A6 (`docs/superpowers/plans/2026-06-11-area6-edit-stop-plan.
 ## Decisions Made
 
 1. **2 fixes cross-área entraram na branch da Á6** — justificados pelo gate do smoke E2E (o golden path do plano exige criar→add→editar) + diretriz zero-débito. (a) `scripts/build-release-apk.sh` não injetava `MAPS_API_KEY` → release com Google Places quebrado em runtime; script agora lê do ambiente/`.env` e falha cedo se ausente. (b) Wizard "Criar rota" não tornava a rota criada ATIVA → "Adicionar parada" pós-create falhava com "Nenhuma rota ativa selecionada"; paridade ancorada no dump (`RouteCreateFragment.java:186-193` entrega o `RouteId` ao caller). Teste de widget pina o contrato.
-2. **Microcopy "Direita" corrige o typo "Direta"** do dump (`place_in_vehicle_right`) — ADR-0010 (microcopy original, não clonar a do Circuit).
+2. **Microcopy "Direita" corrige o typo "Direta"** do dump (`place_in_vehicle_right`) — microcopy original, não clonar a do Circuit.
 3. **Foto de pacote 100% local** via `getApplicationSupportDirectory()` (paralelo fiel ao `getFilesDir()` do Spoke) — sem upload; persistência real é Slice 3.
 
 ## Open Questions Left

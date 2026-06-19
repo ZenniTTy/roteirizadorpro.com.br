@@ -1,6 +1,6 @@
 // Tests for IdEducationDialog — Á7 PR-B Task T6.
 //
-// Contrato (microcopy travada, ADR-0010 — texto ORIGINAL, não verbatim do Spoke):
+// Contrato (microcopy travada):
 //   - Título: "Como a numeração funciona"
 //   - Corpo explica o esquema A1/A2/A3 com ajuste automático ao reordenar.
 //   - Botão "Ajustar formato" (TextButton) → devolve IdEducationChoice.configure.

@@ -166,7 +166,7 @@ Para declarar o PR-B2 pronto:
 
 ## References
 
-- `CLAUDE.md` — operating manual (dump-first ADR-0045, microcopy original ADR-0010/0035).
+- `CLAUDE.md` — operating manual (dump-first ADR-0045, microcopy original ADR-0035).
 - `docs/08-ROADMAP-v2.md` — Slice 2 / Área 7.
 - `docs/superpowers/specs/2026-06-13-area7-optimize-route-design.md` — design doc da Á7 (PR-A/B/C/D).
 - `docs/superpowers/plans/2026-06-14-area7-pr-b1-preconfirm-structure.md` — o B1 que o B2 continua.

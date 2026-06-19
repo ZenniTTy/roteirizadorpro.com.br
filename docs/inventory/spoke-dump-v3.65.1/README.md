@@ -4,7 +4,7 @@
 > **Version:** versionName `3.65.1` · versionCode `3650100` · minSdk 32 · targetSdk 36
 > **Dumped:** 2026-06-09, from the licensed install on the Samsung M54 (`RQCW401G33T`)
 > **Method:** `adb pull` (4 splits) → APKEditor merge → apktool (resources) + jadx (code)
-> **Legal:** ADR-0010 Amendment 2 (inspection method is operator's choice) + ADR-0045. The shipped Roteirizador Pro product carries 100% original visual identity (ADR-0035). This dump is an internal engineering baseline for FUNCTIONAL parity — never a source of visual assets.
+> **Legal:** the inspection method is the operator's choice + ADR-0045. The shipped Roteirizador Pro product carries 100% original visual identity (ADR-0035). This dump is an internal engineering baseline for FUNCTIONAL parity — never a source of visual assets.
 
 ## What is committed here (light, versioned)
 

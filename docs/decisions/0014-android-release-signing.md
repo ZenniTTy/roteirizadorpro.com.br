@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-05-13
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0002 (Flutter Mobile), ADR-0010 (Functional Fork Positioning)
+- **Related ADRs:** ADR-0002 (Flutter Mobile)
 
 ## Context
 
@@ -261,5 +261,3 @@ is stable when the publisher republishes the same semver with a higher build cod
   in Gradle (Kotlin DSL) snippets.
 - Android Developers — *APK Signature Scheme v2* — `https://source.android.com/docs/security/features/apksigning/v2`.
 - ADR-0002 (Flutter as mobile framework).
-- ADR-0010 (functional-fork positioning — the cert DN's
-  `O=Elo Vision Digital` matches the fact that we are not Circuit).

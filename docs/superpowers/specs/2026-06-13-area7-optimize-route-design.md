@@ -108,7 +108,7 @@ Nenhuma mudança de contrato backend nesta área (solver é on-device; `POST /ro
 
 1. **Solver atrás de interface** — `RouteOptimizer` é abstrato; `LocalRouteOptimizer` é a impl. do Slice 2. Slice 3 injeta `GraphHopperRouteOptimizer` via override de provider. UI/estado nunca importam a impl. concreta.
 2. **Estado visual é derivado, não armazenado** — PRE-CONFIRM/Ready-to-Run/erro são funções puras de `RouteState` (getters), não campos. Switch exaustivo na UI (`AsyncValue` selada, sem `default` — token 3.44).
-3. **Fidelidade estrutural + microcopy original** — estrutura/fluxo/estados idênticos ao dump (ADR-0035); texto PT-BR é original (ADR-0010), nunca verbatim do Spoke.
+3. **Fidelidade estrutural + microcopy original** — estrutura/fluxo/estados idênticos ao dump (ADR-0035); texto PT-BR é original, nunca verbatim do Spoke.
 4. **Cortes são botões fiéis + ação honesta** — features Slice 3 (Carregar veículo, Compartilhar tempo real) têm o botão no layout (estrutura fiel) mas ação "Em breve" observável (sem bug silencioso).
 5. **`@riverpod` codegen + keepAlive** — controllers espelham o padrão de `map_controls_controller.dart`; toda edição de provider dispara o hook `run-riverpod-codegen` (ADR-0024).
 6. **`ReorderableListView.builder` com `onReorderItem`** — confirmado da fonte 3.44 (assinatura `void Function(int oldIndex, int newIndex)`, `newIndex` já corrigido; `onReorder` é `@Deprecated`, assert proíbe passar os dois). Usado onde houver reordenação manual de stops.

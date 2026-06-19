@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-06-13
 - **Deciders:** Eduardo
-- **Related ADRs:** ADR-0010 (clone positioning), ADR-0030 (paywall só em Navegar), ADR-0035 (Spoke white-label hierarchy), ADR-0045 (static dump baseline — fonte dos fatos)
+- **Related ADRs:** ADR-0030 (paywall só em Navegar), ADR-0035 (Spoke white-label hierarchy), ADR-0045 (static dump baseline — fonte dos fatos)
 
 ## Context
 

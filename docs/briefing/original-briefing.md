@@ -10,7 +10,7 @@
 |---|---|
 | Proposta Workana aceita (escopo, valor, prazo) | absorvida em [`../01-PROJECT.md`](../01-PROJECT.md) — seções "Business Model", "Milestones", "Constraints", "Out of Scope" |
 | Conversa com cliente (decisões de produto: Efí Bank, 1GB workaround, sem Play Store, sem cancelamento) | absorvida em [`../01-PROJECT.md`](../01-PROJECT.md) e [`../decisions/0007-efi-bank-payment.md`](../decisions/0007-efi-bank-payment.md) |
-| Posicionamento "fork funcional do Circuit" | [`../decisions/0010-clone-positioning.md`](../decisions/0010-clone-positioning.md) |
+| Posicionamento "fork funcional do Circuit" | absorvido em [`../01-PROJECT.md`](../01-PROJECT.md) — seção "Positioning Statement" |
 | UI aprovada pelo cliente | [`../../prototipo/`](../../prototipo/) — fonte canônica de identidade visual, telas, gestos, fluxos |
 | Catálogo de features contratadas | [`../04-FEATURES.md`](../04-FEATURES.md) (F01–F15) |
 | Telas mapeadas | [`../05-SCREENS.md`](../05-SCREENS.md) (19 telas) |

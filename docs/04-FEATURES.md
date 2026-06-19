@@ -355,7 +355,7 @@ The historical visual + technical spec (badge on home screen, WebSocket-backed R
 
 **APK download CTA:** placeholder button in M1 (gray / "coming soon"). Live link in M2.
 
-**Visual identity:** must be completely original (per ADR-0010). Not Circuit's colors, fonts, or icons.
+**Visual identity:** must be completely original. Not Circuit's colors, fonts, or icons.
 
 **Technical:**
 - Next.js 14 (App Router) + Tailwind CSS.

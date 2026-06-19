@@ -8,9 +8,8 @@
 /// completely empty dark body, no method buttons, no "Desta rota" section, and
 /// no "Escolher no mapa" footer. Each divergence is encoded as a flag here so
 /// the call site (Detalhes da rota row tap) drives the page entirely via this
-/// enum. The search-field placeholder ([hintText]) is an ORIGINAL RotPro
-/// string ('Buscar endereço') shared by both location pickers — not Spoke's
-/// verbatim 'Insira um endereço' (ADR-0035 forbids cloning Circuit microcopy).
+/// enum. The search-field placeholder ([hintText]) is 'Buscar endereço',
+/// shared by both location pickers.
 ///
 /// Also doubles as the keying axis for `searchQueryProvider`,
 /// `placeAutocompleteProvider`, and `addStopUiStateProvider` so the

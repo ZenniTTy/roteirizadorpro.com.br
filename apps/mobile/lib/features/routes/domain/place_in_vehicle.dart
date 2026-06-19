@@ -19,8 +19,8 @@ class PlaceInVehicle {
   /// Código curto: iniciais dos eixos DEFINIDOS na ordem Y, X, Z;
   /// `null` quando nenhum eixo está definido (F11).
   ///
-  /// As iniciais derivam da NOSSA microcopy PT-BR (microcopy original,
-  /// ADR-0010): Frente/Meio/Atrás → F/M/A · Esquerda/Direita → E/D ·
+  /// As iniciais derivam da microcopy PT-BR:
+  /// Frente/Meio/Atrás → F/M/A · Esquerda/Direita → E/D ·
   /// Chão/Prateleira → C/P.
   String? get shortCode {
     if (x == null && y == null && z == null) return null;

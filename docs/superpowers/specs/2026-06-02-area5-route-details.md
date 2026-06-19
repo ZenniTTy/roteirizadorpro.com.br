@@ -230,7 +230,7 @@ No external time-picker package. The numeric keypad is implemented inline as a `
 - `docs/inventory/2026-05-26-spoke-vs-rotpro.md` §11.4 (Detalhes da rota) + §13.C.2 (FTUE confirmation).
 - `prototipo/tokens.js` — visual identity.
 - `prototipo/tokens.js` + `prototipo/ui.jsx` — visual identity reference (cores, spacing, ícones Lucide, tipografia) per ADR-0035. (Não existe `screens-route-config.jsx`; as telas do protótipo são `screens-a..e.jsx`.)
-- ADR-0010 (functional fork), ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ~~ADR-0041 (wheel_picker — superseded)~~, ADR-0042 (numpad supersedes 0041 — Spoke fidelity after live re-inspection 2026-06-03).
+- ADR-0013 (schema source of truth), ADR-0018 (verify-slice), ADR-0024 (codegen hook), ADR-0035 (white-label hierarchy), ADR-0036 (D1/D4 parity gates), ADR-0037 (Maestro MCP inspection), ~~ADR-0041 (wheel_picker — superseded)~~, ADR-0042 (numpad supersedes 0041 — Spoke fidelity after live re-inspection 2026-06-03).
 - `/tmp/spoke-a5-*` 21 artefatos baseline captured 2026-06-01.
 - Memory: `lesson_uiautomator_blindspot_compose_imagevectors`, `lesson_visual_screenshot_overrides_xml_inference_in_compose_apps`, `lesson_copywith_nullable_field_pitfall`, `lesson_maestro_flutter_listtile_tap_needs_semantics`, `lesson_slice_checklist_integration_test_gate`, `lesson_checkpoint_discipline_between_microsprints`, `lesson_git_diff_head_before_commit_after_workflows`.
 - Context7: `/jaweii/flutter_wheel_picker` (queried 2026-06-01 — irrelevant after ADR-0042; dependency removed 2026-06-03).
