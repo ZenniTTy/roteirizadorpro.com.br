@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:roteirizador_pro/features/routes/data/active_route_repository.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart';
+import 'package:roteirizador_pro/features/routes/domain/route_state.dart';
 import 'package:roteirizador_pro/features/routes/state/active_route_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
@@ -111,5 +112,30 @@ void main() {
     // Did not switch to the persisted 'r-new' — kept the live selection.
     expect(c.read(activeRouteIdProvider), 'r-keep');
     verifyNever(() => repo.read());
+  });
+
+  test(
+      'resolveActiveRoute breaks a same-date tie by preferring the '
+      'non-completed route (the one the driver is likely mid-run)', () async {
+    final repo = _MockRepo();
+    when(() => repo.read()).thenAnswer((_) async => null);
+    when(() => repo.write(any())).thenAnswer((_) async {});
+    // Two routes on the SAME date: one completed, one still active. The
+    // active one must win the tie (não a completada/encerrada).
+    final c = _container(
+      routes: [
+        Route(
+          id: 'r-done',
+          date: DateTime(2026, 6, 10),
+          routeState: const RouteState(completed: true),
+        ),
+        Route(id: 'r-active', date: DateTime(2026, 6, 10)),
+      ],
+      repo: repo,
+    );
+
+    await c.read(activeRouteIdProvider.notifier).resolveActiveRoute();
+
+    expect(c.read(activeRouteIdProvider), 'r-active');
   });
 }

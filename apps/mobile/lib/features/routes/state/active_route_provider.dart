@@ -41,9 +41,18 @@ class ActiveRouteId extends _$ActiveRouteId {
     }
 
     if (routes.isNotEmpty) {
-      final mostRecent = routes.reduce(
-        (a, b) => a.date.isAfter(b.date) ? a : b,
-      );
+      // Mais recente por `date`; no EMPATE de data, prefere a rota NÃO
+      // completada (a que o motorista provavelmente está rodando) à
+      // encerrada — senão, no 1º boot com 2 rotas do mesmo dia, o app cairia
+      // numa rota concluída/vazia em vez da ativa. (Proxy de Slice 2: o Spoke
+      // usa `lastEdited`; aqui usamos date + este desempate até o backend.)
+      final mostRecent = routes.reduce((a, b) {
+        if (a.date.isAfter(b.date)) return a;
+        if (b.date.isAfter(a.date)) return b;
+        // Datas iguais: a não-completada vence; se ambas iguais nesse critério,
+        // mantém a primeira (determinístico).
+        return b.routeState.completed && !a.routeState.completed ? a : b;
+      });
       setActiveRoute(mostRecent.id);
       return;
     }
