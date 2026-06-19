@@ -2,6 +2,21 @@
 
 Tracks structural and scope changes to the documentation itself. Code changes go into git history; this file is for documentation reorganization milestones.
 
+## 2026-06-18 — Área 7 PR-B2 fix de layout (PRE-CONFIRM deixava de tampar o mapa)
+
+Code change (Á7 PR-B2, mesma branch `feat/m2-slice-2-area-7-pr-b2`). **Sem ADR nova** — sem mudança de stack (só 3 edits em `route_shell_page.dart`). Construído dump-first: o smoke M54 (2026-06-14) reportou o sheet PRE-CONFIRM **tampando o mapa**; a investigação no jadx (`kr4.java` measure lambda + `C3509a.java` callsites + `DraggableSheetPosition` + `UpdateMapPaddingEffect`) **corrigiu uma premissa de arquitetura** antes de qualquer código.
+
+**A premissa corrigida:** um primeiro dump (runtime, 2026-05-28) registrou o Spoke como `Column { Expanded(map), sheet }` (mapa encolhe). Um segundo dump (jadx, esta sessão) leu o `Box{fillMaxSize}` do `MapLayout.kt` e concluiu "Stack + sheet flutuante + setPadding". Os dois discordavam. **A arbitragem (jadx `kr4.java`) provou que ambos os modelos superficiais estavam incompletos:** o `VerticalDraggableSheet` muda a **ALTURA** do sheet via `LayoutModifier` (`minHeight = screenHeight - swipeableOffset`), o sheet cresce de baixo, e mapa+sheet **NÃO se sobrepõem em layout**. Logo a `Column` do RotPro **já era** a tradução Flutter fiel — ir pra `Stack` re-introduziria o roubo de gesto do `EagerGestureRecognizer` (flutter#105994) que a Column matou em 2026-05-28. **Isto evitou uma re-arquitetura grande, arriscada e incorreta** — o dump-first profundo (não a inferência de bounds) foi o que salvou.
+
+**O fix (cirúrgico, não re-arquitetura) — 3 edits:**
+- `_mediumFraction` 0.40 → **0.50**: âncora "Default" do Spoke = `screenHeight * 0.5f` (exato no `C3509a.java:815`; o 0.40 anterior era inferido).
+- **PRE-CONFIRM abre/volta pra medium** (não herda a fração expandida 0.90 do DRAFT auto-expandido): `ref.listen` da transição `isPreConfirm` false→true (runtime) + cobertura do estado inicial no `initState` postFrame (o `ref.listen` não vê o valor inicial — lição recorrente). Deixa ~50% da tela pro mapa com a polyline + markers.
+- **`GoogleMap.padding(bottom)` dinâmico** (espelha `setPadding`/UpdateMapPaddingEffect — reposiciona watermark/controles do mapa), atualizado **só nos snaps** via campo `_mapPaddingFraction`, nunca a cada frame de drag (prop declarativa do GoogleMap dispara chamada Pigeon dart→Android por frame → jank; perf-auditor must-fix).
+
+**Gates:** `spoke-parity-checker` D4 dump-only — **zero must-fix** (âncora 0.50 exata, PRE-CONFIRM=`DraggableSheetPosition.Default`, map padding sem cap = todos confirmados no jadx; 1 should-fix pré-existente: expanded 0.90 vs ~1.0 do Spoke, fica pro polish). `flutter-perf-auditor` — must-fix do padding-por-frame **resolvido**.
+
+**Verification:** `flutter analyze` sem lint novo; `flutter test` **686** verde (683 → 686: +3 — C1 âncora medium 0.50, C2 PRE-CONFIRM≠0.90, C3 padding dinâmico; H6-i/ii/iii do DRAFT intactos). Commits `38b0bdb` (fix) + `9e4e5f5` (perf). **Smoke M54 do fix: pendente** (device desconectou no meio da revalidação). Débito registrado no `TODO.md` §Á7 PR-B2.
+
 ## 2026-06-14 — Área 7 PR-B2 (mapa interativo: polyline + markers + kebab Reotimizar)
 
 Code change (Á7 PR-B2, branch `feat/m2-slice-2-area-7-pr-b2` → `develop`). **Sem ADR nova** — sem mudança de stack (`dart:ui` é stdlib; `google_maps_flutter` + `lucide_icons_flutter` já no pubspec). Construído dump-first: o relatório do `spoke-parity-checker` sobre `~/spoke-dump/jadx-out` (`MapController`/`PolylineGroup`/`StopMarkerLabel`/`MapToolbarControlsController`) precedeu a spec.
