@@ -26,13 +26,17 @@ class StopMarkerBitmapCache extends _$StopMarkerBitmapCache {
     // senão o cache serviria a cor errada para o mesmo label silenciosamente.
     final cached = state[label];
     if (cached != null) return cached;
+    // `stopMarkerBitmap` devolve descriptor + imagePixelRatio; o descriptor JÁ
+    // carrega o imagePixelRatio internamente (BitmapDescriptor.bytes(...,
+    // imagePixelRatio:)), então o cache guarda só o descriptor — o `Marker`
+    // recebe o tamanho correto sem precisar do ratio em separado.
     final bitmap = await stopMarkerBitmap(
       label: label,
       fill: AppColors.primary,
       textColor: Colors.white,
     );
-    state = {...state, label: bitmap};
-    return bitmap;
+    state = {...state, label: bitmap.descriptor};
+    return bitmap.descriptor;
   }
 }
 
@@ -66,7 +70,11 @@ Future<Set<Marker>> routeMapMarkers(Ref ref) async {
           markerId: MarkerId(s.id),
           position: LatLng(s.lat, s.lng),
           icon: icon,
-          anchor: const Offset(0.5, 0.5),
+          // Base-center sobre a coordenada (o balão fica ACIMA do ponto e
+          // aponta pra ele), idiom canônico de pino de mapa. `(0.5, 0.5)`
+          // centralizava o balão na coordenada → metade do pino enterrado
+          // abaixo do ponto (parity-checker must-fix #4 vs StopMarkerLabel).
+          anchor: const Offset(0.5, 1),
         );
       }(),
   ]);
