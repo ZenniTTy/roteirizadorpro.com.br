@@ -5,8 +5,13 @@ import 'package:roteirizador_pro/features/routes/state/active_route_provider.dar
 import 'package:roteirizador_pro/features/routes/state/route_map_markers_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
+import '../../../_helpers/shared_prefs_async.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // setActiveRoute persists via activeRouteRepositoryProvider
+  // (SharedPreferencesAsync) — back it in-memory.
+  useInMemorySharedPreferencesAsync();
 
   Stop stop(String id) =>
       Stop(id: id, lat: -23.5, lng: -46.6, streetName: id, fullAddress: id);

@@ -23,6 +23,7 @@ import 'package:roteirizador_pro/features/routes/state/map_controls_controller.d
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
 import '../_helpers/fake_current_user.dart';
+import '../../../_helpers/shared_prefs_async.dart';
 
 Widget _wrapPage() => ProviderScope(
       overrides: [
@@ -217,9 +218,25 @@ Future<void> _expandSheet(WidgetTester tester) async {
 }
 
 void main() {
+  // The shell's boot resolver (`resolveActiveRoute`) reads
+  // `activeRouteRepositoryProvider`, which wraps `SharedPreferencesAsync`.
+  // Back it with the in-memory async store (and restore on tearDown so the
+  // static platform instance never leaks into other test files).
+  useInMemorySharedPreferencesAsync();
+
   testWidgets('renders a Scaffold', (tester) async {
+    // The boot resolver (resolveActiveRoute) selects the `seed1` route on
+    // mount, so the shell enters the active-empty-route state and the sheet
+    // auto-opens at medium (0.50). The medium body needs a tall frame or the
+    // fixed sheet chrome overflows the default 800×600 test surface.
+    // (useTallFrame is declared further down in main(); these early tests use
+    // the inline physicalSize block — same 1080×3200 frame, same teardown.)
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(Scaffold), findsAtLeastNWidgets(1));
   });
@@ -227,16 +244,27 @@ void main() {
   testWidgets(
       'floating hamburger IconButton with semantics label "Abrir menu" is '
       'present', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame
+    // so the sheet body doesn't overflow the default surface.
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.bySemanticsLabel('Abrir menu'), findsOneWidget);
   });
 
   testWidgets('tapping the hamburger opens AppDrawer as a modal bottom sheet',
       (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.byType(AppDrawer), findsNothing);
 
@@ -251,10 +279,23 @@ void main() {
   });
 
   testWidgets(
-      'sheet collapsed shows ONLY handle + search pill + kebab — big '
-      'buttons stay hidden (Spoke parity 2026-05-28)', (tester) async {
+      'active empty route opens the sheet at medium showing handle + search '
+      'pill + kebab + empty-state big buttons (boot resolver, Á3)',
+      (tester) async {
+    // PREMISSA ATUALIZADA: o boot resolver (resolveActiveRoute) seleciona a
+    // rota seed `seed1` (0 paradas) ao montar, então a rota ativa VAZIA abre o
+    // sheet em medium (0.50) — não mais colapsado. O teste antigo afirmava
+    // "colapsado → big buttons escondidos"; com a rota ativa vazia
+    // auto-expandida pra medium esse estado não nasce mais. Verificamos agora o
+    // que aparece em MEDIUM-rota-vazia: além do search pill + kebab, os big
+    // buttons do empty-state ("Adicionar parada" / "Copiar paradas...") E a
+    // microcopy do empty-state ficam VISÍVEIS (showButtons=true + stops vazios).
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     // Search pill placeholder is the canonical entry for adding stops.
     expect(find.text('Adicionar parada...'), findsOneWidget);
@@ -264,19 +305,16 @@ void main() {
     // map controls.
     expect(find.bySemanticsLabel('Opções da rota'), findsOneWidget);
 
-    // Big buttons devem ESTAR ESCONDIDOS no estado collapsed — Spoke
-    // (live 2026-05-28) só renderiza esses botões quando o sheet sobe
-    // pra medium+. Nosso showButtons usa
-    // currentFraction > collapsedFraction + 0.02; no primeiro pump as
-    // duas frações coincidem → botões ocultos.
-    expect(find.text('Adicionar parada'), findsNothing);
-    expect(find.text('Copiar paradas de uma rota anterior'), findsNothing);
+    // Em medium com rota ativa VAZIA, os big buttons do empty-state aparecem
+    // (showButtons = currentFraction(0.50) > collapsedFraction + 0.02 → true,
+    // e stops.isEmpty → true; produção route_shell_page.dart §991-1009).
+    expect(find.text('Adicionar parada'), findsOneWidget);
+    expect(find.text('Copiar paradas de uma rota anterior'), findsOneWidget);
 
-    // Empty state ("Adicione as primeiras paradas...") também só aparece
-    // quando o sheet sobe.
+    // A microcopy do empty-state também aparece em medium.
     expect(
       find.textContaining('Adicione as primeiras paradas'),
-      findsNothing,
+      findsOneWidget,
     );
 
     // Hamburger is in the floating button — exactly one in the page.
@@ -300,9 +338,15 @@ void main() {
     // Este test garante a invariante estrutural: NÃO há
     // DraggableScrollableSheet (que requer Stack/Positioned fullscreen pra
     // funcionar); HÁ uma Column com Expanded + AnimatedContainer.
+    //
+    // Boot resolver abre o sheet em medium (rota ativa vazia) → tall frame pra
+    // o corpo do sheet não estourar a surface default.
+    tester.view.physicalSize = const Size(1080, 3200);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(_wrapPage());
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pumpAndSettle();
 
     // Sheet manual, não DraggableScrollableSheet.
     expect(
@@ -476,16 +520,51 @@ void main() {
   });
 
   testWidgets(
-      'NO "Configuração de rota" section renders when there is no active route '
-      '(activeRouteId null)', (tester) async {
+      'shell sem rota ativa resolve a rota seed no boot (nunca fica sem rota) '
+      '→ a seção "Configuração de rota" aparece', (tester) async {
     useTallFrame(tester);
-    // _wrapPage() never seeds activeRouteIdProvider → it stays null.
-    await tester.pumpWidget(_wrapPage());
+    // PREMISSA ATUALIZADA: o teste antigo afirmava que `activeRouteId` null
+    // PERMANECIA null e nenhuma seção de config renderizava. O boot resolver
+    // (resolveActiveRoute, fiel ao ValidateActiveRoute do Spoke) ELIMINOU esse
+    // estado por design: ao montar sem rota ativa, ele seleciona a rota seed
+    // `seed1`. Logo o shell SEMPRE tem uma rota ativa após o boot, e a seção
+    // "Configuração de rota" passa a aparecer.
+    //
+    // Montamos via _wrapPage() (que NÃO seeda activeRouteIdProvider) dentro de
+    // um ProviderContainer próprio, pra poder LER o provider e provar que o
+    // resolver promoveu `seed1` a rota ativa.
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWithValue(kUserWithoutSub),
+        routesProvider.overrideWithValue([
+          domain.Route(
+            id: 'seed1',
+            date: DateTime(2026, 5, 27),
+          ),
+        ]),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme:
+              AppTheme.light().copyWith(splashFactory: NoSplash.splashFactory),
+          home: const RouteShellPage(),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     await _expandSheet(tester);
 
-    expect(find.text('Configuração de rota'), findsNothing);
-    expect(find.byType(RouteConfigRow), findsNothing);
+    // O resolver promoveu a rota seed a rota ativa (nunca fica sem rota).
+    expect(container.read(activeRouteIdProvider), 'seed1');
+
+    // Com rota ativa, a seção de config AGORA aparece (antes: findsNothing).
+    expect(find.text('Configuração de rota'), findsOneWidget);
+    expect(find.byType(RouteConfigRow), findsNWidgets(2));
   });
 
   // ───────────────────────────────────────────────────────────────────────
@@ -525,10 +604,12 @@ void main() {
   testWidgets(
       'GoogleMap renders with MapType.normal when the controller state is normal',
       (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
     expect(map.mapType, MapType.normal);
@@ -537,10 +618,12 @@ void main() {
   testWidgets(
       'GoogleMap renders with MapType.satellite when controller state is '
       'satellite (layer pref reflected, not hard-coded)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.satellite)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     final map = tester.widget<GoogleMap>(find.byType(GoogleMap));
     expect(map.mapType, MapType.satellite);
@@ -549,10 +632,12 @@ void main() {
   testWidgets(
       'tapping "Alternar modo de mapa" calls toggleMapType + flips the map to '
       'satellite (no longer a "em breve" stub)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar modo de mapa'));
     await tester.pump(); // toggle is async; flush the microtask
@@ -567,10 +652,12 @@ void main() {
   testWidgets(
       'toggling to satellite shows an original-microcopy toast confirming the '
       'layer changed', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(const MapControlsState(mapType: MapType.normal)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar modo de mapa'));
     await tester.pump();
@@ -613,6 +700,8 @@ void main() {
   testWidgets(
       'tapping "Alternar para o mapa" with permission granted starts following '
       '(no longer a "em breve" stub)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     final controls = _FakeMapControls(const MapControlsState());
     await tester.pumpWidget(
       ProviderScope(
@@ -640,7 +729,9 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    // pumpAndSettle lets the async boot resolver finish and the medium sheet
+    // settle before we tap (a bare pump leaves the resolver mid-flight).
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar para o mapa'));
     await tester.pump();
@@ -653,6 +744,8 @@ void main() {
   testWidgets(
       'tapping recenter with permission DENIED shows a graceful permission '
       'toast and does NOT enter follow mode (no crash)', (tester) async {
+    // Boot resolver opens the medium sheet (active empty route) → tall frame.
+    useTallFrame(tester);
     await tester.pumpWidget(
       _wrapWithMapControls(
         const MapControlsState(),
@@ -663,7 +756,7 @@ void main() {
         ),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.bySemanticsLabel('Alternar para o mapa'));
     await tester.pump();

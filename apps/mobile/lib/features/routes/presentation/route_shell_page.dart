@@ -108,7 +108,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final activeId = ref.read(activeRouteIdProvider);
-      if (activeId == null) return;
+      if (activeId == null) {
+        // Shell montou sem rota ativa (ex: cold start — o id vive em memória e
+        // some no restart). Resolve fiel ao Spoke (ValidateActiveRoute):
+        // restaura do disco → mais recente → cria. O `ref.listen` do build põe
+        // o sheet em medium na transição null→id resultante. Sem isto, o
+        // add-stop falharia com "Nenhuma rota ativa selecionada".
+        ref.read(activeRouteIdProvider.notifier).resolveActiveRoute();
+        return;
+      }
       _lastActiveRouteId = activeId;
       if (_hasAutoExpanded) return;
       final isPreConfirm =

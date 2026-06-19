@@ -7,10 +7,16 @@ import 'package:roteirizador_pro/features/routes/state/active_route_provider.dar
 import 'package:roteirizador_pro/features/routes/state/active_route_state_provider.dart';
 import 'package:roteirizador_pro/features/routes/state/routes_provider.dart';
 
+import '../../../_helpers/shared_prefs_async.dart';
+
 Stop _stop(String id) =>
     Stop(id: id, lat: 0, lng: 0, streetName: id, fullAddress: id);
 
 void main() {
+  // setActiveRoute persists via activeRouteRepositoryProvider
+  // (SharedPreferencesAsync) — back it in-memory.
+  useInMemorySharedPreferencesAsync();
+
   test('sem rota ativa => null', () {
     final c = ProviderContainer();
     addTearDown(c.dispose);
