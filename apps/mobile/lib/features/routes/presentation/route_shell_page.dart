@@ -25,11 +25,14 @@ import '../state/optimization_ftue_repository.dart';
 import '../state/route_map_markers_provider.dart';
 import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/discard_changes_dialog.dart';
 import 'widgets/id_education_dialog.dart';
+import 'widgets/id_lock_dialog.dart';
 import 'widgets/not_enough_stops_dialog.dart';
 import 'widgets/optimization_error_dialog.dart';
 import 'widgets/optimize_cta.dart';
 import 'widgets/pre_confirm_view.dart';
+import 'widgets/ready_to_run_view.dart';
 import 'widgets/refine_route_sheet.dart';
 import 'widgets/reoptimize_options_sheet.dart';
 
@@ -250,7 +253,22 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final isPreConfirm = ref.watch(
       activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
     );
-    final routePolylines = isPreConfirm
+    final isReadyToRun = ref.watch(
+      activeRouteStateProvider.select((s) => s?.isReadyToRun ?? false),
+    );
+    final hasPendingOptimization = ref.watch(
+      activeRouteStateProvider
+          .select((s) => s?.hasPendingOptimization ?? false),
+    );
+    final isEditing = ref.watch(
+      activeRouteStateProvider.select((s) => s?.isEditing ?? false),
+    );
+    // Overlay otimizado (polyline + pinos numerados) aparece quando a rota ESTÁ
+    // otimizada — PRE-CONFIRM ou Ready-to-Run vindo do funil normal. No skip-path
+    // (Ready-to-Run pendente) não há ordem real, então os números confundiriam.
+    final showRouteOverlay =
+        isPreConfirm || (isReadyToRun && !hasPendingOptimization);
+    final routePolylines = showRouteOverlay
         ? buildRoutePolylines(
             routePolylinePoints(stops),
             fill: AppColors.primary,
@@ -263,7 +281,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     // Gate em `isPreConfirm` (paridade Spoke — spoke-parity D4 must-fix): os
     // pinos numerados só aparecem quando a rota está OTIMIZADA. No DRAFT a ordem
     // ainda não significa nada, então os números confundiriam o motorista.
-    final routeMarkers = isPreConfirm
+    final routeMarkers = showRouteOverlay
         ? (ref.watch(routeMapMarkersProvider).value ?? const <Marker>{})
         : const <Marker>{};
     final activeMetrics = activeRouteId == null
@@ -296,178 +314,208 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final clampedFraction =
         _sheetFraction.clamp(_collapsedFraction, _expandedFraction);
 
-    return Scaffold(
-      // ARQUITETURA descoberta via Maestro do Spoke 2026-05-28:
-      // - O mapa do Spoke NÃO é full-screen — ele OCUPA SÓ A FATIA DA TELA
-      //   acima do sheet. Quando o sheet expande, o mapa encolhe (vide
-      //   `[0,0][1080,2058]` → `[0,0][1080,1245]` no dump pós-swipe).
-      // - Isso elimina a sobreposição mapa-sheet, evitando que o
-      //   EagerGestureRecognizer do GoogleMap (PlatformView) intercepte
-      //   gestos verticais que deveriam ser do sheet (flutter#105994).
-      //
-      // Implementação em Flutter: Column { Expanded(map), SizedBox(sheet) }.
-      // Conforme `_sheetFraction` cresce via drag handle, o SizedBox
-      // toma mais espaço e o Expanded encolhe automaticamente.
-      //
-      // O DraggableScrollableSheet do Flutter NÃO funciona dentro de um
-      // SizedBox (depende de altura unconstrained pra calcular *ChildSize).
-      // Por isso usamos um sheet MANUAL: AnimatedContainer + GestureDetector
-      // no handle, snap states discretos.
-      body: Column(
-        children: [
-          Expanded(
-            // RepaintBoundary isolates the map + static floating chrome from
-            // the per-frame setState the sheet drag fires (onHandleDragUpdate),
-            // so the floating buttons aren't recomposited on every drag frame.
-            child: RepaintBoundary(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: GoogleMap(
-                      mapType: mapType,
-                      initialCameraPosition: _initialPosition,
-                      // Padding inferior = altura do sheet NO ÚLTIMO SNAP
-                      // (`_mapPaddingFraction`, não `clampedFraction`, que muda
-                      // a cada frame de drag). Reposiciona o watermark "Google",
-                      // o logo e os controles nativos do mapa ACIMA do sheet.
-                      // Espelha o `GoogleMap.setPadding(bottom)` do Spoke
-                      // (UpdateMapPaddingEffect, dump jadx v3.65.1) — que também
-                      // reposiciona por estado, não por frame.
-                      padding: EdgeInsets.only(
-                        bottom: mq.size.height * _mapPaddingFraction,
-                      ),
-                      polylines: routePolylines,
-                      markers: routeMarkers,
-                      onMapCreated: (GoogleMapController controller) {
-                        _controller.complete(controller);
-                      },
-                      // Render the blue GPS dot; our own button replaces the
-                      // native recenter FAB (which we keep disabled).
-                      myLocationEnabled: true,
-                      // A user-initiated pan drops follow mode (Spoke's exit to
-                      // `MapControllerMode.Manual`). Our recenter animation also
-                      // fires this callback; the controller's pending-move
-                      // counter (set in `_onRecenter`) consumes our own moves so
-                      // only a real user pan drops follow — order-independent of
-                      // when `animateCamera` resolves.
-                      onCameraMoveStarted: () {
-                        ref
-                            .read(mapControlsControllerProvider.notifier)
-                            .onCameraMoveStarted();
-                      },
-                      zoomControlsEnabled: false,
-                      mapToolbarEnabled: false,
-                      myLocationButtonEnabled: false,
-                      compassEnabled: false,
-                    ),
-                  ),
-                  Positioned(
-                    top: mq.padding.top + 12,
-                    left: 16,
-                    child: _FloatingCircleButton(
-                      semanticsLabel: 'Abrir menu',
-                      icon: LucideIcons.menu,
-                      onTap: () => AppDrawer.show(context),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 12,
-                    // Own RepaintBoundary: an InkWell ripple on either map
-                    // control must not invalidate the GoogleMap PlatformView
-                    // layer they share with it (perf-auditor MS-A3).
-                    child: RepaintBoundary(
-                      child: Column(
-                        children: [
-                          _FloatingCircleButton(
-                            semanticsLabel: 'Alternar modo de mapa',
-                            icon: LucideIcons.layers,
-                            onTap: _onToggleMapType,
-                            iconColor: AppColors.primary,
-                          ),
-                          const SizedBox(height: 12),
-                          _FloatingCircleButton(
-                            semanticsLabel: 'Alternar para o mapa',
-                            icon: LucideIcons.locateFixed,
-                            onTap: _onRecenter,
-                          ),
-                        ],
+    // Guard de edição pós-otimização (A7-D7): em `editing`, o back não sai da
+    // tela — pergunta "Descartar as alterações?". Fora desse estado, back normal.
+    return PopScope(
+      canPop: !isEditing,
+      onPopInvokedWithResult: _onShellPopInvoked,
+      child: Scaffold(
+        // ARQUITETURA descoberta via Maestro do Spoke 2026-05-28:
+        // - O mapa do Spoke NÃO é full-screen — ele OCUPA SÓ A FATIA DA TELA
+        //   acima do sheet. Quando o sheet expande, o mapa encolhe (vide
+        //   `[0,0][1080,2058]` → `[0,0][1080,1245]` no dump pós-swipe).
+        // - Isso elimina a sobreposição mapa-sheet, evitando que o
+        //   EagerGestureRecognizer do GoogleMap (PlatformView) intercepte
+        //   gestos verticais que deveriam ser do sheet (flutter#105994).
+        //
+        // Implementação em Flutter: Column { Expanded(map), SizedBox(sheet) }.
+        // Conforme `_sheetFraction` cresce via drag handle, o SizedBox
+        // toma mais espaço e o Expanded encolhe automaticamente.
+        //
+        // O DraggableScrollableSheet do Flutter NÃO funciona dentro de um
+        // SizedBox (depende de altura unconstrained pra calcular *ChildSize).
+        // Por isso usamos um sheet MANUAL: AnimatedContainer + GestureDetector
+        // no handle, snap states discretos.
+        body: Column(
+          children: [
+            Expanded(
+              // RepaintBoundary isolates the map + static floating chrome from
+              // the per-frame setState the sheet drag fires (onHandleDragUpdate),
+              // so the floating buttons aren't recomposited on every drag frame.
+              child: RepaintBoundary(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: GoogleMap(
+                        mapType: mapType,
+                        initialCameraPosition: _initialPosition,
+                        // Padding inferior = altura do sheet NO ÚLTIMO SNAP
+                        // (`_mapPaddingFraction`, não `clampedFraction`, que muda
+                        // a cada frame de drag). Reposiciona o watermark "Google",
+                        // o logo e os controles nativos do mapa ACIMA do sheet.
+                        // Espelha o `GoogleMap.setPadding(bottom)` do Spoke
+                        // (UpdateMapPaddingEffect, dump jadx v3.65.1) — que também
+                        // reposiciona por estado, não por frame.
+                        padding: EdgeInsets.only(
+                          bottom: mq.size.height * _mapPaddingFraction,
+                        ),
+                        polylines: routePolylines,
+                        markers: routeMarkers,
+                        onMapCreated: (GoogleMapController controller) {
+                          _controller.complete(controller);
+                        },
+                        // Render the blue GPS dot; our own button replaces the
+                        // native recenter FAB (which we keep disabled).
+                        myLocationEnabled: true,
+                        // A user-initiated pan drops follow mode (Spoke's exit to
+                        // `MapControllerMode.Manual`). Our recenter animation also
+                        // fires this callback; the controller's pending-move
+                        // counter (set in `_onRecenter`) consumes our own moves so
+                        // only a real user pan drops follow — order-independent of
+                        // when `animateCamera` resolves.
+                        onCameraMoveStarted: () {
+                          ref
+                              .read(mapControlsControllerProvider.notifier)
+                              .onCameraMoveStarted();
+                        },
+                        zoomControlsEnabled: false,
+                        mapToolbarEnabled: false,
+                        myLocationButtonEnabled: false,
+                        compassEnabled: false,
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      top: mq.padding.top + 12,
+                      left: 16,
+                      child: _FloatingCircleButton(
+                        semanticsLabel: 'Abrir menu',
+                        icon: LucideIcons.menu,
+                        onTap: () => AppDrawer.show(context),
+                      ),
+                    ),
+                    Positioned(
+                      right: 16,
+                      bottom: 12,
+                      // Own RepaintBoundary: an InkWell ripple on either map
+                      // control must not invalidate the GoogleMap PlatformView
+                      // layer they share with it (perf-auditor MS-A3).
+                      child: RepaintBoundary(
+                        child: Column(
+                          children: [
+                            _FloatingCircleButton(
+                              semanticsLabel: 'Alternar modo de mapa',
+                              icon: LucideIcons.layers,
+                              onTap: _onToggleMapType,
+                              iconColor: AppColors.primary,
+                            ),
+                            const SizedBox(height: 12),
+                            _FloatingCircleButton(
+                              semanticsLabel: 'Alternar para o mapa',
+                              icon: LucideIcons.locateFixed,
+                              onTap: _onRecenter,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          AnimatedContainer(
-            duration: _dragStartFraction != null
-                ? Duration.zero
-                : const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            height: mq.size.height * clampedFraction,
-            child: isPreConfirm
-                ? PreConfirmView(
-                    stops: stops,
-                    durationMinutes: activeMetrics?.duration ?? 0,
-                    distanceMeters: activeMetrics?.distance ?? 0.0,
-                    onRefine: _onRefine,
-                    onConfirm: _onConfirm,
-                    onReoptimize: _onReoptimize,
-                    onStopTap: activeRouteId == null
-                        ? (_) {}
-                        : (stopId) => context.push(
-                              '/home/routes/active/$activeRouteId'
-                              '/stops/$stopId/edit',
-                            ),
-                  )
-                : _ActiveRouteSheet(
-                    currentFraction: clampedFraction,
-                    collapsedFraction: _collapsedFraction,
-                    configSummary: configSummary,
-                    stops: stops,
-                    routeDisplayName: routeDisplayName,
-                    onAddStopTap: _openAddStop,
-                    onOptimizeTap: _onOptimize,
-                    onRouteNameTap: activeRouteId == null
-                        ? null
-                        : () =>
-                            context.push('/home/routes/$activeRouteId/edit'),
-                    onStopTap: activeRouteId == null
-                        ? null
-                        : (stopId) => context.push(
-                              '/home/routes/active/$activeRouteId'
-                              '/stops/$stopId/edit',
-                            ),
-                    onHandleDragStart: () {
-                      _dragStartFraction = _sheetFraction;
-                    },
-                    onHandleDragUpdate: (delta) {
-                      if (_dragStartFraction == null) return;
-                      // Só o sheet acompanha o dedo frame-a-frame; o
-                      // `_mapPaddingFraction` fica congelado (ver campo) pra
-                      // não disparar uma chamada de plataforma por frame.
-                      setState(() {
-                        _sheetFraction =
-                            (_sheetFraction - delta / mq.size.height).clamp(
-                          _collapsedFraction,
-                          _expandedFraction,
-                        );
-                      });
-                    },
-                    onHandleDragEnd: (velocity) {
-                      _dragStartFraction = null;
-                      setState(() {
-                        _sheetFraction = _snapTo(velocity);
-                        // Snap resolvido → o padding do mapa acompanha agora,
-                        // num único reposition.
-                        _mapPaddingFraction = _sheetFraction;
-                      });
-                    },
-                  ),
-          ),
-        ],
+            AnimatedContainer(
+              duration: _dragStartFraction != null
+                  ? Duration.zero
+                  : const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              height: mq.size.height * clampedFraction,
+              child: isReadyToRun
+                  ? ReadyToRunView(
+                      stops: stops,
+                      durationMinutes: activeMetrics?.duration ?? 0,
+                      distanceMeters: activeMetrics?.distance ?? 0.0,
+                      hasPendingOptimization: hasPendingOptimization,
+                      onEdit: _onEdit,
+                      onStart: _onStart,
+                      onComingSoon: _onComingSoon,
+                      onReoptimize: _onOptimize,
+                    )
+                  : isPreConfirm
+                      ? PreConfirmView(
+                          stops: stops,
+                          durationMinutes: activeMetrics?.duration ?? 0,
+                          distanceMeters: activeMetrics?.distance ?? 0.0,
+                          onRefine: _onRefine,
+                          onConfirm: _onConfirm,
+                          onReoptimize: _onReoptimize,
+                          onStopTap: activeRouteId == null
+                              ? (_) {}
+                              : (stopId) => context.push(
+                                    '/home/routes/active/$activeRouteId'
+                                    '/stops/$stopId/edit',
+                                  ),
+                        )
+                      : _ActiveRouteSheet(
+                          currentFraction: clampedFraction,
+                          collapsedFraction: _collapsedFraction,
+                          configSummary: configSummary,
+                          stops: stops,
+                          routeDisplayName: routeDisplayName,
+                          onAddStopTap: _openAddStop,
+                          onOptimizeTap: _onOptimize,
+                          onRouteNameTap: activeRouteId == null
+                              ? null
+                              : () => context
+                                  .push('/home/routes/$activeRouteId/edit'),
+                          onStopTap: activeRouteId == null
+                              ? null
+                              : (stopId) => context.push(
+                                    '/home/routes/active/$activeRouteId'
+                                    '/stops/$stopId/edit',
+                                  ),
+                          onHandleDragStart: () {
+                            _dragStartFraction = _sheetFraction;
+                          },
+                          onHandleDragUpdate: (delta) {
+                            if (_dragStartFraction == null) return;
+                            // Só o sheet acompanha o dedo frame-a-frame; o
+                            // `_mapPaddingFraction` fica congelado (ver campo) pra
+                            // não disparar uma chamada de plataforma por frame.
+                            setState(() {
+                              _sheetFraction =
+                                  (_sheetFraction - delta / mq.size.height)
+                                      .clamp(
+                                _collapsedFraction,
+                                _expandedFraction,
+                              );
+                            });
+                          },
+                          onHandleDragEnd: (velocity) {
+                            _dragStartFraction = null;
+                            setState(() {
+                              _sheetFraction = _snapTo(velocity);
+                              // Snap resolvido → o padding do mapa acompanha agora,
+                              // num único reposition.
+                              _mapPaddingFraction = _sheetFraction;
+                            });
+                          },
+                        ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  /// Guard de saída quando a rota está em edição pós-otimização (A7-D7): o back
+  /// NÃO sai — pergunta "Descartar as alterações?". "Descartar" reverte à última
+  /// versão otimizada (volta ao PRE-CONFIRM); "Continuar editando" mantém.
+  Future<void> _onShellPopInvoked(bool didPop, Object? result) async {
+    if (didPop) return;
+    final discard = await showDiscardChangesDialog(context);
+    if (discard != true) return;
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    ref.read(routesProvider.notifier).discardOptimizationEdits(routeId);
   }
 
   /// Layer toggle (Spoke `MapTypeClick`). Flips the persisted map layer and
@@ -584,16 +632,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
         await showNotEnoughStopsDialog(context);
       case OptimizationFailure():
         // O diálogo de erro oferece duas ações reais: "Tentar de novo" re-roda
-        // o solver; "Pular otimização" é honest-stub no PR-A (o Ready-to-Run com
-        // banner "Otimização pendente" do Spoke é PR-C). Consumir a escolha é
-        // obrigatório — descartar o retorno deixaria "Tentar de novo" sem efeito.
+        // o solver; "Pular otimização" confirma a rota SEM otimizar e leva ao
+        // Ready-to-Run com o banner "Otimização pendente" (PR-C, A7-D8).
         final choice = await showOptimizationErrorDialog(context);
         if (!mounted) return;
         switch (choice) {
           case OptimizationErrorChoice.retry:
             await _onOptimize();
           case OptimizationErrorChoice.skip:
-            showAppSnackBar(context, 'Otimização pulada por enquanto.');
+            _onSkip();
           case null:
             break; // diálogo dispensado (barrier/back) — sem ação
         }
@@ -698,14 +745,48 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
   }
 
-  /// "Confirmar" do PRE-CONFIRM → leva ao Ready-to-Run, que é o PR-C.
-  /// Honest-stub observável: NÃO grava `confirmed:true` ainda (sem destino
-  /// Ready-to-Run o estado ficaria órfão).
-  void _onConfirm() {
-    showAppSnackBar(
-      context,
-      'Tudo certo — a confirmação final chega na próxima etapa.',
-    );
+  /// "Confirmar" do PRE-CONFIRM → Ready-to-Run (A7-D5/D6). Antes de gravar
+  /// `confirmed:true`, dispara o FTUE one-shot "a numeração vai travar"
+  /// (IdLockDialog) — só na 1ª confirmação (formato Moderno é o único do Slice
+  /// 2; o toggle Clássico é Á10). "Cancelar" no diálogo aborta a confirmação.
+  Future<void> _onConfirm() async {
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    final ftue = ref.read(optimizationFtueRepositoryProvider);
+    if (!await ftue.isIdLockAcknowledged()) {
+      if (!mounted) return;
+      final proceed = await showIdLockDialog(context);
+      if (proceed != true) return; // "Cancelar"/dispensado → não confirma
+      await ftue.acknowledgeIdLock();
+    }
+    ref.read(routesProvider.notifier).confirmRoute(routeId);
+  }
+
+  /// "Editar" do Ready-to-Run → des-confirma e volta ao PRE-CONFIRM (G2).
+  void _onEdit() {
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    ref.read(routesProvider.notifier).editRoute(routeId);
+  }
+
+  /// "Iniciar rota" → gateway pro Modo Delivery (Área 8). Honest-stub observável
+  /// até a Á8 existir (sem destino, não grava `started` p/ não criar órfão).
+  void _onStart() {
+    showAppSnackBar(context, 'Modo de entrega — em breve.');
+  }
+
+  /// Botões-linha adiados do Ready-to-Run (compartilhar ao vivo / carregar
+  /// veículo) — fiéis à presença no Spoke, sem funcionalidade no M2.
+  void _onComingSoon() {
+    showAppSnackBar(context, 'Em breve.');
+  }
+
+  /// "Pular otimização" (diálogo de erro) → confirma a rota SEM otimizar e leva
+  /// ao Ready-to-Run com o banner "Otimização pendente" (A7-D8).
+  void _onSkip() {
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    ref.read(routesProvider.notifier).skipOptimization(routeId);
   }
 
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
