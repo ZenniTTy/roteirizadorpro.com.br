@@ -210,6 +210,33 @@ Quando `route.optimization == optimized` (a rota já foi otimizada), "Remover pa
 - *2026-06-13:* "Iniciar rota" leva a placeholder até a Área 8 construir o Modo Delivery.
 - *2026-06-13 (G6):* O toggle "Formato do ID" (Moderno/Clássico) vive na **Área 10** (ainda não feita). A Á7 usa Moderno como default (escolha de produto; o fallback do Spoke é Clássico) e gera o chip via enum `PackageLabelFormat` — a Á10 só liga o toggle, sem re-trabalho no gerador.
 
+## PR-C — resolução do modelo de estado (2026-06-20, dump-first, Fase R/P0)
+
+> Investigação dump-first (ADR-0052) que destrava o PR-C, fechando os 4 must-fix do audit 2026-06-20 (A7-D5/D6/D7/D8). Arbitrada pelo jadx: `OptimizationController.performSkipOptimization` → interactor `SkipOptimization.kt` (`C2976r0`) → `UpdateRoute`; strings `package_identification_lock_dialog_*`, `discard_changes_dialog_*`, `optimization_pending_button_title`, `start_button_title`. A lógica fina do skip vem de continuation ofuscado (Pairip — limitação ADR-0045); o modelo abaixo é o fiel-suficiente, confirmado por strings+estrutura+spec, a ser validado por teste + D4.
+
+**Ready-to-Run tem DOIS caminhos de entrada** (otimizado e skip), então o estado visual relaxa:
+
+- `isReadyToRun` ⇒ `confirmed && !started && !completed` (era `optimization == optimized && confirmed && !started`; relaxar é **aditivo** — nada setava `confirmed` sem otimizar antes).
+- `isDraft` ganha guard `&& !confirmed` (rota confirmada nunca é draft).
+- `isPreConfirm` inalterado (`optimization == optimized && !confirmed && !started`).
+- **novo** `hasPendingOptimization` ⇒ `isReadyToRun && optimization != optimized` → dispara o banner "Otimização pendente".
+
+**Transições (provider `Routes`):**
+
+| Ação | Origem | Efeito no `RouteState` | UI resultante |
+|---|---|---|---|
+| `confirmRoute()` | "Confirmar" (PRE-CONFIRM) | `confirmed:true, optimizationAcknowledged:true` | Ready-to-Run (sem banner) |
+| `skipOptimization()` | "Pular otimização" (erro) | `confirmed:true, optimizationAcknowledged:true` (optimization fica `creating`) | Ready-to-Run + banner pendente |
+| `editRoute()` | "Editar" (Ready-to-Run) | `confirmed:false` | otimizado→PRE-CONFIRM; skip→DRAFT |
+| `discardOptimizationEdits()` | "Descartar alterações" | restaura snapshot otimizado + `optimization:optimized, optimizedAt:<snapshot>` | PRE-CONFIRM |
+| (stop muda em rota otimizada não-confirmada) | add/remove/update stop | `optimization:editing, optimizedAt:null` (G3 — invalida métrica) | PRE-CONFIRM em modo editing |
+
+**FTUE IdLock (A7-D6):** key nova `id_lock_ftue_v1` no `OptimizationFtueRepository` (`isIdLockAcknowledged`/`acknowledgeIdLock`); diálogo one-shot em `confirmRoute` ANTES de gravar, gate `format==moderno && !idLockAcknowledged`. Microcopy **original** fiel ao significado de `package_identification_lock_dialog_*` ("os IDs ficam fixos após confirmar").
+
+**Discard/editing (A7-D7):** `Route` ganha `optimizedStopsSnapshot` (gravado no `applyOptimization`); a transição para `editing` ocorre quando stops mudam numa rota otimizada não-confirmada; `PopScope` no shell gateia o back em `isEditing` → `DiscardChangesDialog`; "Descartar" restaura o snapshot. Microcopy original fiel a `discard_changes_dialog_*`.
+
+**Sub-unidades de entrega (TDD red→green, ADR-0025):** (1) domínio+estado (getters + 5 métodos do provider + snapshot + FTUE key); (2) diálogos (`IdLockDialog` + `DiscardChangesDialog`); (3) `ReadyToRunView` + banner; (4) wiring no `route_shell_page` (switch `isReadyToRun`, `_onConfirm`/`_onEdit`/`_onStart`/`_onSkip`, `PopScope`).
+
 ## Verification gates (per `M2-SLICE-CHECKLIST.md`)
 
 Para declarar a Área 7 done (por PR e no fechamento):

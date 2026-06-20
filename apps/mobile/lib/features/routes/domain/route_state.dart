@@ -38,14 +38,26 @@ class RouteState {
 
   // Estado visual derivado (switch exaustivo na UI usa estes getters).
   bool get isDraft =>
-      optimization == OptimizationState.creating && !optimizing && !started;
+      optimization == OptimizationState.creating &&
+      !optimizing &&
+      !started &&
+      !confirmed;
   bool get isOptimizing => optimizing;
   bool get isPreConfirm =>
       optimization == OptimizationState.optimized && !confirmed && !started;
-  bool get isReadyToRun =>
-      optimization == OptimizationState.optimized && confirmed && !started;
+
+  /// Ready-to-Run tem DOIS caminhos de entrada (PR-C): o normal (otimizou →
+  /// confirmou) e o skip (pulou a otimização). Por isso NÃO exige
+  /// `optimization == optimized` — basta `confirmed`. Relaxar é aditivo: nada
+  /// setava `confirmed` sem otimizar antes do skip-path existir.
+  bool get isReadyToRun => confirmed && !started && !completed;
   bool get isEditing => optimization == OptimizationState.editing;
   bool get hasOptimizationError => optimizationErroredAt != null && !optimizing;
+
+  /// Rota pronta pra rodar mas que NÃO passou pela otimização (skip-path) —
+  /// dispara o banner "Otimização pendente" no Ready-to-Run.
+  bool get hasPendingOptimization =>
+      isReadyToRun && optimization != OptimizationState.optimized;
 
   RouteState copyWith({
     OptimizationState? optimization,

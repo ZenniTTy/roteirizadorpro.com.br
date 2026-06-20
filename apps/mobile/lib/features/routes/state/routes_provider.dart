@@ -115,7 +115,10 @@ class Routes extends _$Routes {
     state = state.map((r) {
       if (r.id == routeId) {
         final newStops = [...r.stops, stop];
-        return r.copyWith(stops: newStops);
+        return r.copyWith(
+          stops: newStops,
+          routeState: _invalidateOptimizationOnEdit(r.routeState),
+        );
       }
       return r;
     }).toList();
@@ -131,6 +134,7 @@ class Routes extends _$Routes {
                 stops: [
                   for (final s in r.stops) s.id == stop.id ? stop : s,
                 ],
+                routeState: _invalidateOptimizationOnEdit(r.routeState),
               )
             : r,
     ];
@@ -147,6 +151,7 @@ class Routes extends _$Routes {
         r.id == routeId
             ? r.copyWith(
                 stops: r.stops.where((s) => s.id != stopId).toList(),
+                routeState: _invalidateOptimizationOnEdit(r.routeState),
               )
             : r,
     ];
@@ -165,15 +170,105 @@ class Routes extends _$Routes {
             routeState: r.routeState.copyWith(
               optimization: OptimizationState.optimized,
               optimizing: false,
+              optimizedAt: DateTime.now(),
               optimizationAttemptedAt: DateTime.now(),
             ),
             stops: result.orderedStops,
+            // Snapshot da versão otimizada — o "Descartar alterações" do PR-C
+            // reverte os stops pra cá quando o usuário edita e desiste (G3).
+            optimizedStopsSnapshot: result.orderedStops,
             totalDurationMinutes: result.totalDurationMinutes,
             totalDistanceMeters: result.totalDistanceMeters,
           )
         else
           r,
     ];
+  }
+
+  // ── PR-C lifecycle ────────────────────────────────────────────────────────
+
+  /// "Confirmar" do PRE-CONFIRM → Ready-to-Run: confirmed:true,
+  /// optimizationAcknowledged:true. No-op se [routeId] não existir.
+  void confirmRoute(String routeId) {
+    state = [
+      for (final r in state)
+        if (r.id == routeId)
+          r.copyWith(
+            routeState: r.routeState.copyWith(
+              confirmed: true,
+              optimizationAcknowledged: true,
+            ),
+          )
+        else
+          r,
+    ];
+  }
+
+  /// "Editar" do Ready-to-Run → des-confirma (confirmed:false), preservando
+  /// optimization e optimizationAcknowledged. Em rota otimizada volta ao
+  /// PRE-CONFIRM; em rota skip (creating) volta ao DRAFT (G2).
+  void editRoute(String routeId) {
+    state = [
+      for (final r in state)
+        if (r.id == routeId)
+          r.copyWith(
+            routeState: r.routeState.copyWith(confirmed: false),
+          )
+        else
+          r,
+    ];
+  }
+
+  /// "Pular otimização" (diálogo de erro) → Ready-to-Run sem otimizar:
+  /// confirmed:true, optimizationAcknowledged:true; optimization permanece
+  /// creating. Resultado: isReadyToRun=true && hasPendingOptimization=true
+  /// (banner "Otimização pendente").
+  void skipOptimization(String routeId) {
+    state = [
+      for (final r in state)
+        if (r.id == routeId)
+          r.copyWith(
+            routeState: r.routeState.copyWith(
+              confirmed: true,
+              optimizationAcknowledged: true,
+            ),
+          )
+        else
+          r,
+    ];
+  }
+
+  /// "Descartar alterações" → reverte os stops pra última versão otimizada
+  /// (optimizedStopsSnapshot) e volta optimization:optimized + optimizedAt.
+  /// No-op (mantém stops atuais) se não houver snapshot.
+  void discardOptimizationEdits(String routeId) {
+    state = [
+      for (final r in state)
+        if (r.id == routeId)
+          r.copyWith(
+            stops: r.optimizedStopsSnapshot ?? r.stops,
+            routeState: r.routeState.copyWith(
+              optimization: OptimizationState.optimized,
+              optimizedAt: DateTime.now(),
+            ),
+          )
+        else
+          r,
+    ];
+  }
+
+  /// G3 — quando os stops mudam numa rota OTIMIZADA ainda não confirmada, a
+  /// otimização é invalidada: entra em `editing` e zera `optimizedAt` (a métrica
+  /// "X min" some até re-otimizar). Espelha o `UpdateRoute` do Spoke. Fora desse
+  /// estado (DRAFT, confirmada, já editing) devolve o mesmo estado.
+  RouteState _invalidateOptimizationOnEdit(RouteState s) {
+    if (s.optimization == OptimizationState.optimized && !s.confirmed) {
+      return s.copyWith(
+        optimization: OptimizationState.editing,
+        optimizedAt: null,
+      );
+    }
+    return s;
   }
 
   /// G5 — marca a parada para remoção DEFERIDA (rota já otimizada): não remove
@@ -189,6 +284,7 @@ class Routes extends _$Routes {
               for (final s in r.stops)
                 s.id == stopId ? s.copyWith(pendingRemoval: true) : s,
             ],
+            routeState: _invalidateOptimizationOnEdit(r.routeState),
           )
         else
           r,
