@@ -1,8 +1,8 @@
-# 08 — Roadmap v2 (fonte única · reescrito limpo 2026-06-06)
+# 08 — Roadmap v2 (fonte única · eixo afiado 2026-06-20 · ADR-0052)
 
-> **Esta é a fonte única de verdade do M2.** Reescrita limpa em 2026-06-06 sincronizada com o código real (não com descrições antigas). Versões anteriores: `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md` (pré-pivot) e o histórico git desta `-v2` (reset 2026-05-26 → rewrite 2026-05-27 → esta limpeza 2026-06-06).
+> **Esta é a fonte única de verdade do M2.** Reescrita limpa em 2026-06-06 sincronizada com o código real; **eixo afiado em 2026-06-20 (ADR-0052)** após o audit retroativo de paridade (`docs/audits/2026-06-20-dump-parity-retro-audit.md`). Versões anteriores: `docs/archive/2026-05-26-08-ROADMAP-v1-pre-pivot.md` (pré-pivot) e o histórico git desta `-v2`.
 >
-> **Estratégia (inalterada):** white-label funcional 100% do **Spoke Route Planner B2C** dentro da nossa stack. Quando funcionalmente equivalente, Eduardo aplica polish de identidade visual (microcopy PT-BR original + decoração). NÃO clonar o **Spoke Dispatch** (produto B2B de frota/dispatcher) — ver §"Fronteira B2C/B2B" abaixo.
+> **Estratégia (afiada 2026-06-20, [ADR-0052](./decisions/0052-faithful-dump-clone-and-per-phase-investigation.md)):** **CÓPIA FIEL COMPLETA** do **Spoke Route Planner B2C** dentro da nossa stack — front (layout/estrutura/hierarquia) e funcionalidade (fluxos/estados/gates/fallbacks) **idênticos** ao dump, reimplementados com as práticas mais modernas da nossa stack. A barra não é mais "modelar parecido", é **copiar fielmente**. **Identidade visual original (cores/ícones/tipografia + wording da microcopy) é a ÚLTIMA camada** (polish final, ADR-0035); até lá, cada string é fiel em SIGNIFICADO ao dump (proibido inventar capacidade que o app não tem). **Zero divergência deferida.** NÃO clonar o **Spoke Dispatch** (B2B) — ver §"Fronteira B2C/B2B".
 
 ## Stack travada
 
@@ -38,6 +38,33 @@ Spoke ships dois produtos. Clonamos só o **Route Planner (B2C, motorista solo)*
 
 > A sprint de reestruturação (`docs/superpowers/{specs,plans}/2026-06-06-restructure-b2c-clarity-and-harden.md`) cria o boundary doc canônico `docs/inventory/2026-06-06-spoke-b2c-vs-b2b-boundary.md` + ADR-0044. **Esse doc ainda NÃO existe** — até existir, decisões de corte usam os marcadores do inventário + diretivas §7.1. 4 widgets nas Áreas 7/9/11 ficam cortados/postergados por essa regra (ver cada área).
 
+## Método de cópia fiel (dump-first por fase) — ADR-0052
+
+> O dump é Android/Kotlin/Compose; nós somos Flutter. **Copiar ≠ copy-paste — é reimplementar fielmente o O QUÊ com o idiom moderno da nossa stack.** Cada Área futura (Á8+) e cada bloco de remediação seguem este gate, na ordem.
+
+**Gate obrigatório por fase/área (não pular nenhum passo):**
+
+1. **Investigação dump-first da ÁREA INTEIRA, ANTES de implementar.** Esgotar o dump da área num doc de design: fluxos + estados + gates + fallbacks + strings verbatim (`values-pt-rBR`) + pacote de código (`~/spoke-dump/jadx-out`). É o ADR-0045 **por área, não por microsprint** (memória `feedback_dump_map_per_area_before_implementing`). Runtime só onde `Precisa-runtime` indicar (D4 dump-only, ADR-0049).
+2. **Implementar com a tradução moderna** (tabela abaixo) + validação **Dart MCP first** (símbolos instalados) → **Context7/WebSearch** (libs/APIs pós-cutoff). **NUNCA websearch para comportamento Spoke** (isso é o dump — ADR-0048).
+3. **Cuidado nomeado com bugs silenciosos, drift, entropia e breaking changes** em cada tradução (o implementador tem cutoff Jan-2026; ver os 3 breaking changes do 3.44 acima).
+4. **Validação de fechamento antes de "done":** re-grep do dump pelos enums/strings/gates da área + `spoke-parity-checker` D4 dump-only + testes que **pinam paridade** (enum com lista EXATA, microcopy 1:1 em significado). **Zero divergência deferida** — corrige no mesmo trabalho ou escala BLOCKED.
+
+**Tabela de tradução Spoke (Android) → RotPro (Flutter 3.44 / Riverpod 3):**
+
+| Spoke (Kotlin/Compose/Android) | RotPro (idiom moderno) | Cuidado (silent-bug / breaking change) |
+|---|---|---|
+| `ViewModel` + `StateFlow`/`MutableStateFlow` | `@riverpod` `Notifier`/`AsyncNotifier` (codegen) | `StateNotifier`/`ChangeNotifier` deprecados; `AsyncValue.guard` p/ mutações |
+| `sealed class` de estado | `sealed class` Dart + `switch` exaustivo | **`AsyncValue` é selada (3.44) → `switch` sem `default`** |
+| `@Composable` + `remember` | `Widget` + `ref.watch` granular (`.select`) | rebuild scoping; `const` onde der; `RepaintBoundary` em listas |
+| Navigation Compose / Fragment destination | GoRouter (shell/branch routes) | **Flutter #155746** (push de sub-branch = no-op silencioso) → returns-intent pattern |
+| `RadioButton` group (Compose) | **`RadioGroup<T>` ancestral (3.44)** | NÃO `groupValue`/`onChanged` por-`Radio` |
+| `LazyColumn` reorder | **`ReorderableListView.onReorderItem` (3.44)** | correção de índice automática (≠ `onReorder`) |
+| `SharedPreferences` / DataStore | `SharedPreferencesAsync` (wrapper em repository) | helper de teste com `tearDown` que restaura o platform instance |
+| `R.string.*` (`values-pt-rBR`) | microcopy PT-BR **original, fiel em SIGNIFICADO** | nunca verbatim (ADR-0035); **nunca mentir capacidade** (ex.: "trânsito") |
+| Vector/Material Icon | `LucideIcons` (prototipo) | identidade visual original (ADR-0035) |
+| Coil image / camera | `image_picker` + `path_provider` (local-only) | Spoke não sobe foto (ADR-0050) |
+| `GoogleMap` (Compose overlay) | `google_maps_flutter` em `Column{Expanded(map),sheet}` | NUNCA `Stack` (PlatformView rouba gesto — flutter#105994); `imagePixelRatio` no marker |
+
 ---
 
 # Visão geral dos 7 slices
@@ -45,7 +72,7 @@ Spoke ships dois produtos. Clonamos só o **Route Planner (B2C, motorista solo)*
 | Slice | O que é | Estado |
 |---|---|---|
 | **1** | APK distribuível (auth real + landing + GraphHopper + Login/Register + APK assinado) | ✅ shipped 2026-05-13 (`v1.0.0`) |
-| **2** | Telas Core Spoke-aligned (white-label funcional 100%) | 🟡 ~55% — Áreas 1–4 prontas, 3+5 parciais, 6–11 não iniciadas |
+| **2** | Telas Core Spoke-aligned (cópia fiel completa) | 🟡 ~70% — Á2–Á6 fechadas, Á7 PR-A/B fechados (falta C/D); **Fase R** (remediação do audit 2026-06-20, 100%) → Á8–Á11 |
 | **3** | Backend real (solver + geocoding + persistência + FCM + reset senha + Google backend) | ⏳ não iniciado |
 | **4** | Stripe Pix paywall (R$ 25,90 / 30 dias, Connect 50/50) | ⏳ não iniciado |
 | **5** | Sentido casa (endereço de casa + solver respeita) | ⏳ não iniciado |
@@ -53,6 +80,21 @@ Spoke ships dois produtos. Clonamos só o **Route Planner (B2C, motorista solo)*
 | **7** | Painel admin (feature original RotPro — interno, NÃO o dashboard B2B Dispatch) | ⏳ não iniciado |
 
 **Pós-slices:** polish visual final (microcopy PT-BR + decoração + assets + `prototype-fidelity-checker` sweep) → tag `vX.Y.0`.
+
+---
+
+# ⚠️ Fase R — Remediação retroativa de paridade (AGORA, antes da Á8)
+
+> **Bloqueia a Área 8.** Decisão de Eduardo 2026-06-20: remediar **100%** (P0→P3) antes de abrir qualquer área nova (ADR-0052). Backlog completo (36 drifts, evidência impl×dump, fix por item): [`docs/audits/2026-06-20-dump-parity-retro-audit.md`](./audits/2026-06-20-dump-parity-retro-audit.md). **13 must-fix verificados adversarialmente (zero falso-positivo).**
+
+Audit retroativo 2026-06-20 (workflow `wp6fupsv5`, 20 agentes dump-only) sobre as 6 áreas construídas (Á2–Á7): **paridade MÉDIA, dívida concentrada na Á7** (8 dos 13 must-fix — o PR-C inteiro é honest-stub e o usuário trava no PRE-CONFIRM). Esqueleto funcional fiel; nenhuma surpresa arquitetural. 4 blocos, na ordem:
+
+- [ ] **R/P0 — destrava o ciclo de otimização (Á7 PR-C).** `ReadyToRunView` + `Confirmar` grava `confirmed:true` (A7-D5) · `IdLockDialog` one-shot `id_lock_ftue_v1` (A7-D6) · `DiscardChangesDialog` + `PopScope` guard `isEditing` (A7-D7) · "Pular otimização" → Ready-to-Run + banner "Otimização pendente" (A7-D8).
+- [ ] **R/P1 — gates e fluxos não-cosméticos (Á2/Á3/Á6/Á7).** Kebab PRE-CONFIRM "Reotimizar rota…"/"Pular otimização" (A7-D4) · CTA wizard "Continuar para copiar paradas" (A2-D2) · 3ª linha "Pausa" no config summary sob gate Breaks (A3-D2) · pop do editor pós-remoção deferida (A6-D1) · gate "única rota" no delete + diálogo "Manter/Redefinir progresso" no duplicar (A2-D4/D3).
+- [ ] **R/P2 — sweep de microcopy fiel-em-significado vs `values-pt-rBR` (Á7/Á5/Á2/Á3/Á6).** Fases de progresso sem "trânsito" + sheets Refinar/Reotimizar + diálogos FTUE (A7-D1/D2/D3/D9/D10) · CTAs/diálogos de pausa + subtitles reativos (A5-D1..D5) · 3 labels de seção do drawer (A2-D1) · toasts/semantics/placeholder da Á3 (A3-D1/D3/D5) · "Quer remover" (A6-D3).
+- [ ] **R/P3 — nits e forma de apresentação.** debounce 500→800ms + placeholder por `stopCount` (A4-D1/D2) · ícones Lucide no RefineRouteSheet (A7-D11) · PackageCountDialog → bottom sheet (A6-D2) · profile card clickable + decisão drawer lateral (A2-D5/D6/D7). _A4-D3 (edição inline pós-add) permanece escopado p/ Á6 — não antecipar._
+
+**Cada bloco fecha com `spoke-parity-checker` D4 dump-only + testes que pinam paridade.** `flutter analyze` clean (zerar os 23 lints pré-existentes neste passe) + `flutter test` verde + smoke E2E no M54. Só então a Área 8 abre.
 
 ---
 
@@ -66,18 +108,20 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
 
 > **Sprint dedicada de execução:** [`docs/superpowers/specs/2026-06-06-slice2-completion.md`](./superpowers/specs/2026-06-06-slice2-completion.md) + [`docs/superpowers/plans/2026-06-06-slice2-completion.md`](./superpowers/plans/2026-06-06-slice2-completion.md). A sprint executa cada área restante com disciplina: websearch/Context7 (boas práticas modernas) → **[Áreas 6–11] consultar a MASTER-TABLE do dump estático (ADR-0045) para as hipóteses estruturais concretas** → dump live fresco da Spoke só daquela área para **CONFIRMAR** (não descobrir greenfield) onde o `Precisa-runtime` indicar → implementa → valida → integration_test. Este roadmap é o catálogo; a sprint é o passo-a-passo.
 
-### Estado real por área (medido no código 2026-06-06)
+### Estado real por área (medido no código · atualizado 2026-06-20 pós-audit)
+
+> **Á2–Á7 têm drifts de paridade rastreados na Fase R** (audit 2026-06-20). "✅ fechada" abaixo = construída e mergeada; a fidelidade fina é fechada na Fase R antes da Á8.
 
 | Área | Tela | Estado |
 |---|---|---|
 | 1 | Auth (Login/Register) | ✅ pronto · ⏳ falta UI de recuperar-senha + botão Google |
-| 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto |
-| 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~90% — controles de mapa REAIS (MS-A3) + Copiar paradas wirado; faltam só os gatilhos Otimizar/stop-card/kebab (entrypoints de A7/A6/A9) |
+| 2 | Drawer + lista + wizard + 3-dot popup + reutilizar paradas | ✅ pronto · 🔧 2 must-fix Fase R (A2-D1/D2) |
+| 3 | Tela ativa de rota (mapa + sheet) | 🟡 ~90% — controles de mapa REAIS (MS-A3) + Copiar paradas wirado; faltam gatilhos Otimizar/kebab · 🔧 1 must-fix Fase R (A3-D2) |
 | 4 | Adicionar parada (texto) | ✅ pronto (usa Google Places **live**, não stub) · ⏳ OCR/Voz/tap-mapa são stubs (Área 7/5) |
-| 5 | Detalhes da rota (Partida/Destino/Pausa) | ✅ **fechada** — MS1–MS5+MS-FIX+MS6 Pausa+MS7 config-rows+MS8 persistência+MS9 integration_test/D4/editar-remover-pausa (ADR-0049). 1º integration_test do app VERDE no M54. PR aberto. |
-| 6 | Editar parada (sheet, 14 campos) | ⏳ não iniciada |
-| 7 | Otimizar rota (3 estados + 3 modais FTUE) | ⏳ não iniciada |
-| 8 | Modo Delivery (running route) | ⏳ não iniciada |
+| 5 | Detalhes da rota (Partida/Destino/Pausa) | ✅ **fechada** — MS1–MS9 (ADR-0044/0046/0047/0049). 1º integration_test do app VERDE no M54 · 🔧 5 should-fix Fase R (A5-D1..D5) |
+| 6 | Editar parada (página, 14 campos) | ✅ **fechada** (MS-A6, 2026-06-12) — 606 testes + integration_test verde no M54 · 🔧 1 must-fix Fase R (A6-D1) |
+| 7 | Otimizar rota (3 estados + 3 modais FTUE) | 🟡 PR-A + PR-B1/B2 fechados (estado+solver+PRE-CONFIRM+mapa); **PR-C (Ready-to-Run) é honest-stub → R/P0** · 🔧 8 must-fix Fase R (A7-D1..D8) |
+| 8 | Modo Delivery (running route) | ⏳ não iniciada (abre após a Fase R) |
 | 9 | Conclusão de rota + telas core (ShareSheet, kebab, reordenar, RoutesList) | ⏳ não iniciada |
 | 10 | Settings completas (13 rows) | ⏳ não iniciada |
 | 11 | Notification settings (UI stub) | ⏳ não iniciada |
@@ -90,9 +134,11 @@ Backend auth real + landing + GraphHopper SP self-hosted + Login/Register Flutte
        ▼
 [✅ FECHADA]   Área 6 (Editar parada — MS-A6 2026-06-12)  ──► chips A1/A2 e lista inline dependem dela
        ▼
-   Área 7 (Otimizar rota)  ──► "Iniciar rota" é o gateway pra Área 8
+[🟡 PR-A/B]    Área 7 (Otimizar rota)  ── PR-A+B fechados; PR-C/D + drifts → Fase R
        ▼
-   Área 8 (Modo Delivery)  ──► estado terminal alimenta Área 9
+[⚠️ AGORA]     Fase R — Remediação retroativa 100% (P0 Á7 PR-C → P1 gates → P2 microcopy → P3 nits)
+       ▼          (BLOQUEIA a Á8 — ADR-0052; backlog: docs/audits/2026-06-20-dump-parity-retro-audit.md)
+   Área 8 (Modo Delivery)  ──► "Iniciar rota" da Á7/PR-C é o gateway; estado terminal alimenta Área 9
        ▼
    Área 9 (Conclusão + telas core)
 
@@ -163,7 +209,7 @@ Topbar: Ajuda (stub) + "Editar parada" + "Concluído" primary (**só fecha — e
 
 📊 **Dump (ADR-0045):** rows #4–#10 da [MASTER-TABLE](./inventory/spoke-dump-v3.65.1/MASTER-TABLE.md) **todas resolvidas por código** no Amendment 2026-06-11 (inclusive **#5** que era `low` → estrutura completa, e **#7** default global = 1 min). `Precisa-runtime` restante: 2 cliques no D4 (toast pós-add + tap-no-número dos Pacotes).
 
-### Área 7 — Otimizar rota (3 estados + 3 modais FTUE) ⏳ depende de Área 6 (chips) + Área 3 (CTA Otimizar)
+### Área 7 — Otimizar rota (3 estados + 3 modais FTUE) 🟡 PR-A + PR-B1/B2 fechados · PR-C + 8 must-fix → Fase R
 
 Funil: modal FTUE "IDs ajustados" → estado PRE-CONFIRM (mapa metade + polyline + markers 1-N + sheet mid + summary "X min · N paradas · D km" + 3 CTAs: X min verde / Refinar / Confirmar) → modal FTUE "IDs definitivos" → modal FTUE "Carregar veículo?" → estado **Ready-to-Run** (CTAs: X min verde / Editar / **Iniciar rota** = gateway pro modo delivery). 3 flags FTUE em SharedPrefsAsync. Otimização é **grátis** (paywall só em "Navegar"). Detalhe §10.8–10.12.
 
@@ -253,7 +299,7 @@ Per [ADR-0030](./decisions/0030-stripe-pix-30-day-access-pass.md) + [`docs/BUSIN
 
 ---
 
-## Slice 6 — LGPD ⏳
+## Slice 6 — LGPD ⏳ (desprioritizada — uma das últimas entregas, ADR-0052)
 
 - [ ] **Exportar dados** (`GET /users/me/export`) · **Excluir conta** (`DELETE /users/me`, RED + double confirm, cascade + audit) · **Privacidade** + **Termos** (telas in-app Markdown) · **OSS licenses** (`flutter_oss_licenses`).
 
@@ -300,7 +346,7 @@ Microcopy PT-BR original + diferenciações decorativas + assets finais (splash/
 ## Princípios operacionais
 
 - Spoke decide comportamento/UX; prototipo decide visual; cliente desempata.
-- **Live-inspect por feature no momento da implementação** — baseline de sessão anterior (mesmo existindo, não-zero, nomeado certo) NÃO é confiável (falhas MS4/MS5). Ordem: mapear → live-inspect → implementar → validar.
+- **Dump-first por ÁREA antes de implementar (ADR-0052)** — esgotar o dump da área inteira (fluxos/estados/gates/fallbacks/strings) num doc ANTES de codar; runtime só confirma o `Precisa-runtime`. Ordem: mapear a área toda (dump) → implementar (tradução moderna) → validar (re-grep + D4 dump-only + testes que pinam paridade). Inferência entre microsprints foi o que vazou os 13 must-fix do audit 2026-06-20.
 - **Zero tech debt por área** — nunca deferir divergência com `// TODO`/`// MS9`; corrigir no mesmo MS ou escalar como BLOCKED.
 - Sem placeholders de cor/ícone "pra ajustar depois" — tokens prototipo desde commit 1.
 - Tokens 3.44 (não memória Jan-2026): `onReorderItem`, `RadioGroup<T>`, `AsyncValue` selada.
