@@ -443,81 +443,85 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                   : const Duration(milliseconds: 220),
               curve: Curves.easeOut,
               height: mq.size.height * clampedFraction,
-              child: isReadyToRun
-                  ? ReadyToRunView(
-                      stops: stops,
-                      startLocation: activeStartLocation,
-                      destination: activeDestination,
-                      durationMinutes: activeMetrics?.duration ?? 0,
-                      distanceMeters: activeMetrics?.distance ?? 0.0,
-                      hasPendingOptimization: hasPendingOptimization,
-                      onEdit: _onEdit,
-                      onStart: _onStart,
-                      onComingSoon: _onComingSoon,
-                      onReoptimize: _onOptimize,
-                    )
-                  : isPreConfirm
-                      ? PreConfirmView(
-                          stops: stops,
-                          startLocation: activeStartLocation,
-                          destination: activeDestination,
-                          durationMinutes: activeMetrics?.duration ?? 0,
-                          distanceMeters: activeMetrics?.distance ?? 0.0,
-                          onRefine: _onRefine,
-                          onConfirm: _onConfirm,
-                          onReoptimize: _onReoptimize,
-                          onStopTap: activeRouteId == null
-                              ? (_) {}
-                              : (stopId) => context.push(
-                                    '/home/routes/active/$activeRouteId'
-                                    '/stops/$stopId/edit',
-                                  ),
-                        )
-                      : _ActiveRouteSheet(
-                          currentFraction: clampedFraction,
-                          collapsedFraction: _collapsedFraction,
-                          configSummary: configSummary,
-                          stops: stops,
-                          routeDisplayName: routeDisplayName,
-                          onAddStopTap: _openAddStop,
-                          onOptimizeTap: _onOptimize,
-                          onRouteNameTap: activeRouteId == null
-                              ? null
-                              : () => context
-                                  .push('/home/routes/$activeRouteId/edit'),
-                          onStopTap: activeRouteId == null
-                              ? null
-                              : (stopId) => context.push(
-                                    '/home/routes/active/$activeRouteId'
-                                    '/stops/$stopId/edit',
-                                  ),
-                          onHandleDragStart: () {
-                            _dragStartFraction = _sheetFraction;
-                          },
-                          onHandleDragUpdate: (delta) {
-                            if (_dragStartFraction == null) return;
-                            // Só o sheet acompanha o dedo frame-a-frame; o
-                            // `_mapPaddingFraction` fica congelado (ver campo) pra
-                            // não disparar uma chamada de plataforma por frame.
-                            setState(() {
-                              _sheetFraction =
-                                  (_sheetFraction - delta / mq.size.height)
-                                      .clamp(
-                                _collapsedFraction,
-                                _expandedFraction,
-                              );
-                            });
-                          },
-                          onHandleDragEnd: (velocity) {
-                            _dragStartFraction = null;
-                            setState(() {
-                              _sheetFraction = _snapTo(velocity);
-                              // Snap resolvido → o padding do mapa acompanha agora,
-                              // num único reposition.
-                              _mapPaddingFraction = _sheetFraction;
-                            });
-                          },
-                        ),
+              // Moldura ÚNICA (alça + busca + drag) nos 3 estados — fiel ao
+              // Spoke, onde PRE-CONFIRM/Ready são o MESMO shell do DRAFT,
+              // trocando só o corpo da lista e o rodapé (ADR-0052). Só o `body`
+              // e o `footer` variam por estado.
+              child: _RouteSheetShell(
+                currentFraction: clampedFraction,
+                collapsedFraction: _collapsedFraction,
+                onAddStopTap: _openAddStop,
+                // Kebab DENTRO da barra de busca (fiel ao Spoke). No DRAFT é o
+                // stub "Opções da Rota"; nos estados otimizados abre o sheet
+                // "Reotimizar rota..." {Atualizar/Recalcular} (lição Á7:
+                // Refinar ≠ Reotimizar — este é o slot do kebab).
+                onKebabTap: (isPreConfirm || isReadyToRun)
+                    ? _onReoptimize
+                    : () => _comingSoon(context, 'Opções da Rota'),
+                onHandleDragStart: _onSheetDragStart,
+                onHandleDragUpdate: (delta) => _onSheetDragUpdate(delta, mq),
+                onHandleDragEnd: _onSheetDragEnd,
+                body: isReadyToRun
+                    ? ReadyToRunView(
+                        stops: stops,
+                        routeName: routeDisplayName,
+                        startLocation: activeStartLocation,
+                        destination: activeDestination,
+                        durationMinutes: activeMetrics?.duration ?? 0,
+                        distanceMeters: activeMetrics?.distance ?? 0.0,
+                        hasPendingOptimization: hasPendingOptimization,
+                        onComingSoon: _onComingSoon,
+                        onReoptimize: _onOptimize,
+                      )
+                    : isPreConfirm
+                        ? PreConfirmView(
+                            stops: stops,
+                            routeName: routeDisplayName,
+                            startLocation: activeStartLocation,
+                            destination: activeDestination,
+                            durationMinutes: activeMetrics?.duration ?? 0,
+                            distanceMeters: activeMetrics?.distance ?? 0.0,
+                            onStopTap: activeRouteId == null
+                                ? (_) {}
+                                : (stopId) => context.push(
+                                      '/home/routes/active/$activeRouteId'
+                                      '/stops/$stopId/edit',
+                                    ),
+                          )
+                        : _DraftSheetBody(
+                            currentFraction: clampedFraction,
+                            collapsedFraction: _collapsedFraction,
+                            configSummary: configSummary,
+                            stops: stops,
+                            routeDisplayName: routeDisplayName,
+                            onAddStopTap: _openAddStop,
+                            onRouteNameTap: activeRouteId == null
+                                ? null
+                                : () => context
+                                    .push('/home/routes/$activeRouteId/edit'),
+                            onStopTap: activeRouteId == null
+                                ? null
+                                : (stopId) => context.push(
+                                      '/home/routes/active/$activeRouteId'
+                                      '/stops/$stopId/edit',
+                                    ),
+                          ),
+                footer: isReadyToRun
+                    ? ReadyToRunFooter(onEdit: _onEdit, onStart: _onStart)
+                    : isPreConfirm
+                        ? PreConfirmFooter(
+                            durationMinutes: activeMetrics?.duration ?? 0,
+                            onRefine: _onRefine,
+                            onConfirm: _onConfirm,
+                          )
+                        : _DraftSheetFooter(
+                            currentFraction: clampedFraction,
+                            collapsedFraction: _collapsedFraction,
+                            stops: stops,
+                            onAddStopTap: _openAddStop,
+                            onOptimizeTap: _onOptimize,
+                          ),
+              ),
             ),
           ],
         ),
@@ -850,6 +854,38 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
     return closest;
   }
+
+  /// Início do arrasto da moldura do sheet (alça + busca + corpo) — guarda a
+  /// fração atual como ponto de partida. Compartilhado pelos 3 estados via
+  /// `_RouteSheetShell` (ADR-0052).
+  void _onSheetDragStart() {
+    _dragStartFraction = _sheetFraction;
+  }
+
+  /// Frame de arrasto: só o sheet acompanha o dedo; o `_mapPaddingFraction`
+  /// fica congelado (ver campo) pra não disparar uma chamada de plataforma por
+  /// frame.
+  void _onSheetDragUpdate(double deltaPixels, MediaQueryData mq) {
+    if (_dragStartFraction == null) return;
+    setState(() {
+      _sheetFraction = (_sheetFraction - deltaPixels / mq.size.height)
+          .clamp(_collapsedFraction, _expandedFraction);
+    });
+  }
+
+  /// Fim do arrasto: resolve o snap e, só então, o padding do mapa acompanha
+  /// num único reposition.
+  void _onSheetDragEnd(double velocity) {
+    _dragStartFraction = null;
+    setState(() {
+      _sheetFraction = _snapTo(velocity);
+      _mapPaddingFraction = _sheetFraction;
+    });
+  }
+
+  void _comingSoon(BuildContext context, String feature) {
+    showAppSnackBar(context, '$feature em breve');
+  }
 }
 
 class _FloatingCircleButton extends StatelessWidget {
@@ -889,97 +925,66 @@ class _FloatingCircleButton extends StatelessWidget {
   }
 }
 
-class _ActiveRouteSheet extends StatelessWidget {
-  const _ActiveRouteSheet({
+/// Moldura ÚNICA do sheet da rota ativa — alça (DragHandle) + barra de busca
+/// (com kebab dentro) + corpo arrastável + rodapé. Compartilhada pelos 3
+/// estados (DRAFT / PRE-CONFIRM / Ready) per ADR-0052: no Spoke o estado
+/// otimizado NÃO é tela separada, é o mesmo shell do editroute trocando só o
+/// [body] e o [footer]. Antes PRE-CONFIRM/Ready eram `AnimatedContainer` de
+/// altura fixa SEM alça nem callbacks de drag (sheet travado) — esta moldura
+/// devolve a alça + a busca + o drag aos 3.
+class _RouteSheetShell extends StatelessWidget {
+  const _RouteSheetShell({
     required this.currentFraction,
     required this.collapsedFraction,
-    required this.configSummary,
-    required this.stops,
-    required this.routeDisplayName,
+    required this.body,
+    required this.footer,
     required this.onAddStopTap,
-    required this.onOptimizeTap,
-    required this.onRouteNameTap,
-    required this.onStopTap,
+    required this.onKebabTap,
     required this.onHandleDragStart,
     required this.onHandleDragUpdate,
     required this.onHandleDragEnd,
   });
 
   /// Fração atual do sheet (mesma usada pelo AnimatedContainer do pai).
-  /// Quando estamos perto do collapsedFraction, escondemos os 2 big buttons
-  /// fixos no rodapé pra não aparecerem cortados.
   final double currentFraction;
 
-  /// Fração mínima (collapsed). Usado como ponto de comparação.
+  /// Fração mínima (collapsed). Em collapsed o corpo é escondido.
   final double collapsedFraction;
 
-  /// "Configuração de rota" summary (ADR-0046), or `null` when there is no
-  /// active route. Rendered inside the medium+ scrollable body, above the
-  /// empty-state/stop-list, mirroring Spoke's `stepList` placement.
-  final Widget? configSummary;
+  /// Corpo da lista, variável por estado (DRAFT empty/stops, PRE-CONFIRM/Ready
+  /// = lista otimizada). Vai dentro do `Expanded` (área rolável + drag).
+  final Widget body;
 
-  /// Stops da rota ativa (MS-A6 T7). Vazio = branch empty-state atual.
-  final List<Stop> stops;
+  /// Rodapé fixo, variável por estado (big buttons / CTA / Refinar+Confirmar /
+  /// Editar+Iniciar). `null` permitido (estados sem rodapé).
+  final Widget? footer;
 
-  /// Nome de display da rota ativa (header da lista, H8). Null sem rota.
-  final String? routeDisplayName;
-
-  /// Abre o add-stop com await-push e trata o resultado (toast "Ver" /
-  /// push direto do editor — H9/H11). Dono: `_RouteShellPageState`.
+  /// Abre o add-stop (search pill). Dono: `_RouteShellPageState`.
   final Future<void> Function() onAddStopTap;
 
-  /// Dispara a otimização da rota ativa (Á7 PR-A). Dono: `_RouteShellPageState`.
-  final VoidCallback onOptimizeTap;
+  /// Kebab DENTRO da barra de busca — handler varia por estado (stub no DRAFT,
+  /// "Reotimizar rota..." nos otimizados).
+  final VoidCallback onKebabTap;
 
-  /// Tap no nome da rota → wizard de edição (H8). Null sem rota ativa.
-  final VoidCallback? onRouteNameTap;
-
-  /// Tap num stop card → editor da parada (T7→T8). Null sem rota ativa.
-  final void Function(String stopId)? onStopTap;
-
-  /// Disparado quando o user começa a arrastar a área do handle (parte
-  /// superior do sheet, ~24px). O parent guarda a fração atual pra usar
-  /// como ponto de partida do drag.
+  /// Início do arrasto da moldura (alça + busca + corpo).
   final VoidCallback onHandleDragStart;
 
-  /// Delta em pixels (positivo = movimento pra BAIXO; negativo = pra CIMA).
-  /// O parent traduz isso em incremento de altura do SizedBox que envolve
-  /// este sheet (movimento pra cima EXPANDE o sheet, isto é, cresce a
-  /// altura → mapa encolhe).
+  /// Delta em pixels (positivo = pra BAIXO; negativo = pra CIMA).
   final void Function(double deltaPixels) onHandleDragUpdate;
 
-  /// Velocidade vertical final (pixels/segundo). Negativa = flick pra
-  /// cima → snap pro maior bucket; positiva = flick pra baixo → snap pro
-  /// menor.
+  /// Velocidade vertical final (pixels/segundo) → snap.
   final void Function(double velocityPixelsPerSecond) onHandleDragEnd;
 
   @override
   Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    final bottomInset = mq.padding.bottom;
+    // Em collapsed o corpo é escondido (epsilon 0.02 evita flicker no snap) —
+    // só alça + busca aparecem, igual ao DRAFT validado no device.
+    final showBody = currentFraction > collapsedFraction + 0.02;
 
-    // Mostrar os big buttons só quando o sheet está claramente acima do
-    // collapsed (epsilon 0.02 evita flicker no snap).
-    final showButtons = currentFraction > collapsedFraction + 0.02;
-
-    // Altura real do sheet neste frame (mesma fórmula do AnimatedContainer pai).
-    // Durante o arrasto pra baixo o sheet passa por frações intermediárias
-    // baixas; um rodapé de altura fixa abaixo do corpo flexível estoura o
-    // RenderFlex se a altura cair abaixo da soma do chrome fixo. O CTA
-    // (52 + 8 + 12 + bottomInset) + handle (24) + search row (64) é mais alto
-    // que o piso `showButtons`, então ele ganha um gate de altura próprio.
-    final sheetHeight = mq.size.height * currentFraction;
-    // Soma do chrome fixo acima/abaixo do corpo flexível: handle (24) +
-    // search row (48 + 8×2 de padding = 64) + OptimizeCta (height 52 em
-    // optimize_cta.dart) + padding-top do CTA (8) + padding-bottom (12) +
-    // a nav-bar do sistema. Se alguma dessas alturas mudar, reavaliar aqui.
-    final footerChromePx = 24.0 + 64.0 + 52.0 + 8.0 + 12.0 + bottomInset;
-    final hasRoomForCta = sheetHeight >= footerChromePx;
-
-    // GestureDetector EXTERNO captura vertical drag em TODA a área do
-    // sheet (handle, pill row, big buttons). `behavior: translucent` deixa
-    // tap em InkWell internos continuarem funcionando — drag e tap são
-    // gestos diferentes na arena do Flutter.
+    // GestureDetector EXTERNO captura vertical drag em TODA a área do sheet
+    // (handle, pill row, footer). `behavior: translucent` deixa tap em InkWell
+    // internos continuarem funcionando — drag e tap são gestos diferentes na
+    // arena do Flutter.
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragStart: (_) => onHandleDragStart(),
@@ -1016,82 +1021,70 @@ class _ActiveRouteSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              _buildSearchRow(context),
-              // Spacer expandido — quando o sheet está medium+ hospeda a seção
-              // "Configuração de rota" (MS-A5.7) + o empty state da Spoke
-              // (dashed pin + microcopy). No collapsed fica vazio
-              // (SizedBox.shrink) pra não ocupar espaço. O corpo é scrollável
-              // pra nunca dar overflow em frações intermediárias (a seção de
-              // config tem altura fixa). No futuro hospeda a lista de stops.
-              // Também serve como área de captura de drag (GestureDetector
-              // externo translucent).
-              Expanded(
-                child: !showButtons
-                    ? const SizedBox.shrink()
-                    : stops.isNotEmpty
-                        // Rota ativa COM paradas (MS-A6 T7): header da lista
-                        // + ListView.builder com o config summary como item 0
-                        // (H7). Drag no corpo SCROLLA a lista (não
-                        // redimensiona o sheet) — intencional, match-Spoke
-                        // §10.5: resize fica no handle + search-row.
-                        ? _buildStopsBody(context)
-                        : configSummary == null
-                            // No active route: keep the original centered
-                            // empty state (existing Spoke parity, unchanged).
-                            ? _buildEmptyState(context)
-                            // Active route: config summary on top, empty
-                            // state below, in a scroll view so intermediate
-                            // fractions never overflow.
-                            : SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    configSummary!,
-                                    _buildEmptyState(context),
-                                  ],
-                                ),
-                              ),
+              _SheetSearchRow(
+                onAddStopTap: onAddStopTap,
+                onKebabTap: onKebabTap,
               ),
-              // Big buttons FIXOS no rodapé. Só renderizados quando o sheet
-              // está medium+ (showButtons = true) E a rota não tem paradas —
-              // eles são empty-state-only (H5); com ≥1 parada o footer fica
-              // vazio até a Á7 trazer o CTA "Otimizar rota". Sempre respeitam
-              // o bottomInset do device (não ficam por baixo dos nav buttons).
-              if (showButtons && stops.isEmpty)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _SheetPrimaryButton(
-                        icon: LucideIcons.plus,
-                        label: 'Adicionar parada',
-                        onTap: onAddStopTap,
-                      ),
-                      const SizedBox(height: 10),
-                      _SheetOutlinedButton(
-                        label: 'Copiar paradas de uma rota anterior',
-                        onTap: () => context.push('/home/routes/reuse-stops'),
-                      ),
-                    ],
-                  ),
-                ),
-              // CTA "Otimizar rota" — nasce aqui (Á7 PR-A). Aparece quando o
-              // sheet está medium+ E tem altura pra acomodar o rodapé fixo E a
-              // rota tem >=1 parada (o slot que era vazio desde a MS-A6).
-              // Otimização é grátis (sem paywall).
-              if (showButtons && hasRoomForCta && stops.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
-                  child: OptimizeCta(
-                    enabled: stops.length >= OptimizationController.minStops,
-                    onPressed: onOptimizeTap,
-                  ),
-                ),
+              // Corpo expandido — em collapsed fica vazio (SizedBox.shrink) pra
+              // não ocupar espaço; é também a área de captura de drag.
+              Expanded(
+                child: showBody ? body : const SizedBox.shrink(),
+              ),
+              if (footer != null) footer!,
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Corpo do sheet no DRAFT (não otimizado). Em collapsed o shell já esconde
+/// este corpo; aqui só decidimos empty-state vs lista de stops. Comportamento
+/// idêntico ao `_ActiveRouteSheet` anterior (validado no device) — só a moldura
+/// subiu pro `_RouteSheetShell`.
+class _DraftSheetBody extends StatelessWidget {
+  const _DraftSheetBody({
+    required this.currentFraction,
+    required this.collapsedFraction,
+    required this.configSummary,
+    required this.stops,
+    required this.routeDisplayName,
+    required this.onAddStopTap,
+    required this.onRouteNameTap,
+    required this.onStopTap,
+  });
+
+  final double currentFraction;
+  final double collapsedFraction;
+  final Widget? configSummary;
+  final List<Stop> stops;
+  final String? routeDisplayName;
+  final Future<void> Function() onAddStopTap;
+  final VoidCallback? onRouteNameTap;
+  final void Function(String stopId)? onStopTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (stops.isNotEmpty) {
+      // Rota ativa COM paradas (MS-A6 T7): header + ListView.builder com o
+      // config summary como item 0 (H7). Drag no corpo SCROLLA a lista (não
+      // redimensiona o sheet) — intencional, match-Spoke §10.5.
+      return _buildStopsBody(context);
+    }
+    if (configSummary == null) {
+      // No active route: keep the original centered empty state (unchanged).
+      return _buildEmptyState(context);
+    }
+    // Active route: config summary on top, empty state below, in a scroll view
+    // so intermediate fractions never overflow.
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          configSummary!,
+          _buildEmptyState(context),
+        ],
       ),
     );
   }
@@ -1099,17 +1092,8 @@ class _ActiveRouteSheet extends StatelessWidget {
   /// Corpo do sheet quando a rota ativa tem ≥1 parada (MS-A6 T7, §10.5):
   /// um ListView.builder ÚNICO — item 0 = header (contador "N paradas" +
   /// nome da rota clicável, H8); item 1 = config summary achatado + título
-  /// "Paradas" (H7); itens 2.. = um [_StopCard] por parada. Tudo dentro do
-  /// builder para o corpo nunca transbordar em frações intermediárias do
-  /// drag (mesma razão do FittedBox no empty state).
+  /// "Paradas" (H7); itens 2.. = um RouteStopStep por parada.
   Widget _buildStopsBody(BuildContext context) {
-    // Layout da step list:
-    //   0           → header (contador + nome da rota)
-    //   1           → config summary (= linhas Início/Destino do Spoke,
-    //                 ADR-0046) + título "Paradas"
-    //   2..2+len-1  → uma parada (RouteStopStep) por stop
-    // A linha de início/destino do steplist do Spoke é surfaceada pelo
-    // config-summary acima (não duplicar aqui).
     return ListView.builder(
       padding: EdgeInsets.zero,
       itemCount: stops.length + 2,
@@ -1187,12 +1171,7 @@ class _ActiveRouteSheet extends StatelessWidget {
   }
 
   /// Empty state visível quando o sheet está medium+ e a rota não tem
-  /// paradas ainda (estado canônico observado na Spoke 2026-05-28).
-  /// Pin quadrado arredondado (NÃO oval) + microcopy PT-BR.
-  ///
-  /// Wrap em FittedBox pra evitar overflow durante o drag em frações
-  /// intermediárias (quando o Expanded fica com altura insuficiente
-  /// momentaneamente).
+  /// paradas ainda. Pin quadrado arredondado + microcopy PT-BR.
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
@@ -1202,8 +1181,6 @@ class _ActiveRouteSheet extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Pin 48x48 quadrado arredondado — radius < dimensão/2
-              // garante quadrado-com-cantos-arredondados (não oval).
               Container(
                 width: 48,
                 height: 48,
@@ -1239,9 +1216,90 @@ class _ActiveRouteSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Search pill + kebab — sempre visível em qualquer estado do sheet.
-  Widget _buildSearchRow(BuildContext context) {
+/// Rodapé do sheet no DRAFT: big buttons (empty-state) OU CTA "Otimizar rota"
+/// (≥1 parada). Gates idênticos ao `_ActiveRouteSheet` anterior.
+class _DraftSheetFooter extends StatelessWidget {
+  const _DraftSheetFooter({
+    required this.currentFraction,
+    required this.collapsedFraction,
+    required this.stops,
+    required this.onAddStopTap,
+    required this.onOptimizeTap,
+  });
+
+  final double currentFraction;
+  final double collapsedFraction;
+  final List<Stop> stops;
+  final Future<void> Function() onAddStopTap;
+  final VoidCallback onOptimizeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final bottomInset = mq.padding.bottom;
+
+    // Mesmo gate do shell: nada de rodapé em collapsed.
+    final showButtons = currentFraction > collapsedFraction + 0.02;
+    if (!showButtons) return const SizedBox.shrink();
+
+    // Altura real do sheet neste frame. O CTA precisa de altura mínima pra não
+    // estourar o RenderFlex em frações intermediárias do drag.
+    final sheetHeight = mq.size.height * currentFraction;
+    final footerChromePx = 24.0 + 64.0 + 52.0 + 8.0 + 12.0 + bottomInset;
+    final hasRoomForCta = sheetHeight >= footerChromePx;
+
+    if (stops.isEmpty) {
+      // Big buttons (empty-state only, H5).
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SheetPrimaryButton(
+              icon: LucideIcons.plus,
+              label: 'Adicionar parada',
+              onTap: onAddStopTap,
+            ),
+            const SizedBox(height: 10),
+            _SheetOutlinedButton(
+              label: 'Copiar paradas de uma rota anterior',
+              onTap: () => context.push('/home/routes/reuse-stops'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // CTA "Otimizar rota" (Á7 PR-A) — ≥1 parada + altura suficiente.
+    if (hasRoomForCta) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+        child: OptimizeCta(
+          enabled: stops.length >= OptimizationController.minStops,
+          onPressed: onOptimizeTap,
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+/// Barra de busca "Adicionar parada..." com OCR + Voz + kebab DENTRO — mantida
+/// nos 3 estados do shell (fiel ao Spoke: a busca permanece no estado otimizado,
+/// com o kebab no canto direito).
+class _SheetSearchRow extends StatelessWidget {
+  const _SheetSearchRow({
+    required this.onAddStopTap,
+    required this.onKebabTap,
+  });
+
+  final Future<void> Function() onAddStopTap;
+  final VoidCallback onKebabTap;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -1292,7 +1350,7 @@ class _ActiveRouteSheet extends StatelessWidget {
           _GradientCircleButton(
             icon: LucideIcons.moreVertical,
             semanticsLabel: 'Opções da rota',
-            onTap: () => _comingSoon(context, 'Opções da Rota'),
+            onTap: onKebabTap,
           ),
         ],
       ),

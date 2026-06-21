@@ -1,13 +1,17 @@
-// Tests for ReadyToRunView — Á7 PR-C (Fase R/P0, A7-D5/A7-D8).
+// Tests for ReadyToRunView (body) + ReadyToRunFooter — Á7 PR-C / Á8 fidelity.
+//
+// Pós-ADR-0052: a ReadyToRunView deixou de ter moldura própria. Agora é só o
+// BODY da lista otimizada (mesma do PRE-CONFIRM, Branch B plana) com o header =
+// summary à esquerda OU o banner "Otimização pendente" (skip-path), seguido das
+// linhas "Compartilhar rota em tempo real" / "Carregar veículo". O rodapé
+// ("Editar" / "Iniciar rota") é o ReadyToRunFooter. A moldura (alça + busca +
+// drag) vive no shell.
 //
 // Contrato:
-//   - Sem pendência: mostra o resumo (RouteSummaryRow) + 2 botões-linha
-//     ("Compartilhar rota em tempo real" / "Carregar veículo") + "Editar" /
-//     "Iniciar rota".
-//   - Com pendência (skip-path): mostra o banner "Otimização pendente" no lugar
-//     do resumo.
-//   - Callbacks: Editar→onEdit, Iniciar rota→onStart, botões-linha→onComingSoon,
-//     banner→onReoptimize.
+//   - Sem pendência: header summary à esquerda + 2 botões-linha.
+//   - Com pendência (skip-path): banner "Otimização pendente" no lugar do header.
+//   - Callbacks: botões-linha→onComingSoon, banner→onReoptimize;
+//     no footer: Editar→onEdit, Iniciar rota→onStart.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,11 +27,9 @@ Stop _stop(String id) => Stop(
     );
 
 void main() {
-  Future<void> pump(
+  Future<void> pumpBody(
     WidgetTester tester, {
     required bool pending,
-    VoidCallback? onEdit,
-    VoidCallback? onStart,
     VoidCallback? onComingSoon,
     VoidCallback? onReoptimize,
   }) async {
@@ -36,11 +38,10 @@ void main() {
         home: Scaffold(
           body: ReadyToRunView(
             stops: [_stop('A'), _stop('B')],
+            routeName: 'Rota',
             durationMinutes: 25,
             distanceMeters: 4200,
             hasPendingOptimization: pending,
-            onEdit: onEdit ?? () {},
-            onStart: onStart ?? () {},
             onComingSoon: onComingSoon ?? () {},
             onReoptimize: onReoptimize ?? () {},
           ),
@@ -49,50 +50,27 @@ void main() {
     );
   }
 
-  testWidgets('sem pendência: resumo + 2 botões-linha + Editar/Iniciar rota',
+  testWidgets('sem pendência: header summary à esquerda + 2 botões-linha',
       (tester) async {
-    await pump(tester, pending: false);
+    await pumpBody(tester, pending: false);
 
-    expect(find.textContaining('25 min'), findsOneWidget); // RouteSummaryRow
+    expect(find.textContaining('25 min'), findsOneWidget); // summary header
     expect(find.text('Otimização pendente'), findsNothing);
     expect(find.text('Compartilhar rota em tempo real'), findsOneWidget);
     expect(find.text('Carregar veículo'), findsOneWidget);
-    expect(find.text('Editar'), findsOneWidget);
-    expect(find.text('Iniciar rota'), findsOneWidget);
   });
 
-  testWidgets('com pendência: banner "Otimização pendente" no lugar do resumo',
+  testWidgets('com pendência: banner "Otimização pendente" no lugar do summary',
       (tester) async {
-    await pump(tester, pending: true);
+    await pumpBody(tester, pending: true);
 
     expect(find.text('Otimização pendente'), findsOneWidget);
     expect(find.textContaining('25 min'), findsNothing);
-    expect(find.text('Editar'), findsOneWidget);
-    expect(find.text('Iniciar rota'), findsOneWidget);
-  });
-
-  testWidgets('tap "Editar" → onEdit; tap "Iniciar rota" → onStart',
-      (tester) async {
-    var edited = 0;
-    var started = 0;
-    await pump(
-      tester,
-      pending: false,
-      onEdit: () => edited++,
-      onStart: () => started++,
-    );
-
-    await tester.tap(find.text('Editar'));
-    await tester.tap(find.text('Iniciar rota'));
-    await tester.pump();
-
-    expect(edited, 1);
-    expect(started, 1);
   });
 
   testWidgets('tap nos botões-linha → onComingSoon', (tester) async {
     var comingSoon = 0;
-    await pump(tester, pending: false, onComingSoon: () => comingSoon++);
+    await pumpBody(tester, pending: false, onComingSoon: () => comingSoon++);
 
     await tester.tap(find.text('Compartilhar rota em tempo real'));
     await tester.tap(find.text('Carregar veículo'));
@@ -103,11 +81,38 @@ void main() {
 
   testWidgets('tap no banner pendente → onReoptimize', (tester) async {
     var reopt = 0;
-    await pump(tester, pending: true, onReoptimize: () => reopt++);
+    await pumpBody(tester, pending: true, onReoptimize: () => reopt++);
 
     await tester.tap(find.text('Otimização pendente'));
     await tester.pump();
 
     expect(reopt, 1);
+  });
+
+  testWidgets(
+      'ReadyToRunFooter: Editar/Iniciar rota presentes; callbacks disparam',
+      (tester) async {
+    var edited = 0;
+    var started = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ReadyToRunFooter(
+            onEdit: () => edited++,
+            onStart: () => started++,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Editar'), findsOneWidget);
+    expect(find.text('Iniciar rota'), findsOneWidget);
+
+    await tester.tap(find.text('Editar'));
+    await tester.tap(find.text('Iniciar rota'));
+    await tester.pump();
+
+    expect(edited, 1);
+    expect(started, 1);
   });
 }

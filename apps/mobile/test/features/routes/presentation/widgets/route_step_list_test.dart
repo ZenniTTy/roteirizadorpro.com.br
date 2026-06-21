@@ -38,7 +38,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text('2'), findsOneWidget);
+      // Zero-pad 2 dígitos (Spoke v3.65.1: o disco mostra "02", não "2").
+      expect(find.text('02'), findsOneWidget);
       expect(find.text('14:32'), findsOneWidget);
     });
 

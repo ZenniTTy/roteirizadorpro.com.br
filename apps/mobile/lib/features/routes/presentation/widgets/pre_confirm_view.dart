@@ -1,130 +1,107 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/delivery_id_chip.dart';
-import 'package:roteirizador_pro/features/routes/presentation/widgets/route_config_labels.dart';
-import 'package:roteirizador_pro/features/routes/presentation/widgets/route_step_list.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/optimized_route_step_body.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_summary_row.dart';
 
-/// Tela de pré-confirmação da rota otimizada (G4 — PRE-CONFIRM).
-/// Lista contínua fiel ao Spoke (Branch B, plana): linha de início → paradas
-/// (número+ETA+chip) → linha de destino, no mesmo trilho. Mais o resumo
-/// (RouteSummaryRow) e os botões "Refinar"/"Confirmar".
+/// Corpo do PRE-CONFIRM (G4) — a LISTA otimizada, fiel ao Spoke (Branch B,
+/// plana, no MESMO shell do DRAFT). A moldura (alça + busca + drag) vem do
+/// `_RouteSheetShell` do `route_shell_page.dart`; esta view é só o `body`, e o
+/// rodapé é o [PreConfirmFooter] (composto pelo shell). Mantém o tipo
+/// `PreConfirmView` na árvore pros testes de presença por estado.
+///
+/// Header (summary 2 linhas À ESQUERDA: linha 1 muted "duração · N paradas ·
+/// distância"; linha 2 bold = nome da rota) → Sem pausa → Ponto de partida →
+/// paradas (número zero-pad + ETA + chip A1) → Destino, tudo no mesmo trilho.
 class PreConfirmView extends StatelessWidget {
   const PreConfirmView({
     required this.stops,
     required this.durationMinutes,
     required this.distanceMeters,
-    required this.onRefine,
-    required this.onConfirm,
     required this.onStopTap,
-    required this.onReoptimize,
+    this.routeName,
     this.startLocation,
     this.destination,
     super.key,
   });
 
   final List<Stop> stops;
+  final String? routeName;
   final StartLocation? startLocation;
   final Destination? destination;
   final int durationMinutes;
   final double distanceMeters;
-  final VoidCallback onRefine;
-  final VoidCallback onConfirm;
   final void Function(String stopId) onStopTap;
-  final VoidCallback onReoptimize;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: Semantics(
-            label: 'Opções da rota',
-            button: true,
-            child: IconButton(
-              icon: const Icon(LucideIcons.moreVertical),
-              onPressed: onReoptimize,
-            ),
-          ),
-        ),
-        RouteSummaryRow(
-          durationMinutes: durationMinutes,
-          stopsCount: stops.length,
-          distanceMeters: distanceMeters,
-        ),
-        const Divider(height: 1),
-        Expanded(
-          child: ListView.builder(
-            // [0] início → [1..n] paradas → [n+1] destino, todos no trilho
-            // contínuo (Branch B plano, sem grupos).
-            itemCount: stops.length + 2,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                return RouteStartStep(
-                  lineOne: startLabel(startLocation, optimized: true),
-                  lineTwo: startSubtitle(optimized: true),
-                );
-              }
-              if (index == stops.length + 1) {
-                return RouteEndStep(
-                  lineOne: destinationLabel(destination),
-                  lineTwo: destinationSubtitle(destination),
-                );
-              }
-              final stop = stops[index - 1];
-              // Otimizada: disco mostra número da parada + ETA ("Chegada"); o
-              // chip de ID ("A1") vai no trailing (número e ID coexistem — o
-              // formato Moderno do Spoke existe pra não confundi-los).
-              return RouteStopStep(
-                // Key por id: ao "Inverter a ordem" a lista vem revertida; sem a
-                // key o ListView reconcilia por índice e refaz subtrees em vez de
-                // mover (perf-auditor should-fix Á7 PR-B1).
-                key: ValueKey(stop.id),
-                position: stop.positionInRoute == null
-                    ? null
-                    : stop.positionInRoute! + 1,
-                etaTime: stop.estimatedArrival == null
-                    ? null
-                    : formatEta(stop.estimatedArrival!),
-                streetName: stop.streetName,
-                fullAddress: stop.fullAddress,
-                statusColor: AppColors.textMuted,
-                // Trilho contínuo: início acima, destino abaixo → nenhum stop é
-                // ponta (não cortar o trilho nas extremidades).
-                trailing: DeliveryIdChip(deliveryId: stop.deliveryId),
-                onTap: () => onStopTap(stop.id),
-              );
-            },
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onRefine,
-                    child: const Text('Refinar'),
-                  ),
+    return OptimizedRouteStepBody(
+      stops: stops,
+      routeName: routeName,
+      startLocation: startLocation,
+      destination: destination,
+      durationMinutes: durationMinutes,
+      distanceMeters: distanceMeters,
+      stopTrailingBuilder: (stop) =>
+          DeliveryIdChip(deliveryId: stop.deliveryId),
+      onStopTap: onStopTap,
+    );
+  }
+}
+
+/// Rodapé do PRE-CONFIRM: duração total em VERDE à esquerda (quando há valor) +
+/// "Refinar" (outline) + "Confirmar" (filled). Fiel ao Spoke (`8h16min` verde).
+/// A duração é OMITIDA quando 0 (o valor real só chega na slice-3/GraphHopper —
+/// não mostrar "0 min", que parece bug).
+class PreConfirmFooter extends StatelessWidget {
+  const PreConfirmFooter({
+    required this.durationMinutes,
+    required this.onRefine,
+    required this.onConfirm,
+    super.key,
+  });
+
+  final int durationMinutes;
+  final VoidCallback onRefine;
+  final VoidCallback onConfirm;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            if (durationMinutes > 0) ...[
+              Text(
+                formatRouteDuration(durationMinutes),
+                style: const TextStyle(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton(
-                    onPressed: onConfirm,
-                    child: const Text('Confirmar'),
-                  ),
-                ),
-              ],
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onRefine,
+                child: const Text('Refinar'),
+              ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton(
+                onPressed: onConfirm,
+                child: const Text('Confirmar'),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

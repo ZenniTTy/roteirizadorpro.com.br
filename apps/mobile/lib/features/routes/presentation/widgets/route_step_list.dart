@@ -410,8 +410,10 @@ class _StepDisc extends StatelessWidget {
     final Widget disc;
     if (number != null) {
       disc = _circle(
+        // Zero-pad 2 dígitos ("01", "02") — fiel ao Spoke (`ond.m40675a`,
+        // confirmado runtime v3.65.1: o disco mostra "01", não "1").
         child: Text(
-          '$number',
+          number!.toString().padLeft(2, '0'),
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
