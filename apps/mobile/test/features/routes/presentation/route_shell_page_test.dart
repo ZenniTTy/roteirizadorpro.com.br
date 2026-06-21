@@ -8,6 +8,7 @@ import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
 import 'package:roteirizador_pro/features/route_config/state/route_config_controller.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/route_step_list.dart';
 import 'package:roteirizador_pro/features/routes/data/location_service.dart';
 import 'package:roteirizador_pro/features/routes/domain/map_controls_state.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
@@ -405,16 +406,20 @@ void main() {
   });
 
   testWidgets(
-      'summary shows EXACTLY 2 rows (Início + Ida-e-volta) — no inline Pausa '
-      'row (Spoke parity, ADR-0046)', (tester) async {
+      'config integra Início + Destino + Pausa como step rows no trilho '
+      '(Spoke Branch C — amendment ADR-0046, não mais caixa)', (tester) async {
     useTallFrame(tester);
     await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
     await tester.pumpAndSettle();
     await _expandSheet(tester);
 
-    expect(find.byType(RouteConfigRow), findsNWidgets(2));
-    // Pausa is NOT a summary row — it lives inside the Detalhes page only.
-    expect(find.text('Adicionar pausa'), findsNothing);
+    // Não é mais a caixa de 2 RouteConfigRows — virou linhas integradas.
+    expect(find.byType(RouteConfigRow), findsNothing);
+    expect(find.byType(RouteStartStep), findsOneWidget);
+    expect(find.byType(RouteEndStep), findsOneWidget);
+    // A Pausa agora É uma linha inline (fiel ao steplist do Spoke).
+    expect(find.text('Sem pausa'), findsOneWidget);
+    expect(find.text('Toque para agendar uma pausa'), findsOneWidget);
   });
 
   testWidgets(
@@ -564,7 +569,8 @@ void main() {
 
     // Com rota ativa, a seção de config AGORA aparece (antes: findsNothing).
     expect(find.text('Configuração de rota'), findsOneWidget);
-    expect(find.byType(RouteConfigRow), findsNWidgets(2));
+    expect(find.byType(RouteStartStep), findsOneWidget);
+    expect(find.byType(RouteEndStep), findsOneWidget);
   });
 
   // ───────────────────────────────────────────────────────────────────────
@@ -824,8 +830,8 @@ void main() {
   // ── H19: Stop cards — badge, address lines, status dot, semantics ─────────
 
   testWidgets(
-      'MS-A6/H19: with 2 stops, cards show badges "01" and "02", '
-      'streetName and fullAddress', (tester) async {
+      'step list DRAFT: SEM número (círculo vazio, fiel ao Spoke) + linhas de '
+      'início/destino + streetName e fullAddress', (tester) async {
     tester.view.physicalSize = const Size(1080, 3200);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -834,8 +840,10 @@ void main() {
     await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
     await tester.pumpAndSettle();
 
-    expect(find.text('01'), findsOneWidget);
-    expect(find.text('02'), findsOneWidget);
+    // DRAFT (sem otimizar): paradas sem positionInRoute → disco é círculo
+    // vazio, sem número e sem ETA. O "01"/"02" só aparece pós-otimização.
+    expect(find.text('01'), findsNothing);
+    expect(find.text('02'), findsNothing);
 
     expect(find.text('Rua Alfa, 100'), findsOneWidget);
     expect(find.text('Rua Beta, 200'), findsOneWidget);

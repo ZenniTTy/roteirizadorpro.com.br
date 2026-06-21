@@ -62,7 +62,27 @@ class LocalRouteOptimizer implements RouteOptimizer {
       orderedStops: labeled,
       totalDistanceMeters: distance,
       totalDurationMinutes: (distance / urbanSpeedMetersPerMinute).round(),
+      stopArrivalOffsets: _arrivalOffsets(start, labeled),
     );
+  }
+
+  /// Tempo de viagem acumulado do [start] até a chegada em cada parada, na ordem
+  /// final. Só deslocamento (sem tempo de serviço na parada) — a velocidade
+  /// urbana constante converte a distância acumulada em minutos. O provider
+  /// soma cada offset ao horário da otimização para obter o ETA absoluto.
+  List<Duration> _arrivalOffsets(GeoPoint start, List<Stop> ordered) {
+    final offsets = <Duration>[];
+    var cumulativeMeters = 0.0;
+    var prevLat = start.lat;
+    var prevLng = start.lng;
+    for (final s in ordered) {
+      cumulativeMeters += _distance(prevLat, prevLng, s.lat, s.lng);
+      final minutes = cumulativeMeters / urbanSpeedMetersPerMinute;
+      offsets.add(Duration(seconds: (minutes * 60).round()));
+      prevLat = s.lat;
+      prevLng = s.lng;
+    }
+    return offsets;
   }
 
   List<Stop> _nearestNeighbor(GeoPoint start, List<Stop> stops) {

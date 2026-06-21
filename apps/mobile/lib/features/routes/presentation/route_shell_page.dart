@@ -7,8 +7,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_snackbar.dart';
-import '../../route_config/domain/route_config.dart';
-import '../../route_config/presentation/widgets/route_config_row.dart';
+import 'widgets/route_config_labels.dart';
+import 'widgets/route_step_list.dart';
 import '../../route_config/state/route_config_controller.dart';
 import '../data/location_service.dart';
 import '../domain/optimization/route_optimizer.dart';
@@ -25,11 +25,14 @@ import '../state/optimization_ftue_repository.dart';
 import '../state/route_map_markers_provider.dart';
 import '../state/routes_provider.dart';
 import 'widgets/app_drawer.dart';
+import 'widgets/discard_changes_dialog.dart';
 import 'widgets/id_education_dialog.dart';
+import 'widgets/id_lock_dialog.dart';
 import 'widgets/not_enough_stops_dialog.dart';
 import 'widgets/optimization_error_dialog.dart';
 import 'widgets/optimize_cta.dart';
 import 'widgets/pre_confirm_view.dart';
+import 'widgets/ready_to_run_view.dart';
 import 'widgets/refine_route_sheet.dart';
 import 'widgets/reoptimize_options_sheet.dart';
 
@@ -250,7 +253,37 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final isPreConfirm = ref.watch(
       activeRouteStateProvider.select((s) => s?.isPreConfirm ?? false),
     );
-    final routePolylines = isPreConfirm
+    final isReadyToRun = ref.watch(
+      activeRouteStateProvider.select((s) => s?.isReadyToRun ?? false),
+    );
+    final hasPendingOptimization = ref.watch(
+      activeRouteStateProvider
+          .select((s) => s?.hasPendingOptimization ?? false),
+    );
+    final isEditing = ref.watch(
+      activeRouteStateProvider.select((s) => s?.isEditing ?? false),
+    );
+    // Início/destino p/ as linhas integradas das views otimizadas (Branch B —
+    // PRE-CONFIRM/Ready mostram "Ponto de partida" + destino no trilho, como o
+    // Spoke). Lidos só quando há rota ativa (mesmo idiom de activeMetrics).
+    final activeStartLocation = activeRouteId == null
+        ? null
+        : ref.watch(
+            routeConfigControllerProvider(activeRouteId)
+                .select((c) => c.startLocation),
+          );
+    final activeDestination = activeRouteId == null
+        ? null
+        : ref.watch(
+            routeConfigControllerProvider(activeRouteId)
+                .select((c) => c.destination),
+          );
+    // Overlay otimizado (polyline + pinos numerados) aparece quando a rota ESTÁ
+    // otimizada — PRE-CONFIRM ou Ready-to-Run vindo do funil normal. No skip-path
+    // (Ready-to-Run pendente) não há ordem real, então os números confundiriam.
+    final showRouteOverlay =
+        isPreConfirm || (isReadyToRun && !hasPendingOptimization);
+    final routePolylines = showRouteOverlay
         ? buildRoutePolylines(
             routePolylinePoints(stops),
             fill: AppColors.primary,
@@ -263,7 +296,7 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     // Gate em `isPreConfirm` (paridade Spoke — spoke-parity D4 must-fix): os
     // pinos numerados só aparecem quando a rota está OTIMIZADA. No DRAFT a ordem
     // ainda não significa nada, então os números confundiriam o motorista.
-    final routeMarkers = isPreConfirm
+    final routeMarkers = showRouteOverlay
         ? (ref.watch(routeMapMarkersProvider).value ?? const <Marker>{})
         : const <Marker>{};
     final activeMetrics = activeRouteId == null
@@ -296,178 +329,216 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final clampedFraction =
         _sheetFraction.clamp(_collapsedFraction, _expandedFraction);
 
-    return Scaffold(
-      // ARQUITETURA descoberta via Maestro do Spoke 2026-05-28:
-      // - O mapa do Spoke NÃO é full-screen — ele OCUPA SÓ A FATIA DA TELA
-      //   acima do sheet. Quando o sheet expande, o mapa encolhe (vide
-      //   `[0,0][1080,2058]` → `[0,0][1080,1245]` no dump pós-swipe).
-      // - Isso elimina a sobreposição mapa-sheet, evitando que o
-      //   EagerGestureRecognizer do GoogleMap (PlatformView) intercepte
-      //   gestos verticais que deveriam ser do sheet (flutter#105994).
-      //
-      // Implementação em Flutter: Column { Expanded(map), SizedBox(sheet) }.
-      // Conforme `_sheetFraction` cresce via drag handle, o SizedBox
-      // toma mais espaço e o Expanded encolhe automaticamente.
-      //
-      // O DraggableScrollableSheet do Flutter NÃO funciona dentro de um
-      // SizedBox (depende de altura unconstrained pra calcular *ChildSize).
-      // Por isso usamos um sheet MANUAL: AnimatedContainer + GestureDetector
-      // no handle, snap states discretos.
-      body: Column(
-        children: [
-          Expanded(
-            // RepaintBoundary isolates the map + static floating chrome from
-            // the per-frame setState the sheet drag fires (onHandleDragUpdate),
-            // so the floating buttons aren't recomposited on every drag frame.
-            child: RepaintBoundary(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: GoogleMap(
-                      mapType: mapType,
-                      initialCameraPosition: _initialPosition,
-                      // Padding inferior = altura do sheet NO ÚLTIMO SNAP
-                      // (`_mapPaddingFraction`, não `clampedFraction`, que muda
-                      // a cada frame de drag). Reposiciona o watermark "Google",
-                      // o logo e os controles nativos do mapa ACIMA do sheet.
-                      // Espelha o `GoogleMap.setPadding(bottom)` do Spoke
-                      // (UpdateMapPaddingEffect, dump jadx v3.65.1) — que também
-                      // reposiciona por estado, não por frame.
-                      padding: EdgeInsets.only(
-                        bottom: mq.size.height * _mapPaddingFraction,
-                      ),
-                      polylines: routePolylines,
-                      markers: routeMarkers,
-                      onMapCreated: (GoogleMapController controller) {
-                        _controller.complete(controller);
-                      },
-                      // Render the blue GPS dot; our own button replaces the
-                      // native recenter FAB (which we keep disabled).
-                      myLocationEnabled: true,
-                      // A user-initiated pan drops follow mode (Spoke's exit to
-                      // `MapControllerMode.Manual`). Our recenter animation also
-                      // fires this callback; the controller's pending-move
-                      // counter (set in `_onRecenter`) consumes our own moves so
-                      // only a real user pan drops follow — order-independent of
-                      // when `animateCamera` resolves.
-                      onCameraMoveStarted: () {
-                        ref
-                            .read(mapControlsControllerProvider.notifier)
-                            .onCameraMoveStarted();
-                      },
-                      zoomControlsEnabled: false,
-                      mapToolbarEnabled: false,
-                      myLocationButtonEnabled: false,
-                      compassEnabled: false,
-                    ),
-                  ),
-                  Positioned(
-                    top: mq.padding.top + 12,
-                    left: 16,
-                    child: _FloatingCircleButton(
-                      semanticsLabel: 'Abrir menu',
-                      icon: LucideIcons.menu,
-                      onTap: () => AppDrawer.show(context),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 12,
-                    // Own RepaintBoundary: an InkWell ripple on either map
-                    // control must not invalidate the GoogleMap PlatformView
-                    // layer they share with it (perf-auditor MS-A3).
-                    child: RepaintBoundary(
-                      child: Column(
-                        children: [
-                          _FloatingCircleButton(
-                            semanticsLabel: 'Alternar modo de mapa',
-                            icon: LucideIcons.layers,
-                            onTap: _onToggleMapType,
-                            iconColor: AppColors.primary,
-                          ),
-                          const SizedBox(height: 12),
-                          _FloatingCircleButton(
-                            semanticsLabel: 'Alternar para o mapa',
-                            icon: LucideIcons.locateFixed,
-                            onTap: _onRecenter,
-                          ),
-                        ],
+    // Guard de edição pós-otimização (A7-D7): em `editing`, o back não sai da
+    // tela — pergunta "Descartar as alterações?". Fora desse estado, back normal.
+    return PopScope(
+      canPop: !isEditing,
+      onPopInvokedWithResult: _onShellPopInvoked,
+      child: Scaffold(
+        // ARQUITETURA descoberta via Maestro do Spoke 2026-05-28:
+        // - O mapa do Spoke NÃO é full-screen — ele OCUPA SÓ A FATIA DA TELA
+        //   acima do sheet. Quando o sheet expande, o mapa encolhe (vide
+        //   `[0,0][1080,2058]` → `[0,0][1080,1245]` no dump pós-swipe).
+        // - Isso elimina a sobreposição mapa-sheet, evitando que o
+        //   EagerGestureRecognizer do GoogleMap (PlatformView) intercepte
+        //   gestos verticais que deveriam ser do sheet (flutter#105994).
+        //
+        // Implementação em Flutter: Column { Expanded(map), SizedBox(sheet) }.
+        // Conforme `_sheetFraction` cresce via drag handle, o SizedBox
+        // toma mais espaço e o Expanded encolhe automaticamente.
+        //
+        // O DraggableScrollableSheet do Flutter NÃO funciona dentro de um
+        // SizedBox (depende de altura unconstrained pra calcular *ChildSize).
+        // Por isso usamos um sheet MANUAL: AnimatedContainer + GestureDetector
+        // no handle, snap states discretos.
+        body: Column(
+          children: [
+            Expanded(
+              // RepaintBoundary isolates the map + static floating chrome from
+              // the per-frame setState the sheet drag fires (onHandleDragUpdate),
+              // so the floating buttons aren't recomposited on every drag frame.
+              child: RepaintBoundary(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: GoogleMap(
+                        mapType: mapType,
+                        initialCameraPosition: _initialPosition,
+                        // Padding inferior = altura do sheet NO ÚLTIMO SNAP
+                        // (`_mapPaddingFraction`, não `clampedFraction`, que muda
+                        // a cada frame de drag). Reposiciona o watermark "Google",
+                        // o logo e os controles nativos do mapa ACIMA do sheet.
+                        // Espelha o `GoogleMap.setPadding(bottom)` do Spoke
+                        // (UpdateMapPaddingEffect, dump jadx v3.65.1) — que também
+                        // reposiciona por estado, não por frame.
+                        padding: EdgeInsets.only(
+                          bottom: mq.size.height * _mapPaddingFraction,
+                        ),
+                        polylines: routePolylines,
+                        markers: routeMarkers,
+                        onMapCreated: (GoogleMapController controller) {
+                          _controller.complete(controller);
+                        },
+                        // Render the blue GPS dot; our own button replaces the
+                        // native recenter FAB (which we keep disabled).
+                        myLocationEnabled: true,
+                        // A user-initiated pan drops follow mode (Spoke's exit to
+                        // `MapControllerMode.Manual`). Our recenter animation also
+                        // fires this callback; the controller's pending-move
+                        // counter (set in `_onRecenter`) consumes our own moves so
+                        // only a real user pan drops follow — order-independent of
+                        // when `animateCamera` resolves.
+                        onCameraMoveStarted: () {
+                          ref
+                              .read(mapControlsControllerProvider.notifier)
+                              .onCameraMoveStarted();
+                        },
+                        zoomControlsEnabled: false,
+                        mapToolbarEnabled: false,
+                        myLocationButtonEnabled: false,
+                        compassEnabled: false,
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      top: mq.padding.top + 12,
+                      left: 16,
+                      child: _FloatingCircleButton(
+                        semanticsLabel: 'Abrir menu',
+                        icon: LucideIcons.menu,
+                        onTap: () => AppDrawer.show(context),
+                      ),
+                    ),
+                    Positioned(
+                      right: 16,
+                      bottom: 12,
+                      // Own RepaintBoundary: an InkWell ripple on either map
+                      // control must not invalidate the GoogleMap PlatformView
+                      // layer they share with it (perf-auditor MS-A3).
+                      child: RepaintBoundary(
+                        child: Column(
+                          children: [
+                            _FloatingCircleButton(
+                              semanticsLabel: 'Alternar modo de mapa',
+                              icon: LucideIcons.layers,
+                              onTap: _onToggleMapType,
+                              iconColor: AppColors.primary,
+                            ),
+                            const SizedBox(height: 12),
+                            _FloatingCircleButton(
+                              semanticsLabel: 'Alternar para o mapa',
+                              icon: LucideIcons.locateFixed,
+                              onTap: _onRecenter,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          AnimatedContainer(
-            duration: _dragStartFraction != null
-                ? Duration.zero
-                : const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            height: mq.size.height * clampedFraction,
-            child: isPreConfirm
-                ? PreConfirmView(
-                    stops: stops,
-                    durationMinutes: activeMetrics?.duration ?? 0,
-                    distanceMeters: activeMetrics?.distance ?? 0.0,
-                    onRefine: _onRefine,
-                    onConfirm: _onConfirm,
-                    onReoptimize: _onReoptimize,
-                    onStopTap: activeRouteId == null
-                        ? (_) {}
-                        : (stopId) => context.push(
-                              '/home/routes/active/$activeRouteId'
-                              '/stops/$stopId/edit',
-                            ),
-                  )
-                : _ActiveRouteSheet(
-                    currentFraction: clampedFraction,
-                    collapsedFraction: _collapsedFraction,
-                    configSummary: configSummary,
-                    stops: stops,
-                    routeDisplayName: routeDisplayName,
-                    onAddStopTap: _openAddStop,
-                    onOptimizeTap: _onOptimize,
-                    onRouteNameTap: activeRouteId == null
-                        ? null
-                        : () =>
-                            context.push('/home/routes/$activeRouteId/edit'),
-                    onStopTap: activeRouteId == null
-                        ? null
-                        : (stopId) => context.push(
-                              '/home/routes/active/$activeRouteId'
-                              '/stops/$stopId/edit',
-                            ),
-                    onHandleDragStart: () {
-                      _dragStartFraction = _sheetFraction;
-                    },
-                    onHandleDragUpdate: (delta) {
-                      if (_dragStartFraction == null) return;
-                      // Só o sheet acompanha o dedo frame-a-frame; o
-                      // `_mapPaddingFraction` fica congelado (ver campo) pra
-                      // não disparar uma chamada de plataforma por frame.
-                      setState(() {
-                        _sheetFraction =
-                            (_sheetFraction - delta / mq.size.height).clamp(
-                          _collapsedFraction,
-                          _expandedFraction,
-                        );
-                      });
-                    },
-                    onHandleDragEnd: (velocity) {
-                      _dragStartFraction = null;
-                      setState(() {
-                        _sheetFraction = _snapTo(velocity);
-                        // Snap resolvido → o padding do mapa acompanha agora,
-                        // num único reposition.
-                        _mapPaddingFraction = _sheetFraction;
-                      });
-                    },
-                  ),
-          ),
-        ],
+            AnimatedContainer(
+              duration: _dragStartFraction != null
+                  ? Duration.zero
+                  : const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              height: mq.size.height * clampedFraction,
+              // Moldura ÚNICA (alça + busca + drag) nos 3 estados — fiel ao
+              // Spoke, onde PRE-CONFIRM/Ready são o MESMO shell do DRAFT,
+              // trocando só o corpo da lista e o rodapé (ADR-0052). Só o `body`
+              // e o `footer` variam por estado.
+              child: _RouteSheetShell(
+                currentFraction: clampedFraction,
+                collapsedFraction: _collapsedFraction,
+                onAddStopTap: _openAddStop,
+                // Kebab DENTRO da barra de busca (fiel ao Spoke). No DRAFT é o
+                // stub "Opções da Rota"; nos estados otimizados abre o sheet
+                // "Reotimizar rota..." {Atualizar/Recalcular} (lição Á7:
+                // Refinar ≠ Reotimizar — este é o slot do kebab).
+                onKebabTap: (isPreConfirm || isReadyToRun)
+                    ? _onReoptimize
+                    : () => _comingSoon(context, 'Opções da Rota'),
+                onHandleDragStart: _onSheetDragStart,
+                onHandleDragUpdate: (delta) => _onSheetDragUpdate(delta, mq),
+                onHandleDragEnd: _onSheetDragEnd,
+                body: isReadyToRun
+                    ? ReadyToRunView(
+                        stops: stops,
+                        routeName: routeDisplayName,
+                        startLocation: activeStartLocation,
+                        destination: activeDestination,
+                        durationMinutes: activeMetrics?.duration ?? 0,
+                        distanceMeters: activeMetrics?.distance ?? 0.0,
+                        hasPendingOptimization: hasPendingOptimization,
+                        onComingSoon: _onComingSoon,
+                        onReoptimize: _onOptimize,
+                      )
+                    : isPreConfirm
+                        ? PreConfirmView(
+                            stops: stops,
+                            routeName: routeDisplayName,
+                            startLocation: activeStartLocation,
+                            destination: activeDestination,
+                            durationMinutes: activeMetrics?.duration ?? 0,
+                            distanceMeters: activeMetrics?.distance ?? 0.0,
+                            onStopTap: activeRouteId == null
+                                ? (_) {}
+                                : (stopId) => context.push(
+                                      '/home/routes/active/$activeRouteId'
+                                      '/stops/$stopId/edit',
+                                    ),
+                          )
+                        : _DraftSheetBody(
+                            currentFraction: clampedFraction,
+                            collapsedFraction: _collapsedFraction,
+                            configSummary: configSummary,
+                            stops: stops,
+                            routeDisplayName: routeDisplayName,
+                            onAddStopTap: _openAddStop,
+                            onRouteNameTap: activeRouteId == null
+                                ? null
+                                : () => context
+                                    .push('/home/routes/$activeRouteId/edit'),
+                            onStopTap: activeRouteId == null
+                                ? null
+                                : (stopId) => context.push(
+                                      '/home/routes/active/$activeRouteId'
+                                      '/stops/$stopId/edit',
+                                    ),
+                          ),
+                footer: isReadyToRun
+                    ? ReadyToRunFooter(onEdit: _onEdit, onStart: _onStart)
+                    : isPreConfirm
+                        ? PreConfirmFooter(
+                            durationMinutes: activeMetrics?.duration ?? 0,
+                            onRefine: _onRefine,
+                            onConfirm: _onConfirm,
+                          )
+                        : _DraftSheetFooter(
+                            currentFraction: clampedFraction,
+                            collapsedFraction: _collapsedFraction,
+                            stops: stops,
+                            onAddStopTap: _openAddStop,
+                            onOptimizeTap: _onOptimize,
+                          ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  /// Guard de saída quando a rota está em edição pós-otimização (A7-D7): o back
+  /// NÃO sai — pergunta "Descartar as alterações?". "Descartar" reverte à última
+  /// versão otimizada (volta ao PRE-CONFIRM); "Continuar editando" mantém.
+  Future<void> _onShellPopInvoked(bool didPop, Object? result) async {
+    if (didPop) return;
+    final discard = await showDiscardChangesDialog(context);
+    if (discard != true) return;
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    ref.read(routesProvider.notifier).discardOptimizationEdits(routeId);
   }
 
   /// Layer toggle (Spoke `MapTypeClick`). Flips the persisted map layer and
@@ -584,16 +655,15 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
         await showNotEnoughStopsDialog(context);
       case OptimizationFailure():
         // O diálogo de erro oferece duas ações reais: "Tentar de novo" re-roda
-        // o solver; "Pular otimização" é honest-stub no PR-A (o Ready-to-Run com
-        // banner "Otimização pendente" do Spoke é PR-C). Consumir a escolha é
-        // obrigatório — descartar o retorno deixaria "Tentar de novo" sem efeito.
+        // o solver; "Pular otimização" confirma a rota SEM otimizar e leva ao
+        // Ready-to-Run com o banner "Otimização pendente" (PR-C, A7-D8).
         final choice = await showOptimizationErrorDialog(context);
         if (!mounted) return;
         switch (choice) {
           case OptimizationErrorChoice.retry:
             await _onOptimize();
           case OptimizationErrorChoice.skip:
-            showAppSnackBar(context, 'Otimização pulada por enquanto.');
+            _onSkip();
           case null:
             break; // diálogo dispensado (barrier/back) — sem ação
         }
@@ -698,14 +768,48 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
   }
 
-  /// "Confirmar" do PRE-CONFIRM → leva ao Ready-to-Run, que é o PR-C.
-  /// Honest-stub observável: NÃO grava `confirmed:true` ainda (sem destino
-  /// Ready-to-Run o estado ficaria órfão).
-  void _onConfirm() {
-    showAppSnackBar(
-      context,
-      'Tudo certo — a confirmação final chega na próxima etapa.',
-    );
+  /// "Confirmar" do PRE-CONFIRM → Ready-to-Run (A7-D5/D6). Antes de gravar
+  /// `confirmed:true`, dispara o FTUE one-shot "a numeração vai travar"
+  /// (IdLockDialog) — só na 1ª confirmação (formato Moderno é o único do Slice
+  /// 2; o toggle Clássico é Á10). "Cancelar" no diálogo aborta a confirmação.
+  Future<void> _onConfirm() async {
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    final ftue = ref.read(optimizationFtueRepositoryProvider);
+    if (!await ftue.isIdLockAcknowledged()) {
+      if (!mounted) return;
+      final proceed = await showIdLockDialog(context);
+      if (proceed != true) return; // "Cancelar"/dispensado → não confirma
+      await ftue.acknowledgeIdLock();
+    }
+    ref.read(routesProvider.notifier).confirmRoute(routeId);
+  }
+
+  /// "Editar" do Ready-to-Run → des-confirma e volta ao PRE-CONFIRM (G2).
+  void _onEdit() {
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    ref.read(routesProvider.notifier).editRoute(routeId);
+  }
+
+  /// "Iniciar rota" → gateway pro Modo Delivery (Área 8). Honest-stub observável
+  /// até a Á8 existir (sem destino, não grava `started` p/ não criar órfão).
+  void _onStart() {
+    showAppSnackBar(context, 'Modo de entrega — em breve.');
+  }
+
+  /// Botões-linha adiados do Ready-to-Run (compartilhar ao vivo / carregar
+  /// veículo) — fiéis à presença no Spoke, sem funcionalidade no M2.
+  void _onComingSoon() {
+    showAppSnackBar(context, 'Em breve.');
+  }
+
+  /// "Pular otimização" (diálogo de erro) → confirma a rota SEM otimizar e leva
+  /// ao Ready-to-Run com o banner "Otimização pendente" (A7-D8).
+  void _onSkip() {
+    final routeId = ref.read(activeRouteIdProvider);
+    if (routeId == null) return;
+    ref.read(routesProvider.notifier).skipOptimization(routeId);
   }
 
   /// Snap helper — comportamento canônico Spoke (live 2026-05-28):
@@ -750,6 +854,38 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     }
     return closest;
   }
+
+  /// Início do arrasto da moldura do sheet (alça + busca + corpo) — guarda a
+  /// fração atual como ponto de partida. Compartilhado pelos 3 estados via
+  /// `_RouteSheetShell` (ADR-0052).
+  void _onSheetDragStart() {
+    _dragStartFraction = _sheetFraction;
+  }
+
+  /// Frame de arrasto: só o sheet acompanha o dedo; o `_mapPaddingFraction`
+  /// fica congelado (ver campo) pra não disparar uma chamada de plataforma por
+  /// frame.
+  void _onSheetDragUpdate(double deltaPixels, MediaQueryData mq) {
+    if (_dragStartFraction == null) return;
+    setState(() {
+      _sheetFraction = (_sheetFraction - deltaPixels / mq.size.height)
+          .clamp(_collapsedFraction, _expandedFraction);
+    });
+  }
+
+  /// Fim do arrasto: resolve o snap e, só então, o padding do mapa acompanha
+  /// num único reposition.
+  void _onSheetDragEnd(double velocity) {
+    _dragStartFraction = null;
+    setState(() {
+      _sheetFraction = _snapTo(velocity);
+      _mapPaddingFraction = _sheetFraction;
+    });
+  }
+
+  void _comingSoon(BuildContext context, String feature) {
+    showAppSnackBar(context, '$feature em breve');
+  }
 }
 
 class _FloatingCircleButton extends StatelessWidget {
@@ -789,97 +925,66 @@ class _FloatingCircleButton extends StatelessWidget {
   }
 }
 
-class _ActiveRouteSheet extends StatelessWidget {
-  const _ActiveRouteSheet({
+/// Moldura ÚNICA do sheet da rota ativa — alça (DragHandle) + barra de busca
+/// (com kebab dentro) + corpo arrastável + rodapé. Compartilhada pelos 3
+/// estados (DRAFT / PRE-CONFIRM / Ready) per ADR-0052: no Spoke o estado
+/// otimizado NÃO é tela separada, é o mesmo shell do editroute trocando só o
+/// [body] e o [footer]. Antes PRE-CONFIRM/Ready eram `AnimatedContainer` de
+/// altura fixa SEM alça nem callbacks de drag (sheet travado) — esta moldura
+/// devolve a alça + a busca + o drag aos 3.
+class _RouteSheetShell extends StatelessWidget {
+  const _RouteSheetShell({
     required this.currentFraction,
     required this.collapsedFraction,
-    required this.configSummary,
-    required this.stops,
-    required this.routeDisplayName,
+    required this.body,
+    required this.footer,
     required this.onAddStopTap,
-    required this.onOptimizeTap,
-    required this.onRouteNameTap,
-    required this.onStopTap,
+    required this.onKebabTap,
     required this.onHandleDragStart,
     required this.onHandleDragUpdate,
     required this.onHandleDragEnd,
   });
 
   /// Fração atual do sheet (mesma usada pelo AnimatedContainer do pai).
-  /// Quando estamos perto do collapsedFraction, escondemos os 2 big buttons
-  /// fixos no rodapé pra não aparecerem cortados.
   final double currentFraction;
 
-  /// Fração mínima (collapsed). Usado como ponto de comparação.
+  /// Fração mínima (collapsed). Em collapsed o corpo é escondido.
   final double collapsedFraction;
 
-  /// "Configuração de rota" summary (ADR-0046), or `null` when there is no
-  /// active route. Rendered inside the medium+ scrollable body, above the
-  /// empty-state/stop-list, mirroring Spoke's `stepList` placement.
-  final Widget? configSummary;
+  /// Corpo da lista, variável por estado (DRAFT empty/stops, PRE-CONFIRM/Ready
+  /// = lista otimizada). Vai dentro do `Expanded` (área rolável + drag).
+  final Widget body;
 
-  /// Stops da rota ativa (MS-A6 T7). Vazio = branch empty-state atual.
-  final List<Stop> stops;
+  /// Rodapé fixo, variável por estado (big buttons / CTA / Refinar+Confirmar /
+  /// Editar+Iniciar). `null` permitido (estados sem rodapé).
+  final Widget? footer;
 
-  /// Nome de display da rota ativa (header da lista, H8). Null sem rota.
-  final String? routeDisplayName;
-
-  /// Abre o add-stop com await-push e trata o resultado (toast "Ver" /
-  /// push direto do editor — H9/H11). Dono: `_RouteShellPageState`.
+  /// Abre o add-stop (search pill). Dono: `_RouteShellPageState`.
   final Future<void> Function() onAddStopTap;
 
-  /// Dispara a otimização da rota ativa (Á7 PR-A). Dono: `_RouteShellPageState`.
-  final VoidCallback onOptimizeTap;
+  /// Kebab DENTRO da barra de busca — handler varia por estado (stub no DRAFT,
+  /// "Reotimizar rota..." nos otimizados).
+  final VoidCallback onKebabTap;
 
-  /// Tap no nome da rota → wizard de edição (H8). Null sem rota ativa.
-  final VoidCallback? onRouteNameTap;
-
-  /// Tap num stop card → editor da parada (T7→T8). Null sem rota ativa.
-  final void Function(String stopId)? onStopTap;
-
-  /// Disparado quando o user começa a arrastar a área do handle (parte
-  /// superior do sheet, ~24px). O parent guarda a fração atual pra usar
-  /// como ponto de partida do drag.
+  /// Início do arrasto da moldura (alça + busca + corpo).
   final VoidCallback onHandleDragStart;
 
-  /// Delta em pixels (positivo = movimento pra BAIXO; negativo = pra CIMA).
-  /// O parent traduz isso em incremento de altura do SizedBox que envolve
-  /// este sheet (movimento pra cima EXPANDE o sheet, isto é, cresce a
-  /// altura → mapa encolhe).
+  /// Delta em pixels (positivo = pra BAIXO; negativo = pra CIMA).
   final void Function(double deltaPixels) onHandleDragUpdate;
 
-  /// Velocidade vertical final (pixels/segundo). Negativa = flick pra
-  /// cima → snap pro maior bucket; positiva = flick pra baixo → snap pro
-  /// menor.
+  /// Velocidade vertical final (pixels/segundo) → snap.
   final void Function(double velocityPixelsPerSecond) onHandleDragEnd;
 
   @override
   Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    final bottomInset = mq.padding.bottom;
+    // Em collapsed o corpo é escondido (epsilon 0.02 evita flicker no snap) —
+    // só alça + busca aparecem, igual ao DRAFT validado no device.
+    final showBody = currentFraction > collapsedFraction + 0.02;
 
-    // Mostrar os big buttons só quando o sheet está claramente acima do
-    // collapsed (epsilon 0.02 evita flicker no snap).
-    final showButtons = currentFraction > collapsedFraction + 0.02;
-
-    // Altura real do sheet neste frame (mesma fórmula do AnimatedContainer pai).
-    // Durante o arrasto pra baixo o sheet passa por frações intermediárias
-    // baixas; um rodapé de altura fixa abaixo do corpo flexível estoura o
-    // RenderFlex se a altura cair abaixo da soma do chrome fixo. O CTA
-    // (52 + 8 + 12 + bottomInset) + handle (24) + search row (64) é mais alto
-    // que o piso `showButtons`, então ele ganha um gate de altura próprio.
-    final sheetHeight = mq.size.height * currentFraction;
-    // Soma do chrome fixo acima/abaixo do corpo flexível: handle (24) +
-    // search row (48 + 8×2 de padding = 64) + OptimizeCta (height 52 em
-    // optimize_cta.dart) + padding-top do CTA (8) + padding-bottom (12) +
-    // a nav-bar do sistema. Se alguma dessas alturas mudar, reavaliar aqui.
-    final footerChromePx = 24.0 + 64.0 + 52.0 + 8.0 + 12.0 + bottomInset;
-    final hasRoomForCta = sheetHeight >= footerChromePx;
-
-    // GestureDetector EXTERNO captura vertical drag em TODA a área do
-    // sheet (handle, pill row, big buttons). `behavior: translucent` deixa
-    // tap em InkWell internos continuarem funcionando — drag e tap são
-    // gestos diferentes na arena do Flutter.
+    // GestureDetector EXTERNO captura vertical drag em TODA a área do sheet
+    // (handle, pill row, footer). `behavior: translucent` deixa tap em InkWell
+    // internos continuarem funcionando — drag e tap são gestos diferentes na
+    // arena do Flutter.
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragStart: (_) => onHandleDragStart(),
@@ -916,82 +1021,70 @@ class _ActiveRouteSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              _buildSearchRow(context),
-              // Spacer expandido — quando o sheet está medium+ hospeda a seção
-              // "Configuração de rota" (MS-A5.7) + o empty state da Spoke
-              // (dashed pin + microcopy). No collapsed fica vazio
-              // (SizedBox.shrink) pra não ocupar espaço. O corpo é scrollável
-              // pra nunca dar overflow em frações intermediárias (a seção de
-              // config tem altura fixa). No futuro hospeda a lista de stops.
-              // Também serve como área de captura de drag (GestureDetector
-              // externo translucent).
-              Expanded(
-                child: !showButtons
-                    ? const SizedBox.shrink()
-                    : stops.isNotEmpty
-                        // Rota ativa COM paradas (MS-A6 T7): header da lista
-                        // + ListView.builder com o config summary como item 0
-                        // (H7). Drag no corpo SCROLLA a lista (não
-                        // redimensiona o sheet) — intencional, match-Spoke
-                        // §10.5: resize fica no handle + search-row.
-                        ? _buildStopsBody(context)
-                        : configSummary == null
-                            // No active route: keep the original centered
-                            // empty state (existing Spoke parity, unchanged).
-                            ? _buildEmptyState(context)
-                            // Active route: config summary on top, empty
-                            // state below, in a scroll view so intermediate
-                            // fractions never overflow.
-                            : SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    configSummary!,
-                                    _buildEmptyState(context),
-                                  ],
-                                ),
-                              ),
+              _SheetSearchRow(
+                onAddStopTap: onAddStopTap,
+                onKebabTap: onKebabTap,
               ),
-              // Big buttons FIXOS no rodapé. Só renderizados quando o sheet
-              // está medium+ (showButtons = true) E a rota não tem paradas —
-              // eles são empty-state-only (H5); com ≥1 parada o footer fica
-              // vazio até a Á7 trazer o CTA "Otimizar rota". Sempre respeitam
-              // o bottomInset do device (não ficam por baixo dos nav buttons).
-              if (showButtons && stops.isEmpty)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _SheetPrimaryButton(
-                        icon: LucideIcons.plus,
-                        label: 'Adicionar parada',
-                        onTap: onAddStopTap,
-                      ),
-                      const SizedBox(height: 10),
-                      _SheetOutlinedButton(
-                        label: 'Copiar paradas de uma rota anterior',
-                        onTap: () => context.push('/home/routes/reuse-stops'),
-                      ),
-                    ],
-                  ),
-                ),
-              // CTA "Otimizar rota" — nasce aqui (Á7 PR-A). Aparece quando o
-              // sheet está medium+ E tem altura pra acomodar o rodapé fixo E a
-              // rota tem >=1 parada (o slot que era vazio desde a MS-A6).
-              // Otimização é grátis (sem paywall).
-              if (showButtons && hasRoomForCta && stops.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
-                  child: OptimizeCta(
-                    enabled: stops.length >= OptimizationController.minStops,
-                    onPressed: onOptimizeTap,
-                  ),
-                ),
+              // Corpo expandido — em collapsed fica vazio (SizedBox.shrink) pra
+              // não ocupar espaço; é também a área de captura de drag.
+              Expanded(
+                child: showBody ? body : const SizedBox.shrink(),
+              ),
+              if (footer != null) footer!,
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Corpo do sheet no DRAFT (não otimizado). Em collapsed o shell já esconde
+/// este corpo; aqui só decidimos empty-state vs lista de stops. Comportamento
+/// idêntico ao `_ActiveRouteSheet` anterior (validado no device) — só a moldura
+/// subiu pro `_RouteSheetShell`.
+class _DraftSheetBody extends StatelessWidget {
+  const _DraftSheetBody({
+    required this.currentFraction,
+    required this.collapsedFraction,
+    required this.configSummary,
+    required this.stops,
+    required this.routeDisplayName,
+    required this.onAddStopTap,
+    required this.onRouteNameTap,
+    required this.onStopTap,
+  });
+
+  final double currentFraction;
+  final double collapsedFraction;
+  final Widget? configSummary;
+  final List<Stop> stops;
+  final String? routeDisplayName;
+  final Future<void> Function() onAddStopTap;
+  final VoidCallback? onRouteNameTap;
+  final void Function(String stopId)? onStopTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (stops.isNotEmpty) {
+      // Rota ativa COM paradas (MS-A6 T7): header + ListView.builder com o
+      // config summary como item 0 (H7). Drag no corpo SCROLLA a lista (não
+      // redimensiona o sheet) — intencional, match-Spoke §10.5.
+      return _buildStopsBody(context);
+    }
+    if (configSummary == null) {
+      // No active route: keep the original centered empty state (unchanged).
+      return _buildEmptyState(context);
+    }
+    // Active route: config summary on top, empty state below, in a scroll view
+    // so intermediate fractions never overflow.
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          configSummary!,
+          _buildEmptyState(context),
+        ],
       ),
     );
   }
@@ -999,9 +1092,7 @@ class _ActiveRouteSheet extends StatelessWidget {
   /// Corpo do sheet quando a rota ativa tem ≥1 parada (MS-A6 T7, §10.5):
   /// um ListView.builder ÚNICO — item 0 = header (contador "N paradas" +
   /// nome da rota clicável, H8); item 1 = config summary achatado + título
-  /// "Paradas" (H7); itens 2.. = um [_StopCard] por parada. Tudo dentro do
-  /// builder para o corpo nunca transbordar em frações intermediárias do
-  /// drag (mesma razão do FittedBox no empty state).
+  /// "Paradas" (H7); itens 2.. = um RouteStopStep por parada.
   Widget _buildStopsBody(BuildContext context) {
     return ListView.builder(
       padding: EdgeInsets.zero,
@@ -1044,31 +1135,35 @@ class _ActiveRouteSheet extends StatelessWidget {
           );
         }
         if (index == 1) {
-          // Config summary + título da seção "Paradas" (H7).
+          // Config summary (linhas Início/Destino/Pausa integradas) + cabeçalho
+          // de seção "Paradas" (RouteGroupHeader, fiel ao group_header_stops).
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (configSummary != null) configSummary!,
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
-                child: Text(
-                  'Paradas',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ),
+              if (stops.isNotEmpty) const RouteGroupHeader(label: 'Paradas'),
             ],
           );
         }
-        final position = index - 1; // 1-based
-        final stop = stops[position - 1];
-        return _StopCard(
+        final stopIdx = index - 2; // 0-based na lista de stops
+        final stop = stops[stopIdx];
+        final oneBased = stopIdx + 1;
+        return RouteStopStep(
           key: ValueKey(stop.id),
-          position: position,
-          stop: stop,
+          // Número/ETA só pós-otimização: em DRAFT positionInRoute/estimated-
+          // Arrival são null → disco vira círculo vazio (fiel ao Spoke).
+          position:
+              stop.positionInRoute == null ? null : stop.positionInRoute! + 1,
+          etaTime: stop.estimatedArrival == null
+              ? null
+              : formatEta(stop.estimatedArrival!),
+          streetName: stop.streetName,
+          fullAddress: stop.fullAddress,
+          statusColor: _stopStatusColor(stop.status),
+          isFirst: stopIdx == 0,
+          isLast: stopIdx == stops.length - 1,
+          semanticsId: 'stop_card_$oneBased',
+          statusDotKey: Key('stop_card_${oneBased}_status_dot'),
           onTap: onStopTap == null ? null : () => onStopTap!(stop.id),
         );
       },
@@ -1076,12 +1171,7 @@ class _ActiveRouteSheet extends StatelessWidget {
   }
 
   /// Empty state visível quando o sheet está medium+ e a rota não tem
-  /// paradas ainda (estado canônico observado na Spoke 2026-05-28).
-  /// Pin quadrado arredondado (NÃO oval) + microcopy PT-BR.
-  ///
-  /// Wrap em FittedBox pra evitar overflow durante o drag em frações
-  /// intermediárias (quando o Expanded fica com altura insuficiente
-  /// momentaneamente).
+  /// paradas ainda. Pin quadrado arredondado + microcopy PT-BR.
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
@@ -1091,8 +1181,6 @@ class _ActiveRouteSheet extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Pin 48x48 quadrado arredondado — radius < dimensão/2
-              // garante quadrado-com-cantos-arredondados (não oval).
               Container(
                 width: 48,
                 height: 48,
@@ -1128,9 +1216,90 @@ class _ActiveRouteSheet extends StatelessWidget {
       ),
     );
   }
+}
 
-  /// Search pill + kebab — sempre visível em qualquer estado do sheet.
-  Widget _buildSearchRow(BuildContext context) {
+/// Rodapé do sheet no DRAFT: big buttons (empty-state) OU CTA "Otimizar rota"
+/// (≥1 parada). Gates idênticos ao `_ActiveRouteSheet` anterior.
+class _DraftSheetFooter extends StatelessWidget {
+  const _DraftSheetFooter({
+    required this.currentFraction,
+    required this.collapsedFraction,
+    required this.stops,
+    required this.onAddStopTap,
+    required this.onOptimizeTap,
+  });
+
+  final double currentFraction;
+  final double collapsedFraction;
+  final List<Stop> stops;
+  final Future<void> Function() onAddStopTap;
+  final VoidCallback onOptimizeTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final bottomInset = mq.padding.bottom;
+
+    // Mesmo gate do shell: nada de rodapé em collapsed.
+    final showButtons = currentFraction > collapsedFraction + 0.02;
+    if (!showButtons) return const SizedBox.shrink();
+
+    // Altura real do sheet neste frame. O CTA precisa de altura mínima pra não
+    // estourar o RenderFlex em frações intermediárias do drag.
+    final sheetHeight = mq.size.height * currentFraction;
+    final footerChromePx = 24.0 + 64.0 + 52.0 + 8.0 + 12.0 + bottomInset;
+    final hasRoomForCta = sheetHeight >= footerChromePx;
+
+    if (stops.isEmpty) {
+      // Big buttons (empty-state only, H5).
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SheetPrimaryButton(
+              icon: LucideIcons.plus,
+              label: 'Adicionar parada',
+              onTap: onAddStopTap,
+            ),
+            const SizedBox(height: 10),
+            _SheetOutlinedButton(
+              label: 'Copiar paradas de uma rota anterior',
+              onTap: () => context.push('/home/routes/reuse-stops'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // CTA "Otimizar rota" (Á7 PR-A) — ≥1 parada + altura suficiente.
+    if (hasRoomForCta) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 12),
+        child: OptimizeCta(
+          enabled: stops.length >= OptimizationController.minStops,
+          onPressed: onOptimizeTap,
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+/// Barra de busca "Adicionar parada..." com OCR + Voz + kebab DENTRO — mantida
+/// nos 3 estados do shell (fiel ao Spoke: a busca permanece no estado otimizado,
+/// com o kebab no canto direito).
+class _SheetSearchRow extends StatelessWidget {
+  const _SheetSearchRow({
+    required this.onAddStopTap,
+    required this.onKebabTap,
+  });
+
+  final Future<void> Function() onAddStopTap;
+  final VoidCallback onKebabTap;
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -1181,7 +1350,7 @@ class _ActiveRouteSheet extends StatelessWidget {
           _GradientCircleButton(
             icon: LucideIcons.moreVertical,
             semanticsLabel: 'Opções da rota',
-            onTap: () => _comingSoon(context, 'Opções da Rota'),
+            onTap: onKebabTap,
           ),
         ],
       ),
@@ -1193,91 +1362,13 @@ class _ActiveRouteSheet extends StatelessWidget {
   }
 }
 
-/// Card de uma parada na lista do sheet ativo (MS-A6 T7, §10.5):
-/// badge numérico 2 dígitos (tabular) + rua (h6) + endereço completo (muted)
-/// + dot de status à direita. O card INTEIRO é clicável → editor da parada.
-class _StopCard extends StatelessWidget {
-  const _StopCard({
-    super.key,
-    required this.position,
-    required this.stop,
-    required this.onTap,
-  });
-
-  /// Posição 1-based na lista (badge "01", "02", …).
-  final int position;
-  final Stop stop;
-  final VoidCallback? onTap;
-
-  Color get _statusColor => switch (stop.status) {
-        StopStatus.pending => AppColors.textMuted,
-        StopStatus.delivered || StopStatus.pickedUp => AppColors.success,
-        StopStatus.failed => AppColors.error,
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      identifier: 'stop_card_$position',
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Row(
-            children: [
-              Text(
-                position.toString().padLeft(2, '0'),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      stop.streetName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      stop.fullAddress,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textMuted,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                key: Key('stop_card_${position}_status_dot'),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _statusColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Cor do dot de status da parada na step list (pending muted, entregue verde,
+/// falha vermelho). Reaproveitado pelos três estados do shell.
+Color _stopStatusColor(StopStatus status) => switch (status) {
+      StopStatus.pending => AppColors.textMuted,
+      StopStatus.delivered || StopStatus.pickedUp => AppColors.success,
+      StopStatus.failed => AppColors.error,
+    };
 
 class _SearchInnerButton extends StatelessWidget {
   const _SearchInnerButton({required this.icon, required this.onTap});
@@ -1483,77 +1574,37 @@ class _ConfigSummarySection extends ConsumerWidget {
       routeConfigControllerProvider(routeId).select((c) => c.destination),
     );
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Configuração de rota',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
-          RouteConfigRow(
-            semanticsKey: 'config_summary_inicio',
-            label: _inicioLabel(startLocation),
-            subtitle: 'Use a posição do GPS ao otimizar',
-            leading: LucideIcons.house,
-            active: true,
-            onTap: onOpenDetails,
-          ),
-          RouteConfigRow(
-            semanticsKey: 'config_summary_destino',
-            label: _destinoLabel(destination),
-            subtitle: _destinoSubtitle(destination),
-            leading: _destinoIcon(destination),
-            active: true,
-            onTap: onOpenDetails,
-          ),
-        ],
-      ),
+    // Linhas integradas no trilho (NÃO mais caixa de rounded-cards): fiel ao
+    // editroute/steplist do Spoke (Branch C/DRAFT, controller:1084-1097), que
+    // renderiza Início → Destino → Pausa como step rows sob "Configuração de
+    // rota". Substitui o config-summary-caixa do ADR-0046 (amendment) mantendo
+    // os semanticsId legados + a microcopy verbatim + o tap→Detalhes.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const RouteGroupHeader(label: 'Configuração de rota'),
+        RouteStartStep(
+          // id legado do RouteConfigRow (prefixo route_details_row_) preservado
+          // p/ não quebrar testes de semântica nem flows Maestro.
+          semanticsId: 'route_details_row_config_summary_inicio',
+          lineOne: startLabel(startLocation, optimized: false),
+          lineTwo: startSubtitle(optimized: false),
+          onTap: onOpenDetails,
+        ),
+        RouteEndStep(
+          semanticsId: 'route_details_row_config_summary_destino',
+          lineOne: destinationLabel(destination),
+          lineTwo: destinationSubtitle(destination),
+          hasLineBelow: true,
+          onTap: onOpenDetails,
+        ),
+        RouteBreakStep(
+          lineOne: 'Sem pausa',
+          lineTwo: 'Toque para agendar uma pausa',
+          hasLineBelow: false,
+          onTap: onOpenDetails,
+        ),
+      ],
     );
-  }
-
-  /// Início primary label: the chosen custom address when set, else Spoke's
-  /// GPS placeholder. Matches the active-route summary copy (NOT the Detalhes
-  /// "Usar local atual" / "Iniciar agora mesmo" wording).
-  String _inicioLabel(StartLocation? loc) {
-    if (loc != null && !loc.isUserCurrentLocation) return loc.address;
-    return 'Iniciar no local atual';
-  }
-
-  /// Ida-e-volta primary label, derived from the destination. RoundTrip (the
-  /// `RouteConfig.empty` default) reads "Ida e volta".
-  String _destinoLabel(Destination? destination) {
-    return switch (destination) {
-      null || RoundTrip() => 'Ida e volta',
-      SpecificAddress(:final address) => address,
-      NoDestination() => 'Nenhum destino',
-    };
-  }
-
-  /// Summary subtitle. RoundTrip uses Spoke's active-route copy "Retorne ao
-  /// ponto de partida" (distinct from the Detalhes-page "Viagem de ida e volta
-  /// a partir do local atual"). Other variants have no subtitle.
-  String? _destinoSubtitle(Destination? destination) {
-    return switch (destination) {
-      null || RoundTrip() => 'Retorne ao ponto de partida',
-      SpecificAddress() => null,
-      NoDestination() => null,
-    };
-  }
-
-  IconData _destinoIcon(Destination? destination) {
-    return switch (destination) {
-      null || RoundTrip() => LucideIcons.cornerUpLeft,
-      SpecificAddress() => LucideIcons.mapPin,
-      NoDestination() => LucideIcons.flag,
-    };
   }
 }

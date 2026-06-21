@@ -51,6 +51,10 @@ void main() {
 
         // (3) Texto passado deve aparecer no SnackBar.
         expect(find.text('oi'), findsOneWidget);
+
+        // Flush do Timer defensivo (dismiss robusto a animações-off).
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pumpAndSettle();
       },
     );
 
@@ -84,6 +88,75 @@ void main() {
         expect(find.byType(SnackBar), findsOneWidget);
         expect(find.text('Rota salva'), findsOneWidget);
         expect(find.text('Desfazer'), findsOneWidget);
+
+        // Flush do Timer defensivo (dismiss robusto a animações-off).
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pumpAndSettle();
+      },
+    );
+
+    testWidgets(
+      'com animações DESLIGADAS (disableAnimations) o toast some pelo Timer '
+      'defensivo em ~3 s (cobre o bug do M54)',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MediaQuery(
+              // Replica o aparelho com animações off (animator_duration_scale=0)
+              // — a condição exata em que o auto-dismiss nativo NÃO dispara.
+              data: const MediaQueryData(disableAnimations: true),
+              child: Scaffold(
+                body: Builder(
+                  builder: (context) => ElevatedButton(
+                    onPressed: () => showAppSnackBar(context, 'oi'),
+                    child: const Text('Mostrar'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Mostrar'));
+        await tester.pump();
+        expect(find.byType(SnackBar), findsOneWidget);
+
+        // O Timer próprio (armado SÓ neste modo) fecha o toast em ~3 s.
+        await tester.pump(const Duration(seconds: 3, milliseconds: 100));
+        await tester.pumpAndSettle();
+        expect(find.byType(SnackBar), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'com animações LIGADAS não arma Timer extra (sem "pending timer" no '
+      'teardown)',
+      (WidgetTester tester) async {
+        // Sem disableAnimations: o helper NÃO deve armar o Timer defensivo —
+        // o dismiss nativo basta. Se um Timer extra vazasse, o teardown do
+        // testWidgets falharia com "A Timer is still pending". Este teste
+        // termina logo após exibir o toast (sem flush) — passa só se nenhum
+        // Timer próprio ficou pendente.
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => ElevatedButton(
+                  onPressed: () => showAppSnackBar(context, 'oi'),
+                  child: const Text('Mostrar'),
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Mostrar'));
+        await tester.pump();
+        expect(find.byType(SnackBar), findsOneWidget);
+        // Fecha o toast nativo p/ drenar o timer interno do Material e encerrar
+        // limpo (o ponto é: nenhum Timer NOSSO ficou pendente).
+        await tester.pump(const Duration(seconds: 4));
+        await tester.pumpAndSettle();
       },
     );
   });

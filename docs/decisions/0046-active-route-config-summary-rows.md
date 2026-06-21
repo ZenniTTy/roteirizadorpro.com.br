@@ -64,6 +64,20 @@ Per `feedback_spec_baseline_and_workflow_halt` (first-time architectural surpris
 3. **Defer the section to MS-A3** (which also rewrites the sheet body). Considered (offered to Eduardo as option 3) but not chosen — MS-A5.7 is the dependency-ordered step that unblocks the Área-5 integration_test (MS-A5.9); deferring would block MS-A5.9. MS-A3's later edits to the sheet (Otimizar CTA, kebab, stop-card tap) are additive to this section, not a conflicting rewrite.
 4. **Mint a new `routeId` / active-route abstraction.** Rejected — `activeRouteIdProvider` already exists and is the established convention; reusing it is the surgical choice (Karpathy #3).
 
+## Amendment 2026-06-21 — caixa de rounded-cards → linhas integradas no trilho (+ Pausa É linha inline)
+
+**Status:** Accepted · **Decider:** Eduardo · **Related:** ADR-0035, ADR-0045, `docs/superpowers/specs/2026-06-21-active-route-steplist-design.md` (deep-dump do `editroute/steplist`).
+
+A decisão original modelou a config-summary como uma **caixa separada de 2 `RouteConfigRow`** (rounded-cards) acima da lista, com a Pausa só na página Detalhes. O deep-dump estrutural do `editroute/steplist` do Spoke (2026-06-21, fontes `nnd.java` + `RouteStepListController.java` + `RouteStepListKt.java`) + a captura ao vivo `/tmp/spoke1.png` provaram que o Spoke **não** usa caixa: ele renderiza Início/Destino/Pausa como **step rows no MESMO trilho vertical** das paradas, sob o header **"Configuração de rota"** (`route_setup_header`), na ordem **Início → Destino → Pausa** (Branch C/DRAFT, controller:1084-1097). Manter a caixa era a divergência estrutural que o Eduardo reportou como "completamente diferente".
+
+**O que muda (implementado em `feat(routes): step list contínua no DRAFT`):**
+- O `_ConfigSummarySection` deixa de emitir 2 `RouteConfigRow` numa caixa e passa a emitir **`RouteGroupHeader("Configuração de rota")` + `RouteStartStep` (casa) + `RouteEndStep` (bandeira) + `RouteBreakStep` ("Sem pausa", xícara)** integrados no trilho da lista (widgets em `route_step_list.dart`).
+- **Reverte o ponto #4 da decisão original ("2 rows, no inline Pausa"):** a Pausa AGORA É uma linha inline ("Sem pausa" / "Toque para agendar uma pausa", `no_break_in_optimized_route_*`), fiel ao Branch C do dump. Não é mais "inventar uma affordance" — o dump confirma que o Spoke a tem na lista.
+- **Preservado:** a microcopy verbatim (Fact 2/§Consequences — "Iniciar no local atual" etc.), o tap→Detalhes (`onOpenDetails`), e os `semanticsId` legados `route_details_row_config_summary_inicio/destino` (override nos novos widgets) → testes de semântica/Maestro intactos. Só o teste `RouteConfigRow findsNWidgets(2)` foi reescrito.
+- **Estados otimizados (Branch B):** PRE-CONFIRM/Ready-to-Run também ganham Início/Destino no trilho (lista plana, sem grupos). Branch A (grupos Adicionadas/Editadas/Removidas) = gap de domínio, adiado (ver design-doc §PLANO DE ASSEMBLY).
+
+A regra-mãe não muda: **o dump/captura ao vivo do Spoke arbitra a estrutura; identidade visual é nossa (ADR-0035).** A decisão de 2026-06-10 estava certa sobre o comportamento (rows → Detalhes, microcopy distinta) e errada só sobre a casca (caixa vs trilho), porque a captura daquele dia não cobriu a continuidade do trilho que o deep-dump revelou.
+
 ## References
 
 - Plan: `docs/superpowers/plans/2026-06-06-slice2-completion.md` §MS-A5.7 (corrected in the same commit set)

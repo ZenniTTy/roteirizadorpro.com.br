@@ -27,10 +27,7 @@ void main() {
                     stops: [_stop('a')],
                     durationMinutes: 5,
                     distanceMeters: 800,
-                    onRefine: () {},
-                    onConfirm: () {},
                     onStopTap: (_) {},
-                    onReoptimize: () {},
                   )
                 : const SizedBox.shrink(),
           ),

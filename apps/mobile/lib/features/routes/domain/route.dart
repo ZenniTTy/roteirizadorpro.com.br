@@ -14,6 +14,7 @@ class Route {
     this.stops = const [],
     this.totalDurationMinutes,
     this.totalDistanceMeters,
+    this.optimizedStopsSnapshot,
   });
   final String id;
   final DateTime date;
@@ -25,6 +26,11 @@ class Route {
   /// PRE-CONFIRM). Nulas até otimizar; zeradas ao invalidar (estado editing).
   final int? totalDurationMinutes;
   final double? totalDistanceMeters;
+
+  /// Snapshot dos stops na ordem otimizada (gravado em `applyOptimization`;
+  /// restaurado por `discardOptimizationEdits` quando o usuário descarta as
+  /// edições pós-otimização e a rota volta à última versão otimizada — PR-C).
+  final List<Stop>? optimizedStopsSnapshot;
 
   /// Display label for the route row.
   /// If [name] was provided, use it; otherwise fall back to the weekday in
@@ -40,6 +46,7 @@ class Route {
     List<Stop>? stops,
     Object? totalDurationMinutes = _omit,
     Object? totalDistanceMeters = _omit,
+    Object? optimizedStopsSnapshot = _omit,
   }) {
     return Route(
       id: id ?? this.id,
@@ -53,6 +60,9 @@ class Route {
       totalDistanceMeters: identical(totalDistanceMeters, _omit)
           ? this.totalDistanceMeters
           : (totalDistanceMeters as num?)?.toDouble(),
+      optimizedStopsSnapshot: identical(optimizedStopsSnapshot, _omit)
+          ? this.optimizedStopsSnapshot
+          : optimizedStopsSnapshot as List<Stop>?,
     );
   }
 

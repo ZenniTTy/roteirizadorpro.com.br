@@ -40,6 +40,23 @@ void main() {
     );
   });
 
+  test(
+      'stopArrivalOffsets = tempo de viagem acumulado por parada (ordem final)',
+      () async {
+    // start(0,0) → C(1,0) → B(3,0) → A(5,0): legs de 1000, 2000, 2000 m.
+    // velocidade default 400 m/min → 2.5, 5.0, 5.0 min → acumulado 2.5/7.5/12.5.
+    final result = await optimizer.optimize(
+      start: const GeoPoint(0, 0),
+      stops: [_stop('A', 5, 0), _stop('B', 3, 0), _stop('C', 1, 0)],
+      type: OptimizeType.restartRoute,
+    );
+    expect(result.orderedStops.map((s) => s.id).toList(), ['C', 'B', 'A']);
+    expect(result.stopArrivalOffsets, hasLength(3));
+    expect(result.stopArrivalOffsets[0], const Duration(seconds: 150));
+    expect(result.stopArrivalOffsets[1], const Duration(seconds: 450));
+    expect(result.stopArrivalOffsets[2], const Duration(seconds: 750));
+  });
+
   test('direction reverse inverte a ordem otimizada', () async {
     final result = await optimizer.optimize(
       start: const GeoPoint(0, 0),
