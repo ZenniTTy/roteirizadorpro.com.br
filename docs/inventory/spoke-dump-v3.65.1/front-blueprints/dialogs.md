@@ -3,8 +3,8 @@
 Data: 2026-06-21
 Fonte: `~/spoke-dump/jadx-out/sources/com/circuit/p016ui/dialogs/` + `resources/res/values-pt-rBR/strings.xml`
 Pacote original: `com.circuit.ui.dialogs.*`
-Escopo: todos os 11 subdiretórios encontrados no jadx.
-Nota de escopo B2C: `route_offering` pertence ao "Delivery Network" (feature B2C onde dispatchers do marketplace atribuem rotas a motoristas). Marcado separadamente; avaliar com Ueslei se entra no MVP RotPro.
+Escopo: todos os 11 subdiretórios encontrados no jadx — catálogo exaustivo extraído puramente do dump estático (ADR-0045, dump-first).
+Clone FUNCIONAL B2C: comportamento/estrutura replicados; identidade visual é original RotPro (ADR-0035).
 
 ---
 

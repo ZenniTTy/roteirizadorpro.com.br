@@ -1,6 +1,6 @@
 # Front blueprint — settings
 
-Data: 2026-06-21
+Data: 2026-06-21 (revisado 2026-06-21 — corrigido default navigationApp INTERNAL, não GOOGLE)
 Fonte: `jadx-out/sources/com/circuit/p016ui/settings/` + `values-pt-rBR/strings.xml`
 Classe principal: `com.circuit.ui.settings.SettingsFragment` (extends `PreferenceFragmentCompat`)
 
@@ -68,13 +68,15 @@ Quando `AUTOMATIC` está ativo, o sumário exibe os horários de nascer e pôr d
 - `YANDEX` → "Navegador Yandex" (`yandex_navigator`)
 - `OTHER` → "Outro" (`navigation_app_other`)
 
-**Defaults (extraídos do `Config.kt` / `rxc.get()`):**
-- vehicleType: `CAR` (default)
-- navigationApp: `GOOGLE` (default — sumário arranca com "Google Maps")
+**Defaults (extraídos de `rxc.java` — interface do repositório de Settings):**
+- vehicleType: `CAR` (default — `VehicleType.f24144b`)
+- navigationApp: `INTERNAL` (default — `NavigationApp.f23835k1` = "Navegação do Spoke"; confirmado em `rxc.m43750b()` linha 31)
 - avgTimeAtStop: `Duration.ofMinutes(1)` = 1 minuto (`hj4.f104611a`)
-- roadSide: `ANY` (default)
-- avoidTolls: `false` (switch off por default; desabilitado quando veículo ≠ `CAR`)
-- navigationBubble: depende de `rxcVar.get().f24024g` + feature flag do device
+- roadSide: `ANY` (default — `RoadSide.f23971b`; exibido como "Qualquer lado do veículo (recomendado)")
+- avoidTolls: `false` por default (lista de `AvoidableRouteFeature` começa vazia; switch desabilitado quando veículo ≠ `CAR`)
+- navigationBubble: `true` (default — `rxc.m43758j()` retorna `true` quando campo nulo; oculto em Xiaomi)
+- appTheme: `AUTOMATIC` (default — `AppTheme.f23707j1`)
+- packageLabelMode: `OPTIMIZED_ORDER` (default — `PackageLabelMode.f23880h1`)
 
 ---
 
@@ -286,6 +288,9 @@ O fluxo de cancelamento (`cancel_subscription_title`) é parte do billing/subscr
 ### "Comparar planos" → [B2B — cortar]
 `compare_plans_title` leva a uma tela de comparação de planos Spoke (Standard/Lite/Free). RotPro tem apenas um plano (R$ 25,90/30 dias). Cortar.
 
+### Nota de assinatura para RotPro
+Toda a seção `settings_section_subscription` é B2B/Stripe AppStore. Substituir por link simples de status/renovação Pix (ADR-0030).
+
 ---
 
 ## 8. Seção "Otimização de bateria" (Android Auto)
@@ -327,7 +332,7 @@ Drawer → item "Configurações"
 
 1. **Seção Assinatura**: substituir por link para renovação/status do Pix (ADR-0030). Remover "Cancelar assinatura" e "Comparar planos".
 2. **Política de privacidade**: trocar URL `https://spoke.com/privacy` pela URL do RotPro.
-3. **Navegação do Spoke** (`INTERNAL`): remover esta opção do NavigationAppDialog (feature proprietária do Spoke). Manter apenas GOOGLE / WAZE / YANDEX / OTHER.
+3. **Navegação do Spoke** (`INTERNAL`): remover esta opção do NavigationAppDialog (feature proprietária do Spoke). Manter apenas GOOGLE / WAZE / YANDEX / OTHER. ATENÇÃO: o default do Spoke é `INTERNAL` — o RotPro deve usar `GOOGLE` como default ao remover essa opção.
 4. **Yandex Navigator**: avaliar com cliente Ueslei se manter ou remover (nicho Brasil pequeno).
 5. **Seção developer/debug**: remover toda a branch `isInternalUser = true` (Dialog Gallery, Recordings, AB tests, Backend, Network options, etc.).
 6. **Tema AUTOMATIC** (Pôr do Sol/Nascer do Sol): requer API de localização para calcular horários. Considerar manter LIGHT/DARK/SYSTEM apenas num primeiro momento.

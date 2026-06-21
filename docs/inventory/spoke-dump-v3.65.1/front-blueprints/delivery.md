@@ -3,6 +3,7 @@
 **Data:** 2026-06-21
 **Fonte:** `jadx-out/sources/com/circuit/p016ui/delivery/` + `res/values-pt-rBR/strings.xml`
 **Escopo Á8 RotPro:** tela de marcar entregue/falha, coleta de comprovante (assinatura/foto), diálogo de pagamento, visualizador de prova, diálogo de requisitos POD.
+**Revisão dump-first:** 2026-06-21 — validado contra código-fonte jadx completo (`DeliveryFragment.java`, `DeliveryViewModel.java`, `C3238e.java`, `C3226b.java`, entidades de domínio). Dados abaixo são fatos do dump, não inferências.
 
 ---
 
@@ -111,9 +112,77 @@ Delegado ao `RequirementsHintFragment` — vide §3.
 | `consigneeName` | `null` |
 | `noteForRecipient` | `""` |
 | `noteForInternalUse` | `""` |
-| `paymentCollectionMode` | `false` |
+| `paymentCollectionMode` | `false` (SavedState key: `"paymentCollectionMode"`) |
 | `requiresProofOfDeliveryFlag` | `false` |
 | `maxPhotos` | 5 (computado do time-slot do turno; default hardcoded = 5) |
+
+### 1.7a Campos do DeliveryState (C3238e) — mapeamento completo confirmado pelo dump
+
+O `toString()` de `C3238e` revela os nomes semânticos exatos:
+
+| Campo obfuscado | Nome semântico | Tipo |
+|---|---|---|
+| `f28332a` | `title` | jqd (texto formatado — nome da parada) |
+| `f28333b` | `stop` | wd5 (objeto da parada) |
+| `f28334c` | `reasons` | List\<aj5\> (PackageState disponíveis) |
+| `f28335d` | `currentDisplayMode` | DeliveryDisplayMode |
+| `f28336e` | `loading` | Boolean |
+| `f28337f` | `submitButtonText` | jqd (texto do botão submit) |
+| `f28338g` | `submitButtonEnabled` | Boolean |
+| `f28339h` | `inputsState` | C3226b (estado do formulário INPUTS) |
+| `f28340i` | `showOptionAvailabilityExplanation` | Boolean |
+| `f28341j` | `paymentCollectionEnabled` | Boolean |
+| `f28342k` | `formattedPaymentAmount` | jqd (valor formatado) |
+| `f28343l` | `selectedPaymentMethod` | DeliveryInfo.PaymentMethod? |
+| `f28344m` | `fromPaymentCollectionFlow` | Boolean |
+
+### 1.7b Campos do DeliveryInputsState (C3226b) — mapeamento completo confirmado
+
+O `toString()` de `C3226b` revela:
+
+| Campo obfuscado | Nome semântico | Tipo |
+|---|---|---|
+| `f28265a` | `showConsigneeName` | Boolean |
+| `f28266b` | `consigneeNameLabel` | jqd (label dinâmica — "Recebido por" / "Fornecido por") |
+| `f28267c` | `consigneeName` | String? |
+| `f28268d` | `signatureState` | SignatureEvidenceState |
+| `f28269e` | `photosState` | PhotoEvidenceState |
+| `f28270f` | `showAddPhoto` | Boolean |
+| `f28271g` | `noteForRecipient` | String? |
+| `f28272h` | `noteForInternalUse` | String? |
+| `f28273i` | `proofOfAttemptRequirementsPolicy` | qkb |
+| `f28274j` | `requiredEvidenceState` | RequiredEvidenceState |
+| `f28275k` | `showSignatureSection` | Boolean |
+| `f28276l` | `showPhotosSection` | Boolean |
+| `f28277m` | `signatureRequirementLevel` | EvidenceRequirementLevel |
+| `f28278n` | `photosRequirementLevel` | EvidenceRequirementLevel |
+| `f28279o` | `deliveryProofItems` | List\<InterfaceC3227c\> |
+| `f28280p` | `showDeliveryProofErrorButton` | Boolean |
+| `f28281q` | (derivado) `photosObligatoryBlocking` | Boolean (photosRequirementLevel == level3) |
+| `f28282r` | (derivado) `signatureObligatoryBlocking` | Boolean (signatureRequirementLevel == level3) |
+
+### 1.7c RequiredEvidenceState enum (GetRequiredPodEvidenceState.RequiredEvidenceState)
+
+| Valor | Significado |
+|---|---|
+| `COLLECTED_OR_EMPTY` | Nenhuma falha de POD obrigatório — submit permitido |
+| `SIGNATURE_COLLECTION_FAILED` | Assinatura obrigatória falhou tecnicamente |
+| `PHOTO_COLLECTION_FAILED` | Foto obrigatória falhou tecnicamente |
+| `BOTH_FAILED` | Ambas falharam |
+
+### 1.7d SavedState keys confirmadas do ViewModel
+
+| Propriedade | SavedState key |
+|---|---|
+| reason (PackageState) | (inferir runtime) |
+| photosState | (inferir runtime) |
+| signatureState | (inferir runtime) |
+| pendingFile (Uri) | (inferir runtime) |
+| consigneeName | (inferir runtime) |
+| noteForRecipient | (inferir runtime) |
+| noteForInternalUse | (inferir runtime) |
+| paymentCollectionMode | `"paymentCollectionMode"` (confirmado no construtor do ViewModel) |
+| requiresProofOfDeliveryFlag | (inferir runtime) |
 
 ### 1.8 Navegação
 
@@ -177,14 +246,24 @@ Delegado ao `RequirementsHintFragment` — vide §3.
 
 ### 2.2 Grupos pré-definidos (conjuntos das listas mostradas na tela)
 
-O ViewModel seleciona o conjunto correto baseado em `StopActivity` + `isB2B` (flag do time):
+**Confirmado do código-fonte jadx da entidade `PackageState.java`:**
 
 - `f23891h1` = DELIVERY success set: `{DELIVERED_TO_RECIPIENT, DELIVERED_TO_THIRD_PARTY, DELIVERED_TO_MAILBOX, DELIVERED_TO_SAFE_PLACE, DELIVERED_TO_PICKUP_POINT, DELIVERED_OTHER}`
 - `f23892i1` = PICKUP success set: `{PICKED_UP_FROM_CUSTOMER, PICKED_UP_UNMANNED, PICKED_UP_FROM_LOCKER, PICKED_UP_OTHER}`
-- `f23893j1` = DELIVERY fail set: `{FAILED_NOT_HOME, FAILED_PAYMENT_NOT_RECEIVED, FAILED_CANT_FIND_ADDRESS, FAILED_NO_PARKING, FAILED_NO_TIME, FAILED_OTHER}`
-- `f23894k1` = PICKUP fail set (B2B): adiciona `FAILED_PACKAGE_NOT_AVAILABLE`
+- `f23893j1` = DELIVERY+PICKUP fail set (B2C): `{FAILED_NOT_HOME, FAILED_PAYMENT_NOT_RECEIVED, FAILED_CANT_FIND_ADDRESS, FAILED_NO_PARKING, FAILED_NO_TIME, FAILED_OTHER}`
+- `f23894k1` = fail set completo (inclui B2B): `{FAILED_NOT_HOME, FAILED_PAYMENT_NOT_RECEIVED, FAILED_PACKAGE_NOT_AVAILABLE, FAILED_CANT_FIND_ADDRESS, FAILED_NO_PARKING, FAILED_NO_TIME, FAILED_OTHER}`
+- `f23895l1` = DELIVERED ∪ PICKED_UP (todos os successes) — para navegação/filtros
 
-**Nota B2B:** Quando `isB2B=true`, o ViewModel aplica filtros adicionais de disponibilidade por POD (`C26197vv.m45674b`). Em B2C, todos os valores dos grupos acima são exibidos → [B2B — cortar] apenas o filtro de disponibilidade e `DELIVERED_TO_PICKUP_POINT`.
+**Nota B2B:** `FAILED_PACKAGE_NOT_AVAILABLE` → `[B2B — cortar]`. Em B2C usar `f23893j1`. `DELIVERED_TO_PICKUP_POINT` é B2C (ponto de coleta/locker de entrega ao destinatário — não confundir com PICKUP de coleta de mercadoria).
+
+### 2.2a AutoOpenProof enum (automação de coleta)
+
+| Valor | Comportamento |
+|---|---|
+| `Signature` | Ao entrar no modo INPUTS, se assinatura é requisito, abre SignatureActivity automaticamente |
+| `Photo` | Ao entrar no modo INPUTS, se foto é requisito, abre câmera automaticamente |
+
+Após coleta automática + `SignatureCollected` + campos preenchidos → `submitDeliveryInfo` disparado automaticamente (lógica no retorno do ActivityResultLauncher de assinatura).
 
 ### 2.3 Precisa-runtime
 
@@ -222,15 +301,32 @@ O ViewModel seleciona o conjunto correto baseado em `StopActivity` + `isB2B` (fl
 
 ### 3.2 EvidenceCollectionFailureReason — Enum de motivos POD
 
-| Enum | String PT-BR | String key |
-|---|---|---|
-| `DEVICE_MALFUNCTION` | `"O dispositivo falhou"` | `pod_failure_reason_device_malfunction` |
-| `BATTERY_DIED` | `"A bateria acabou"` | `pod_failure_reason_battery_died` |
-| `APP_CRASHED` | `"O app travou"` | `pod_failure_reason_app_crashed` |
-| `OTHER` | `"Outro"` | `pod_failure_reason_other` |
-| `UNSUPPORTED` | *(não exibido ao usuário — apenas quando plataforma não suporta)* | — |
+**Confirmado do dump `EvidenceCollectionFailureReason.java`:**
 
-**Nota:** O conjunto exibido são apenas os 4 primeiros (`f23769b = {DEVICE_MALFUNCTION, BATTERY_DIED, APP_CRASHED, OTHER}`).
+| Enum | Índice | String PT-BR | String key |
+|---|---|---|---|
+| `DEVICE_MALFUNCTION` | 0 | `"O dispositivo falhou"` | `pod_failure_reason_device_malfunction` |
+| `BATTERY_DIED` | 1 | `"A bateria acabou"` | `pod_failure_reason_battery_died` |
+| `APP_CRASHED` | 2 | `"O app travou"` | `pod_failure_reason_app_crashed` |
+| `OTHER` | 3 | `"Outro"` | `pod_failure_reason_other` |
+| `UNSUPPORTED` | 4 | *(não exibido ao usuário)* | — |
+
+**Conjunto exibível (confirmado `f23769b`):** `{DEVICE_MALFUNCTION, BATTERY_DIED, APP_CRASHED, OTHER}` — 4 elementos, `UNSUPPORTED` excluído.
+
+### 3.2a EvidenceCollectionFailure (data class)
+
+Campos armazenados quando falha ocorre:
+- `reason: EvidenceCollectionFailureReason`
+- `explanation: String?` — texto livre (preenchido quando reason == OTHER)
+- `strictness: Strictness` — REQUIRED, REQUESTED ou UNSUPPORTED
+
+### 3.2b Strictness enum (contexto de falha)
+
+| Valor | Significado |
+|---|---|
+| `REQUIRED` | Falha numa prova obrigatória — stop será marcado FAILED_MISSING_REQUIRED_PROOF |
+| `REQUESTED` | Falha numa prova solicitada — pode submeter mesmo assim |
+| `UNSUPPORTED` | Plataforma não suporta este tipo de coleta |
 
 ### 3.3 EvidenceType enum
 
@@ -284,12 +380,22 @@ O ViewModel seleciona o conjunto correto baseado em `StopActivity` + `isB2B` (fl
 5. Botão Cancelar → `cancelAndFinish()` → retorna `SignatureResult=null`
 6. Botão Confirmar → `saveResultAndFinish()` → retorna `SignatureResult(file: Uri)`
 
-### 4.2 SignatureRequest args
+### 4.2 SignatureRequest / SignatureResult args
 
+**Confirmado do dump `SignatureRequest.java` e `SignatureResult.java`:**
+
+SignatureRequest (Parcelable — extra `"request"`):
 - `consigneeName: String?` — nome pré-preenchido
-- `maxNameLength: Int` — comprimento máximo do campo nome
-- `showConsigneeName: Boolean` — se o campo nome é exibido
-- `isForPayment: Boolean` — adapta título para `"Assinar para pagamento"` (`payment_collected_signature_dialog_title`)
+- Demais campos — Precisa-runtime (classe parcialmente obfuscada)
+
+SignatureResult (Parcelable — extra `"result"`):
+- Existe somente quando usuário confirmou (retorno null = cancelou)
+- Contém o bitmap salvo como Uri (processado no ActivityResultLauncher)
+
+Estado da Activity:
+- `consigneeNameState: MutableState<String>` — inicializado em `""`
+- `isDirtyState: MutableState<Boolean>` — se o canvas foi tocado (false = confirmar desabilitado?)
+- `preventFinish: Boolean = true` — ao chamar `finish()`, salva bitmap antes de fechar (somente cancela sem salvar se setado false)
 
 ### 4.3 Fluxo de retorno
 
@@ -324,9 +430,18 @@ O ViewModel seleciona o conjunto correto baseado em `StopActivity` + `isB2B` (fl
 
 ### 5.2 ProofViewerArgs
 
-- `items: List<ProofViewerItem>` — lista de Uri + tipo (foto/assinatura)
-- `initialIndex: Int` — índice do item a mostrar primeiro
-- `canEdit: Boolean` — se botões de excluir ficam visíveis
+**Confirmado do dump `ProofViewerArgs.java` e `ProofViewerItem.java`:**
+
+- `proofViewerItems: ArrayList<ProofViewerItem>` — lista de itens
+- `selectedIndex: Int` — índice inicial
+- `showDeleteButton: Boolean` — se o botão de excluir é exibido
+- `resultKey: ProofViewerResultKey?` — chave para comunicar resultado de volta (quando chamado de DeliveryFragment no modo "pode deletar")
+
+**ProofViewerItem:**
+- `uri: Uri` — arquivo local (foto ou assinatura)
+- `tint: Boolean` — se deve aplicar tint de cor (diferencia assinatura de foto)
+
+**Resultado retornado:** via Navigation back-stack usando `ProofViewerResultKey` — o DeliveryFragment observa `EvidenceCollectionFailureKey` separadamente para falhas de coleta.
 
 ### 5.3 Animação
 
@@ -351,9 +466,27 @@ O ViewModel seleciona o conjunto correto baseado em `StopActivity` + `isB2B` (fl
 
 ### 6.1 Fluxo
 
-- `StopType.WAYPOINT` → chama `markAsDone` + lança ext. app (se registrado) → fecha
-- `StopType.DEPOT_PICKUP` → chama `markAsDone` → fecha diretamente
+**Confirmado do dump `AdditionalCompletionActionsControllerFragment.java`:**
+
+- `StopType.WAYPOINT` → chama `markAsDone (C2960j0)` + lança `ExternalStopCompletionRequest` via `C3011a` (app externo de entrega, se registrado) → fecha
+- `StopType.DEPOT_PICKUP` → chama `markAsDone` → fecha diretamente (sem ext. app)
 - Scanner para confirmar (`scan_to_confirm`) e para carregar veículo (`scan_to_load`) → `LabelScannerArgs.ScannerLaunchMode.BarcodeScanDelivery` / `BarcodeLoadVehicle`
+- `ExternalStopCompletionDriverAction`: entregue (`f26395i1`) vs não entregue (`f26396j1`)
+- `TrackedViaType` dos args: `NOTIFICATION`, `IN_APP`, `CHATHEAD`, `SWIPE`, `CAR`
+
+### 6.1a AdditionalCompletionActionsArgs — tipos de args
+
+**Waypoint (parada normal):**
+- `stopId: DefaultStopId`
+- `success: Boolean` (true=entregue, false=falhou)
+- `via: TrackedViaType`
+- `navigatedToStop: Boolean`
+- `mapCameraMode: String?`
+- `mapType: String?`
+
+**DepotPickup (parada de depósito):**
+- `stopId: DefaultStopId`
+- `success: Boolean`
 
 ### 6.2 Strings relevantes
 
@@ -478,6 +611,34 @@ Parada pendente
 
 ---
 
+## 11b. Diálogo de depósito/coleta vinculada — gate de pré-entrega
+
+Antes de abrir o DeliveryFragment para uma parada de entrega, o sistema verifica se há uma coleta vinculada (depot ou pickup stop). Se pendente/falhou, exibe um diálogo de aviso.
+
+### Diálogos de gate
+
+**Depósito não visitado:**
+- Título: `"Depósito não visitado"` → `depot_pending_dialog_title`
+- Corpo: `"Os itens desta entrega devem ser coletados no depósito:"` → `depot_pending_dialog_body`
+
+**Depósito pulado:**
+- Título: `"Coleta no depósito pulada"` → `depot_skipped_dialog_title`
+- Corpo: `"O depósito vinculado a esta entrega foi pulado. Prossiga somente se você tiver os itens desta entrega."` → `depot_skipped_dialog_body`
+
+**Coleta vinculada pendente:**
+- Título: `"A coleta vinculada ainda não foi concluída"` → `pickup_pending_dialog_title`
+- Corpo: `"Os itens desta entrega devem ser coletados nesta parada primeiro:"` → `pickup_pending_dialog_body`
+
+**Coleta vinculada falhou:**
+- Título: `"Coleta vinculada não realizada:"` → `pickup_failed_dialog_title`
+- Corpo: `"A coleta vinculada a esta parada foi marcada como não realizada. Prossiga somente se você tiver os itens desta entrega."` → `pickup_failed_dialog_body`
+
+**Botão de bypass:** `"Confirmar entrega"` → `pickup_required_confirm_anyway_button` (abre o DeliveryFragment mesmo com gate ativo)
+
+**Precisa-runtime:** exatamente quando cada diálogo é exibido (antes do DeliveryFragment ou dentro dele); se o gate é lógica do ViewModel ou da navegação.
+
+---
+
 ## 12. Contexto de navegação ativa (fora do escopo delivery)
 
 Strings relevantes para Á8 que residem fora do pacote delivery:
@@ -502,6 +663,8 @@ Strings relevantes para Á8 que residem fora do pacote delivery:
 
 ```dart
 // PackageState — valores B2C por StopActivity
+// CONFIRMADO do dump: PackageState.java (19 valores totais)
+// Índices exatos na ordem do enum original:
 
 // DELIVERY success (exibidos quando StopActivity=DELIVERY + não-falha):
 enum DeliverySuccessPackageState {
