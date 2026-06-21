@@ -48,6 +48,64 @@ void main() {
     expect(route.stops.first.deliveryId, 'A1');
   });
 
+  test(
+      'applyOptimization crava estimatedArrival = horário + offset por parada '
+      '(ETA local da step list)', () {
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    final notifier = c.read(routesProvider.notifier);
+    final id = notifier.createRoute(date: DateTime(2026, 6, 14));
+    notifier.addStop(id, _stop('A'));
+    notifier.addStop(id, _stop('B'));
+
+    final before = DateTime.now();
+    notifier.applyOptimization(
+      id,
+      RouteOptimizationResult(
+        orderedStops: [_stop('A'), _stop('B')],
+        totalDurationMinutes: 18,
+        totalDistanceMeters: 5200,
+        stopArrivalOffsets: const [
+          Duration(minutes: 5),
+          Duration(minutes: 12),
+        ],
+      ),
+    );
+    final after = DateTime.now();
+
+    final route = c.read(routesProvider).firstWhere((r) => r.id == id);
+    final etaA = route.stops[0].estimatedArrival!;
+    final etaB = route.stops[1].estimatedArrival!;
+    // ETA = horário da otimização (entre before e after) + offset da parada.
+    expect(etaA.isAfter(before.add(const Duration(minutes: 5, seconds: -1))),
+        isTrue);
+    expect(etaA.isBefore(after.add(const Duration(minutes: 5, seconds: 1))),
+        isTrue);
+    // B chega 7 min depois de A (12 − 5), monotônico crescente.
+    expect(etaB.difference(etaA), const Duration(minutes: 7));
+    // O snapshot otimizado carrega o mesmo ETA (revert do "Descartar" é fiel).
+    expect(route.optimizedStopsSnapshot![1].estimatedArrival, etaB);
+  });
+
+  test('applyOptimization sem offsets deixa estimatedArrival null (degrada)',
+      () {
+    final c = ProviderContainer();
+    addTearDown(c.dispose);
+    final notifier = c.read(routesProvider.notifier);
+    final id = notifier.createRoute(date: DateTime(2026, 6, 14));
+    notifier.addStop(id, _stop('A'));
+    notifier.applyOptimization(
+      id,
+      RouteOptimizationResult(
+        orderedStops: [_stop('A')],
+        totalDurationMinutes: 5,
+        totalDistanceMeters: 1000,
+      ),
+    );
+    final route = c.read(routesProvider).firstWhere((r) => r.id == id);
+    expect(route.stops.first.estimatedArrival, isNull);
+  });
+
   test('markStopForDeferredRemoval marca pendingRemoval sem remover (G5)', () {
     final c = ProviderContainer();
     addTearDown(c.dispose);

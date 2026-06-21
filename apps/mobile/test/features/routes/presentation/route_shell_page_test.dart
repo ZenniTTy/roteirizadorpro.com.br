@@ -824,8 +824,8 @@ void main() {
   // ── H19: Stop cards — badge, address lines, status dot, semantics ─────────
 
   testWidgets(
-      'MS-A6/H19: with 2 stops, cards show badges "01" and "02", '
-      'streetName and fullAddress', (tester) async {
+      'step list DRAFT: SEM número (círculo vazio, fiel ao Spoke) + linhas de '
+      'início/destino + streetName e fullAddress', (tester) async {
     tester.view.physicalSize = const Size(1080, 3200);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -834,8 +834,10 @@ void main() {
     await tester.pumpWidget(_wrapWithStops([_stop1, _stop2]));
     await tester.pumpAndSettle();
 
-    expect(find.text('01'), findsOneWidget);
-    expect(find.text('02'), findsOneWidget);
+    // DRAFT (sem otimizar): paradas sem positionInRoute → disco é círculo
+    // vazio, sem número e sem ETA. O "01"/"02" só aparece pós-otimização.
+    expect(find.text('01'), findsNothing);
+    expect(find.text('02'), findsNothing);
 
     expect(find.text('Rua Alfa, 100'), findsOneWidget);
     expect(find.text('Rua Beta, 200'), findsOneWidget);

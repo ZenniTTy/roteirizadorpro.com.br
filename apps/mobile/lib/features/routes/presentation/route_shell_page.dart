@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import 'widgets/route_step_list.dart';
 import '../../route_config/domain/route_config.dart';
 import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
@@ -1084,6 +1085,13 @@ class _ActiveRouteSheet extends StatelessWidget {
   /// builder para o corpo nunca transbordar em frações intermediárias do
   /// drag (mesma razão do FittedBox no empty state).
   Widget _buildStopsBody(BuildContext context) {
+    // Layout da step list:
+    //   0           → header (contador + nome da rota)
+    //   1           → config summary (= linhas Início/Destino do Spoke,
+    //                 ADR-0046) + título "Paradas"
+    //   2..2+len-1  → uma parada (RouteStopStep) por stop
+    // A linha de início/destino do steplist do Spoke é surfaceada pelo
+    // config-summary acima (não duplicar aqui).
     return ListView.builder(
       padding: EdgeInsets.zero,
       itemCount: stops.length + 2,
@@ -1144,12 +1152,25 @@ class _ActiveRouteSheet extends StatelessWidget {
             ],
           );
         }
-        final position = index - 1; // 1-based
-        final stop = stops[position - 1];
-        return _StopCard(
+        final stopIdx = index - 2; // 0-based na lista de stops
+        final stop = stops[stopIdx];
+        final oneBased = stopIdx + 1;
+        return RouteStopStep(
           key: ValueKey(stop.id),
-          position: position,
-          stop: stop,
+          // Número/ETA só pós-otimização: em DRAFT positionInRoute/estimated-
+          // Arrival são null → disco vira círculo vazio (fiel ao Spoke).
+          position:
+              stop.positionInRoute == null ? null : stop.positionInRoute! + 1,
+          etaTime: stop.estimatedArrival == null
+              ? null
+              : formatEta(stop.estimatedArrival!),
+          streetName: stop.streetName,
+          fullAddress: stop.fullAddress,
+          statusColor: _stopStatusColor(stop.status),
+          isFirst: stopIdx == 0,
+          isLast: stopIdx == stops.length - 1,
+          semanticsId: 'stop_card_$oneBased',
+          statusDotKey: Key('stop_card_${oneBased}_status_dot'),
           onTap: onStopTap == null ? null : () => onStopTap!(stop.id),
         );
       },
@@ -1274,91 +1295,13 @@ class _ActiveRouteSheet extends StatelessWidget {
   }
 }
 
-/// Card de uma parada na lista do sheet ativo (MS-A6 T7, §10.5):
-/// badge numérico 2 dígitos (tabular) + rua (h6) + endereço completo (muted)
-/// + dot de status à direita. O card INTEIRO é clicável → editor da parada.
-class _StopCard extends StatelessWidget {
-  const _StopCard({
-    super.key,
-    required this.position,
-    required this.stop,
-    required this.onTap,
-  });
-
-  /// Posição 1-based na lista (badge "01", "02", …).
-  final int position;
-  final Stop stop;
-  final VoidCallback? onTap;
-
-  Color get _statusColor => switch (stop.status) {
-        StopStatus.pending => AppColors.textMuted,
-        StopStatus.delivered || StopStatus.pickedUp => AppColors.success,
-        StopStatus.failed => AppColors.error,
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      identifier: 'stop_card_$position',
-      button: true,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Row(
-            children: [
-              Text(
-                position.toString().padLeft(2, '0'),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                  fontFeatures: [FontFeature.tabularFigures()],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      stop.streetName,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      stop.fullAddress,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textMuted,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                key: Key('stop_card_${position}_status_dot'),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _statusColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// Cor do dot de status da parada na step list (pending muted, entregue verde,
+/// falha vermelho). Reaproveitado pelos três estados do shell.
+Color _stopStatusColor(StopStatus status) => switch (status) {
+      StopStatus.pending => AppColors.textMuted,
+      StopStatus.delivered || StopStatus.pickedUp => AppColors.success,
+      StopStatus.failed => AppColors.error,
+    };
 
 class _SearchInnerButton extends StatelessWidget {
   const _SearchInnerButton({required this.icon, required this.onTap});

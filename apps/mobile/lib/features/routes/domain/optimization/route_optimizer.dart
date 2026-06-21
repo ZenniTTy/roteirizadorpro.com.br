@@ -17,10 +17,19 @@ class RouteOptimizationResult {
     required this.orderedStops,
     required this.totalDurationMinutes,
     required this.totalDistanceMeters,
+    this.stopArrivalOffsets = const [],
   });
   final List<Stop> orderedStops;
   final int totalDurationMinutes;
   final double totalDistanceMeters;
+
+  /// Deslocamento de tempo do INÍCIO da rota até a chegada em cada parada, na
+  /// mesma ordem (e tamanho) de [orderedStops]. O provider soma cada offset ao
+  /// horário da otimização para cravar o `Stop.estimatedArrival` (ETA absoluto
+  /// exibido na step list). Vazio quando o solver não computa ETA — a step list
+  /// degrada para "sem hora" sem quebrar. No Slice 2 é só tempo de viagem
+  /// acumulado; o GraphHopper (Slice 3) traz ETA real com trânsito + serviço.
+  final List<Duration> stopArrivalOffsets;
 }
 
 /// Fronteira do solver. A impl. do Slice 2 é `LocalRouteOptimizer` (on-device);

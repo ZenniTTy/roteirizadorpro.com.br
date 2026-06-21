@@ -163,6 +163,18 @@ class Routes extends _$Routes {
   /// atribuído) e grava as métricas. Espelha o efeito de `optimise` no Spoke
   /// (RouteState → OPTIMIZED). Sem backend — Slice 2.
   void applyOptimization(String routeId, RouteOptimizationResult result) {
+    final now = DateTime.now();
+    // Crava o ETA absoluto por parada: horário da otimização + offset de viagem
+    // acumulado (Slice 2, aproximação local — ver Stop.estimatedArrival). Sem
+    // offsets (solver não computou) → ETA fica null (step list sem hora).
+    final stamped = <Stop>[
+      for (var i = 0; i < result.orderedStops.length; i++)
+        result.orderedStops[i].copyWith(
+          estimatedArrival: i < result.stopArrivalOffsets.length
+              ? now.add(result.stopArrivalOffsets[i])
+              : null,
+        ),
+    ];
     state = [
       for (final r in state)
         if (r.id == routeId)
@@ -170,13 +182,13 @@ class Routes extends _$Routes {
             routeState: r.routeState.copyWith(
               optimization: OptimizationState.optimized,
               optimizing: false,
-              optimizedAt: DateTime.now(),
-              optimizationAttemptedAt: DateTime.now(),
+              optimizedAt: now,
+              optimizationAttemptedAt: now,
             ),
-            stops: result.orderedStops,
+            stops: stamped,
             // Snapshot da versão otimizada — o "Descartar alterações" do PR-C
             // reverte os stops pra cá quando o usuário edita e desiste (G3).
-            optimizedStopsSnapshot: result.orderedStops,
+            optimizedStopsSnapshot: stamped,
             totalDurationMinutes: result.totalDurationMinutes,
             totalDistanceMeters: result.totalDistanceMeters,
           )

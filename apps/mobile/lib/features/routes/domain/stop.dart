@@ -32,6 +32,7 @@ class Stop {
     this.photoPaths = const [],
     this.accessInstructions,
     this.estimatedTimeAtStop,
+    this.estimatedArrival,
     this.pendingRemoval = false,
   }) : id = id ?? const Uuid().v4();
 
@@ -69,6 +70,15 @@ class Stop {
   /// Tempo estimado na parada (substitui customDurationMinutes).
   final Duration? estimatedTimeAtStop;
 
+  /// Horário ESTIMADO de chegada na parada (ETA). Espelha o `Instant` por stop
+  /// que o Spoke exibe no slot esquerdo da step list ("14:32"). No Slice 2 é
+  /// uma aproximação local cravada pelo `LocalRouteOptimizer` (horário da
+  /// otimização + tempo de viagem acumulado, só deslocamento — sem tempo de
+  /// serviço e sem trânsito). O Slice 3 (GraphHopper) substitui por ETA real
+  /// com trânsito + tempo na parada, recalculado ao vivo. `null` enquanto a
+  /// rota não foi otimizada (estado DRAFT → ícone Circle, sem hora).
+  final DateTime? estimatedArrival;
+
   /// Marca a parada para remoção DEFERIDA quando a rota já está otimizada
   /// (G5 — espelha `ConfirmDeleteStopOnOptimizationDialog` do Spoke). O solver
   /// exclui paradas com esta flag na próxima otimização. Em rota DRAFT a
@@ -100,6 +110,7 @@ class Stop {
     List<String>? photoPaths,
     Object? accessInstructions = _omit,
     Object? estimatedTimeAtStop = _omit,
+    Object? estimatedArrival = _omit,
     bool? pendingRemoval,
   }) {
     // Nullables usam a sentinela _omit: omitido → preserva; null explícito →
@@ -142,6 +153,9 @@ class Stop {
       estimatedTimeAtStop: identical(estimatedTimeAtStop, _omit)
           ? this.estimatedTimeAtStop
           : estimatedTimeAtStop as Duration?,
+      estimatedArrival: identical(estimatedArrival, _omit)
+          ? this.estimatedArrival
+          : estimatedArrival as DateTime?,
       pendingRemoval: pendingRemoval ?? this.pendingRemoval,
     );
   }
