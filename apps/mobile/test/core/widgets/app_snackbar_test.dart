@@ -51,6 +51,10 @@ void main() {
 
         // (3) Texto passado deve aparecer no SnackBar.
         expect(find.text('oi'), findsOneWidget);
+
+        // Flush do Timer defensivo (dismiss robusto a animações-off).
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pumpAndSettle();
       },
     );
 
@@ -84,6 +88,10 @@ void main() {
         expect(find.byType(SnackBar), findsOneWidget);
         expect(find.text('Rota salva'), findsOneWidget);
         expect(find.text('Desfazer'), findsOneWidget);
+
+        // Flush do Timer defensivo (dismiss robusto a animações-off).
+        await tester.pump(const Duration(seconds: 3));
+        await tester.pumpAndSettle();
       },
     );
   });
