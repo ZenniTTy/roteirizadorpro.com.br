@@ -182,3 +182,30 @@ No DRAFT, o Spoke integra início/destino/pausa como linhas no trilho sob "Confi
 1. Destaque visual do `isNextStep` na rota ativa (cor/scroll/pulsação) — Compose ofuscado.
 2. Zero-pad do número (`ond.m40675a`) — provável `toString()` sem pad (nós usamos `padLeft(2,'0')` → revisar).
 3. Quais `ChipDescription` aparecem inline na lista vs só no detail sheet.
+
+## SHELL OTIMIZADO — blueprint do PRE-CONFIRM/Ready (runtime-confirmado 2026-06-21, Spoke v3.65.1 ao vivo no M54)
+
+**Evidência:** captura ao vivo da Spoke (`com.underwood.route_optimiser`, conta licenciada do Eduardo) — rota "Test" 3 paradas → "Aplicar alterações" → "Reotimizar rota" → confirmar. Esta seção corrige a divergência reportada pelo Eduardo (sheet não expande / summary desalinhado / timing). **Confirma o que o jadx já indicava** (`editroute/components/DragHandle.java`, `EditRouteFragment` renderiza por estado no mesmo shell).
+
+**ACHADO CENTRAL — o estado otimizado NÃO é tela separada.** A Spoke renderiza PRE-CONFIRM (pós-otimizar) e Ready (pós-confirmar) **no MESMO shell do editroute** (o mesmo do DRAFT), trocando **apenas o rodapé e o conteúdo da lista**. A moldura (alça + barra de busca + summary + sheet arrastável) é **constante** nos 3 estados. → Nosso erro foi fazer `PreConfirmView`/`ReadyToRunView` como widgets separados com moldura própria (kebab solto, summary centralizado, `AnimatedContainer` de altura fixa sem alça).
+
+**Moldura constante (DRAFT = PRE-CONFIRM = Ready):**
+1. **DragHandle** (pílula cinza no topo) → sheet **arrastável/expansível** em todos os estados. (Nosso PRE-CONFIRM/Ready não renderiza a alça nem as callbacks de drag → travado.)
+2. **Barra de busca** "Toque para adicionar" (mantida!) + ícone scan + mic + **kebab `⋮` DENTRO da barra, no canto direito**. (Nós removemos a barra no PRE-CONFIRM e deixamos um kebab solto.)
+3. **Bloco de summary, 2 linhas, ALINHADO À ESQUERDA** (não centralizado):
+   - linha 1 (muted): **`"8h16min · 3 paradas · 658 km"`** = `duração · N paradas · distância` (formato `Xh Ymin`; só `min` quando < 1h). No DRAFT essa linha 1 é só `"N paradas"`.
+   - linha 2 (bold): **nome da rota** ("Test" / "domingo").
+4. **Lista contínua** (trilho) — conteúdo varia por branch (abaixo).
+
+**Conteúdo da lista no PRE-CONFIRM/Ready (Branch B, plano):** ordem **Sem pausa (break) → Ponto de partida (start) → paradas (nº+ETA+chip) → Destino**. **A PAUSA VEM PRIMEIRO** (antes do Início), ao contrário do DRAFT (Início→Destino→Pausa). Confirma o blueprint Branch B. *(Nosso PreConfirmView faz Início→paradas→Destino, sem a linha de pausa e sem o break-first.)*
+
+**Rodapé por estado:**
+- **DRAFT:** CTA "Otimizar rota".
+- **PRE-CONFIRM:** **`"8h16min"` (verde, duração total, à esquerda)** + "Refinar" (outline) + "Confirmar" (filled). *(Falta a duração verde no nosso.)*
+- **Ready:** "Editar" + "Iniciar rota" + linhas "Compartilhar rota em tempo real" / "Carregar veículo" (já temos).
+
+**Por-parada (otimizado):** disco com **número zero-pad 2 dígitos `"01"`** (Spoke) — nós mostramos `"1"` → corrigir p/ `padLeft(2,'0')` (resolve o Precisa-runtime #2 acima: o pad É aplicado). ETA por parada ("16:46") + nome + endereço + chip ID ("A1"). leadingDot no stop atual.
+
+**Timing (limitação conhecida):** os valores reais (`8h16min`, `658 km`, ETA por parada) vêm do **motor de roteamento por estrada** (GraphHopper, slice-3). Nosso `LocalRouteOptimizer` só ordena (NN+2-opt), não mede estrada → duração/distância vêm **0**. O **formato** (`Xh Ymin`, ETA `HH:mm`, summary à esquerda, duração verde no rodapé) alinhamos agora; o **valor real** só na slice-3. Até lá: decidir entre ocultar duração/distância no summary quando 0, ou mostrar um placeholder honesto (não "0 min · 0,0 km", que parece bug).
+
+**Implicação de arquitetura (rework escolhido — "fiel completo", ADR-0052):** unificar os 3 estados num único shell. A moldura (alça+busca+summary+drag) sobe pro nível do shell (sempre renderizada); só **corpo-da-lista** e **rodapé** variam por estado (`isPreConfirm`/`isReadyToRun`/DRAFT). `PreConfirmView`/`ReadyToRunView` deixam de ter moldura própria — viram só o corpo+rodapé. Resolve os 6 itens da tabela de divergência de uma vez.
