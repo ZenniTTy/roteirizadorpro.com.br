@@ -7,8 +7,8 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_snackbar.dart';
+import 'widgets/route_config_labels.dart';
 import 'widgets/route_step_list.dart';
-import '../../route_config/domain/route_config.dart';
 import '../../route_config/state/route_config_controller.dart';
 import '../data/location_service.dart';
 import '../domain/optimization/route_optimizer.dart';
@@ -263,6 +263,21 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
     final isEditing = ref.watch(
       activeRouteStateProvider.select((s) => s?.isEditing ?? false),
     );
+    // Início/destino p/ as linhas integradas das views otimizadas (Branch B —
+    // PRE-CONFIRM/Ready mostram "Ponto de partida" + destino no trilho, como o
+    // Spoke). Lidos só quando há rota ativa (mesmo idiom de activeMetrics).
+    final activeStartLocation = activeRouteId == null
+        ? null
+        : ref.watch(
+            routeConfigControllerProvider(activeRouteId)
+                .select((c) => c.startLocation),
+          );
+    final activeDestination = activeRouteId == null
+        ? null
+        : ref.watch(
+            routeConfigControllerProvider(activeRouteId)
+                .select((c) => c.destination),
+          );
     // Overlay otimizado (polyline + pinos numerados) aparece quando a rota ESTÁ
     // otimizada — PRE-CONFIRM ou Ready-to-Run vindo do funil normal. No skip-path
     // (Ready-to-Run pendente) não há ordem real, então os números confundiriam.
@@ -431,6 +446,8 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
               child: isReadyToRun
                   ? ReadyToRunView(
                       stops: stops,
+                      startLocation: activeStartLocation,
+                      destination: activeDestination,
                       durationMinutes: activeMetrics?.duration ?? 0,
                       distanceMeters: activeMetrics?.distance ?? 0.0,
                       hasPendingOptimization: hasPendingOptimization,
@@ -442,6 +459,8 @@ class _RouteShellPageState extends ConsumerState<RouteShellPage> {
                   : isPreConfirm
                       ? PreConfirmView(
                           stops: stops,
+                          startLocation: activeStartLocation,
+                          destination: activeDestination,
                           durationMinutes: activeMetrics?.duration ?? 0,
                           distanceMeters: activeMetrics?.distance ?? 0.0,
                           onRefine: _onRefine,
@@ -1510,14 +1529,14 @@ class _ConfigSummarySection extends ConsumerWidget {
           // id legado do RouteConfigRow (prefixo route_details_row_) preservado
           // p/ não quebrar testes de semântica nem flows Maestro.
           semanticsId: 'route_details_row_config_summary_inicio',
-          lineOne: _inicioLabel(startLocation),
-          lineTwo: 'Use a posição do GPS ao otimizar',
+          lineOne: startLabel(startLocation, optimized: false),
+          lineTwo: startSubtitle(optimized: false),
           onTap: onOpenDetails,
         ),
         RouteEndStep(
           semanticsId: 'route_details_row_config_summary_destino',
-          lineOne: _destinoLabel(destination),
-          lineTwo: _destinoSubtitle(destination),
+          lineOne: destinationLabel(destination),
+          lineTwo: destinationSubtitle(destination),
           hasLineBelow: true,
           onTap: onOpenDetails,
         ),
@@ -1529,34 +1548,5 @@ class _ConfigSummarySection extends ConsumerWidget {
         ),
       ],
     );
-  }
-
-  /// Início primary label: the chosen custom address when set, else Spoke's
-  /// GPS placeholder. Matches the active-route summary copy (NOT the Detalhes
-  /// "Usar local atual" / "Iniciar agora mesmo" wording).
-  String _inicioLabel(StartLocation? loc) {
-    if (loc != null && !loc.isUserCurrentLocation) return loc.address;
-    return 'Iniciar no local atual';
-  }
-
-  /// Ida-e-volta primary label, derived from the destination. RoundTrip (the
-  /// `RouteConfig.empty` default) reads "Ida e volta".
-  String _destinoLabel(Destination? destination) {
-    return switch (destination) {
-      null || RoundTrip() => 'Ida e volta',
-      SpecificAddress(:final address) => address,
-      NoDestination() => 'Nenhum destino',
-    };
-  }
-
-  /// Summary subtitle. RoundTrip uses Spoke's active-route copy "Retorne ao
-  /// ponto de partida" (distinct from the Detalhes-page "Viagem de ida e volta
-  /// a partir do local atual"). Other variants have no subtitle.
-  String? _destinoSubtitle(Destination? destination) {
-    return switch (destination) {
-      null || RoundTrip() => 'Retorne ao ponto de partida',
-      SpecificAddress() => null,
-      NoDestination() => null,
-    };
   }
 }

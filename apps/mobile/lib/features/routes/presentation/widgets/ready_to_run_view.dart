@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:roteirizador_pro/core/theme/app_theme.dart';
+import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/delivery_id_chip.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/route_config_labels.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_step_list.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_summary_row.dart';
 
@@ -23,10 +25,14 @@ class ReadyToRunView extends StatelessWidget {
     required this.onStart,
     required this.onComingSoon,
     required this.onReoptimize,
+    this.startLocation,
+    this.destination,
     super.key,
   });
 
   final List<Stop> stops;
+  final StartLocation? startLocation;
+  final Destination? destination;
   final int durationMinutes;
   final double distanceMeters;
 
@@ -63,6 +69,11 @@ class ReadyToRunView extends StatelessWidget {
         Expanded(
           child: ListView(
             children: [
+              // Lista contínua (Branch B): início → paradas → destino, no trilho.
+              RouteStartStep(
+                lineOne: startLabel(startLocation, optimized: true),
+                lineTwo: startSubtitle(optimized: true),
+              ),
               for (var i = 0; i < stops.length; i++)
                 RouteStopStep(
                   key: ValueKey(stops[i].id),
@@ -75,10 +86,12 @@ class ReadyToRunView extends StatelessWidget {
                   streetName: stops[i].streetName,
                   fullAddress: stops[i].fullAddress,
                   statusColor: AppColors.textMuted,
-                  isFirst: i == 0,
-                  isLast: i == stops.length - 1,
                   trailing: DeliveryIdChip(deliveryId: stops[i].deliveryId),
                 ),
+              RouteEndStep(
+                lineOne: destinationLabel(destination),
+                lineTwo: destinationSubtitle(destination),
+              ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(LucideIcons.share2),
