@@ -92,6 +92,75 @@ Dois métodos por estado (`nnd.m39733i` DRAFT / `nnd.m39736l` otimizado):
 
 **CORTADO (B2B per fronteira B2C):** grupos `AddTransferredStops`/`DeleteTransferredStops` (transfer peer-to-peer entre motoristas).
 
+## AMENDMENT 2026-06-21 — captura ao vivo do Spoke (estado otimizado/edit)
+
+> Eduardo pediu paridade ESTRUTURAL milimétrica (identidade visual nossa, ADR-0035).
+> Maestro `inspect_screen` no Spoke retorna árvore vazia (`enabled:false`) — blindspot
+> Compose (`lesson_uiautomator_blindspot_compose_imagevectors`). dp do dump está
+> ofuscado (Pairip) → não extraível limpo. Fonte de fidelidade = **screenshot ao vivo**
+> (`/tmp/spoke1.png`, device 1080px) + estrutura do dump. Reimplementar em Flutter.
+
+**Estrutura REAL do Spoke no estado otimizado/edit (uma lista CONTÍNUA, trilho atravessa tudo):**
+
+1. Header: "N paradas" (muted) + nome da rota (bold).
+2. **Group header** full-width, faixa cinza clara, texto pequeno muted: ex. **"Paradas adicionadas"**, **"Rota existente"** (enums `RouteStepListGroup`: Added/Edited/Removed/Skipped/ExistingRoute).
+3. Linhas, todas no MESMO trilho vertical (disco à esquerda, conteúdo, trailing à direita):
+   - **Parada adicionada:** disco cinza + rua/endereço + **dot azul** (trailing).
+   - **Pausa:** disco cinza + "Sem pausa" / "Toque para agendar uma pausa" + ícone xícara (trailing).
+   - **Ponto de partida:** disco = **hora (pequena, em cima) sobre pin** + "Ponto de partida" / "Posição do GPS usada ao otimizar" + **ícone casa** (trailing).
+   - **Parada (stop):** disco = **hora sobre número** (TimeAndStopNumber) + rua/endereço + **chip de ID "A1"** (trailing).
+   - **Destino:** disco = **hora** (sem número) + rua/endereço + **ícone bandeira** (trailing).
+4. Rodapé: **Descartar** (outlined) / **Aplicar alterações (N)** (filled) — no estado edit.
+
+**Divergência vs RotPro (s3.png PRE-CONFIRM):** nós temos caixa config-summary SEPARADA
+(rounded cards, ADR-0046) + lista de paradas solta SEM grupos, SEM início/pausa/destino
+integrados. O Spoke integra TUDO numa lista só com grupos. **Esta é a divergência
+estrutural grande** (o "completamente diferente" do Eduardo).
+
+**Plano de reimplementação (identidade nossa):**
+- Tipos de linha novos no `route_step_list.dart`: `RouteStartStep` (hora+pin / casa),
+  `RoutePauseStep` (xícara), `RouteEndStep` (hora / bandeira), `RouteGroupHeader` (faixa).
+- A lista (DRAFT/PRE-CONFIRM/Ready) vira UMA lista contínua: [grupos +] início + pausa +
+  stops + destino, todos no mesmo trilho. Disco já faz time-over-number ✓.
+- **Intersecção ADR-0046:** nos estados otimizados o config-summary em caixa é SUBSTITUÍDO
+  pelas linhas integradas (início/destino viram step rows). Registrar via amendment/ADR.
+- DRAFT: confirmar via captura Spoke se mantém caixa ou já é lista integrada (Precisa-captura).
+
+## BLUEPRINT DE IMPLEMENTAÇÃO (deep-dump 2026-06-21 — `nnd.java` + `RouteStepListController.java` + `RouteStepListKt.java`)
+
+> Fatos do dump (cita file:line no relatório do dispatch). O Spoke renderiza a lista num `LazyColumn` com **5 tipos de linha** (GroupHeader, Start, Break, Stop, End), regidos por **3 branches** (`isOptimized` × `hasPostOptChanges`).
+
+### 5 tipos de linha (strings PT-BR verbatim)
+
+| Tipo | lineOne | lineTwo | disco (esquerda) | trailing (direita) |
+|---|---|---|---|---|
+| **GroupHeader** | label do grupo (ver branches) | — | sem disco/trilho; faixa | ícone `deleted_mini` só em Removidas/DeleteTransfer |
+| **Start (DRAFT)** | "Iniciar no local atual" (ou nome origem) | "Use a posição do GPS ao otimizar" | Time se houver hora, senão Circle | badge Start → `lucide:home` |
+| **Start (otimizado)** | "Ponto de partida" (ou nome origem) | "Posição do GPS usada ao otimizar" | Time(leadingDot) ou Circle; faded se started | `lucide:home` |
+| **Break** | "Sem pausa" | "Toque para agendar uma pausa" | Circle | badge None → `lucide:coffee` |
+| **Stop** | nome da rua | endereço (linha 2) | Circle / StopNumber / Time / **TimeAndStopNumber** / Alert(skipped) | chip de ID (NotDone/Checked/Success/Failure/Deleted) |
+| **Added-stop** | nome da rua | endereço | **sempre Circle** (sem nº até reotimizar) | chip de ID |
+| **End/Destino** | "Nenhum destino" / "Ida e volta" / "Finalizar até %s" (ou nome) | "Toque para definir o destino e horário de término" / "Retorne ao ponto de partida" / "Voltar a %s" / endereço | Time ou Circle | badge End → `lucide:flag` |
+
+Disco `AbstractC2673d`: **Circle** (vazio) · **StopNumber**(nº) · **Time**(hora, leadingDot p/ stop atual) · **TimeAndStopNumber**(hora em cima + nº embaixo) · **Alert**(`lucide:alert-circle`, skipped/removido).
+Trilho `RouteStepLine`: **Solid** · **Dashed** · **None** — por-linha (`lineAbove`/`lineBelow` independentes).
+
+### 3 branches (ordem das linhas)
+
+- **Branch C — DRAFT (não otimizado):** header **"Configuração de rota"** (`route_setup_header`) → Start row → Destino row → Break row (se feature on) → header **"Paradas"** (plural, `group_header_stops`) → stops. **Sem grupos Added/Edited.** *(É AQUI que o nosso config-summary-em-caixa diverge: o Spoke integra início/destino/pausa como LINHAS no trilho sob "Configuração de rota", não uma caixa separada.)*
+- **Branch B — OTIMIZADO sem mudanças / ATIVO:** lista **PLANA, sem grupos**: Break (opcional) → Start → stops → Destino. *(É o nosso PRE-CONFIRM logo após otimizar — sem grupos.)*
+- **Branch A — OTIMIZADO com edições pós-opt:** grupos na ordem **Paradas puladas → [transfer B2B, CORTADO] → Paradas adicionadas → Paradas editadas → Paradas removidas → Rota existente** (header só se há itens acima) → Break → Start → stops → Destino. *(É a screenshot `/tmp/spoke1.png`, com "Aplicar alterações (N)".)*
+
+Labels de grupo verbatim: "Paradas puladas" (`skipped_stops`), "Paradas adicionadas" (`added_stops`), "Paradas editadas" (`edited_stops`), "Paradas removidas" (`removed_stops`), "Rota existente" (`existing_route`), "Configuração de rota" (`route_setup_header`), "Parada"/"Paradas" (`group_header_stops`).
+
+### dp legíveis (resto ofuscado → usar proporção da screenshot + token scale 4/8/12/16)
+
+- Padding horizontal externo: **16dp** · Header de grupo padding interno: **8dp** · ícone do header: **24dp** · padding topo do texto do header: **4dp** · botão "Copiar paradas": **16/8/16/16**. Diâmetro do disco / altura da linha / font sizes: **não legíveis** (tema Compose ofuscado).
+
+### Intersecção ADR-0046
+
+No DRAFT, o Spoke integra início/destino/pausa como linhas no trilho sob "Configuração de rota" — NÃO uma caixa de rounded-cards separada. Substituir o config-summary-em-caixa pelas linhas integradas é a mudança estrutural; registrar amendment ao ADR-0046 (ou novo ADR) quando implementar.
+
 ## Precisa-runtime (flag, não rodar)
 
 1. Destaque visual do `isNextStep` na rota ativa (cor/scroll/pulsação) — Compose ofuscado.
