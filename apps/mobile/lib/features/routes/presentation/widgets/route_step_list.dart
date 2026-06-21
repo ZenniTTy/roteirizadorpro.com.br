@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../../core/theme/app_theme.dart';
 
@@ -99,6 +100,166 @@ class RouteStopStep extends StatelessWidget {
                 BoxDecoration(shape: BoxShape.circle, color: statusColor),
           ),
       onTap: onTap,
+    );
+  }
+}
+
+/// Linha de INÍCIO da rota — integrada no trilho (não numa caixa separada).
+/// Fiel ao `nnd.m39733i`/`m39736l` do Spoke: "Iniciar no local atual" (DRAFT) /
+/// "Ponto de partida" (otimizado). Disco = hora (se houver) ou círculo vazio;
+/// trailing = ícone de casa. O caller escolhe as strings conforme o branch.
+class RouteStartStep extends StatelessWidget {
+  const RouteStartStep({
+    required this.lineOne,
+    required this.lineTwo,
+    this.timeTop,
+    this.hasLineBelow = true,
+    this.faded = false,
+    this.onTap,
+    this.semanticsId,
+    super.key,
+  });
+
+  final String lineOne;
+  final String lineTwo;
+  final String? timeTop;
+  final bool hasLineBelow;
+  final bool faded;
+  final VoidCallback? onTap;
+  final String? semanticsId;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StepRow(
+      semanticsId: semanticsId ?? 'route_start_step',
+      hasLineAbove: false,
+      hasLineBelow: hasLineBelow,
+      faded: faded,
+      disc: _StepDisc(timeTop: timeTop),
+      lineOne: lineOne,
+      lineTwo: lineTwo,
+      trailing:
+          const Icon(LucideIcons.house, size: 18, color: AppColors.primary),
+      onTap: onTap,
+    );
+  }
+}
+
+/// Linha de PAUSA — integrada no trilho. Placeholder "Sem pausa" / "Toque para
+/// agendar uma pausa" (`no_break_in_optimized_route_*`). Disco = círculo vazio;
+/// trailing = ícone de xícara.
+class RouteBreakStep extends StatelessWidget {
+  const RouteBreakStep({
+    required this.lineOne,
+    required this.lineTwo,
+    this.hasLineAbove = true,
+    this.hasLineBelow = true,
+    this.onTap,
+    super.key,
+  });
+
+  final String lineOne;
+  final String lineTwo;
+  final bool hasLineAbove;
+  final bool hasLineBelow;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StepRow(
+      semanticsId: 'route_break_step',
+      hasLineAbove: hasLineAbove,
+      hasLineBelow: hasLineBelow,
+      disc: const _StepDisc(),
+      lineOne: lineOne,
+      lineTwo: lineTwo,
+      trailing:
+          const Icon(LucideIcons.coffee, size: 18, color: AppColors.textMuted),
+      onTap: onTap,
+    );
+  }
+}
+
+/// Linha de DESTINO — integrada no trilho. "Nenhum destino" / "Ida e volta" /
+/// "Finalizar até %s" (`nnd.m39730e`). Disco = hora (se houver) ou círculo;
+/// trailing = ícone de bandeira. O caller monta a variante.
+class RouteEndStep extends StatelessWidget {
+  const RouteEndStep({
+    required this.lineOne,
+    this.lineTwo,
+    this.timeTop,
+    this.hasLineAbove = true,
+    this.hasLineBelow = false,
+    this.onTap,
+    this.semanticsId,
+    super.key,
+  });
+
+  final String lineOne;
+  final String? lineTwo;
+  final String? timeTop;
+  final bool hasLineAbove;
+
+  /// No DRAFT o destino aparece ANTES da pausa (ordem do Spoke), então precisa
+  /// de trilho abaixo; nos estados otimizados é a última linha (false).
+  final bool hasLineBelow;
+  final VoidCallback? onTap;
+  final String? semanticsId;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StepRow(
+      semanticsId: semanticsId ?? 'route_end_step',
+      hasLineAbove: hasLineAbove,
+      hasLineBelow: hasLineBelow,
+      disc: _StepDisc(timeTop: timeTop),
+      lineOne: lineOne,
+      lineTwo: lineTwo,
+      trailing:
+          const Icon(LucideIcons.flag, size: 18, color: AppColors.primary),
+      onTap: onTap,
+    );
+  }
+}
+
+/// Cabeçalho de grupo/seção da step list — faixa SEM disco e SEM trilho (fiel ao
+/// `C2670a` do Spoke). "Configuração de rota" / "Paradas" / "Rota existente" /
+/// "Paradas adicionadas|editadas|removidas|puladas". [showDeletedIcon] põe o
+/// ícone de lixeira (header de "Removidas").
+class RouteGroupHeader extends StatelessWidget {
+  const RouteGroupHeader({
+    required this.label,
+    this.showDeletedIcon = false,
+    super.key,
+  });
+
+  final String label;
+  final bool showDeletedIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ),
+          if (showDeletedIcon)
+            const Icon(
+              LucideIcons.trash2,
+              size: 16,
+              color: AppColors.textMuted,
+            ),
+        ],
+      ),
     );
   }
 }

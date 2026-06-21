@@ -9,7 +9,6 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import 'widgets/route_step_list.dart';
 import '../../route_config/domain/route_config.dart';
-import '../../route_config/presentation/widgets/route_config_row.dart';
 import '../../route_config/state/route_config_controller.dart';
 import '../data/location_service.dart';
 import '../domain/optimization/route_optimizer.dart';
@@ -1133,22 +1132,13 @@ class _ActiveRouteSheet extends StatelessWidget {
           );
         }
         if (index == 1) {
-          // Config summary + título da seção "Paradas" (H7).
+          // Config summary (linhas Início/Destino/Pausa integradas) + cabeçalho
+          // de seção "Paradas" (RouteGroupHeader, fiel ao group_header_stops).
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (configSummary != null) configSummary!,
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 4),
-                child: Text(
-                  'Paradas',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ),
+              if (stops.isNotEmpty) const RouteGroupHeader(label: 'Paradas'),
             ],
           );
         }
@@ -1507,40 +1497,37 @@ class _ConfigSummarySection extends ConsumerWidget {
       routeConfigControllerProvider(routeId).select((c) => c.destination),
     );
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Configuração de rota',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textMuted,
-              ),
-            ),
-          ),
-          RouteConfigRow(
-            semanticsKey: 'config_summary_inicio',
-            label: _inicioLabel(startLocation),
-            subtitle: 'Use a posição do GPS ao otimizar',
-            leading: LucideIcons.house,
-            active: true,
-            onTap: onOpenDetails,
-          ),
-          RouteConfigRow(
-            semanticsKey: 'config_summary_destino',
-            label: _destinoLabel(destination),
-            subtitle: _destinoSubtitle(destination),
-            leading: _destinoIcon(destination),
-            active: true,
-            onTap: onOpenDetails,
-          ),
-        ],
-      ),
+    // Linhas integradas no trilho (NÃO mais caixa de rounded-cards): fiel ao
+    // editroute/steplist do Spoke (Branch C/DRAFT, controller:1084-1097), que
+    // renderiza Início → Destino → Pausa como step rows sob "Configuração de
+    // rota". Substitui o config-summary-caixa do ADR-0046 (amendment) mantendo
+    // os semanticsId legados + a microcopy verbatim + o tap→Detalhes.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const RouteGroupHeader(label: 'Configuração de rota'),
+        RouteStartStep(
+          // id legado do RouteConfigRow (prefixo route_details_row_) preservado
+          // p/ não quebrar testes de semântica nem flows Maestro.
+          semanticsId: 'route_details_row_config_summary_inicio',
+          lineOne: _inicioLabel(startLocation),
+          lineTwo: 'Use a posição do GPS ao otimizar',
+          onTap: onOpenDetails,
+        ),
+        RouteEndStep(
+          semanticsId: 'route_details_row_config_summary_destino',
+          lineOne: _destinoLabel(destination),
+          lineTwo: _destinoSubtitle(destination),
+          hasLineBelow: true,
+          onTap: onOpenDetails,
+        ),
+        RouteBreakStep(
+          lineOne: 'Sem pausa',
+          lineTwo: 'Toque para agendar uma pausa',
+          hasLineBelow: false,
+          onTap: onOpenDetails,
+        ),
+      ],
     );
   }
 
@@ -1570,14 +1557,6 @@ class _ConfigSummarySection extends ConsumerWidget {
       null || RoundTrip() => 'Retorne ao ponto de partida',
       SpecificAddress() => null,
       NoDestination() => null,
-    };
-  }
-
-  IconData _destinoIcon(Destination? destination) {
-    return switch (destination) {
-      null || RoundTrip() => LucideIcons.cornerUpLeft,
-      SpecificAddress() => LucideIcons.mapPin,
-      NoDestination() => LucideIcons.flag,
     };
   }
 }

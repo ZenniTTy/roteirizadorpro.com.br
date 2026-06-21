@@ -8,6 +8,7 @@ import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/route_config/domain/route_config.dart';
 import 'package:roteirizador_pro/features/route_config/presentation/widgets/route_config_row.dart';
 import 'package:roteirizador_pro/features/route_config/state/route_config_controller.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/route_step_list.dart';
 import 'package:roteirizador_pro/features/routes/data/location_service.dart';
 import 'package:roteirizador_pro/features/routes/domain/map_controls_state.dart';
 import 'package:roteirizador_pro/features/routes/domain/route.dart' as domain;
@@ -405,16 +406,20 @@ void main() {
   });
 
   testWidgets(
-      'summary shows EXACTLY 2 rows (Início + Ida-e-volta) — no inline Pausa '
-      'row (Spoke parity, ADR-0046)', (tester) async {
+      'config integra Início + Destino + Pausa como step rows no trilho '
+      '(Spoke Branch C — amendment ADR-0046, não mais caixa)', (tester) async {
     useTallFrame(tester);
     await tester.pumpWidget(_wrapRouted(activeRouteId: 'r1'));
     await tester.pumpAndSettle();
     await _expandSheet(tester);
 
-    expect(find.byType(RouteConfigRow), findsNWidgets(2));
-    // Pausa is NOT a summary row — it lives inside the Detalhes page only.
-    expect(find.text('Adicionar pausa'), findsNothing);
+    // Não é mais a caixa de 2 RouteConfigRows — virou linhas integradas.
+    expect(find.byType(RouteConfigRow), findsNothing);
+    expect(find.byType(RouteStartStep), findsOneWidget);
+    expect(find.byType(RouteEndStep), findsOneWidget);
+    // A Pausa agora É uma linha inline (fiel ao steplist do Spoke).
+    expect(find.text('Sem pausa'), findsOneWidget);
+    expect(find.text('Toque para agendar uma pausa'), findsOneWidget);
   });
 
   testWidgets(
@@ -564,7 +569,8 @@ void main() {
 
     // Com rota ativa, a seção de config AGORA aparece (antes: findsNothing).
     expect(find.text('Configuração de rota'), findsOneWidget);
-    expect(find.byType(RouteConfigRow), findsNWidgets(2));
+    expect(find.byType(RouteStartStep), findsOneWidget);
+    expect(find.byType(RouteEndStep), findsOneWidget);
   });
 
   // ───────────────────────────────────────────────────────────────────────
