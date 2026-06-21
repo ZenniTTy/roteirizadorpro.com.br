@@ -161,6 +161,22 @@ Labels de grupo verbatim: "Paradas puladas" (`skipped_stops`), "Paradas adiciona
 
 No DRAFT, o Spoke integra início/destino/pausa como linhas no trilho sob "Configuração de rota" — NÃO uma caixa de rounded-cards separada. Substituir o config-summary-em-caixa pelas linhas integradas é a mudança estrutural; registrar amendment ao ADR-0046 (ou novo ADR) quando implementar.
 
+## PLANO DE ASSEMBLY (workflow steplist-assembly-plan, 2026-06-21)
+
+**Veredito:** Branches B (otimizado-plano) + C (DRAFT) = 100% implementáveis (Start/Destino/Pausa já em `RouteConfig`). **Branch A (grupos) = GAP de domínio → ADIADO.**
+
+**Branch A precisa (não temos):** snapshot `RouteLastSavedChanges` por-rota (conjuntos stopsPendingAddition/Removal) + por-stop contador de `propertyChanges` (Edited) + por-stop `skippedReason` nullable (Skipped). `pendingRemoval` existe (parcial); resto é gap. Implementar parcial = anti-pattern ADR-0041..44 → adiar inteiro p/ Slice 3/Á8 com o solver real.
+
+**Widgets novos (route_step_list.dart):** `RouteStartStep` (casa), `RouteBreakStep` (xícara), `RouteEndStep` (bandeira), `RouteGroupHeader` (faixa sem trilho). Reusam `_StepRow`.
+
+**Branch C (DRAFT, shell):** header "Configuração de rota" → Start → **Destino** → Break → header "Paradas" → stops. (Destino ANTES da pausa.) Substitui o `_ConfigSummarySection`-caixa pelas linhas integradas, mantendo `semanticsId` `config_summary_inicio/destino` (override) → testes de tap/microcopy passam; só o `RouteConfigRow findsNWidgets(2)` reescreve.
+
+**Branch B (PRE-CONFIRM/Ready, plano):** Break (se feature) → Start → stops → Destino. PreConfirmView/ReadyToRunView recebem `startLocation`/`destination`/`breaks` como params novos do shell (continuam StatelessWidget).
+
+**Dados (config-summary já lê):** `startLocation` (StartLocation? .isUserCurrentLocation/.address), `destination` (sealed RoundTrip|SpecificAddress|NoDestination), helpers `_inicioLabel/_destinoLabel/_destinoSubtitle/_destinoIcon`. Falta ler `breaks` (nenhuma view lê hoje).
+
+**Amendment ADR-0046:** o config-summary-em-caixa é substituído por linhas integradas no trilho nos estados de rota ativa.
+
 ## Precisa-runtime (flag, não rodar)
 
 1. Destaque visual do `isNextStep` na rota ativa (cor/scroll/pulsação) — Compose ofuscado.
