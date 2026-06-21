@@ -36,14 +36,21 @@ void showAppSnackBar(
     ),
   );
 
-  // Dismiss defensivo: em devices com animações desligadas
-  // (developer options → animator_duration_scale = 0, caso do M54 de teste) o
-  // auto-dismiss interno do SnackBar — que é dirigido pela animação de saída —
-  // não dispara e o toast fica "preso" na tela. Um Timer próprio garante o
-  // fechamento independente do estado das animações. `close()` é no-op seguro
-  // se o toast já saiu ou foi substituído por outro.
-  final timer = Timer(const Duration(seconds: 3), controller.close);
-  // Se o toast sair naturalmente antes (animações on, swipe, ou substituído por
-  // outro toast), cancela o Timer pra não deixar timer pendente.
-  controller.closed.whenComplete(timer.cancel);
+  // Dismiss defensivo — SÓ quando as animações do sistema estão desligadas
+  // (`AccessibilityFeatures.disableAnimations`; no Android = animator/transition
+  // scale 0, caso do M54 de teste do Eduardo). Nesse modo o auto-dismiss interno
+  // do SnackBar — que é DIRIGIDO PELA ANIMAÇÃO de saída — não dispara e o toast
+  // fica "preso" tampando o conteúdo. Um Timer próprio garante o fechamento.
+  //
+  // Com animações LIGADAS (incluindo todos os widget tests) o dismiss nativo já
+  // funciona, então NÃO armamos timer extra — evita o "A Timer is still pending"
+  // no teardown de testes que mostram o toast e terminam antes dos 3 s. Gate na
+  // condição-do-bug = correto e test-safe (sem alterar dezenas de testes).
+  final animationsDisabled =
+      MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  if (animationsDisabled) {
+    final timer = Timer(const Duration(seconds: 3), controller.close);
+    // Se o toast sair antes (swipe / substituído por outro), cancela o Timer.
+    controller.closed.whenComplete(timer.cancel);
+  }
 }
