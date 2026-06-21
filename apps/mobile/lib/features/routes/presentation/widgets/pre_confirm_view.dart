@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/delivery_id_chip.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/route_step_list.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_summary_row.dart';
 
 /// Tela de pré-confirmação da rota otimizada (G4 — PRE-CONFIRM).
@@ -53,17 +55,26 @@ class PreConfirmView extends StatelessWidget {
             itemCount: stops.length,
             itemBuilder: (context, index) {
               final stop = stops[index];
-              return ListTile(
+              // Otimizada: disco mostra número da parada + ETA ("Chegada"); o
+              // chip de ID ("A1") vai no trailing (número e ID coexistem — o
+              // formato Moderno do Spoke existe pra não confundi-los).
+              return RouteStopStep(
                 // Key por id: ao "Inverter a ordem" a lista vem revertida; sem a
                 // key o ListView reconcilia por índice e refaz subtrees em vez de
                 // mover (perf-auditor should-fix Á7 PR-B1).
                 key: ValueKey(stop.id),
-                leading: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [DeliveryIdChip(deliveryId: stop.deliveryId)],
-                ),
-                title: Text(stop.streetName),
-                subtitle: Text(stop.fullAddress),
+                position: stop.positionInRoute == null
+                    ? null
+                    : stop.positionInRoute! + 1,
+                etaTime: stop.estimatedArrival == null
+                    ? null
+                    : formatEta(stop.estimatedArrival!),
+                streetName: stop.streetName,
+                fullAddress: stop.fullAddress,
+                statusColor: AppColors.textMuted,
+                isFirst: index == 0,
+                isLast: index == stops.length - 1,
+                trailing: DeliveryIdChip(deliveryId: stop.deliveryId),
                 onTap: () => onStopTap(stop.id),
               );
             },

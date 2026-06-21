@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:roteirizador_pro/core/theme/app_theme.dart';
 import 'package:roteirizador_pro/features/routes/domain/stop.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/delivery_id_chip.dart';
+import 'package:roteirizador_pro/features/routes/presentation/widgets/route_step_list.dart';
 import 'package:roteirizador_pro/features/routes/presentation/widgets/route_summary_row.dart';
 
 /// Estado "pronto para rodar" do funil de otimização (A7-D5/D8).
@@ -60,11 +63,21 @@ class ReadyToRunView extends StatelessWidget {
         Expanded(
           child: ListView(
             children: [
-              for (final stop in stops)
-                ListTile(
-                  key: ValueKey(stop.id),
-                  title: Text(stop.streetName),
-                  subtitle: Text(stop.fullAddress),
+              for (var i = 0; i < stops.length; i++)
+                RouteStopStep(
+                  key: ValueKey(stops[i].id),
+                  position: stops[i].positionInRoute == null
+                      ? null
+                      : stops[i].positionInRoute! + 1,
+                  etaTime: stops[i].estimatedArrival == null
+                      ? null
+                      : formatEta(stops[i].estimatedArrival!),
+                  streetName: stops[i].streetName,
+                  fullAddress: stops[i].fullAddress,
+                  statusColor: AppColors.textMuted,
+                  isFirst: i == 0,
+                  isLast: i == stops.length - 1,
+                  trailing: DeliveryIdChip(deliveryId: stops[i].deliveryId),
                 ),
               const Divider(height: 1),
               ListTile(

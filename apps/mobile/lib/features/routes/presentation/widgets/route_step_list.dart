@@ -45,6 +45,7 @@ class RouteStopStep extends StatelessWidget {
     this.onTap,
     this.semanticsId,
     this.statusDotKey,
+    this.trailing,
     super.key,
   });
 
@@ -58,6 +59,11 @@ class RouteStopStep extends StatelessWidget {
 
   /// Key do dot de status (o shell passa `stop_card_N_status_dot`).
   final Key? statusDotKey;
+
+  /// Override do trailing: quando fornecido, substitui o dot de status (ex.: o
+  /// chip de ID de parada "A1" nos estados otimizados — número da parada e ID
+  /// coexistem, o formato Moderno do Spoke existe pra não confundi-los).
+  final Widget? trailing;
 
   /// Posição 1-based na rota otimizada; null em DRAFT (disco = círculo vazio).
   final int? position;
@@ -84,12 +90,14 @@ class RouteStopStep extends StatelessWidget {
       disc: _StepDisc(number: position, timeTop: etaTime),
       lineOne: streetName,
       lineTwo: fullAddress,
-      trailing: Container(
-        key: statusDotKey,
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor),
-      ),
+      trailing: trailing ??
+          Container(
+            key: statusDotKey,
+            width: 10,
+            height: 10,
+            decoration:
+                BoxDecoration(shape: BoxShape.circle, color: statusColor),
+          ),
       onTap: onTap,
     );
   }
