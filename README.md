@@ -2,8 +2,6 @@
 
 Android route-planning app for delivery riders, distributed as APK from `roteirizadorpro.com.br`. Functional fork of [Spoke/Circuit Route Planner](https://getcircuit.com) with original visual identity, self-hosted infrastructure, and a planned 50/50 partner revenue split via Pix.
 
-Detailed roadmap: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (v1 archived 2026-05-26 to `docs/archive/` per [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md)).
-
 ## Stack
 
 | Layer | Tech |
@@ -13,7 +11,7 @@ Detailed roadmap: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (v1 archive
 | ORM / DB | Prisma 7 + PostgreSQL 16 |
 | Cache | Redis 7 |
 | Routing engine | GraphHopper (self-hosted, motorcycle profile) |
-| Payments (M2) | Stripe Pix + Stripe Connect 50/50 split (ADR-0030) |
+| Payments | Stripe Pix + Stripe Connect 50/50 split (ADR-0030) |
 | Landing | Next.js 14 on Vercel |
 | Server | Ubuntu 24.04 on DigitalOcean (client's account) |
 
