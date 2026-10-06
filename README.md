@@ -2,14 +2,6 @@
 
 Android route-planning app for delivery riders, distributed as APK from `roteirizadorpro.com.br`. Functional fork of [Spoke/Circuit Route Planner](https://getcircuit.com) with original visual identity, self-hosted infrastructure, and a planned 50/50 partner revenue split via Pix.
 
-## Status
-
-🟡 **In active development — M2, Slice 2 (Telas Core Spoke-aligned, ~55%).** M1 closed 2026-05-09.
-
-| Milestone | Scope | Status |
-|---|---|---|
-| **M1** (BRL 2,000) | Server (DO), landing page, backend auth API + healthchecks, GraphHopper SP graph, Login + Register Flutter screens, APK `v1.0.0` | Delivered 2026-05-09 |
-| **M2** (BRL 2,000) | 7 slices locked per `docs/08-ROADMAP-v2.md`: Telas Core, backend real, Pix paywall, sentido casa, LGPD, admin | In progress (Slice 2 active) |
 
 Detailed roadmap: [`docs/08-ROADMAP-v2.md`](./docs/08-ROADMAP-v2.md) (v1 archived 2026-05-26 to `docs/archive/` per [ADR-0035](./docs/decisions/0035-spoke-functional-clone-prototype-creative-reference.md)).
 
